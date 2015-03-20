@@ -1,0 +1,6 @@
+rootProject.name = 'Jabit'
+
+include 'domain'
+
+include 'networking'
+
