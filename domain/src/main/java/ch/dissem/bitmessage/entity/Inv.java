@@ -16,50 +16,55 @@
 
 package ch.dissem.bitmessage.entity;
 
-import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
+import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
- * The 'addr' command holds a list of known active Bitmessage nodes.
+ * The 'inv' command holds up to 50000 inventory vectors, i.e. hashes of inventory items.
  */
-public class Addr implements Command {
-    private final List<NetworkAddress> addresses;
+public class Inv implements Command {
+    private List<InventoryVector> inventory;
 
-    private Addr(Builder builder) {
-        addresses = builder.addresses;
+    private Inv(Builder builder) {
+        inventory = builder.inventory;
     }
 
     @Override
     public String getCommand() {
-        return "addr";
+        return "inv";
     }
 
     @Override
     public void write(OutputStream stream) throws IOException {
-        Encode.varInt(addresses.size(), stream);
-        for (NetworkAddress address : addresses) {
-            address.write(stream);
+        Encode.varInt(inventory.size(), stream);
+        for (InventoryVector iv : inventory) {
+            iv.write(stream);
         }
     }
 
     public static final class Builder {
-        private List<NetworkAddress> addresses = new ArrayList<NetworkAddress>();
+        private List<InventoryVector> inventory = new LinkedList<>();
 
         public Builder() {
         }
 
-        public Builder addAddress(final NetworkAddress address) {
-            this.addresses.add(address);
+        public Builder addInventoryVector(InventoryVector inventoryVector) {
+            this.inventory.add(inventoryVector);
             return this;
         }
 
-        public Addr build() {
-            return new Addr(this);
+        public Builder inventory(List<InventoryVector> inventory) {
+            this.inventory = inventory;
+            return this;
+        }
+
+        public Inv build() {
+            return new Inv(this);
         }
     }
 }

@@ -21,7 +21,8 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 /**
- * Created by chris on 13.03.15.
+ * This class handles encoding simple types from byte stream, according to
+ * https://bitmessage.org/wiki/Protocol_specification#Common_structures
  */
 public class Encode {
     public static void varIntList(long[] values, OutputStream stream) throws IOException {
@@ -71,6 +72,7 @@ public class Encode {
 
     public static void varString(String value, OutputStream stream) throws IOException {
         byte[] bytes = value.getBytes("utf-8");
+        // FIXME: technically, it says the length in characters, but I think this one might be correct
         varInt(bytes.length, stream);
         stream.write(bytes);
     }

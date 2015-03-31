@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.entity;
+package ch.dissem.bitmessage.entity.payload;
+
+import ch.dissem.bitmessage.entity.Streamable;
 
 /**
- * Created by chris on 10.03.15.
+ * The payload of an 'object' command. This is shared by the network.
  */
-public interface MessagePayload extends Streamable {
-    String getCommand();
+public interface ObjectPayload extends Streamable {
 }

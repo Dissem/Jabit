@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * Created by chris on 10.03.15.
+ * An object that can be written to an {@link OutputStream}
  */
 public interface Streamable {
     void write(OutputStream stream) throws IOException;

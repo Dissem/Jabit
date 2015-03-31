@@ -17,7 +17,8 @@
 package ch.dissem.bitmessage.entity;
 
 /**
- * Created by chris on 16.03.15.
+ * A command can hold a network message payload
  */
-public interface ObjectPayload {
+public interface Command extends Streamable {
+    String getCommand();
 }

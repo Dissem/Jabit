@@ -24,9 +24,10 @@ import java.io.OutputStream;
 import java.util.Random;
 
 /**
- * Created by chris on 10.03.15.
+ * The 'version' command advertises this node's latest supported protocol version upon initiation.
  */
-public class Version implements MessagePayload {
+public class Version implements Command {
+    public static final int CURRENT = 3;
     /**
      * Identifies protocol version being used by the node. Should equal 3. Nodes should disconnect if the remote node's
      * version is lower but continue with the connection if it is higher.
@@ -115,7 +116,7 @@ public class Version implements MessagePayload {
 
     @Override
     public String getCommand() {
-        return "ver";
+        return "version";
     }
 
     @Override
@@ -123,8 +124,8 @@ public class Version implements MessagePayload {
         Encode.int32(version, stream);
         Encode.int64(services, stream);
         Encode.int64(timestamp, stream);
-        addrRecv.write(stream);
-        addrFrom.write(stream);
+        addrRecv.write(stream, true);
+        addrFrom.write(stream, true);
         Encode.int64(nonce, stream);
         Encode.varString(userAgent, stream);
         Encode.varIntList(streamNumbers, stream);
@@ -132,16 +133,26 @@ public class Version implements MessagePayload {
 
 
     public static final class Builder {
-        private int version = 3;
-        private long services = 1; // This is a normal network node
-        private long timestamp = System.currentTimeMillis() / 1000;
+        private int version;
+        private long services;
+        private long timestamp;
         private NetworkAddress addrRecv;
         private NetworkAddress addrFrom;
-        private long nonce = new Random().nextInt();
-        private String userAgent = "/Jabit:0.0.1/";
-        private long[] streamNumbers = {1};
+        private long nonce;
+        private String userAgent;
+        private long[] streamNumbers;
 
         public Builder() {
+        }
+
+        public Builder defaults() {
+            version = CURRENT;
+            services = 1;
+            timestamp = System.currentTimeMillis() / 1000;
+            nonce = new Random().nextInt();
+            userAgent = "/Jabit:0.0.1/";
+            streamNumbers = new long[]{1};
+            return this;
         }
 
         public Builder version(int version) {
@@ -179,7 +190,7 @@ public class Version implements MessagePayload {
             return this;
         }
 
-        public Builder streamNumbers(long... streamNumbers) {
+        public Builder streams(long... streamNumbers) {
             this.streamNumbers = streamNumbers;
             return this;
         }

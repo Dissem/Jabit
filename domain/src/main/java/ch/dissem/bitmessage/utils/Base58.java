@@ -14,22 +14,19 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.entity;
-
-import java.io.IOException;
-import java.io.OutputStream;
+package ch.dissem.bitmessage.utils;
 
 /**
- * The 'verack' command answers a 'version' command, accepting the other node's version.
+ * Base58 encoder and decoder
  */
-public class VerAck implements Command {
-    @Override
-    public String getCommand() {
-        return "verack";
+public class Base58 {
+    private static char[] ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
+
+    public static String encode(byte[] input) {
+        return null; // TODO
     }
 
-    @Override
-    public void write(OutputStream stream) throws IOException {
-        // 'verack' doesn't have any payload, so there is nothing to write
+    public static byte[] decode(String input) {
+        return null; // TODO
     }
 }

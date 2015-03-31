@@ -16,28 +16,35 @@
 
 package ch.dissem.bitmessage.entity;
 
+import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 
+import static ch.dissem.bitmessage.utils.Security.sha512;
+
 /**
- * Created by chris on 10.03.15.
+ * A network message is exchanged between two nodes.
  */
 public class NetworkMessage implements Streamable {
     /**
      * Magic value indicating message origin network, and used to seek to next message when stream state is unknown
      */
-    private final static int MAGIC = 0xE9BEB4D9;
+    public final static int MAGIC = 0xE9BEB4D9;
+    public final static byte[] MAGIC_BYTES = ByteBuffer.allocate(4).putInt(MAGIC).array();
 
-    private MessagePayload payload;
+    private final NetworkAddress targetNode;
 
-    public NetworkMessage(MessagePayload payload) {
+    private final Command payload;
+
+    public NetworkMessage(NetworkAddress target, Command payload) {
+        this.targetNode = target;
         this.payload = payload;
     }
 
@@ -45,16 +52,19 @@ public class NetworkMessage implements Streamable {
      * First 4 bytes of sha512(payload)
      */
     private byte[] getChecksum(byte[] bytes) throws NoSuchProviderException, NoSuchAlgorithmException {
-        MessageDigest mda = MessageDigest.getInstance("SHA-512");
-        byte[] d = mda.digest(bytes);
+        byte[] d = sha512(bytes);
         return new byte[]{d[0], d[1], d[2], d[3]};
     }
 
     /**
      * The actual data, a message or an object. Not to be confused with objectPayload.
      */
-    public MessagePayload getPayload() {
+    public Command getPayload() {
         return payload;
+    }
+
+    public NetworkAddress getTargetNode() {
+        return targetNode;
     }
 
     @Override

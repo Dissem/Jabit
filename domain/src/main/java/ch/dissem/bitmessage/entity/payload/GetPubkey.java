@@ -14,22 +14,37 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.entity;
+package ch.dissem.bitmessage.entity.payload;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * The 'verack' command answers a 'version' command, accepting the other node's version.
+ * Created by chris on 24.03.15.
  */
-public class VerAck implements Command {
-    @Override
-    public String getCommand() {
-        return "verack";
+public class GetPubkey implements ObjectPayload {
+    private byte[] ripe;
+    private byte[] tag;
+
+    public GetPubkey(byte[] ripeOrTag) {
+        switch (ripeOrTag.length) {
+            case 20:
+                ripe = ripeOrTag;
+                break;
+            case 32:
+                tag = ripeOrTag;
+                break;
+            default:
+                throw new RuntimeException("ripe (20 bytes) or tag (32 bytes) expected, but pubkey was " + ripeOrTag.length + " bytes.");
+        }
     }
 
     @Override
     public void write(OutputStream stream) throws IOException {
-        // 'verack' doesn't have any payload, so there is nothing to write
+        if (tag != null) {
+            stream.write(tag);
+        } else {
+            stream.write(ripe);
+        }
     }
 }

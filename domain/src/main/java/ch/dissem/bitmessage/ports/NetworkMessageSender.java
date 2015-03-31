@@ -20,7 +20,7 @@ import ch.dissem.bitmessage.entity.NetworkMessage;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 
 /**
- * Created by chris on 16.03.15.
+ * Sends messages
  */
 public interface NetworkMessageSender {
     public void send(NetworkAddress node, NetworkMessage message);

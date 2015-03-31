@@ -14,22 +14,46 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.entity;
+package ch.dissem.bitmessage.entity.payload;
+
+import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * The 'verack' command answers a 'version' command, accepting the other node's version.
+ * Created by chris on 24.03.15.
  */
-public class VerAck implements Command {
+public class V2Pubkey implements Pubkey {
+    protected long streamNumber;
+    protected long behaviorBitfield;
+    protected byte[] publicSigningKey;
+    protected byte[] publicEncryptionKey;
+
     @Override
-    public String getCommand() {
-        return "verack";
+    public long getVersion() {
+        return 2;
+    }
+
+    @Override
+    public long getStream() {
+        return streamNumber;
+    }
+
+    @Override
+    public byte[] getSigningKey() {
+        return publicSigningKey;
+    }
+
+    @Override
+    public byte[] getEncryptionKey() {
+        return publicEncryptionKey;
     }
 
     @Override
     public void write(OutputStream stream) throws IOException {
-        // 'verack' doesn't have any payload, so there is nothing to write
+        Encode.int32(behaviorBitfield, stream);
+        stream.write(publicSigningKey);
+        stream.write(publicEncryptionKey);
     }
 }

@@ -21,13 +21,15 @@ import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Objects;
 
 /**
- * Created by chris on 10.03.15.
+ * A node's address. It's written in IPv6 format.
  */
 public class NetworkAddress implements Streamable {
     private long time;
@@ -35,7 +37,7 @@ public class NetworkAddress implements Streamable {
     /**
      * Stream number for this node
      */
-    private int stream;
+    private long stream;
 
     /**
      * same service(s) listed in version
@@ -88,8 +90,14 @@ public class NetworkAddress implements Streamable {
 
     @Override
     public void write(OutputStream stream) throws IOException {
-        Encode.int64(time, stream);
-        Encode.int32(this.stream, stream);
+        write(stream, false);
+    }
+
+    public void write(OutputStream stream, boolean light) throws IOException {
+        if (!light) {
+            Encode.int64(time, stream);
+            Encode.int32(this.stream, stream);
+        }
         Encode.int64(services, stream);
         stream.write(ipv6);
         Encode.int16(port, stream);
@@ -97,7 +105,7 @@ public class NetworkAddress implements Streamable {
 
     public static final class Builder {
         private long time;
-        private int stream;
+        private long stream;
         private long services = 1;
         private byte[] ipv6;
         private int port;
@@ -110,13 +118,31 @@ public class NetworkAddress implements Streamable {
             return this;
         }
 
-        public Builder stream(final int stream) {
+        public Builder stream(final long stream) {
             this.stream = stream;
             return this;
         }
 
         public Builder services(final long services) {
             this.services = services;
+            return this;
+        }
+
+        public Builder ip(InetAddress inetAddress) {
+            byte[] addr = inetAddress.getAddress();
+            if (addr.length == 16) {
+                this.ipv6 = addr;
+            } else if (addr.length == 4) {
+                this.ipv6 = new byte[16];
+                System.arraycopy(addr, 0, this.ipv6, 12, 4);
+            } else {
+                throw new IllegalArgumentException("Weird address " + inetAddress);
+            }
+            return this;
+        }
+
+        public Builder ipv6(byte[] ipv6) {
+            this.ipv6 = ipv6;
             return this;
         }
 
