@@ -27,7 +27,7 @@ import java.util.List;
 /**
  * The 'getdata' command is used to request objects from a node.
  */
-public class GetData implements Command {
+public class GetData implements MessagePayload {
     List<InventoryVector> inventory;
 
     private GetData(Builder builder) {
@@ -35,8 +35,12 @@ public class GetData implements Command {
     }
 
     @Override
-    public String getCommand() {
-        return "getdata";
+    public Command getCommand() {
+        return Command.GETDATA;
+    }
+
+    public List<InventoryVector> getInventory() {
+        return inventory;
     }
 
     @Override

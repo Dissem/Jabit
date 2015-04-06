@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
+import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.IOException;
@@ -25,7 +26,7 @@ import java.io.OutputStream;
 /**
  * The 'object' command sends an object that is shared throughout the network.
  */
-public class ObjectMessage implements Command {
+public class ObjectMessage implements MessagePayload {
     private long nonce;
     private long expiresTime;
     private long objectType;
@@ -47,8 +48,17 @@ public class ObjectMessage implements Command {
     }
 
     @Override
-    public String getCommand() {
-        return "object";
+    public Command getCommand() {
+        return Command.OBJECT;
+    }
+
+    public ObjectPayload getPayload() {
+        return payload;
+    }
+
+    public InventoryVector getInventoryVector() {
+        // TODO
+        return null;
     }
 
     @Override

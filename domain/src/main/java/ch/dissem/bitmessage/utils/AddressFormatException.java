@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.entity;
+package ch.dissem.bitmessage.utils;
 
 /**
- * A command can hold a network message payload
+ * Indicates an illegal Bitmessage address
  */
-public interface Command extends Streamable {
-    String getCommand();
+public class AddressFormatException extends RuntimeException {
+    public AddressFormatException(String message) {
+        super(message);
+    }
 }

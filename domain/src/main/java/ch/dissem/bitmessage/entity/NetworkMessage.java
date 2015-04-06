@@ -16,7 +16,6 @@
 
 package ch.dissem.bitmessage.entity;
 
-import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.ByteArrayOutputStream;
@@ -39,12 +38,9 @@ public class NetworkMessage implements Streamable {
     public final static int MAGIC = 0xE9BEB4D9;
     public final static byte[] MAGIC_BYTES = ByteBuffer.allocate(4).putInt(MAGIC).array();
 
-    private final NetworkAddress targetNode;
+    private final MessagePayload payload;
 
-    private final Command payload;
-
-    public NetworkMessage(NetworkAddress target, Command payload) {
-        this.targetNode = target;
+    public NetworkMessage(MessagePayload payload) {
         this.payload = payload;
     }
 
@@ -59,12 +55,8 @@ public class NetworkMessage implements Streamable {
     /**
      * The actual data, a message or an object. Not to be confused with objectPayload.
      */
-    public Command getPayload() {
+    public MessagePayload getPayload() {
         return payload;
-    }
-
-    public NetworkAddress getTargetNode() {
-        return targetNode;
     }
 
     @Override
@@ -73,8 +65,9 @@ public class NetworkMessage implements Streamable {
         Encode.int32(MAGIC, stream);
 
         // ASCII string identifying the packet content, NULL padded (non-NULL padding results in packet rejected)
-        stream.write(payload.getCommand().getBytes("ASCII"));
-        for (int i = payload.getCommand().length(); i < 12; i++) {
+        String command = payload.getCommand().name().toLowerCase();
+        stream.write(command.getBytes("ASCII"));
+        for (int i = command.length(); i < 12; i++) {
             stream.write('\0');
         }
 

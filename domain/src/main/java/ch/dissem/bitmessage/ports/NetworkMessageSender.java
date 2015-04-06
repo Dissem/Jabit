@@ -16,12 +16,12 @@
 
 package ch.dissem.bitmessage.ports;
 
-import ch.dissem.bitmessage.entity.NetworkMessage;
+import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 
 /**
  * Sends messages
  */
 public interface NetworkMessageSender {
-    public void send(NetworkAddress node, NetworkMessage message);
+    void send(NetworkAddress node, ObjectPayload payload);
 }

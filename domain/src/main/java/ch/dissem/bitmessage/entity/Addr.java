@@ -22,12 +22,13 @@ import ch.dissem.bitmessage.utils.Encode;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
  * The 'addr' command holds a list of known active Bitmessage nodes.
  */
-public class Addr implements Command {
+public class Addr implements MessagePayload {
     private final List<NetworkAddress> addresses;
 
     private Addr(Builder builder) {
@@ -35,8 +36,12 @@ public class Addr implements Command {
     }
 
     @Override
-    public String getCommand() {
-        return "addr";
+    public Command getCommand() {
+        return Command.ADDR;
+    }
+
+    public List<NetworkAddress> getAddresses() {
+        return addresses;
     }
 
     @Override
@@ -51,6 +56,11 @@ public class Addr implements Command {
         private List<NetworkAddress> addresses = new ArrayList<NetworkAddress>();
 
         public Builder() {
+        }
+
+        public Builder addresses(Collection<NetworkAddress> addresses){
+            this.addresses.addAll(addresses);
+            return this;
         }
 
         public Builder addAddress(final NetworkAddress address) {

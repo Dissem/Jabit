@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.networking;
 
 import ch.dissem.bitmessage.entity.NetworkMessage;
 import ch.dissem.bitmessage.entity.Version;
+import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.ports.NetworkMessageReceiver;
 import org.junit.Test;
@@ -34,12 +35,12 @@ public class NetworkNodeTest {
         NetworkNode net = new NetworkNode();
         net.registerListener(localhost, new NetworkMessageReceiver.MessageListener() {
             @Override
-            public void receive(NetworkMessage message) {
-                System.out.println(message);
+            public void receive(ObjectPayload payload) {
+                System.out.println(payload);
                 baseThread.interrupt();
             }
         });
-        NetworkMessage ver = new NetworkMessage(localhost,
+        NetworkMessage ver = new NetworkMessage(
                 new Version.Builder()
                         .version(3)
                         .services(1)
@@ -49,7 +50,8 @@ public class NetworkNodeTest {
                         .nonce(-1)
                         .userAgent("Test")
                         .streams(1, 2)
-                        .build());
+                        .build()
+        );
         net.send(localhost, ver);
         Thread.sleep(20000);
     }

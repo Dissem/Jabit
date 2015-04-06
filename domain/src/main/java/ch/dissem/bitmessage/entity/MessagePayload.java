@@ -16,20 +16,13 @@
 
 package ch.dissem.bitmessage.entity;
 
-import java.io.IOException;
-import java.io.OutputStream;
-
 /**
- * The 'verack' command answers a 'version' command, accepting the other node's version.
+ * A command can hold a network message payload
  */
-public class VerAck implements MessagePayload {
-    @Override
-    public Command getCommand() {
-        return Command.VERACK;
-    }
+public interface MessagePayload extends Streamable {
+    Command getCommand();
 
-    @Override
-    public void write(OutputStream stream) throws IOException {
-        // 'verack' doesn't have any payload, so there is nothing to write
+    enum Command {
+        VERSION, VERACK, ADDR, INV, GETDATA, OBJECT
     }
 }

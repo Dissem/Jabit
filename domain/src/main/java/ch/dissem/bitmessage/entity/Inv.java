@@ -27,16 +27,20 @@ import java.util.List;
 /**
  * The 'inv' command holds up to 50000 inventory vectors, i.e. hashes of inventory items.
  */
-public class Inv implements Command {
+public class Inv implements MessagePayload {
     private List<InventoryVector> inventory;
 
     private Inv(Builder builder) {
         inventory = builder.inventory;
     }
 
+    public List<InventoryVector> getInventory() {
+        return inventory;
+    }
+
     @Override
-    public String getCommand() {
-        return "inv";
+    public Command getCommand() {
+        return Command.INV;
     }
 
     @Override

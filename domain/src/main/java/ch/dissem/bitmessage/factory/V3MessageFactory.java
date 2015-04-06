@@ -40,7 +40,7 @@ class V3MessageFactory {
             byte[] payloadBytes = Decode.bytes(stream, length);
 
             if (testChecksum(checksum, payloadBytes)) {
-                Command payload = getPayload(command, new ByteArrayInputStream(payloadBytes), length);
+                MessagePayload payload = getPayload(command, new ByteArrayInputStream(payloadBytes), length);
                 return new NetworkMessage(payload);
             } else {
                 throw new IOException("Checksum failed for message '" + command + "'");
@@ -49,7 +49,7 @@ class V3MessageFactory {
         return null;
     }
 
-    private Command getPayload(String command, InputStream stream, int length) throws IOException {
+    private MessagePayload getPayload(String command, InputStream stream, int length) throws IOException {
         switch (command) {
             case "version":
                 return parseVersion(stream);

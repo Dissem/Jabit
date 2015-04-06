@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage.entity;
 
+import ch.dissem.bitmessage.Context;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.utils.Encode;
 
@@ -26,8 +27,7 @@ import java.util.Random;
 /**
  * The 'version' command advertises this node's latest supported protocol version upon initiation.
  */
-public class Version implements Command {
-    public static final int CURRENT = 3;
+public class Version implements MessagePayload {
     /**
      * Identifies protocol version being used by the node. Should equal 3. Nodes should disconnect if the remote node's
      * version is lower but continue with the connection if it is higher.
@@ -71,6 +71,17 @@ public class Version implements Command {
      */
     private final long[] streamNumbers;
 
+    private Version(Builder builder) {
+        version = builder.version;
+        services = builder.services;
+        timestamp = builder.timestamp;
+        addrRecv = builder.addrRecv;
+        addrFrom = builder.addrFrom;
+        nonce = builder.nonce;
+        userAgent = builder.userAgent;
+        streamNumbers = builder.streamNumbers;
+    }
+
     public int getVersion() {
         return version;
     }
@@ -99,24 +110,13 @@ public class Version implements Command {
         return userAgent;
     }
 
-    public long[] getStreamNumbers() {
+    public long[] getStreams() {
         return streamNumbers;
     }
 
-    private Version(Builder builder) {
-        version = builder.version;
-        services = builder.services;
-        timestamp = builder.timestamp;
-        addrRecv = builder.addrRecv;
-        addrFrom = builder.addrFrom;
-        nonce = builder.nonce;
-        userAgent = builder.userAgent;
-        streamNumbers = builder.streamNumbers;
-    }
-
     @Override
-    public String getCommand() {
-        return "version";
+    public Command getCommand() {
+        return Command.VERSION;
     }
 
     @Override
@@ -146,7 +146,7 @@ public class Version implements Command {
         }
 
         public Builder defaults() {
-            version = CURRENT;
+            version = Context.CURRENT;
             services = 1;
             timestamp = System.currentTimeMillis() / 1000;
             nonce = new Random().nextInt();

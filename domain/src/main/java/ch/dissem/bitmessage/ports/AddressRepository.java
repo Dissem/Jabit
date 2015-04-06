@@ -14,22 +14,17 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.entity;
+package ch.dissem.bitmessage.ports;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
+
+import java.util.List;
 
 /**
- * The 'verack' command answers a 'version' command, accepting the other node's version.
+ * Stores and provides known peers.
  */
-public class VerAck implements MessagePayload {
-    @Override
-    public Command getCommand() {
-        return Command.VERACK;
-    }
+public interface AddressRepository {
+    List<NetworkAddress> getKnownAddresses(int limit, long... streams);
 
-    @Override
-    public void write(OutputStream stream) throws IOException {
-        // 'verack' doesn't have any payload, so there is nothing to write
-    }
+    void offerAddresses(List<NetworkAddress> addresses);
 }
