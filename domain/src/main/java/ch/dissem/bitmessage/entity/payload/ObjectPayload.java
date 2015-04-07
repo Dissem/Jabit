@@ -22,4 +22,5 @@ import ch.dissem.bitmessage.entity.Streamable;
  * The payload of an 'object' command. This is shared by the network.
  */
 public interface ObjectPayload extends Streamable {
+    long getStream();
 }

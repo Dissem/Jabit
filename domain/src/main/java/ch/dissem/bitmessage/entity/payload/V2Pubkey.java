@@ -25,10 +25,20 @@ import java.io.OutputStream;
  * Created by chris on 24.03.15.
  */
 public class V2Pubkey implements Pubkey {
-    protected long streamNumber;
+    protected long stream;
     protected long behaviorBitfield;
     protected byte[] publicSigningKey;
     protected byte[] publicEncryptionKey;
+
+    protected V2Pubkey() {
+    }
+
+    private V2Pubkey(Builder builder) {
+        stream = builder.streamNumber;
+        behaviorBitfield = builder.behaviorBitfield;
+        publicSigningKey = builder.publicSigningKey;
+        publicEncryptionKey = builder.publicEncryptionKey;
+    }
 
     @Override
     public long getVersion() {
@@ -37,7 +47,7 @@ public class V2Pubkey implements Pubkey {
 
     @Override
     public long getStream() {
-        return streamNumber;
+        return stream;
     }
 
     @Override
@@ -55,5 +65,39 @@ public class V2Pubkey implements Pubkey {
         Encode.int32(behaviorBitfield, stream);
         stream.write(publicSigningKey);
         stream.write(publicEncryptionKey);
+    }
+
+    public static class Builder {
+        private long streamNumber;
+        private long behaviorBitfield;
+        private byte[] publicSigningKey;
+        private byte[] publicEncryptionKey;
+
+        public Builder() {
+        }
+
+        public Builder streamNumber(long streamNumber) {
+            this.streamNumber = streamNumber;
+            return this;
+        }
+
+        public Builder behaviorBitfield(long behaviorBitfield) {
+            this.behaviorBitfield = behaviorBitfield;
+            return this;
+        }
+
+        public Builder publicSigningKey(byte[] publicSigningKey) {
+            this.publicSigningKey = publicSigningKey;
+            return this;
+        }
+
+        public Builder publicEncryptionKey(byte[] publicEncryptionKey) {
+            this.publicEncryptionKey = publicEncryptionKey;
+            return this;
+        }
+
+        public V2Pubkey build() {
+            return new V2Pubkey(this);
+        }
     }
 }

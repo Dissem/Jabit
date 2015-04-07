@@ -146,7 +146,7 @@ public class Version implements MessagePayload {
         }
 
         public Builder defaults() {
-            version = Context.CURRENT;
+            version = Context.CURRENT_VERSION;
             services = 1;
             timestamp = System.currentTimeMillis() / 1000;
             nonce = new Random().nextInt();

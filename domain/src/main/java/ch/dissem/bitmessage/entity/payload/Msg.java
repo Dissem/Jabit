@@ -20,25 +20,15 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * Created by chris on 24.03.15.
+ * Created by chris on 07.04.15.
  */
-public class GetPubkey implements ObjectPayload {
+public class Msg implements ObjectPayload {
     private long stream;
-    private byte[] ripe;
-    private byte[] tag;
+    private byte[] encrypted;
 
-    public GetPubkey(long stream, byte[] ripeOrTag) {
-        this.stream=stream;
-        switch (ripeOrTag.length) {
-            case 20:
-                ripe = ripeOrTag;
-                break;
-            case 32:
-                tag = ripeOrTag;
-                break;
-            default:
-                throw new RuntimeException("ripe (20 bytes) or tag (32 bytes) expected, but pubkey was " + ripeOrTag.length + " bytes.");
-        }
+    public Msg(long stream, byte[] encrypted) {
+        this.stream = stream;
+        this.encrypted = encrypted;
     }
 
     @Override
@@ -48,10 +38,6 @@ public class GetPubkey implements ObjectPayload {
 
     @Override
     public void write(OutputStream stream) throws IOException {
-        if (tag != null) {
-            stream.write(tag);
-        } else {
-            stream.write(ripe);
-        }
+        stream.write(encrypted);
     }
 }

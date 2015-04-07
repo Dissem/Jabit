@@ -29,6 +29,17 @@ public class V3Pubkey extends V2Pubkey {
     long extraBytes;
     byte[] signature;
 
+    protected V3Pubkey(Builder builder) {
+        stream = builder.streamNumber;
+        behaviorBitfield = builder.behaviorBitfield;
+        publicSigningKey = builder.publicSigningKey;
+        publicEncryptionKey = builder.publicEncryptionKey;
+
+        nonceTrialsPerByte = builder.nonceTrialsPerByte;
+        extraBytes = builder.extraBytes;
+        signature = builder.signature;
+    }
+
     @Override
     public void write(OutputStream stream) throws IOException {
         super.write(stream);
@@ -41,5 +52,58 @@ public class V3Pubkey extends V2Pubkey {
     @Override
     public long getVersion() {
         return 3;
+    }
+
+    public static class Builder extends V2Pubkey.Builder {
+        private long streamNumber;
+        private long behaviorBitfield;
+        private byte[] publicSigningKey;
+        private byte[] publicEncryptionKey;
+
+        private long nonceTrialsPerByte;
+        private long extraBytes;
+        private byte[] signature;
+
+        public Builder() {
+        }
+
+        public Builder streamNumber(long streamNumber) {
+            this.streamNumber = streamNumber;
+            return this;
+        }
+
+        public Builder behaviorBitfield(long behaviorBitfield) {
+            this.behaviorBitfield = behaviorBitfield;
+            return this;
+        }
+
+        public Builder publicSigningKey(byte[] publicSigningKey) {
+            this.publicSigningKey = publicSigningKey;
+            return this;
+        }
+
+        public Builder publicEncryptionKey(byte[] publicEncryptionKey) {
+            this.publicEncryptionKey = publicEncryptionKey;
+            return this;
+        }
+
+        public Builder nonceTrialsPerByte(long nonceTrialsPerByte) {
+            this.nonceTrialsPerByte = nonceTrialsPerByte;
+            return this;
+        }
+
+        public Builder extraBytes(long extraBytes) {
+            this.extraBytes = extraBytes;
+            return this;
+        }
+
+        public Builder signature(byte[] signature) {
+            this.signature = signature;
+            return this;
+        }
+
+        public V3Pubkey build() {
+            return new V3Pubkey(this);
+        }
     }
 }

@@ -21,7 +21,7 @@ import ch.dissem.bitmessage.entity.*;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.factory.Factory;
-import ch.dissem.bitmessage.ports.NetworkMessageReceiver.MessageListener;
+import ch.dissem.bitmessage.ports.NetworkHandler.MessageListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,6 +69,14 @@ public class Connection implements Runnable {
         this.node = new NetworkAddress.Builder().ip(socket.getInetAddress()).port(socket.getPort()).build();
     }
 
+    public State getState() {
+        return state;
+    }
+
+    public NetworkAddress getNode() {
+        return node;
+    }
+
     @Override
     public void run() {
         if (state == CLIENT) {
@@ -77,6 +85,8 @@ public class Connection implements Runnable {
         while (state != DISCONNECTED) {
             try {
                 NetworkMessage msg = Factory.getNetworkMessage(version, in);
+                if (msg == null)
+                    continue;
                 switch (state) {
                     case ACTIVE:
                         receiveMessage(msg.getPayload());
@@ -90,20 +100,16 @@ public class Connection implements Runnable {
                                     this.version = payload.getVersion();
                                     this.streams = payload.getStreams();
                                     send(new VerAck());
-                                    if (state == SERVER) {
-                                        state = ACTIVE;
-                                    }
+                                    state = ACTIVE;
+                                    sendAddresses();
+                                    sendInventory();
                                 } else {
+                                    LOG.info("Received unsupported version " + payload.getVersion() + ", disconnecting.");
                                     disconnect();
                                 }
                                 break;
                             case VERACK:
-                                if (state == CLIENT) {
-                                    sendAddresses();
-                                    sendInventory();
-
-                                    state = ACTIVE;
-                                } else {
+                                if (state == SERVER) {
                                     send(new Version.Builder().defaults().addrFrom(host).addrRecv(node).build());
                                 }
                                 break;
@@ -155,7 +161,7 @@ public class Connection implements Runnable {
 
     private void sendAddresses() {
         List<NetworkAddress> addresses = ctx.getAddressRepository().getKnownAddresses(1000, streams);
-        send(new Addr.Builder().addresses(addresses).build());
+        sendingQueue.offer(new Addr.Builder().addresses(addresses).build());
     }
 
     private void sendInventory() {

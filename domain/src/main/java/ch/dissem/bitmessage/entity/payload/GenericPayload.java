@@ -23,10 +23,17 @@ import java.io.OutputStream;
  * Created by chris on 24.03.15.
  */
 public class GenericPayload implements ObjectPayload {
+    private long stream;
     private byte[] data;
 
-    public GenericPayload(byte[] data) {
+    public GenericPayload(long stream, byte[] data) {
+        this.stream=stream;
         this.data = data;
+    }
+
+    @Override
+    public long getStream() {
+        return stream;
     }
 
     @Override

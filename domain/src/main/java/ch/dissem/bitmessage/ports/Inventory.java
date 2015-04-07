@@ -17,7 +17,6 @@
 package ch.dissem.bitmessage.ports;
 
 import ch.dissem.bitmessage.entity.ObjectMessage;
-import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 
 import java.util.List;
@@ -26,13 +25,13 @@ import java.util.List;
  * The Inventory stores and retrieves objects, cleans up outdated objects and can tell which objects are still missing.
  */
 public interface Inventory {
-    public List<InventoryVector> getInventory(long... streams);
+    List<InventoryVector> getInventory(long... streams);
 
-    public List<InventoryVector> getMissing(List<InventoryVector> offer);
+    List<InventoryVector> getMissing(List<InventoryVector> offer);
 
-    public ObjectMessage getObject(InventoryVector vector);
+    ObjectMessage getObject(InventoryVector vector);
 
-    public void storeObject(ObjectMessage object);
+    void storeObject(ObjectMessage object);
 
-    public void cleanup();
+    void cleanup();
 }

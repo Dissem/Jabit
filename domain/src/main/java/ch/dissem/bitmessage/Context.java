@@ -18,8 +18,12 @@ package ch.dissem.bitmessage;
 
 import ch.dissem.bitmessage.ports.AddressRepository;
 import ch.dissem.bitmessage.ports.Inventory;
-import ch.dissem.bitmessage.ports.NetworkMessageReceiver;
-import ch.dissem.bitmessage.ports.NetworkMessageSender;
+import ch.dissem.bitmessage.ports.NetworkHandler;
+
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.TreeSet;
 
 /**
  * Created by chris on 05.04.15.
@@ -31,19 +35,22 @@ public class Context {
 
     private Inventory inventory;
     private AddressRepository addressRepo;
-    private NetworkMessageSender sender;
-    private NetworkMessageReceiver receiver;
+    private NetworkHandler networkHandler;
+
+    private Collection<Long> streams = new TreeSet<>();
+
+    private int port;
 
     private Context(Inventory inventory, AddressRepository addressRepo,
-                    NetworkMessageSender sender, NetworkMessageReceiver receiver) {
+                    NetworkHandler networkHandler, int port) {
         this.inventory = inventory;
         this.addressRepo = addressRepo;
-        this.sender = sender;
-        this.receiver = receiver;
+        this.networkHandler = networkHandler;
+        this.port = port;
     }
 
-    public static void init(Inventory inventory, AddressRepository addressRepository, NetworkMessageSender sender, NetworkMessageReceiver receiver) {
-        instance = new Context(inventory, addressRepository, sender, receiver);
+    public static void init(Inventory inventory, AddressRepository addressRepository, NetworkHandler networkHandler, int port) {
+        instance = new Context(inventory, addressRepository, networkHandler, port);
     }
 
     public static Context getInstance() {
@@ -56,5 +63,26 @@ public class Context {
 
     public AddressRepository getAddressRepository() {
         return addressRepo;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public long[] getStreams() {
+        long[] result = new long[streams.size()];
+        int i = 0;
+        for (long stream : streams) {
+            result[i++] = stream;
+        }
+        return result;
+    }
+
+    public void addStream(long stream) {
+        streams.add(stream);
+    }
+
+    public void removeStream(long stream) {
+        streams.remove(stream);
     }
 }

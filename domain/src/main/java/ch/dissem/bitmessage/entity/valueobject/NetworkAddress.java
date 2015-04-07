@@ -21,12 +21,9 @@ import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.Inet6Address;
 import java.net.InetAddress;
-import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Arrays;
-import java.util.Objects;
 
 /**
  * A node's address. It's written in IPv6 format.
@@ -51,6 +48,14 @@ public class NetworkAddress implements Streamable {
     private byte[] ipv6;
     private int port;
 
+    private NetworkAddress(Builder builder) {
+        time = builder.time;
+        stream = builder.stream;
+        services = builder.services;
+        ipv6 = builder.ipv6;
+        port = builder.port;
+    }
+
     public int getPort() {
         return port;
     }
@@ -61,14 +66,6 @@ public class NetworkAddress implements Streamable {
         } catch (UnknownHostException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private NetworkAddress(Builder builder) {
-        time = builder.time;
-        stream = builder.stream;
-        services = builder.services;
-        ipv6 = builder.ipv6;
-        port = builder.port;
     }
 
     @Override
@@ -86,6 +83,11 @@ public class NetworkAddress implements Streamable {
         int result = ipv6 != null ? Arrays.hashCode(ipv6) : 0;
         result = 31 * result + port;
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return toInetAddress() + ":" + port;
     }
 
     @Override

@@ -27,7 +27,10 @@ import java.nio.ByteBuffer;
 public class Decode {
     public static byte[] bytes(InputStream stream, int count) throws IOException {
         byte[] result = new byte[count];
-        stream.read(result);
+        int off = 0;
+        while (off < count) {
+            off += stream.read(result, off, count - off);
+        }
         return result;
     }
 

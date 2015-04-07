@@ -20,7 +20,7 @@ import ch.dissem.bitmessage.entity.NetworkMessage;
 import ch.dissem.bitmessage.entity.Version;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
-import ch.dissem.bitmessage.ports.NetworkMessageReceiver;
+import ch.dissem.bitmessage.ports.NetworkHandler;
 import org.junit.Test;
 
 /**
@@ -33,13 +33,13 @@ public class NetworkNodeTest {
     public void testSendMessage() throws Exception {
         final Thread baseThread = Thread.currentThread();
         NetworkNode net = new NetworkNode();
-        net.registerListener(localhost, new NetworkMessageReceiver.MessageListener() {
-            @Override
-            public void receive(ObjectPayload payload) {
-                System.out.println(payload);
-                baseThread.interrupt();
-            }
-        });
+//        net.setListener(localhost, new NetworkHandler.MessageListener() {
+//            @Override
+//            public void receive(ObjectPayload payload) {
+//                System.out.println(payload);
+//                baseThread.interrupt();
+//            }
+//        });
         NetworkMessage ver = new NetworkMessage(
                 new Version.Builder()
                         .version(3)
@@ -52,7 +52,7 @@ public class NetworkNodeTest {
                         .streams(1, 2)
                         .build()
         );
-        net.send(localhost, ver);
+//        net.send(localhost, ver);
         Thread.sleep(20000);
     }
 }

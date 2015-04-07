@@ -16,19 +16,17 @@
 
 package ch.dissem.bitmessage.ports;
 
-import ch.dissem.bitmessage.entity.NetworkMessage;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
-import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
-
-import java.io.IOException;
 
 /**
  * Handles incoming messages
  */
-public interface NetworkMessageReceiver {
-    void registerListener(int port, MessageListener listener) throws IOException;
+public interface NetworkHandler {
+    void setListener(MessageListener listener);
 
-    void registerListener(NetworkAddress node, MessageListener listener) throws IOException;
+    void start();
+
+    void send(ObjectPayload payload);
 
     interface MessageListener {
         void receive(ObjectPayload payload);

@@ -23,15 +23,22 @@ import java.io.OutputStream;
  * Created by chris on 27.03.15.
  */
 public class V4Pubkey implements Pubkey {
-    private long streamNumber;
+    private long stream;
     private byte[] tag;
     private byte[] encrypted;
     private V3Pubkey decrypted;
 
+    public V4Pubkey(long stream, byte[] tag, byte[] encrypted) {
+        this.stream = stream;
+        this.tag = tag;
+        this.encrypted = encrypted;
+    }
+
     public V4Pubkey(V3Pubkey decrypted) {
+        this.stream = decrypted.stream;
+        // TODO: this.tag = new BitmessageAddress(this).doubleHash
         this.decrypted = decrypted;
 
-        // TODO: this.tag = new BitmessageAddress(this).doubleHash
     }
 
     @Override
@@ -47,7 +54,7 @@ public class V4Pubkey implements Pubkey {
 
     @Override
     public long getStream() {
-        return streamNumber;
+        return stream;
     }
 
     @Override

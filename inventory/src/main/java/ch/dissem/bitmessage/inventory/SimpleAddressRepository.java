@@ -14,14 +14,24 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.ports;
+package ch.dissem.bitmessage.inventory;
 
-import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
+import ch.dissem.bitmessage.ports.AddressRepository;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
- * Sends messages
+ * Created by chris on 06.04.15.
  */
-public interface NetworkMessageSender {
-    void send(NetworkAddress node, ObjectPayload payload);
+public class SimpleAddressRepository implements AddressRepository {
+    @Override
+    public List<NetworkAddress> getKnownAddresses(int limit, long... streams) {
+        return Collections.singletonList(new NetworkAddress.Builder().ipv4(127, 0, 0, 1).port(8444).build());
+    }
+
+    @Override
+    public void offerAddresses(List<NetworkAddress> addresses) {
+    }
 }

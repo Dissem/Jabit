@@ -22,8 +22,6 @@ package ch.dissem.bitmessage.entity.payload;
 public interface Pubkey extends ObjectPayload {
     long getVersion();
 
-    long getStream();
-
     byte[] getSigningKey();
 
     byte[] getEncryptionKey();

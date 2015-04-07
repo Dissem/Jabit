@@ -16,86 +16,113 @@
 
 package ch.dissem.bitmessage.networking;
 
-import ch.dissem.bitmessage.entity.NetworkMessage;
-import ch.dissem.bitmessage.entity.Version;
+import ch.dissem.bitmessage.Context;
+import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
-import ch.dissem.bitmessage.factory.Factory;
-import ch.dissem.bitmessage.ports.NetworkMessageReceiver;
-import ch.dissem.bitmessage.ports.NetworkMessageSender;
+import ch.dissem.bitmessage.ports.NetworkHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static ch.dissem.bitmessage.networking.Connection.State.CLIENT;
-import static ch.dissem.bitmessage.networking.Connection.State.SERVER;
+import static ch.dissem.bitmessage.networking.Connection.State.*;
 
 /**
  * Handles all the networky stuff.
  */
-public class NetworkNode implements NetworkMessageSender, NetworkMessageReceiver {
+public class NetworkNode implements NetworkHandler {
     private final static Logger LOG = LoggerFactory.getLogger(NetworkNode.class);
-    /**
-     * This is only to be used where it's ignored
-     */
-    private final static NetworkAddress LOCALHOST = new NetworkAddress.Builder().ipv4(127, 0, 0, 1).port(8444).build();
     private final ExecutorService pool;
+    private final List<Connection> connections = new LinkedList<>();
+    private MessageListener listener;
 
     public NetworkNode() {
         pool = Executors.newCachedThreadPool();
-
-        // TODO: sending
-//        Thread sender = new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                while (true) {
-//                    try {
-//                        NetworkMessage message = sendingQueue.take();
-//
-//                        try (Socket socket = getSocket(message.getTargetNode())) {
-//                            message.write(socket.getOutputStream());
-//                        } catch (Exception e) {
-//                            e.printStackTrace();
-//                        }
-//                    } catch (InterruptedException e) {
-//                        // Ignore?
-//                    }
-//                }
-//            }
-//        }, "Sender");
-//        sender.setDaemon(true);
-//        sender.start();
     }
 
     @Override
-    public void registerListener(final int port, final MessageListener listener) throws IOException {
-        final ServerSocket serverSocket = new ServerSocket(port);
-        pool.execute(new Runnable() {
-            @Override
-            public void run() {
-                NetworkAddress address = null;
-                try {
-                    Socket socket = serverSocket.accept();
-                    socket.setSoTimeout(20000);
-                    pool.execute(new Connection(SERVER, socket, listener));
-                } catch (IOException e) {
-                    LOG.debug(e.getMessage(), e);
+    public void setListener(final MessageListener listener) {
+        if (this.listener != null) {
+            throw new IllegalStateException("Listener can only be set once");
+        }
+        this.listener = listener;
+    }
+
+    @Override
+    public void start() {
+        final Context ctx = Context.getInstance();
+        if (listener == null) {
+            throw new IllegalStateException("Listener must be set at start");
+        }
+        try {
+            final ServerSocket serverSocket = new ServerSocket(Context.getInstance().getPort());
+            pool.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Socket socket = serverSocket.accept();
+                        socket.setSoTimeout(20000);
+                        startConnection(new Connection(SERVER, socket, listener));
+                    } catch (IOException e) {
+                        LOG.debug(e.getMessage(), e);
+                    }
                 }
-            }
-        });
+            });
+            Thread connectionManager = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    while (!Thread.interrupted()) {
+                        synchronized (connections) {
+                            for (Iterator<Connection> iterator = connections.iterator(); iterator.hasNext(); ) {
+                                Connection c = iterator.next();
+                                if (c.getState() == DISCONNECTED) {
+                                    // Remove the current element from the iterator and the list.
+                                    iterator.remove();
+                                }
+                            }
+                        }
+                        if (connections.size() < 1) {
+                            List<NetworkAddress> addresses = ctx.getAddressRepository().getKnownAddresses(8, ctx.getStreams());
+                            for (NetworkAddress address : addresses) {
+                                try {
+                                    startConnection(new Connection(CLIENT, new Socket(address.toInetAddress(), address.getPort()), listener));
+                                } catch (IOException e) {
+                                    LOG.debug(e.getMessage(), e);
+                                }
+                            }
+                            // FIXME: prevent connecting twice to the same node
+                        }
+                        try {
+                            Thread.sleep(30000);
+                        } catch (InterruptedException e) {
+                            LOG.debug(e.getMessage(), e);
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                }
+            }, "connection-manager");
+            connectionManager.start();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void startConnection(Connection c) {
+        synchronized (connections) {
+            connections.add(c);
+        }
+        pool.execute(c);
     }
 
     @Override
-    public void registerListener(final NetworkAddress node, final MessageListener listener) throws IOException {
-        pool.execute(new Connection(CLIENT, new Socket(node.toInetAddress(), node.getPort()), listener));
-    }
-
-    @Override
-    public void send(final NetworkAddress node, final NetworkMessage message) {
+    public void send(final ObjectPayload payload) {
         // TODO: sendingQueue.add(message);
     }
 }
