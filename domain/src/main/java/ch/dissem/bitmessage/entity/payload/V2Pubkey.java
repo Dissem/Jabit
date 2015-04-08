@@ -22,11 +22,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * Created by chris on 24.03.15.
+ * A version 2 public key.
  */
 public class V2Pubkey implements Pubkey {
     protected long stream;
-    protected long behaviorBitfield;
+    protected int behaviorBitfield;
     protected byte[] publicSigningKey;
     protected byte[] publicEncryptionKey;
 
@@ -61,15 +61,15 @@ public class V2Pubkey implements Pubkey {
     }
 
     @Override
-    public void write(OutputStream stream) throws IOException {
-        Encode.int32(behaviorBitfield, stream);
-        stream.write(publicSigningKey);
-        stream.write(publicEncryptionKey);
+    public void write(OutputStream os) throws IOException {
+        Encode.int32(behaviorBitfield, os);
+        os.write(publicSigningKey);
+        os.write(publicEncryptionKey);
     }
 
     public static class Builder {
         private long streamNumber;
-        private long behaviorBitfield;
+        private int behaviorBitfield;
         private byte[] publicSigningKey;
         private byte[] publicEncryptionKey;
 
@@ -81,7 +81,7 @@ public class V2Pubkey implements Pubkey {
             return this;
         }
 
-        public Builder behaviorBitfield(long behaviorBitfield) {
+        public Builder behaviorBitfield(int behaviorBitfield) {
             this.behaviorBitfield = behaviorBitfield;
             return this;
         }

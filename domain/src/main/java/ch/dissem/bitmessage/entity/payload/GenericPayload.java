@@ -20,7 +20,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * Created by chris on 24.03.15.
+ * In cases we don't know what to do with an object, we just store its bytes and send it again - we don't really
+ * have to know what it is.
  */
 public class GenericPayload implements ObjectPayload {
     private long stream;

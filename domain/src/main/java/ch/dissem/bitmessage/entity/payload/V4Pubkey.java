@@ -20,7 +20,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * Created by chris on 27.03.15.
+ * A version 4 public key. When version 4 pubkeys are created, most of the data in the pubkey is encrypted. This is
+ * done in such a way that only someone who has the Bitmessage address which corresponds to a pubkey can decrypt and
+ * use that pubkey. This prevents people from gathering pubkeys sent around the network and using the data from them
+ * to create messages to be used in spam or in flooding attacks.
  */
 public class V4Pubkey implements Pubkey {
     private long stream;
@@ -38,7 +41,7 @@ public class V4Pubkey implements Pubkey {
         this.stream = decrypted.stream;
         // TODO: this.tag = new BitmessageAddress(this).doubleHash
         this.decrypted = decrypted;
-
+        // TODO: this.encrypted
     }
 
     @Override
@@ -55,6 +58,10 @@ public class V4Pubkey implements Pubkey {
     @Override
     public long getStream() {
         return stream;
+    }
+
+    public byte[] getTag() {
+        return tag;
     }
 
     @Override

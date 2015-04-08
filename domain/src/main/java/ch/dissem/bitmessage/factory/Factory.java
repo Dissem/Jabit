@@ -39,7 +39,7 @@ public class Factory {
         if (objectType < 4) {
             switch ((int) objectType) {
                 case 0: // getpubkey
-                    return new GetPubkey(streamNumber, Decode.bytes(stream, length));
+                    return parseGetPubkey((int) version, streamNumber, stream, length);
                 case 1: // pubkey
                     return parsePubkey((int) version, streamNumber, stream, length);
                 case 2: // msg
@@ -52,6 +52,10 @@ public class Factory {
         // fallback: just store the message - we don't really care what it is
         LOG.error("Unexpected object type: " + objectType);
         return new GenericPayload(streamNumber, Decode.bytes(stream, length));
+    }
+
+    private static ObjectPayload parseGetPubkey(int version, long streamNumber, InputStream stream, int length) throws IOException {
+        return new GetPubkey(streamNumber, Decode.bytes(stream, length));
     }
 
     private static ObjectPayload parsePubkey(int version, long streamNumber, InputStream stream, int length) throws IOException {
@@ -75,7 +79,7 @@ public class Factory {
                 v3.signature(Decode.bytes(stream, sigLength));
                 return v3.build();
             case 4:
-                // TODO
+                return new V4Pubkey(streamNumber, Decode.bytes(stream, 32), Decode.bytes(stream, length - 32));
         }
         LOG.debug("Unexpected pubkey version " + version + ", handling as generic payload object");
         return new GenericPayload(streamNumber, Decode.bytes(stream, length));
@@ -86,6 +90,14 @@ public class Factory {
     }
 
     private static ObjectPayload parseBroadcast(int version, long streamNumber, InputStream stream, int length) throws IOException {
-        return new Broadcast(streamNumber, Decode.bytes(stream, 32), Decode.bytes(stream, length - 32));
+        switch (version) {
+            case 4:
+                return new V4Broadcast(streamNumber, Decode.bytes(stream, length));
+            case 5:
+                return new V5Broadcast(streamNumber, Decode.bytes(stream, 32), Decode.bytes(stream, length - 32));
+            default:
+                LOG.debug("Encountered unknown broadcast version " + version);
+                return new GenericPayload(streamNumber, Decode.bytes(stream, length));
+        }
     }
 }

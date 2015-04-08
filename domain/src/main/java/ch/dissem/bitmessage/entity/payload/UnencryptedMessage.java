@@ -16,59 +16,82 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
+import ch.dissem.bitmessage.entity.Streamable;
 import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * A version 3 public key.
+ * The unencrypted message to be sent by 'msg' or 'broadcast'.
  */
-public class V3Pubkey extends V2Pubkey {
-    long nonceTrialsPerByte;
-    long extraBytes;
-    byte[] signature;
+public class UnencryptedMessage implements Streamable {
+    private final long addressVersion;
+    private final long stream;
+    private final int behaviorBitfield;
+    private final byte[] publicSigningKey;
+    private final byte[] publicEncryptionKey;
+    private final long nonceTrialsPerByte;
+    private final long extraBytes;
+    private final long encoding;
+    private final byte[] message;
+    private final byte[] signature;
 
-    protected V3Pubkey(Builder builder) {
-        stream = builder.streamNumber;
+    public long getStream() {
+        return stream;
+    }
+
+    private UnencryptedMessage(Builder builder) {
+        addressVersion = builder.addressVersion;
+        stream = builder.stream;
         behaviorBitfield = builder.behaviorBitfield;
         publicSigningKey = builder.publicSigningKey;
         publicEncryptionKey = builder.publicEncryptionKey;
-
         nonceTrialsPerByte = builder.nonceTrialsPerByte;
         extraBytes = builder.extraBytes;
+        encoding = builder.encoding;
+        message = builder.message;
         signature = builder.signature;
     }
 
     @Override
     public void write(OutputStream os) throws IOException {
-        super.write(os);
+        Encode.varInt(addressVersion, os);
+        Encode.varInt(stream, os);
+        Encode.int32(behaviorBitfield, os);
+        os.write(publicSigningKey);
+        os.write(publicEncryptionKey);
         Encode.varInt(nonceTrialsPerByte, os);
         Encode.varInt(extraBytes, os);
+        Encode.varInt(encoding, os);
+        Encode.varInt(message.length, os);
+        os.write(message);
         Encode.varInt(signature.length, os);
         os.write(signature);
     }
 
-    @Override
-    public long getVersion() {
-        return 3;
-    }
-
-    public static class Builder extends V2Pubkey.Builder {
-        private long streamNumber;
+    public static final class Builder {
+        private long addressVersion;
+        private long stream;
         private int behaviorBitfield;
         private byte[] publicSigningKey;
         private byte[] publicEncryptionKey;
-
         private long nonceTrialsPerByte;
         private long extraBytes;
+        private long encoding;
+        private byte[] message;
         private byte[] signature;
 
         public Builder() {
         }
 
-        public Builder streamNumber(long streamNumber) {
-            this.streamNumber = streamNumber;
+        public Builder addressVersion(long addressVersion) {
+            this.addressVersion = addressVersion;
+            return this;
+        }
+
+        public Builder stream(long stream) {
+            this.stream = stream;
             return this;
         }
 
@@ -97,13 +120,23 @@ public class V3Pubkey extends V2Pubkey {
             return this;
         }
 
+        public Builder encoding(long encoding) {
+            this.encoding = encoding;
+            return this;
+        }
+
+        public Builder message(byte[] message) {
+            this.message = message;
+            return this;
+        }
+
         public Builder signature(byte[] signature) {
             this.signature = signature;
             return this;
         }
 
-        public V3Pubkey build() {
-            return new V3Pubkey(this);
+        public UnencryptedMessage build() {
+            return new UnencryptedMessage(this);
         }
     }
 }

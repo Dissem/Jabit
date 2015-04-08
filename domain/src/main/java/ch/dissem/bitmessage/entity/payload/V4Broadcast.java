@@ -20,25 +20,17 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * Request for a public key.
+ * Users who are subscribed to the sending address will see the message appear in their inbox.
+ * Broadcasts are version 4 or 5.
  */
-public class GetPubkey implements ObjectPayload {
+public class V4Broadcast implements Broadcast {
     private long stream;
-    private byte[] ripe;
-    private byte[] tag;
+    private byte[] encrypted;
+    private UnencryptedMessage unencrypted;
 
-    public GetPubkey(long stream, byte[] ripeOrTag) {
+    public V4Broadcast(long stream, byte[] encrypted) {
         this.stream = stream;
-        switch (ripeOrTag.length) {
-            case 20:
-                ripe = ripeOrTag;
-                break;
-            case 32:
-                tag = ripeOrTag;
-                break;
-            default:
-                throw new RuntimeException("ripe (20 bytes) or tag (32 bytes) expected, but pubkey was " + ripeOrTag.length + " bytes long.");
-        }
+        this.encrypted = encrypted;
     }
 
     @Override
@@ -46,12 +38,12 @@ public class GetPubkey implements ObjectPayload {
         return stream;
     }
 
+    public byte[] getEncrypted() {
+        return encrypted;
+    }
+
     @Override
     public void write(OutputStream stream) throws IOException {
-        if (tag != null) {
-            stream.write(tag);
-        } else {
-            stream.write(ripe);
-        }
+        stream.write(getEncrypted());
     }
 }

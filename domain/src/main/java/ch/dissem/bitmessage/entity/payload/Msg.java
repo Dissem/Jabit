@@ -20,15 +20,21 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * Created by chris on 07.04.15.
+ * Used for person-to-person messages.
  */
 public class Msg implements ObjectPayload {
     private long stream;
     private byte[] encrypted;
+    private UnencryptedMessage unencrypted;
 
     public Msg(long stream, byte[] encrypted) {
         this.stream = stream;
         this.encrypted = encrypted;
+    }
+
+    public Msg(UnencryptedMessage unencrypted) {
+        this.stream = unencrypted.getStream();
+        this.unencrypted = unencrypted;
     }
 
     @Override
@@ -36,8 +42,15 @@ public class Msg implements ObjectPayload {
         return stream;
     }
 
+    public byte[] getEncrypted() {
+        if (encrypted == null) {
+            // TODO
+        }
+        return encrypted;
+    }
+
     @Override
     public void write(OutputStream stream) throws IOException {
-        stream.write(encrypted);
+        stream.write(getEncrypted());
     }
 }

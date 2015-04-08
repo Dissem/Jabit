@@ -17,7 +17,7 @@
 package ch.dissem.bitmessage.entity.payload;
 
 /**
- * Created by chris on 24.03.15.
+ * Public keys for signing and encryption, the answer to a 'getpubkey' request.
  */
 public interface Pubkey extends ObjectPayload {
     long getVersion();

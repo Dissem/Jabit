@@ -16,30 +16,10 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
-import java.io.IOException;
-import java.io.OutputStream;
-
 /**
- * Created by chris on 07.04.15.
+ * Users who are subscribed to the sending address will see the message appear in their inbox.
+ * Broadcasts are version 4 or 5.
  */
-public class Broadcast implements ObjectPayload {
-    private long stream;
-    private byte[] tag;
-    private byte[] encrypted;
-
-    public Broadcast(long stream, byte[] tag, byte[] encrypted) {
-        this.stream = stream;
-        this.tag = tag;
-        this.encrypted = encrypted;
-    }
-
-    @Override
-    public long getStream() {
-        return stream;
-    }
-
-    @Override
-    public void write(OutputStream stream) throws IOException {
-
-    }
+public interface Broadcast extends ObjectPayload {
+    byte[] getEncrypted();
 }

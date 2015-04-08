@@ -20,38 +20,23 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * Request for a public key.
+ * Users who are subscribed to the sending address will see the message appear in their inbox.
  */
-public class GetPubkey implements ObjectPayload {
-    private long stream;
-    private byte[] ripe;
+public class V5Broadcast extends V4Broadcast {
     private byte[] tag;
 
-    public GetPubkey(long stream, byte[] ripeOrTag) {
-        this.stream = stream;
-        switch (ripeOrTag.length) {
-            case 20:
-                ripe = ripeOrTag;
-                break;
-            case 32:
-                tag = ripeOrTag;
-                break;
-            default:
-                throw new RuntimeException("ripe (20 bytes) or tag (32 bytes) expected, but pubkey was " + ripeOrTag.length + " bytes long.");
-        }
+    public V5Broadcast(long stream, byte[] tag, byte[] encrypted) {
+        super(stream, encrypted);
+        this.tag = tag;
     }
 
-    @Override
-    public long getStream() {
-        return stream;
+    public byte[] getTag() {
+        return tag;
     }
 
     @Override
     public void write(OutputStream stream) throws IOException {
-        if (tag != null) {
-            stream.write(tag);
-        } else {
-            stream.write(ripe);
-        }
+        stream.write(tag);
+        super.write(stream);
     }
 }
