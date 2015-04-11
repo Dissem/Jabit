@@ -20,6 +20,7 @@ import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.utils.Encode;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -27,7 +28,7 @@ import java.io.OutputStream;
  * The 'object' command sends an object that is shared throughout the network.
  */
 public class ObjectMessage implements MessagePayload {
-    private long nonce;
+    private byte[] nonce;
     private long expiresTime;
     private long objectType;
     /**
@@ -37,6 +38,7 @@ public class ObjectMessage implements MessagePayload {
     private long streamNumber;
 
     private ObjectPayload payload;
+    private byte[] payloadBytes;
 
     private ObjectMessage(Builder builder) {
         nonce = builder.nonce;
@@ -52,6 +54,14 @@ public class ObjectMessage implements MessagePayload {
         return Command.OBJECT;
     }
 
+    public byte[] getNonce() {
+        return nonce;
+    }
+
+    public long getExpiresTime() {
+        return expiresTime;
+    }
+
     public ObjectPayload getPayload() {
         return payload;
     }
@@ -63,16 +73,29 @@ public class ObjectMessage implements MessagePayload {
 
     @Override
     public void write(OutputStream stream) throws IOException {
-        Encode.int64(nonce, stream);
-        Encode.int64(expiresTime, stream);
-        Encode.int32(objectType, stream);
-        Encode.varInt(version, stream);
-        Encode.varInt(streamNumber, stream);
-        payload.write(stream);
+        stream.write(nonce);
+        stream.write(getPayloadBytes());
+    }
+
+    public byte[] getPayloadBytes() throws IOException {
+        if (payloadBytes == null) {
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            Encode.int64(expiresTime, stream);
+            Encode.int32(objectType, stream);
+            Encode.varInt(version, stream);
+            Encode.varInt(streamNumber, stream);
+            payload.write(stream);
+            payloadBytes = stream.toByteArray();
+        }
+        return payloadBytes;
+    }
+
+    public void setNonce(byte[] nonce) {
+        this.nonce = nonce;
     }
 
     public static final class Builder {
-        private long nonce;
+        private byte[] nonce;
         private long expiresTime;
         private long objectType;
         private long version;
@@ -82,7 +105,7 @@ public class ObjectMessage implements MessagePayload {
         public Builder() {
         }
 
-        public Builder nonce(long nonce) {
+        public Builder nonce(byte[] nonce) {
             this.nonce = nonce;
             return this;
         }

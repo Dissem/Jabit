@@ -27,8 +27,8 @@ import java.io.OutputStream;
 public class V2Pubkey implements Pubkey {
     protected long stream;
     protected int behaviorBitfield;
-    protected byte[] publicSigningKey;
-    protected byte[] publicEncryptionKey;
+    protected byte[] publicSigningKey; // 64 Bytes
+    protected byte[] publicEncryptionKey; // 64 Bytes
 
     protected V2Pubkey() {
     }

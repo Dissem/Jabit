@@ -63,14 +63,14 @@ public class Factory {
             case 2:
                 return new V2Pubkey.Builder()
                         .streamNumber(streamNumber)
-                        .behaviorBitfield(Decode.int64(stream))
+                        .behaviorBitfield((int) Decode.int64(stream))
                         .publicSigningKey(Decode.bytes(stream, 64))
                         .publicEncryptionKey(Decode.bytes(stream, 64))
                         .build();
             case 3:
                 V3Pubkey.Builder v3 = new V3Pubkey.Builder()
                         .streamNumber(streamNumber)
-                        .behaviorBitfield(Decode.int64(stream))
+                        .behaviorBitfield((int) Decode.int64(stream))
                         .publicSigningKey(Decode.bytes(stream, 64))
                         .publicEncryptionKey(Decode.bytes(stream, 64))
                         .nonceTrialsPerByte(Decode.varInt(stream))

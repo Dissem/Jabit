@@ -76,7 +76,7 @@ class V3MessageFactory {
     }
 
     private ObjectMessage parseObject(InputStream stream, int length) throws IOException {
-        long nonce = Decode.int64(stream);
+        byte nonce[] = Decode.bytes(stream, 8);
         long expiresTime = Decode.int64(stream);
         long objectType = Decode.uint32(stream);
         long version = Decode.varInt(stream);

@@ -16,9 +16,13 @@
 
 package ch.dissem.bitmessage.utils;
 
+import ch.dissem.bitmessage.entity.Streamable;
+
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 /**
  * This class handles encoding simple types from byte stream, according to
@@ -75,5 +79,28 @@ public class Encode {
         // FIXME: technically, it says the length in characters, but I think this one might be correct
         varInt(bytes.length, stream);
         stream.write(bytes);
+    }
+
+    /**
+     * Returns an array of bytes representing the given streamable object.
+     */
+    public static byte[] bytes(Streamable streamable) throws IOException {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        streamable.write(stream);
+        return stream.toByteArray();
+    }
+
+    /**
+     * Returns the bytes of the given streamable object, 0-padded such that the final
+     * length is x*padding.
+     */
+    public static byte[] bytes(Streamable streamable, int padding) throws IOException {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        streamable.write(stream);
+        int offset = padding - stream.size() % padding;
+        int length = stream.size() + offset;
+        byte[] result = new byte[length];
+        stream.write(result, offset, stream.size());
+        return result;
     }
 }
