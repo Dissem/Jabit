@@ -18,11 +18,14 @@ package ch.dissem.bitmessage.utils;
 
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 
 import static ch.dissem.bitmessage.utils.Bytes.inc;
@@ -31,6 +34,7 @@ import static ch.dissem.bitmessage.utils.Bytes.inc;
  * Provides some methods to help with hashing and encryption.
  */
 public class Security {
+    public static final Logger LOG = LoggerFactory.getLogger(Security.class);
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final BigInteger TWO = BigInteger.valueOf(2);
 
@@ -73,24 +77,26 @@ public class Security {
         byte[] initialHash = getInitialHash(object);
 
         byte[] target = getProofOfWorkTarget(object, nonceTrialsPerByte, extraBytes);
-        // start with trialValue = 99999999999999999999
-        byte[] trialValue;
+        if (target.length < 8) {
+            target = Bytes.expand(target, 8);
+        }
         // also start with nonce = 0 where nonce is 8 bytes in length and can be hashed as if it is a string.
         byte[] nonce = new byte[8];
-        MessageDigest mda = md("SHA-512");
+        MessageDigest mda = null;
+        try {
+            mda = MessageDigest.getInstance("SHA-512");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
         do {
             inc(nonce);
             mda.update(nonce);
             mda.update(initialHash);
-            trialValue = bytes(mda.digest(mda.digest()), 8);
-        } while (Bytes.lt(target, trialValue));
+        } while (Bytes.lt(target, mda.digest(mda.digest()), 8));
         object.setNonce(nonce);
     }
 
     /**
-     * @param object
-     * @param nonceTrialsPerByte
-     * @param extraBytes
      * @throws IOException if proof of work doesn't check out
      */
     public static void checkProofOfWork(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) throws IOException {
@@ -113,6 +119,7 @@ public class Security {
 
     private static byte[] getProofOfWorkTarget(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) throws IOException {
         BigInteger TTL = BigInteger.valueOf(object.getExpiresTime() - (System.currentTimeMillis() / 1000));
+        LOG.debug("TTL: " + TTL + "s");
         BigInteger numerator = TWO.pow(64);
         BigInteger powLength = BigInteger.valueOf(object.getPayloadBytes().length + extraBytes);
         BigInteger denominator = BigInteger.valueOf(nonceTrialsPerByte).multiply(powLength.add(powLength.multiply(TTL).divide(BigInteger.valueOf(2).pow(16))));

@@ -50,4 +50,18 @@ public class BytesTest {
             assertEquals(a.compareTo(b) == -1, Bytes.lt(a.toByteArray(), b.toByteArray()));
         }
     }
+
+    @Test
+    public void testLowerThanBounded() {
+        Random rnd = new Random();
+        for (int i = 0; i < 1000; i++) {
+            BigInteger a = BigInteger.valueOf(rnd.nextLong()).pow((rnd.nextInt(5) + 1)).abs();
+            BigInteger b = BigInteger.valueOf(rnd.nextLong()).pow((rnd.nextInt(5) + 1)).abs();
+            System.out.println("a = " + a.toString(16) + "\tb = " + b.toString(16));
+            assertEquals(a.compareTo(b) == -1, Bytes.lt(
+                    Bytes.expand(a.toByteArray(), 100),
+                    Bytes.expand(b.toByteArray(), 100),
+                    100));
+        }
+    }
 }

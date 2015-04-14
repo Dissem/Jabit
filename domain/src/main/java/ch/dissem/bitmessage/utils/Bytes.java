@@ -43,9 +43,24 @@ public class Bytes {
         return false;
     }
 
+    public static boolean lt(byte[] a, byte[] b, int size) {
+        for (int i = 0; i < size; i++) {
+            if (a[i] != b[i]) {
+                return lt(a[i], b[i]);
+            }
+        }
+        return false;
+    }
+
     private static boolean lt(byte a, byte b) {
         if (a < 0) return b < 0 && a < b;
         if (b < 0) return a >= 0 || a < b;
         return a < b;
+    }
+
+    public static byte[] expand(byte[] source, int size) {
+        byte[] result = new byte[size];
+        System.arraycopy(source, 0, result, size - source.length, source.length);
+        return result;
     }
 }
