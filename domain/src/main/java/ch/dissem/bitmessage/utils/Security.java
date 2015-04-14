@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.utils;
 
 import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.ports.ProofOfWorkEngine;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,10 +26,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-
-import static ch.dissem.bitmessage.utils.Bytes.inc;
 
 /**
  * Provides some methods to help with hashing and encryption.
@@ -68,23 +66,12 @@ public class Security {
         return result;
     }
 
-    public static void doProofOfWork(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) throws IOException {
+    public static void doProofOfWork(ObjectMessage object, ProofOfWorkEngine worker, long nonceTrialsPerByte, long extraBytes) throws IOException {
         byte[] initialHash = getInitialHash(object);
 
         byte[] target = getProofOfWorkTarget(object, nonceTrialsPerByte, extraBytes);
-        // also start with nonce = 0 where nonce is 8 bytes in length and can be hashed as if it is a string.
-        byte[] nonce = new byte[8];
-        MessageDigest mda;
-        try {
-            mda = MessageDigest.getInstance("SHA-512");
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
-        do {
-            inc(nonce);
-            mda.update(nonce);
-            mda.update(initialHash);
-        } while (Bytes.lt(target, mda.digest(mda.digest()), 8));
+
+        byte[] nonce = worker.calculateNonce(initialHash, target, nonceTrialsPerByte, extraBytes);
         object.setNonce(nonce);
     }
 

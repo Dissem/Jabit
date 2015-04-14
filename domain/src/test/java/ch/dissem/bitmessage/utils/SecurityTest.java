@@ -18,10 +18,12 @@ package ch.dissem.bitmessage.utils;
 
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.GenericPayload;
+import ch.dissem.bitmessage.ports.SimplePOWEngine;
 import org.junit.Test;
 
 import javax.xml.bind.DatatypeConverter;
 import java.io.IOException;
+import java.security.KeyPairGenerator;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 
@@ -84,7 +86,14 @@ public class SecurityTest {
                 .expiresTime(expires.getTimeInMillis() / 1000)
                 .payload(new GenericPayload(1, new byte[0]))
                 .build();
-        Security.doProofOfWork(objectMessage, 1000, 1000);
-        Security.checkProofOfWork(objectMessage, 1000, 1000);
+        Security.doProofOfWork(objectMessage, new SimplePOWEngine(), 10, 10);
+        Security.checkProofOfWork(objectMessage, 10, 10);
+    }
+
+    @Test
+    public void testECIES() throws Exception {
+        KeyPairGenerator kpg = KeyPairGenerator.getInstance("ECIES", "BC");
+//        kpg.initialize();
+        kpg.generateKeyPair();
     }
 }
