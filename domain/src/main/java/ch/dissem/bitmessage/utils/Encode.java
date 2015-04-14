@@ -22,7 +22,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
+
+import static ch.dissem.bitmessage.utils.AccessCounter.inc;
 
 /**
  * This class handles encoding simple types from byte stream, according to
@@ -37,41 +38,69 @@ public class Encode {
     }
 
     public static void varInt(long value, OutputStream stream) throws IOException {
+        varInt(value, stream, null);
+    }
+
+    public static void varInt(long value, OutputStream stream, AccessCounter counter) throws IOException {
         if (value < 0) {
             // This is due to the fact that Java doesn't really support unsigned values.
             // Please be aware that this might be an error due to a smaller negative value being cast to long.
             // Normally, negative values shouldn't occur within the protocol, and I large enough longs
             // to being recognized as negatives aren't realistic.
             stream.write(0xff);
-            int64(value, stream);
+            inc(counter);
+            int64(value, stream, counter);
         } else if (value < 0xfd) {
-            int8(value, stream);
+            int8(value, stream, counter);
         } else if (value <= 0xffffL) {
             stream.write(0xfd);
-            int16(value, stream);
+            inc(counter);
+            int16(value, stream, counter);
         } else if (value <= 0xffffffffL) {
             stream.write(0xfe);
-            int32(value, stream);
+            inc(counter);
+            int32(value, stream, counter);
         } else {
             stream.write(0xff);
-            int64(value, stream);
+            inc(counter);
+            int64(value, stream, counter);
         }
     }
 
     public static void int8(long value, OutputStream stream) throws IOException {
+        int8(value, stream, null);
+    }
+
+    public static void int8(long value, OutputStream stream, AccessCounter counter) throws IOException {
         stream.write((int) value);
+        inc(counter);
     }
 
     public static void int16(long value, OutputStream stream) throws IOException {
+        int16(value, stream, null);
+    }
+
+    public static void int16(long value, OutputStream stream, AccessCounter counter) throws IOException {
         stream.write(ByteBuffer.allocate(4).putInt((int) value).array(), 2, 2);
+        inc(counter, 2);
     }
 
     public static void int32(long value, OutputStream stream) throws IOException {
+        int32(value, stream, null);
+    }
+
+    public static void int32(long value, OutputStream stream, AccessCounter counter) throws IOException {
         stream.write(ByteBuffer.allocate(4).putInt((int) value).array());
+        inc(counter, 4);
     }
 
     public static void int64(long value, OutputStream stream) throws IOException {
+        int64(value, stream, null);
+    }
+
+    public static void int64(long value, OutputStream stream, AccessCounter counter) throws IOException {
         stream.write(ByteBuffer.allocate(8).putLong(value).array());
+        inc(counter, 8);
     }
 
     public static void varString(String value, OutputStream stream) throws IOException {

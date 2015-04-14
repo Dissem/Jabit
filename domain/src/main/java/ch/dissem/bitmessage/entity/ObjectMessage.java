@@ -18,7 +18,9 @@ package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
+import ch.dissem.bitmessage.utils.Bytes;
 import ch.dissem.bitmessage.utils.Encode;
+import ch.dissem.bitmessage.utils.Security;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -35,7 +37,7 @@ public class ObjectMessage implements MessagePayload {
      * The object's version
      */
     private long version;
-    private long streamNumber;
+    private long stream;
 
     private ObjectPayload payload;
     private byte[] payloadBytes;
@@ -45,7 +47,7 @@ public class ObjectMessage implements MessagePayload {
         expiresTime = builder.expiresTime;
         objectType = builder.objectType;
         version = builder.version;
-        streamNumber = builder.streamNumber;
+        stream = builder.streamNumber;
         payload = builder.payload;
     }
 
@@ -58,6 +60,10 @@ public class ObjectMessage implements MessagePayload {
         return nonce;
     }
 
+    public void setNonce(byte[] nonce) {
+        this.nonce = nonce;
+    }
+
     public long getExpiresTime() {
         return expiresTime;
     }
@@ -66,32 +72,31 @@ public class ObjectMessage implements MessagePayload {
         return payload;
     }
 
-    public InventoryVector getInventoryVector() {
-        // TODO
-        return null;
+    public long getStream() {
+        return stream;
+    }
+
+    public InventoryVector getInventoryVector() throws IOException {
+        return new InventoryVector(Bytes.truncate(Security.doubleSha512(nonce, getPayloadBytesWithoutNonce()), 32));
     }
 
     @Override
     public void write(OutputStream stream) throws IOException {
         stream.write(nonce);
-        stream.write(getPayloadBytes());
+        stream.write(getPayloadBytesWithoutNonce());
     }
 
-    public byte[] getPayloadBytes() throws IOException {
+    public byte[] getPayloadBytesWithoutNonce() throws IOException {
         if (payloadBytes == null) {
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
             Encode.int64(expiresTime, stream);
             Encode.int32(objectType, stream);
             Encode.varInt(version, stream);
-            Encode.varInt(streamNumber, stream);
+            Encode.varInt(this.stream, stream);
             payload.write(stream);
             payloadBytes = stream.toByteArray();
         }
         return payloadBytes;
-    }
-
-    public void setNonce(byte[] nonce) {
-        this.nonce = nonce;
     }
 
     public static final class Builder {

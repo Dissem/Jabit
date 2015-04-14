@@ -20,6 +20,17 @@ package ch.dissem.bitmessage.entity.payload;
  * Public keys for signing and encryption, the answer to a 'getpubkey' request.
  */
 public interface Pubkey extends ObjectPayload {
+    // bits 0 through 29 are yet undefined
+    /**
+     * Receiving node expects that the RIPE hash encoded in their address preceedes the encrypted message data of msg
+     * messages bound for them.
+     */
+    int FEATURE_INCLUDE_DESTINATION = 30;
+    /**
+     * If true, the receiving node does send acknowledgements (rather than dropping them).
+     */
+    int FEATURE_DOES_ACK = 31;
+
     long getVersion();
 
     byte[] getSigningKey();

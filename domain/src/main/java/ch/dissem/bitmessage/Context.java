@@ -21,8 +21,6 @@ import ch.dissem.bitmessage.ports.Inventory;
 import ch.dissem.bitmessage.ports.NetworkHandler;
 
 import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.TreeSet;
 
 /**
@@ -40,6 +38,9 @@ public class Context {
     private Collection<Long> streams = new TreeSet<>();
 
     private int port;
+
+    private long networkNonceTrialsPerByte = 1000;
+    private long networkExtraBytes = 1000;
 
     private Context(Inventory inventory, AddressRepository addressRepo,
                     NetworkHandler networkHandler, int port) {
@@ -84,5 +85,13 @@ public class Context {
 
     public void removeStream(long stream) {
         streams.remove(stream);
+    }
+
+    public long getNetworkNonceTrialsPerByte() {
+        return networkNonceTrialsPerByte;
+    }
+
+    public long getNetworkExtraBytes() {
+        return networkExtraBytes;
     }
 }

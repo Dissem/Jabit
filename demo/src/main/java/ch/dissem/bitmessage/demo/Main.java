@@ -18,10 +18,11 @@ package ch.dissem.bitmessage.demo;
 
 import ch.dissem.bitmessage.Context;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
-import ch.dissem.bitmessage.inventory.SimpleAddressRepository;
-import ch.dissem.bitmessage.inventory.SimpleInventory;
+import ch.dissem.bitmessage.inventory.DatabaseRepository;
 import ch.dissem.bitmessage.networking.NetworkNode;
 import ch.dissem.bitmessage.ports.NetworkHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -31,14 +32,18 @@ import java.io.InputStreamReader;
  * Created by chris on 06.04.15.
  */
 public class Main {
+    private final static Logger LOG = LoggerFactory.getLogger(Main.class);
+
     public static void main(String[] args) throws IOException {
         NetworkNode networkNode = new NetworkNode();
-        Context.init(new SimpleInventory(), new SimpleAddressRepository(), networkNode, 48444);
+        DatabaseRepository repo = new DatabaseRepository();
+        Context.init(repo, repo, networkNode, 48444);
         Context.getInstance().addStream(1);
         networkNode.setListener(new NetworkHandler.MessageListener() {
             @Override
             public void receive(ObjectPayload payload) {
-                // TODO
+//                LOG.info("message received: " + payload);
+//                System.out.print('.');
             }
         });
         networkNode.start();

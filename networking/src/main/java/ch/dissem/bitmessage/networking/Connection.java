@@ -22,6 +22,7 @@ import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.NetworkHandler.MessageListener;
+import ch.dissem.bitmessage.utils.Security;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +67,7 @@ public class Connection implements Runnable {
         this.out = socket.getOutputStream();
         this.listener = listener;
         this.host = new NetworkAddress.Builder().ipv6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0).port(0).build();
-        this.node = new NetworkAddress.Builder().ip(socket.getInetAddress()).port(socket.getPort()).build();
+        this.node = new NetworkAddress.Builder().ip(socket.getInetAddress()).port(socket.getPort()).stream(1).build();
     }
 
     public State getState() {
@@ -124,8 +125,6 @@ public class Connection implements Runnable {
                         send(msg);
                     }
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
             }
         }
     }
@@ -134,23 +133,34 @@ public class Connection implements Runnable {
         switch (messagePayload.getCommand()) {
             case INV:
                 Inv inv = (Inv) messagePayload;
-                List<InventoryVector> missing = ctx.getInventory().getMissing(inv.getInventory());
+                List<InventoryVector> missing = ctx.getInventory().getMissing(inv.getInventory(), streams);
+                LOG.debug("Received inventory with " + inv.getInventory().size() + " elements, of which are "
+                        + missing.size() + " missing.");
                 send(new GetData.Builder().inventory(missing).build());
                 break;
             case GETDATA:
                 GetData getData = (GetData) messagePayload;
-                for (InventoryVector iv : getData.getInventory()) {
-                    ObjectMessage om = ctx.getInventory().getObject(iv);
-                    sendingQueue.offer(om);
-                }
+//                for (InventoryVector iv : getData.getInventory()) {
+//                    ObjectMessage om = ctx.getInventory().getObject(iv);
+//                    sendingQueue.offer(om);
+//                }
+                LOG.error("Node requests data!!!! This shouldn't happen, the hash is done wrong!!!");
                 break;
             case OBJECT:
                 ObjectMessage objectMessage = (ObjectMessage) messagePayload;
-                ctx.getInventory().storeObject(objectMessage);
+                try {
+                    LOG.debug("Received object " + objectMessage.getInventoryVector());
+                    Security.checkProofOfWork(objectMessage, ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
+                    ctx.getInventory().storeObject(version, objectMessage);
+                } catch (IOException e) {
+                    LOG.debug(e.getMessage(), e);
+                }
+                // It's probably pointless, but let the listener decide if we accept the message for the client.
                 listener.receive(objectMessage.getPayload());
                 break;
             case ADDR:
                 Addr addr = (Addr) messagePayload;
+                LOG.debug("Received " + addr.getAddresses().size() + " addresses.");
                 ctx.getAddressRepository().offerAddresses(addr.getAddresses());
                 break;
             case VERACK:

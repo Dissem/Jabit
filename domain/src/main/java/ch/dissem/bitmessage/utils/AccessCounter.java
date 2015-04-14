@@ -14,24 +14,31 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.ports;
-
-import ch.dissem.bitmessage.entity.ObjectMessage;
-import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
-
-import java.util.List;
+package ch.dissem.bitmessage.utils;
 
 /**
- * The Inventory stores and retrieves objects, cleans up outdated objects and can tell which objects are still missing.
+ * Created by chris on 13.04.15.
  */
-public interface Inventory {
-    List<InventoryVector> getInventory(long... streams);
+public class AccessCounter {
+    private int count;
 
-    List<InventoryVector> getMissing(List<InventoryVector> offer, long... streams);
+    public static void inc(AccessCounter counter) {
+        if (counter != null) counter.inc();
+    }
 
-    ObjectMessage getObject(InventoryVector vector);
+    public static void inc(AccessCounter counter, int count) {
+        if (counter != null) counter.inc(count);
+    }
 
-    void storeObject(int version, ObjectMessage object);
+    private void inc() {
+        count++;
+    }
 
-    void cleanup();
+    private void inc(int length) {
+        count += length;
+    }
+
+    public int length() {
+        return count;
+    }
 }

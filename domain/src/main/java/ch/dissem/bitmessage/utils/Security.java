@@ -69,20 +69,12 @@ public class Security {
     }
 
     public static void doProofOfWork(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) throws IOException {
-        // payload = embeddedTime + encodedObjectVersion + encodedStreamNumber + encrypted
-        byte[] payload = object.getPayloadBytes();
-        // payloadLength = the length of payload, in bytes, + 8 (to account for the nonce which we will append later)
-        // TTL = the number of seconds in between now and the object expiresTime.
-        //        initialHash = hash(payload)
         byte[] initialHash = getInitialHash(object);
 
         byte[] target = getProofOfWorkTarget(object, nonceTrialsPerByte, extraBytes);
-        if (target.length < 8) {
-            target = Bytes.expand(target, 8);
-        }
         // also start with nonce = 0 where nonce is 8 bytes in length and can be hashed as if it is a string.
         byte[] nonce = new byte[8];
-        MessageDigest mda = null;
+        MessageDigest mda;
         try {
             mda = MessageDigest.getInstance("SHA-512");
         } catch (NoSuchAlgorithmException e) {
@@ -100,30 +92,25 @@ public class Security {
      * @throws IOException if proof of work doesn't check out
      */
     public static void checkProofOfWork(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) throws IOException {
-        // nonce = the first 8 bytes of payload
-        byte[] nonce = object.getNonce();
-        byte[] initialHash = getInitialHash(object);
-        // resultHash = hash(hash( nonce || initialHash ))
-        byte[] resultHash = Security.doubleSha512(nonce, initialHash);
-        // POWValue = the first eight bytes of resultHash converted to an integer
-        byte[] powValue = bytes(resultHash, 8);
-
-        if (Bytes.lt(getProofOfWorkTarget(object, nonceTrialsPerByte, extraBytes), powValue)) {
+        if (Bytes.lt(
+                getProofOfWorkTarget(object, nonceTrialsPerByte, extraBytes),
+                Security.doubleSha512(object.getNonce(), getInitialHash(object)),
+                8)) {
             throw new IOException("Insufficient proof of work");
         }
     }
 
     private static byte[] getInitialHash(ObjectMessage object) throws IOException {
-        return Security.sha512(object.getPayloadBytes());
+        return Security.sha512(object.getPayloadBytesWithoutNonce());
     }
 
     private static byte[] getProofOfWorkTarget(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) throws IOException {
         BigInteger TTL = BigInteger.valueOf(object.getExpiresTime() - (System.currentTimeMillis() / 1000));
         LOG.debug("TTL: " + TTL + "s");
         BigInteger numerator = TWO.pow(64);
-        BigInteger powLength = BigInteger.valueOf(object.getPayloadBytes().length + extraBytes);
+        BigInteger powLength = BigInteger.valueOf(object.getPayloadBytesWithoutNonce().length + extraBytes);
         BigInteger denominator = BigInteger.valueOf(nonceTrialsPerByte).multiply(powLength.add(powLength.multiply(TTL).divide(BigInteger.valueOf(2).pow(16))));
-        return numerator.divide(denominator).toByteArray();
+        return Bytes.expand(numerator.divide(denominator).toByteArray(), 8);
     }
 
     private static byte[] hash(String algorithm, byte[]... data) {
@@ -140,11 +127,5 @@ public class Security {
         } catch (GeneralSecurityException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private static byte[] bytes(byte[] data, int count) {
-        byte[] result = new byte[count];
-        System.arraycopy(data, 0, result, 0, count);
-        return result;
     }
 }

@@ -20,6 +20,7 @@ import ch.dissem.bitmessage.entity.*;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
+import ch.dissem.bitmessage.utils.AccessCounter;
 import ch.dissem.bitmessage.utils.Decode;
 import ch.dissem.bitmessage.utils.Security;
 import org.slf4j.Logger;
@@ -68,21 +69,22 @@ class V3MessageFactory {
             case "getdata":
                 return parseGetData(stream);
             case "object":
-                return parseObject(stream, length);
+                return readObject(stream, length);
             default:
                 LOG.debug("Unknown command: " + command);
                 return null;
         }
     }
 
-    private ObjectMessage parseObject(InputStream stream, int length) throws IOException {
-        byte nonce[] = Decode.bytes(stream, 8);
-        long expiresTime = Decode.int64(stream);
-        long objectType = Decode.uint32(stream);
-        long version = Decode.varInt(stream);
-        long streamNumber = Decode.varInt(stream);
+    public ObjectMessage readObject(InputStream stream, int length) throws IOException {
+        AccessCounter counter = new AccessCounter();
+        byte nonce[] = Decode.bytes(stream, 8, counter);
+        long expiresTime = Decode.int64(stream, counter);
+        long objectType = Decode.uint32(stream, counter);
+        long version = Decode.varInt(stream, counter);
+        long streamNumber = Decode.varInt(stream, counter);
 
-        ObjectPayload payload = Factory.getObjectPayload(objectType, version, streamNumber, stream, length);
+        ObjectPayload payload = Factory.getObjectPayload(objectType, version, streamNumber, stream, length-counter.length());
 
         return new ObjectMessage.Builder()
                 .nonce(nonce)

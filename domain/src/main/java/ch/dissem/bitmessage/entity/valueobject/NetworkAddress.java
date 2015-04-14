@@ -56,8 +56,24 @@ public class NetworkAddress implements Streamable {
         port = builder.port;
     }
 
+    public byte[] getIPv6() {
+        return ipv6;
+    }
+
     public int getPort() {
         return port;
+    }
+
+    public long getServices() {
+        return services;
+    }
+
+    public long getStream() {
+        return stream;
+    }
+
+    public long getTime() {
+        return time;
     }
 
     public InetAddress toInetAddress() {

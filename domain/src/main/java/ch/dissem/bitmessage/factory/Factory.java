@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.factory;
 
 import ch.dissem.bitmessage.entity.NetworkMessage;
+import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.utils.Decode;
 import org.slf4j.Logger;
@@ -24,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketTimeoutException;
 
 /**
  * Creates {@link NetworkMessage} objects from {@link InputStream InputStreams}
@@ -31,8 +33,24 @@ import java.io.InputStream;
 public class Factory {
     public static final Logger LOG = LoggerFactory.getLogger(Factory.class);
 
-    public static NetworkMessage getNetworkMessage(int version, InputStream stream) throws IOException {
-        return new V3MessageFactory().read(stream);
+    public static NetworkMessage getNetworkMessage(int version, InputStream stream) throws SocketTimeoutException {
+        try {
+            return new V3MessageFactory().read(stream);
+        } catch (SocketTimeoutException e) {
+            throw e;
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+            return null;
+        }
+    }
+
+    public static ObjectMessage getObjectMessage(int version, InputStream stream, int length) {
+        try {
+            return new V3MessageFactory().readObject(stream, length);
+        } catch (IOException e) {
+            LOG.error(e.getMessage(), e);
+            return null;
+        }
     }
 
     static ObjectPayload getObjectPayload(long objectType, long version, long streamNumber, InputStream stream, int length) throws IOException {
@@ -46,11 +64,12 @@ public class Factory {
                     return parseMsg((int) version, streamNumber, stream, length);
                 case 3: // broadcast
                     return parseBroadcast((int) version, streamNumber, stream, length);
+                default:
+                    LOG.error("This should not happen, someone broke something in the code!");
             }
-            LOG.error("This should not happen, someone broke something in the code!");
         }
         // fallback: just store the message - we don't really care what it is
-        LOG.error("Unexpected object type: " + objectType);
+        LOG.warn("Unexpected object type: " + objectType);
         return new GenericPayload(streamNumber, Decode.bytes(stream, length));
     }
 

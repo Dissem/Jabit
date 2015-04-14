@@ -20,17 +20,28 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 
+import static ch.dissem.bitmessage.utils.AccessCounter.inc;
+
 /**
  * This class handles decoding simple types from byte stream, according to
  * https://bitmessage.org/wiki/Protocol_specification#Common_structures
  */
 public class Decode {
     public static byte[] bytes(InputStream stream, int count) throws IOException {
+        return bytes(stream, count, null);
+    }
+
+    public static byte[] bytes(InputStream stream, int count, AccessCounter counter) throws IOException {
         byte[] result = new byte[count];
         int off = 0;
         while (off < count) {
-            off += stream.read(result, off, count - off);
+            int read = stream.read(result, off, count - off);
+            if (read < 0) {
+                throw new IOException("Unexpected end of stream, wanted to read " + count + " bytes but only got " + off);
+            }
+            off += read;
         }
+        inc(counter, count);
         return result;
     }
 
@@ -45,14 +56,19 @@ public class Decode {
     }
 
     public static long varInt(InputStream stream) throws IOException {
+        return varInt(stream, null);
+    }
+
+    public static long varInt(InputStream stream, AccessCounter counter) throws IOException {
         int first = stream.read();
+        inc(counter);
         switch (first) {
             case 0xfd:
-                return uint16(stream);
+                return uint16(stream, counter);
             case 0xfe:
-                return uint32(stream);
+                return uint32(stream, counter);
             case 0xff:
-                return int64(stream);
+                return int64(stream, counter);
             default:
                 return first;
         }
@@ -63,10 +79,20 @@ public class Decode {
     }
 
     public static int uint16(InputStream stream) throws IOException {
+        return uint16(stream, null);
+    }
+
+    public static int uint16(InputStream stream, AccessCounter counter) throws IOException {
+        inc(counter, 2);
         return stream.read() * 256 + stream.read();
     }
 
     public static long uint32(InputStream stream) throws IOException {
+        return uint32(stream, null);
+    }
+
+    public static long uint32(InputStream stream, AccessCounter counter) throws IOException {
+        inc(counter, 4);
         return stream.read() * 16777216L + stream.read() * 65536L + stream.read() * 256L + stream.read();
     }
 
@@ -75,6 +101,11 @@ public class Decode {
     }
 
     public static long int64(InputStream stream) throws IOException {
+        return int64(stream, null);
+    }
+
+    public static long int64(InputStream stream, AccessCounter counter) throws IOException {
+        inc(counter, 8);
         return ByteBuffer.wrap(bytes(stream, 8)).getLong();
     }
 

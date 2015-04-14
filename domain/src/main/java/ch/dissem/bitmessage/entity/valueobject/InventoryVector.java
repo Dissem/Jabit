@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity.valueobject;
 
 import ch.dissem.bitmessage.entity.Streamable;
+import ch.dissem.bitmessage.utils.Strings;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -30,6 +31,10 @@ public class InventoryVector implements Streamable {
      */
     private final byte[] hash;
 
+    public byte[] getHash() {
+        return hash;
+    }
+
     public InventoryVector(byte[] hash) {
         this.hash = hash;
     }
@@ -37,5 +42,10 @@ public class InventoryVector implements Streamable {
     @Override
     public void write(OutputStream stream) throws IOException {
         stream.write(hash);
+    }
+
+    @Override
+    public String toString() {
+        return Strings.hex(hash).toString();
     }
 }

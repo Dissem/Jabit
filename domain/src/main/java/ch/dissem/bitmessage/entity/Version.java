@@ -69,7 +69,7 @@ public class Version implements MessagePayload {
      * The stream numbers that the emitting node is interested in. Sending nodes must not include more than 160000
      * stream numbers.
      */
-    private final long[] streamNumbers;
+    private final long[] streams;
 
     private Version(Builder builder) {
         version = builder.version;
@@ -79,7 +79,7 @@ public class Version implements MessagePayload {
         addrFrom = builder.addrFrom;
         nonce = builder.nonce;
         userAgent = builder.userAgent;
-        streamNumbers = builder.streamNumbers;
+        streams = builder.streamNumbers;
     }
 
     public int getVersion() {
@@ -111,7 +111,7 @@ public class Version implements MessagePayload {
     }
 
     public long[] getStreams() {
-        return streamNumbers;
+        return streams;
     }
 
     @Override
@@ -128,7 +128,7 @@ public class Version implements MessagePayload {
         addrFrom.write(stream, true);
         Encode.int64(nonce, stream);
         Encode.varString(userAgent, stream);
-        Encode.varIntList(streamNumbers, stream);
+        Encode.varIntList(streams, stream);
     }
 
 

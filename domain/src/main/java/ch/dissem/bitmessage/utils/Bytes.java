@@ -63,4 +63,10 @@ public class Bytes {
         System.arraycopy(source, 0, result, size - source.length, source.length);
         return result;
     }
+
+    public static byte[] truncate(byte[] source, int size) {
+        byte[] result = new byte[size];
+        System.arraycopy(source, 0, result, 0, size);
+        return result;
+    }
 }

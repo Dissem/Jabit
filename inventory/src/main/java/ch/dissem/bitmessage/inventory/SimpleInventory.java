@@ -34,7 +34,7 @@ public class SimpleInventory implements Inventory {
     }
 
     @Override
-    public List<InventoryVector> getMissing(List<InventoryVector> offer) {
+    public List<InventoryVector> getMissing(List<InventoryVector> offer, long... streams) {
         return offer;
     }
 
@@ -44,7 +44,7 @@ public class SimpleInventory implements Inventory {
     }
 
     @Override
-    public void storeObject(ObjectMessage object) {
+    public void storeObject(int version, ObjectMessage object) {
         throw new NotImplementedException();
     }
 
