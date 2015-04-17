@@ -71,7 +71,7 @@ public class Security {
 
         byte[] target = getProofOfWorkTarget(object, nonceTrialsPerByte, extraBytes);
 
-        byte[] nonce = worker.calculateNonce(initialHash, target, nonceTrialsPerByte, extraBytes);
+        byte[] nonce = worker.calculateNonce(initialHash, target);
         object.setNonce(nonce);
     }
 

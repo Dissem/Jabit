@@ -106,6 +106,7 @@ public class Encode {
     public static void varString(String value, OutputStream stream) throws IOException {
         byte[] bytes = value.getBytes("utf-8");
         // FIXME: technically, it says the length in characters, but I think this one might be correct
+        // see also Decode#varString()
         varInt(bytes.length, stream);
         stream.write(bytes);
     }

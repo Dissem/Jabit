@@ -27,6 +27,20 @@ public class Bytes {
         }
     }
 
+    public static void inc(byte[] nonce, byte value) {
+        int i = nonce.length - 1;
+        nonce[i] += value;
+        if (value > 0 && (nonce[i] < 0 || nonce[i] >= value))
+            return;
+        if (value < 0 && (nonce[i] < 0 && nonce[i] >= value))
+            return;
+
+        for (i = i - 1; i >= 0; i--) {
+            nonce[i]++;
+            if (nonce[i] != 0) break;
+        }
+    }
+
     public static boolean lt(byte[] a, byte[] b) {
         byte[] max = (a.length > b.length ? a : b);
         byte[] min = (max == a ? b : a);

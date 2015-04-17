@@ -18,7 +18,6 @@ package ch.dissem.bitmessage.utils;
 
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Random;
@@ -30,19 +29,28 @@ import static org.junit.Assert.assertEquals;
  * Created by chris on 10.04.15.
  */
 public class BytesTest {
+    public static final Random rnd = new Random();
+
     @Test
     public void testIncrement() throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Encode.int16(256, out);
-
         byte[] bytes = {0, -1};
         Bytes.inc(bytes);
-        assertArrayEquals(out.toByteArray(), bytes);
+        assertArrayEquals(TestUtils.int16(256), bytes);
+    }
+
+    @Test
+    public void testIncrementByValue() throws IOException {
+        for (int v = 0; v < 256; v++) {
+            for (int i = 1; i < 256; i++) {
+                byte[] bytes = {0, (byte) v};
+                Bytes.inc(bytes, (byte) i);
+                assertArrayEquals("value = " + v + "; inc = " + i + "; expected = " + (v + i), TestUtils.int16(v + i), bytes);
+            }
+        }
     }
 
     @Test
     public void testLowerThan() {
-        Random rnd = new Random();
         for (int i = 0; i < 1000; i++) {
             BigInteger a = BigInteger.valueOf(rnd.nextLong()).pow((rnd.nextInt(5) + 1)).abs();
             BigInteger b = BigInteger.valueOf(rnd.nextLong()).pow((rnd.nextInt(5) + 1)).abs();
@@ -53,7 +61,6 @@ public class BytesTest {
 
     @Test
     public void testLowerThanBounded() {
-        Random rnd = new Random();
         for (int i = 0; i < 1000; i++) {
             BigInteger a = BigInteger.valueOf(rnd.nextLong()).pow((rnd.nextInt(5) + 1)).abs();
             BigInteger b = BigInteger.valueOf(rnd.nextLong()).pow((rnd.nextInt(5) + 1)).abs();

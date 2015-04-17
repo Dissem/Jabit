@@ -18,7 +18,7 @@ package ch.dissem.bitmessage.utils;
 
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.GenericPayload;
-import ch.dissem.bitmessage.ports.SimplePOWEngine;
+import ch.dissem.bitmessage.ports.MultiThreadedPOWEngine;
 import org.junit.Test;
 
 import javax.xml.bind.DatatypeConverter;
@@ -86,8 +86,8 @@ public class SecurityTest {
                 .expiresTime(expires.getTimeInMillis() / 1000)
                 .payload(new GenericPayload(1, new byte[0]))
                 .build();
-        Security.doProofOfWork(objectMessage, new SimplePOWEngine(), 10, 10);
-        Security.checkProofOfWork(objectMessage, 10, 10);
+        Security.doProofOfWork(objectMessage, new MultiThreadedPOWEngine(), 1000, 1000);
+        Security.checkProofOfWork(objectMessage, 1000, 1000);
     }
 
     @Test

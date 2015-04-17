@@ -112,9 +112,7 @@ public class Decode {
     public static String varString(InputStream stream) throws IOException {
         int length = (int) varInt(stream);
         // FIXME: technically, it says the length in characters, but I think this one might be correct
-        byte[] bytes = new byte[length];
-        // FIXME: I'm also not quite sure if this works, maybe the read return value needs to be handled properly
-        stream.read(bytes);
-        return new String(bytes, "utf-8");
+        // otherwise it will get complicated, as we'll need to read UTF-8 char by char...
+        return new String(bytes(stream, length), "utf-8");
     }
 }

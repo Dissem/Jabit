@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.ports;
+package ch.dissem.bitmessage.utils;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 /**
- * Does the proof of work necessary to send an object.
+ * If there's ever a need for this in production code, it should be rewritten to be more efficient.
  */
-public interface ProofOfWorkEngine {
-    /**
-     * Returns a nonce, such that the first 8 bytes from sha512(sha512(nonce||initialHash)) represent a unsigned long
-     * smaller than target.
-     *
-     * @param initialHash        the SHA-512 hash of the object to send, sans nonce
-     * @param target             the target, representing an unsigned long
-     * @return 8 bytes nonce
-     */
-    byte[] calculateNonce(byte[] initialHash, byte[] target);
+public class TestUtils {
+    public static byte[] int16(int number) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Encode.int16(number, out);
+        return out.toByteArray();
+    }
 }
