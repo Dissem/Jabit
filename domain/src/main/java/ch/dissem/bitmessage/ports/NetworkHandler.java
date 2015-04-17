@@ -22,9 +22,9 @@ import ch.dissem.bitmessage.entity.payload.ObjectPayload;
  * Handles incoming messages
  */
 public interface NetworkHandler {
-    void setListener(MessageListener listener);
+    void start(MessageListener listener);
 
-    void start();
+    void stop();
 
     void send(ObjectPayload payload);
 

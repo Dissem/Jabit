@@ -41,41 +41,34 @@ public class NetworkNode implements NetworkHandler {
     private final static Logger LOG = LoggerFactory.getLogger(NetworkNode.class);
     private final ExecutorService pool;
     private final List<Connection> connections = new LinkedList<>();
-    private MessageListener listener;
+    private ServerSocket serverSocket;
+    private Thread connectionManager;
 
     public NetworkNode() {
         pool = Executors.newCachedThreadPool();
     }
 
     @Override
-    public void setListener(final MessageListener listener) {
-        if (this.listener != null) {
-            throw new IllegalStateException("Listener can only be set once");
-        }
-        this.listener = listener;
-    }
-
-    @Override
-    public void start() {
+    public void start(final MessageListener listener) {
         final Context ctx = Context.getInstance();
         if (listener == null) {
             throw new IllegalStateException("Listener must be set at start");
         }
         try {
-            final ServerSocket serverSocket = new ServerSocket(Context.getInstance().getPort());
+            serverSocket = new ServerSocket(Context.getInstance().getPort());
             pool.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
                         Socket socket = serverSocket.accept();
-                        socket.setSoTimeout(20000);
+                        socket.setSoTimeout(10000);
                         startConnection(new Connection(SERVER, socket, listener));
                     } catch (IOException e) {
                         LOG.debug(e.getMessage(), e);
                     }
                 }
             });
-            Thread connectionManager = new Thread(new Runnable() {
+            connectionManager = new Thread(new Runnable() {
                 @Override
                 public void run() {
                     while (!Thread.interrupted()) {
@@ -112,6 +105,22 @@ public class NetworkNode implements NetworkHandler {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void stop() {
+        connectionManager.interrupt();
+        try {
+            serverSocket.close();
+        } catch (IOException e) {
+            LOG.debug(e.getMessage(), e);
+        }
+        synchronized (connections) {
+            for (Connection c : connections) {
+                c.disconnect();
+            }
+        }
+        pool.shutdownNow();
     }
 
     private void startConnection(Connection c) {

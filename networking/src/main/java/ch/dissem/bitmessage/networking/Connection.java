@@ -183,7 +183,7 @@ public class Connection implements Runnable {
         }
     }
 
-    private void disconnect() {
+    public void disconnect() {
         try {
             state = DISCONNECTED;
             socket.close();

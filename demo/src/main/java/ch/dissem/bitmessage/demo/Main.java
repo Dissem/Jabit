@@ -39,17 +39,18 @@ public class Main {
         DatabaseRepository repo = new DatabaseRepository();
         Context.init(repo, repo, networkNode, 48444);
         Context.getInstance().addStream(1);
-        networkNode.setListener(new NetworkHandler.MessageListener() {
+        networkNode.start(new NetworkHandler.MessageListener() {
             @Override
             public void receive(ObjectPayload payload) {
 //                LOG.info("message received: " + payload);
 //                System.out.print('.');
             }
         });
-        networkNode.start();
 
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-        System.out.print("Enter String");
+        System.out.print("Press Enter to exit\n");
         br.readLine();
+        LOG.info("Shutting down client");
+        networkNode.stop();
     }
 }
