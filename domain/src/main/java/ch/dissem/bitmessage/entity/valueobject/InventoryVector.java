@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.utils.Strings;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 
 /**
  * Created by chris on 13.03.15.
@@ -30,6 +31,22 @@ public class InventoryVector implements Streamable {
      * Hash of the object
      */
     private final byte[] hash;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof InventoryVector)) return false;
+
+        InventoryVector that = (InventoryVector) o;
+
+        return Arrays.equals(hash, that.hash);
+
+    }
+
+    @Override
+    public int hashCode() {
+        return hash != null ? Arrays.hashCode(hash) : 0;
+    }
 
     public byte[] getHash() {
         return hash;
