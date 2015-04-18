@@ -3,5 +3,6 @@ CREATE TABLE Inventory (
   stream  BIGINT     NOT NULL,
   expires BIGINT     NOT NULL,
   data    BLOB       NOT NULL,
+  type    BIGINT     NOT NULL,
   version INT        NOT NULL
 );

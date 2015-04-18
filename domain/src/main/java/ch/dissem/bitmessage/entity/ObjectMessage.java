@@ -68,6 +68,10 @@ public class ObjectMessage implements MessagePayload {
         return expiresTime;
     }
 
+    public long getType() {
+        return objectType;
+    }
+
     public ObjectPayload getPayload() {
         return payload;
     }

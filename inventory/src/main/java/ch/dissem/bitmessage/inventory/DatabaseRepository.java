@@ -33,6 +33,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import static ch.dissem.bitmessage.utils.Strings.join;
+import static ch.dissem.bitmessage.utils.UnixTime.now;
 
 /**
  * Stores everything in a database
@@ -80,21 +81,22 @@ public class DatabaseRepository implements Inventory, AddressRepository {
     public void offerAddresses(List<NetworkAddress> addresses) {
         try {
             Connection connection = getConnection();
-            PreparedStatement exists = connection.prepareStatement("SELECT port FROM Node WHERE ip = ? AND port = ?");
+            PreparedStatement exists = connection.prepareStatement("SELECT port FROM Node WHERE ip = ? AND port = ? AND stream = ?");
             PreparedStatement insert = connection.prepareStatement(
                     "INSERT INTO Node (ip, port, services, stream, time) VALUES (?, ?, ?, ?, ?)");
             PreparedStatement update = connection.prepareStatement(
-                    "UPDATE Node SET services = ?, stream = ?, time = ? WHERE ip = ? AND port = ?");
+                    "UPDATE Node SET services = ?, time = ? WHERE ip = ? AND port = ? AND stream = ?");
             for (NetworkAddress node : addresses) {
                 exists.setBytes(1, node.getIPv6());
                 exists.setInt(2, node.getPort());
+                exists.setLong(3, node.getStream());
                 if (exists.executeQuery().next()) {
                     update.setLong(1, node.getServices());
-                    update.setLong(2, node.getStream());
-                    update.setLong(3, node.getTime());
+                    update.setLong(2, node.getTime());
 
-                    update.setBytes(4, node.getIPv6());
-                    update.setInt(5, node.getPort());
+                    update.setBytes(3, node.getIPv6());
+                    update.setInt(4, node.getPort());
+                    update.setLong(5, node.getStream());
                     update.executeUpdate();
                 } else {
                     insert.setBytes(1, node.getIPv6());
@@ -115,7 +117,8 @@ public class DatabaseRepository implements Inventory, AddressRepository {
         List<InventoryVector> result = new LinkedList<>();
         try {
             Statement stmt = getConnection().createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT hash FROM Inventory WHERE Stream IN (" + join(streams) + ")");
+            ResultSet rs = stmt.executeQuery("SELECT hash FROM Inventory WHERE expires > " + now() +
+                    " AND stream IN (" + join(streams) + ")");
             while (rs.next()) {
                 result.add(new InventoryVector(rs.getBytes("hash")));
             }
@@ -147,9 +150,9 @@ public class DatabaseRepository implements Inventory, AddressRepository {
     @Override
     public void storeObject(int version, ObjectMessage object) {
         try {
-            PreparedStatement ps = getConnection().prepareStatement("INSERT INTO Inventory (hash, stream, expires, data, version) VALUES (?, ?, ?, ?, ?)");
+            PreparedStatement ps = getConnection().prepareStatement("INSERT INTO Inventory (hash, stream, expires, data, type, version) VALUES (?, ?, ?, ?, ?, ?)");
             InventoryVector iv = object.getInventoryVector();
-            LOG.error("Storing object " + iv);
+            LOG.trace("Storing object " + iv);
             ps.setBytes(1, iv.getHash());
             ps.setLong(2, object.getStream());
             ps.setLong(3, object.getExpiresTime());
@@ -157,8 +160,11 @@ public class DatabaseRepository implements Inventory, AddressRepository {
             object.write(os);
             ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
             ps.setBlob(4, is);
-            ps.setInt(5, version);
+            ps.setLong(5, object.getType());
+            ps.setInt(6, version);
             ps.executeUpdate();
+        } catch (SQLException e) {
+            LOG.error("Error storing object of type " + object.getPayload().getClass().getSimpleName(), e);
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
         }
@@ -167,7 +173,8 @@ public class DatabaseRepository implements Inventory, AddressRepository {
     @Override
     public void cleanup() {
         try {
-            getConnection().createStatement().executeUpdate("DELETE FROM Inventory WHERE time < " + (System.currentTimeMillis() / 1000));
+            // We delete only objects that expired 5 minutes ago or earlier, so we don't request objects we just deleted
+            getConnection().createStatement().executeUpdate("DELETE FROM Inventory WHERE expires < " + (now() - 300));
         } catch (SQLException e) {
             LOG.debug(e.getMessage(), e);
         }
