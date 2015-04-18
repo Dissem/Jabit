@@ -92,7 +92,7 @@ public class Security {
     }
 
     private static byte[] getProofOfWorkTarget(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) throws IOException {
-        BigInteger TTL = BigInteger.valueOf(object.getExpiresTime() - (System.currentTimeMillis() / 1000));
+        BigInteger TTL = BigInteger.valueOf(object.getExpiresTime() - UnixTime.now());
         LOG.debug("TTL: " + TTL + "s");
         BigInteger numerator = TWO.pow(64);
         BigInteger powLength = BigInteger.valueOf(object.getPayloadBytesWithoutNonce().length + extraBytes);

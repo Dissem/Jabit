@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.entity.Version;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.ports.NetworkHandler;
+import ch.dissem.bitmessage.utils.UnixTime;
 import org.junit.Test;
 
 /**
@@ -44,7 +45,7 @@ public class NetworkNodeTest {
                 new Version.Builder()
                         .version(3)
                         .services(1)
-                        .timestamp(System.currentTimeMillis() / 1000)
+                        .timestamp(UnixTime.now())
                         .addrFrom(localhost)
                         .addrRecv(localhost)
                         .nonce(-1)

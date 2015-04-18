@@ -16,9 +16,11 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
+import ch.dissem.bitmessage.utils.Decode;
 import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
@@ -38,6 +40,15 @@ public class V2Pubkey implements Pubkey {
         behaviorBitfield = builder.behaviorBitfield;
         publicSigningKey = builder.publicSigningKey;
         publicEncryptionKey = builder.publicEncryptionKey;
+    }
+
+    public static V2Pubkey read(InputStream is, long stream) throws IOException {
+        return new V2Pubkey.Builder()
+                .streamNumber(stream)
+                .behaviorBitfield((int) Decode.uint32(is))
+                .publicSigningKey(Decode.bytes(is, 64))
+                .publicEncryptionKey(Decode.bytes(is, 64))
+                .build();
     }
 
     @Override

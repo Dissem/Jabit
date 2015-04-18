@@ -34,9 +34,9 @@ import java.io.InputStream;
  * Creates protocol v3 network messages from {@link InputStream InputStreams}
  */
 class V3MessageFactory {
-    private Logger LOG = LoggerFactory.getLogger(V3MessageFactory.class);
+    private static Logger LOG = LoggerFactory.getLogger(V3MessageFactory.class);
 
-    public NetworkMessage read(InputStream stream) throws IOException {
+    public static NetworkMessage read(InputStream stream) throws IOException {
         if (testMagic(stream)) {
             String command = getCommand(stream);
             int length = (int) Decode.uint32(stream);
@@ -56,7 +56,7 @@ class V3MessageFactory {
         }
     }
 
-    private MessagePayload getPayload(String command, InputStream stream, int length) throws IOException {
+    private static MessagePayload getPayload(String command, InputStream stream, int length) throws IOException {
         switch (command) {
             case "version":
                 return parseVersion(stream);
@@ -76,7 +76,7 @@ class V3MessageFactory {
         }
     }
 
-    public ObjectMessage readObject(InputStream stream, int length) throws IOException {
+    public static ObjectMessage readObject(InputStream stream, int length) throws IOException {
         AccessCounter counter = new AccessCounter();
         byte nonce[] = Decode.bytes(stream, 8, counter);
         long expiresTime = Decode.int64(stream, counter);
@@ -96,7 +96,7 @@ class V3MessageFactory {
                 .build();
     }
 
-    private GetData parseGetData(InputStream stream) throws IOException {
+    private static GetData parseGetData(InputStream stream) throws IOException {
         long count = Decode.varInt(stream);
         GetData.Builder builder = new GetData.Builder();
         for (int i = 0; i < count; i++) {
@@ -105,7 +105,7 @@ class V3MessageFactory {
         return builder.build();
     }
 
-    private Inv parseInv(InputStream stream) throws IOException {
+    private static Inv parseInv(InputStream stream) throws IOException {
         long count = Decode.varInt(stream);
         Inv.Builder builder = new Inv.Builder();
         for (int i = 0; i < count; i++) {
@@ -114,7 +114,7 @@ class V3MessageFactory {
         return builder.build();
     }
 
-    private Addr parseAddr(InputStream stream) throws IOException {
+    private static Addr parseAddr(InputStream stream) throws IOException {
         long count = Decode.varInt(stream);
         Addr.Builder builder = new Addr.Builder();
         for (int i = 0; i < count; i++) {
@@ -123,7 +123,7 @@ class V3MessageFactory {
         return builder.build();
     }
 
-    private Version parseVersion(InputStream stream) throws IOException {
+    private static Version parseVersion(InputStream stream) throws IOException {
         int version = Decode.int32(stream);
         long services = Decode.int64(stream);
         long timestamp = Decode.int64(stream);
@@ -143,11 +143,11 @@ class V3MessageFactory {
                 .streams(streamNumbers).build();
     }
 
-    private InventoryVector parseInventoryVector(InputStream stream) throws IOException {
+    private static InventoryVector parseInventoryVector(InputStream stream) throws IOException {
         return new InventoryVector(Decode.bytes(stream, 32));
     }
 
-    private NetworkAddress parseAddress(InputStream stream, boolean light) throws IOException {
+    private static NetworkAddress parseAddress(InputStream stream, boolean light) throws IOException {
         long time;
         long streamNumber;
         if (!light) {
@@ -163,7 +163,7 @@ class V3MessageFactory {
         return new NetworkAddress.Builder().time(time).stream(streamNumber).services(services).ipv6(ipv6).port(port).build();
     }
 
-    private boolean testChecksum(byte[] checksum, byte[] payload) {
+    private static boolean testChecksum(byte[] checksum, byte[] payload) {
         byte[] payloadChecksum = Security.sha512(payload);
         for (int i = 0; i < checksum.length; i++) {
             if (checksum[i] != payloadChecksum[i]) {
@@ -173,7 +173,7 @@ class V3MessageFactory {
         return true;
     }
 
-    private String getCommand(InputStream stream) throws IOException {
+    private static String getCommand(InputStream stream) throws IOException {
         byte[] bytes = new byte[12];
         int end = -1;
         for (int i = 0; i < bytes.length; i++) {
@@ -187,7 +187,7 @@ class V3MessageFactory {
         return new String(bytes, 0, end, "ASCII");
     }
 
-    private boolean testMagic(InputStream stream) throws IOException {
+    private static boolean testMagic(InputStream stream) throws IOException {
         for (byte b : NetworkMessage.MAGIC_BYTES) {
             if (b != (byte) stream.read()) return false;
         }

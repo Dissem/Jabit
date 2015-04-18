@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Scanner;
 
 /**
  * Created by chris on 06.04.15.
@@ -47,9 +48,9 @@ public class Main {
             }
         });
 
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         System.out.print("Press Enter to exit\n");
-        br.readLine();
+        Scanner scanner = new Scanner(System.in);
+        scanner.nextLine();
         LOG.info("Shutting down client");
         networkNode.stop();
     }

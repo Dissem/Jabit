@@ -16,7 +16,10 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
+import ch.dissem.bitmessage.utils.Decode;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
@@ -31,7 +34,7 @@ public class V4Pubkey implements Pubkey {
     private byte[] encrypted;
     private V3Pubkey decrypted;
 
-    public V4Pubkey(long stream, byte[] tag, byte[] encrypted) {
+    private V4Pubkey(long stream, byte[] tag, byte[] encrypted) {
         this.stream = stream;
         this.tag = tag;
         this.encrypted = encrypted;
@@ -42,6 +45,10 @@ public class V4Pubkey implements Pubkey {
         // TODO: this.tag = new BitmessageAddress(this).doubleHash
         this.decrypted = decrypted;
         // TODO: this.encrypted
+    }
+
+    public static ObjectPayload read(InputStream stream, long streamNumber, int length) throws IOException {
+        return new V4Pubkey(streamNumber, Decode.bytes(stream, 32), Decode.bytes(stream, length - 32));
     }
 
     @Override

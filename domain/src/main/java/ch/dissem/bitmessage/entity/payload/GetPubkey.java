@@ -16,7 +16,10 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
+import ch.dissem.bitmessage.utils.Decode;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
@@ -27,7 +30,7 @@ public class GetPubkey implements ObjectPayload {
     private byte[] ripe;
     private byte[] tag;
 
-    public GetPubkey(long stream, byte[] ripeOrTag) {
+    private GetPubkey(long stream, byte[] ripeOrTag) {
         this.stream = stream;
         switch (ripeOrTag.length) {
             case 20:
@@ -39,6 +42,10 @@ public class GetPubkey implements ObjectPayload {
             default:
                 throw new RuntimeException("ripe (20 bytes) or tag (32 bytes) expected, but pubkey was " + ripeOrTag.length + " bytes long.");
         }
+    }
+
+    public static GetPubkey read(InputStream is, long stream, int length) throws IOException {
+        return new GetPubkey(stream, Decode.bytes(is, length));
     }
 
     @Override

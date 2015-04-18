@@ -16,7 +16,10 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
+import ch.dissem.bitmessage.utils.Decode;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
@@ -27,9 +30,13 @@ public class GenericPayload implements ObjectPayload {
     private long stream;
     private byte[] data;
 
-    public GenericPayload(long stream, byte[] data) {
-        this.stream=stream;
+    private GenericPayload(long stream, byte[] data) {
+        this.stream = stream;
         this.data = data;
+    }
+
+    public static GenericPayload read(InputStream is, long stream, int length) throws IOException {
+        return new GenericPayload(stream, Decode.bytes(is, length));
     }
 
     @Override

@@ -16,7 +16,10 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
+import ch.dissem.bitmessage.utils.Decode;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
@@ -25,9 +28,13 @@ import java.io.OutputStream;
 public class V5Broadcast extends V4Broadcast {
     private byte[] tag;
 
-    public V5Broadcast(long stream, byte[] tag, byte[] encrypted) {
+    private V5Broadcast(long stream, byte[] tag, byte[] encrypted) {
         super(stream, encrypted);
         this.tag = tag;
+    }
+
+    public static V5Broadcast read(InputStream is, long stream, int length) throws IOException {
+        return new V5Broadcast(stream, Decode.bytes(is, 32), Decode.bytes(is, length - 32));
     }
 
     public byte[] getTag() {

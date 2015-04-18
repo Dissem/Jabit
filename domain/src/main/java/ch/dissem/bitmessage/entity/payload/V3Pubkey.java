@@ -16,9 +16,11 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
+import ch.dissem.bitmessage.utils.Decode;
 import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
@@ -38,6 +40,19 @@ public class V3Pubkey extends V2Pubkey {
         nonceTrialsPerByte = builder.nonceTrialsPerByte;
         extraBytes = builder.extraBytes;
         signature = builder.signature;
+    }
+
+    public static V3Pubkey read(InputStream is, long stream) throws IOException {
+        V3Pubkey.Builder v3 = new V3Pubkey.Builder()
+                .streamNumber(stream)
+                .behaviorBitfield((int) Decode.uint32(is))
+                .publicSigningKey(Decode.bytes(is, 64))
+                .publicEncryptionKey(Decode.bytes(is, 64))
+                .nonceTrialsPerByte(Decode.varInt(is))
+                .extraBytes(Decode.varInt(is));
+        int sigLength = (int) Decode.varInt(is);
+        v3.signature(Decode.bytes(is, sigLength));
+        return v3.build();
     }
 
     @Override

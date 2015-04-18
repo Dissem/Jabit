@@ -16,7 +16,10 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
+import ch.dissem.bitmessage.utils.Decode;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
@@ -28,9 +31,13 @@ public class V4Broadcast implements Broadcast {
     private byte[] encrypted;
     private UnencryptedMessage unencrypted;
 
-    public V4Broadcast(long stream, byte[] encrypted) {
+    protected V4Broadcast(long stream, byte[] encrypted) {
         this.stream = stream;
         this.encrypted = encrypted;
+    }
+
+    public static V4Broadcast read(InputStream is, long stream, int length) throws IOException {
+        return new V4Broadcast(stream, Decode.bytes(is, length));
     }
 
     @Override

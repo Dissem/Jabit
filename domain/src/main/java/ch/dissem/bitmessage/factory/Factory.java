@@ -35,7 +35,7 @@ public class Factory {
 
     public static NetworkMessage getNetworkMessage(int version, InputStream stream) throws SocketTimeoutException {
         try {
-            return new V3MessageFactory().read(stream);
+            return V3MessageFactory.read(stream);
         } catch (SocketTimeoutException e) {
             throw e;
         } catch (Exception e) {
@@ -46,7 +46,7 @@ public class Factory {
 
     public static ObjectMessage getObjectMessage(int version, InputStream stream, int length) {
         try {
-            return new V3MessageFactory().readObject(stream, length);
+            return V3MessageFactory.readObject(stream, length);
         } catch (IOException e) {
             LOG.error(e.getMessage(), e);
             return null;
@@ -56,13 +56,13 @@ public class Factory {
     static ObjectPayload getObjectPayload(long objectType, long version, long streamNumber, InputStream stream, int length) throws IOException {
         if (objectType < 4) {
             switch ((int) objectType) {
-                case 0: // getpubkey
+                case 0:
                     return parseGetPubkey((int) version, streamNumber, stream, length);
-                case 1: // pubkey
+                case 1:
                     return parsePubkey((int) version, streamNumber, stream, length);
-                case 2: // msg
+                case 2:
                     return parseMsg((int) version, streamNumber, stream, length);
-                case 3: // broadcast
+                case 3:
                     return parseBroadcast((int) version, streamNumber, stream, length);
                 default:
                     LOG.error("This should not happen, someone broke something in the code!");
@@ -70,53 +70,39 @@ public class Factory {
         }
         // fallback: just store the message - we don't really care what it is
         LOG.warn("Unexpected object type: " + objectType);
-        return new GenericPayload(streamNumber, Decode.bytes(stream, length));
+        return GenericPayload.read(stream, streamNumber, length);
     }
 
     private static ObjectPayload parseGetPubkey(int version, long streamNumber, InputStream stream, int length) throws IOException {
-        return new GetPubkey(streamNumber, Decode.bytes(stream, length));
+        return GetPubkey.read(stream, streamNumber, length);
     }
 
     private static ObjectPayload parsePubkey(int version, long streamNumber, InputStream stream, int length) throws IOException {
         switch (version) {
             case 2:
-                return new V2Pubkey.Builder()
-                        .streamNumber(streamNumber)
-                        .behaviorBitfield((int) Decode.int64(stream))
-                        .publicSigningKey(Decode.bytes(stream, 64))
-                        .publicEncryptionKey(Decode.bytes(stream, 64))
-                        .build();
+                return V2Pubkey.read(stream, streamNumber);
             case 3:
-                V3Pubkey.Builder v3 = new V3Pubkey.Builder()
-                        .streamNumber(streamNumber)
-                        .behaviorBitfield((int) Decode.int64(stream))
-                        .publicSigningKey(Decode.bytes(stream, 64))
-                        .publicEncryptionKey(Decode.bytes(stream, 64))
-                        .nonceTrialsPerByte(Decode.varInt(stream))
-                        .extraBytes(Decode.varInt(stream));
-                int sigLength = (int) Decode.varInt(stream);
-                v3.signature(Decode.bytes(stream, sigLength));
-                return v3.build();
+                return V3Pubkey.read(stream, streamNumber);
             case 4:
-                return new V4Pubkey(streamNumber, Decode.bytes(stream, 32), Decode.bytes(stream, length - 32));
+                return V4Pubkey.read(stream, streamNumber, length);
         }
         LOG.debug("Unexpected pubkey version " + version + ", handling as generic payload object");
-        return new GenericPayload(streamNumber, Decode.bytes(stream, length));
+        return GenericPayload.read(stream, streamNumber, length);
     }
 
     private static ObjectPayload parseMsg(int version, long streamNumber, InputStream stream, int length) throws IOException {
-        return new Msg(streamNumber, Decode.bytes(stream, length));
+        return Msg.read(stream, streamNumber, length);
     }
 
     private static ObjectPayload parseBroadcast(int version, long streamNumber, InputStream stream, int length) throws IOException {
         switch (version) {
             case 4:
-                return new V4Broadcast(streamNumber, Decode.bytes(stream, length));
+                return V4Broadcast.read(stream, streamNumber, length);
             case 5:
-                return new V5Broadcast(streamNumber, Decode.bytes(stream, 32), Decode.bytes(stream, length - 32));
+                return V5Broadcast.read(stream, streamNumber, length);
             default:
                 LOG.debug("Encountered unknown broadcast version " + version);
-                return new GenericPayload(streamNumber, Decode.bytes(stream, length));
+                return GenericPayload.read(stream, streamNumber, length);
         }
     }
 }

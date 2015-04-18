@@ -22,6 +22,7 @@ import ch.dissem.bitmessage.ports.MultiThreadedPOWEngine;
 import org.junit.Test;
 
 import javax.xml.bind.DatatypeConverter;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.KeyPairGenerator;
 import java.util.Calendar;
@@ -71,8 +72,8 @@ public class SecurityTest {
     public void testProofOfWorkFails() throws IOException {
         ObjectMessage objectMessage = new ObjectMessage.Builder()
                 .nonce(new byte[8])
-                .expiresTime(300 + (System.currentTimeMillis() / 1000)) // 5 minutes
-                .payload(new GenericPayload(1, new byte[0]))
+                .expiresTime(UnixTime.now() + 300) // 5 minutes
+                .payload(GenericPayload.read(new ByteArrayInputStream(new byte[0]), 1, 0))
                 .build();
         Security.checkProofOfWork(objectMessage, 1000, 1000);
     }
@@ -84,7 +85,7 @@ public class SecurityTest {
         ObjectMessage objectMessage = new ObjectMessage.Builder()
                 .nonce(new byte[8])
                 .expiresTime(expires.getTimeInMillis() / 1000)
-                .payload(new GenericPayload(1, new byte[0]))
+                .payload(GenericPayload.read(new ByteArrayInputStream(new byte[0]), 1, 0))
                 .build();
         Security.doProofOfWork(objectMessage, new MultiThreadedPOWEngine(), 1000, 1000);
         Security.checkProofOfWork(objectMessage, 1000, 1000);

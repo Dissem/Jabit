@@ -16,7 +16,10 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
+import ch.dissem.bitmessage.utils.Decode;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
@@ -27,7 +30,7 @@ public class Msg implements ObjectPayload {
     private byte[] encrypted;
     private UnencryptedMessage unencrypted;
 
-    public Msg(long stream, byte[] encrypted) {
+    private Msg(long stream, byte[] encrypted) {
         this.stream = stream;
         this.encrypted = encrypted;
     }
@@ -35,6 +38,10 @@ public class Msg implements ObjectPayload {
     public Msg(UnencryptedMessage unencrypted) {
         this.stream = unencrypted.getStream();
         this.unencrypted = unencrypted;
+    }
+
+    public static Msg read(InputStream is, long stream, int length) throws IOException {
+        return new Msg(stream, Decode.bytes(is, length));
     }
 
     @Override
