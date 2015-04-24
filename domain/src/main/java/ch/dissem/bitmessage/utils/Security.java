@@ -133,7 +133,7 @@ public class Security {
                                       long nonceTrialsPerByte, long extraBytes, Pubkey.Feature... features) {
         byte[] publicSigningKey = EC_PARAMETERS.getG().multiply(keyToBigInt(privateSigningKey)).getEncoded(false);
         byte[] publicEncryptionKey = EC_PARAMETERS.getG().multiply(keyToBigInt(privateEncryptionKey)).getEncoded(false);
-        return Factory.createPubkey(Bytes.subArray(publicSigningKey, 1, 64), Bytes.subArray(publicEncryptionKey, 1, 64),
+        return Factory.createPubkey(version, Bytes.subArray(publicSigningKey, 1, 64), Bytes.subArray(publicEncryptionKey, 1, 64),
                 nonceTrialsPerByte, extraBytes, features);
     }
 

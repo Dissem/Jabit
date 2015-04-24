@@ -16,17 +16,17 @@
 
 package ch.dissem.bitmessage.demo;
 
-import ch.dissem.bitmessage.Context;
+import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
-import ch.dissem.bitmessage.inventory.DatabaseRepository;
+import ch.dissem.bitmessage.inventory.JdbcAddressRepository;
+import ch.dissem.bitmessage.inventory.JdbcInventory;
+import ch.dissem.bitmessage.inventory.JdbcNodeRegistry;
 import ch.dissem.bitmessage.networking.NetworkNode;
 import ch.dissem.bitmessage.ports.NetworkHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.Scanner;
 
 /**
@@ -36,11 +36,15 @@ public class Main {
     private final static Logger LOG = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) throws IOException {
-        NetworkNode networkNode = new NetworkNode();
-        DatabaseRepository repo = new DatabaseRepository();
-        Context.init(repo, repo, networkNode, 48444);
-        Context.getInstance().addStream(1);
-        networkNode.start(new NetworkHandler.MessageListener() {
+        BitmessageContext ctx = new BitmessageContext.Builder()
+                .addressRepo(new JdbcAddressRepository())
+                .inventory(new JdbcInventory())
+                .nodeRegistry(new JdbcNodeRegistry())
+                .networkHandler(new NetworkNode())
+                .port(48444)
+                .streams(1)
+                .build();
+        ctx.getNetworkHandler().start(new NetworkHandler.MessageListener() {
             @Override
             public void receive(ObjectPayload payload) {
 //                LOG.info("message received: " + payload);
@@ -52,6 +56,6 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
         scanner.nextLine();
         LOG.info("Shutting down client");
-        networkNode.stop();
+        ctx.getNetworkHandler().stop();
     }
 }

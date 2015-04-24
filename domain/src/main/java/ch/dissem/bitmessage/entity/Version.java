@@ -16,7 +16,7 @@
 
 package ch.dissem.bitmessage.entity;
 
-import ch.dissem.bitmessage.Context;
+import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.utils.Encode;
 import ch.dissem.bitmessage.utils.UnixTime;
@@ -147,7 +147,7 @@ public class Version implements MessagePayload {
         }
 
         public Builder defaults() {
-            version = Context.CURRENT_VERSION;
+            version = BitmessageContext.CURRENT_VERSION;
             services = 1;
             timestamp = UnixTime.now();
             nonce = new Random().nextInt();

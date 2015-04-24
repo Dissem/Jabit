@@ -18,9 +18,7 @@ package ch.dissem.bitmessage.networking;
 
 import ch.dissem.bitmessage.entity.NetworkMessage;
 import ch.dissem.bitmessage.entity.Version;
-import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
-import ch.dissem.bitmessage.ports.NetworkHandler;
 import ch.dissem.bitmessage.utils.UnixTime;
 import org.junit.Test;
 

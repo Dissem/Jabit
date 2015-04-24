@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage.ports;
 
+import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 
 /**

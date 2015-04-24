@@ -16,7 +16,8 @@
 
 package ch.dissem.bitmessage.networking;
 
-import ch.dissem.bitmessage.Context;
+import ch.dissem.bitmessage.BitmessageContext;
+import ch.dissem.bitmessage.BitmessageContext.ContextHolder;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.ports.NetworkHandler;
@@ -37,8 +38,9 @@ import static ch.dissem.bitmessage.networking.Connection.State.*;
 /**
  * Handles all the networky stuff.
  */
-public class NetworkNode implements NetworkHandler {
+public class NetworkNode implements NetworkHandler, ContextHolder {
     private final static Logger LOG = LoggerFactory.getLogger(NetworkNode.class);
+    private BitmessageContext ctx;
     private final ExecutorService pool;
     private final List<Connection> connections = new LinkedList<>();
     private ServerSocket serverSocket;
@@ -49,20 +51,24 @@ public class NetworkNode implements NetworkHandler {
     }
 
     @Override
+    public void setContext(BitmessageContext context) {
+        this.ctx = context;
+    }
+
+    @Override
     public void start(final MessageListener listener) {
-        final Context ctx = Context.getInstance();
         if (listener == null) {
             throw new IllegalStateException("Listener must be set at start");
         }
         try {
-            serverSocket = new ServerSocket(Context.getInstance().getPort());
+            serverSocket = new ServerSocket(ctx.getPort());
             pool.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
                         Socket socket = serverSocket.accept();
                         socket.setSoTimeout(10000);
-                        startConnection(new Connection(SERVER, socket, listener));
+                        startConnection(new Connection(ctx, SERVER, socket, listener));
                     } catch (IOException e) {
                         LOG.debug(e.getMessage(), e);
                     }
@@ -85,7 +91,7 @@ public class NetworkNode implements NetworkHandler {
                             List<NetworkAddress> addresses = ctx.getAddressRepository().getKnownAddresses(8, ctx.getStreams());
                             for (NetworkAddress address : addresses) {
                                 try {
-                                    startConnection(new Connection(CLIENT, new Socket(address.toInetAddress(), address.getPort()), listener));
+                                    startConnection(new Connection(ctx, CLIENT, new Socket(address.toInetAddress(), address.getPort()), listener));
                                 } catch (IOException e) {
                                     LOG.debug(e.getMessage(), e);
                                 }

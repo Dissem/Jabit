@@ -32,8 +32,8 @@ import java.util.List;
 /**
  * Created by chris on 23.04.15.
  */
-public class JdbcAddressRepository extends DatabaseRepository implements AddressRepository {
-    private static final Logger LOG = LoggerFactory.getLogger(DatabaseRepository.class);
+public class JdbcAddressRepository extends JdbcHelper implements AddressRepository {
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcAddressRepository.class);
 
     @Override
     public List<BitmessageAddress> findIdentities() {

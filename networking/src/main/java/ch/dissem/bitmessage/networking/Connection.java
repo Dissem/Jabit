@@ -16,7 +16,7 @@
 
 package ch.dissem.bitmessage.networking;
 
-import ch.dissem.bitmessage.Context;
+import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.entity.*;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
@@ -43,7 +43,7 @@ import static ch.dissem.bitmessage.networking.Connection.State.*;
 public class Connection implements Runnable {
     private final static Logger LOG = LoggerFactory.getLogger(Connection.class);
 
-    private Context ctx;
+    private BitmessageContext ctx;
 
     private State state;
     private Socket socket;
@@ -59,8 +59,8 @@ public class Connection implements Runnable {
 
     private Queue<MessagePayload> sendingQueue = new ConcurrentLinkedDeque<>();
 
-    public Connection(State state, Socket socket, MessageListener listener) throws IOException {
-        this.ctx = Context.getInstance();
+    public Connection(BitmessageContext context, State state, Socket socket, MessageListener listener) throws IOException {
+        this.ctx = context;
         this.state = state;
         this.socket = socket;
         this.in = socket.getInputStream();
@@ -97,7 +97,7 @@ public class Connection implements Runnable {
                         switch (msg.getPayload().getCommand()) {
                             case VERSION:
                                 Version payload = (Version) msg.getPayload();
-                                if (payload.getVersion() >= Context.CURRENT_VERSION) {
+                                if (payload.getVersion() >= BitmessageContext.CURRENT_VERSION) {
                                     this.version = payload.getVersion();
                                     this.streams = payload.getStreams();
                                     send(new VerAck());
