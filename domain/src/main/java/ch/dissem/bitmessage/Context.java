@@ -16,7 +16,7 @@
 
 package ch.dissem.bitmessage;
 
-import ch.dissem.bitmessage.ports.AddressRepository;
+import ch.dissem.bitmessage.ports.NodeRegistry;
 import ch.dissem.bitmessage.ports.Inventory;
 import ch.dissem.bitmessage.ports.NetworkHandler;
 
@@ -32,7 +32,7 @@ public class Context {
     private static Context instance;
 
     private Inventory inventory;
-    private AddressRepository addressRepo;
+    private NodeRegistry addressRepo;
     private NetworkHandler networkHandler;
 
     private Collection<Long> streams = new TreeSet<>();
@@ -42,7 +42,7 @@ public class Context {
     private long networkNonceTrialsPerByte = 1000;
     private long networkExtraBytes = 1000;
 
-    private Context(Inventory inventory, AddressRepository addressRepo,
+    private Context(Inventory inventory, NodeRegistry addressRepo,
                     NetworkHandler networkHandler, int port) {
         this.inventory = inventory;
         this.addressRepo = addressRepo;
@@ -50,8 +50,8 @@ public class Context {
         this.port = port;
     }
 
-    public static void init(Inventory inventory, AddressRepository addressRepository, NetworkHandler networkHandler, int port) {
-        instance = new Context(inventory, addressRepository, networkHandler, port);
+    public static void init(Inventory inventory, NodeRegistry nodeRegistry, NetworkHandler networkHandler, int port) {
+        instance = new Context(inventory, nodeRegistry, networkHandler, port);
     }
 
     public static Context getInstance() {
@@ -62,7 +62,7 @@ public class Context {
         return inventory;
     }
 
-    public AddressRepository getAddressRepository() {
+    public NodeRegistry getAddressRepository() {
         return addressRepo;
     }
 

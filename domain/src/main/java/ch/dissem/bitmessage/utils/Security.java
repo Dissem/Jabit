@@ -17,7 +17,12 @@
 package ch.dissem.bitmessage.utils;
 
 import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.entity.payload.Pubkey;
+import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine;
+import org.bouncycastle.asn1.sec.SECNamedCurves;
+import org.bouncycastle.asn1.x9.X9ECParameters;
+import org.bouncycastle.crypto.params.ECDomainParameters;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +40,8 @@ public class Security {
     public static final Logger LOG = LoggerFactory.getLogger(Security.class);
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final BigInteger TWO = BigInteger.valueOf(2);
+    private static final X9ECParameters EC_CURVE = SECNamedCurves.getByName("secp256k1");
+    private static final ECDomainParameters EC_PARAMETERS = new ECDomainParameters(EC_CURVE.getCurve(), EC_CURVE.getG(), EC_CURVE.getN(), EC_CURVE.getH());
 
     static {
         java.security.Security.addProvider(new BouncyCastleProvider());
@@ -49,6 +56,12 @@ public class Security {
         for (byte[] d : data) {
             mda.update(d);
         }
+        return mda.digest(mda.digest());
+    }
+
+    public static byte[] doubleSha512(byte[] data, int length) {
+        MessageDigest mda = md("SHA-512");
+        mda.update(data, 0, length);
         return mda.digest(mda.digest());
     }
 
@@ -114,5 +127,17 @@ public class Security {
         } catch (GeneralSecurityException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static Pubkey createPubkey(long version, byte[] privateSigningKey, byte[] privateEncryptionKey,
+                                      long nonceTrialsPerByte, long extraBytes, Pubkey.Feature... features) {
+        byte[] publicSigningKey = EC_PARAMETERS.getG().multiply(keyToBigInt(privateSigningKey)).getEncoded(false);
+        byte[] publicEncryptionKey = EC_PARAMETERS.getG().multiply(keyToBigInt(privateEncryptionKey)).getEncoded(false);
+        return Factory.createPubkey(Bytes.subArray(publicSigningKey, 1, 64), Bytes.subArray(publicEncryptionKey, 1, 64),
+                nonceTrialsPerByte, extraBytes, features);
+    }
+
+    private static BigInteger keyToBigInt(byte[] key) {
+        return new BigInteger(Bytes.concatenate((byte) 0x00, key));
     }
 }

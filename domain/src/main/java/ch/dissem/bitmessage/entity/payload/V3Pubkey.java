@@ -44,7 +44,7 @@ public class V3Pubkey extends V2Pubkey {
 
     public static V3Pubkey read(InputStream is, long stream) throws IOException {
         V3Pubkey.Builder v3 = new V3Pubkey.Builder()
-                .streamNumber(stream)
+                .stream(stream)
                 .behaviorBitfield((int) Decode.uint32(is))
                 .publicSigningKey(Decode.bytes(is, 64))
                 .publicEncryptionKey(Decode.bytes(is, 64))
@@ -82,7 +82,7 @@ public class V3Pubkey extends V2Pubkey {
         public Builder() {
         }
 
-        public Builder streamNumber(long streamNumber) {
+        public Builder stream(long streamNumber) {
             this.streamNumber = streamNumber;
             return this;
         }

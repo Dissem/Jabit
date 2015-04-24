@@ -78,9 +78,25 @@ public class Bytes {
         return result;
     }
 
+    /**
+     * Returns a new byte array containing the first <em>size</em> bytes of the given array.
+     */
     public static byte[] truncate(byte[] source, int size) {
         byte[] result = new byte[size];
         System.arraycopy(source, 0, result, 0, size);
+        return result;
+    }
+
+    public static byte[] subArray(byte[] source, int offset, int length) {
+        byte[] result = new byte[length];
+        System.arraycopy(source, offset, result, 0, length);
+        return result;
+    }
+
+    public static byte[] concatenate(byte first, byte[] bytes) {
+        byte[] result = new byte[bytes.length + 1];
+        result[0] = first;
+        System.arraycopy(bytes, 0, result, 1, bytes.length);
         return result;
     }
 }

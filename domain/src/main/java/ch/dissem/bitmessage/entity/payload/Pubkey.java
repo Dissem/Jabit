@@ -16,24 +16,63 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
+import java.util.ArrayList;
+
+import static ch.dissem.bitmessage.utils.Security.ripemd160;
+import static ch.dissem.bitmessage.utils.Security.sha512;
+
 /**
  * Public keys for signing and encryption, the answer to a 'getpubkey' request.
  */
-public interface Pubkey extends ObjectPayload {
-    // bits 0 through 29 are yet undefined
+public abstract class Pubkey implements ObjectPayload {
+    public final static long LATEST_VERSION = 4;
+
+    public abstract long getVersion();
+
+    public abstract byte[] getSigningKey();
+
+    public abstract byte[] getEncryptionKey();
+
+    public byte[] getRipe() {
+        return ripemd160(sha512(getSigningKey(), getEncryptionKey()));
+    }
+
     /**
-     * Receiving node expects that the RIPE hash encoded in their address preceedes the encrypted message data of msg
-     * messages bound for them.
+     * Bits 0 through 29 are yet undefined
      */
-    int FEATURE_INCLUDE_DESTINATION = 30;
-    /**
-     * If true, the receiving node does send acknowledgements (rather than dropping them).
-     */
-    int FEATURE_DOES_ACK = 31;
+    public enum Feature {
+        /**
+         * Receiving node expects that the RIPE hash encoded in their address preceedes the encrypted message data of msg
+         * messages bound for them.
+         */
+        INCLUDE_DESTINATION(1 << 30),
+        /**
+         * If true, the receiving node does send acknowledgements (rather than dropping them).
+         */
+        DOES_ACK(1 << 31);
 
-    long getVersion();
+        private int bit;
 
-    byte[] getSigningKey();
+        Feature(int bit) {
+            this.bit = bit;
+        }
 
-    byte[] getEncryptionKey();
+        public static int bitfield(Feature... features) {
+            int bits = 0;
+            for (Feature feature : features) {
+                bits |= feature.bit;
+            }
+            return bits;
+        }
+
+        public static Feature[] features(int bitfield){
+            ArrayList<Feature> features = new ArrayList<>(Feature.values().length);
+            for (Feature feature:Feature.values()){
+                if ((bitfield & feature.bit) != 0){
+                    features.add(feature);
+                }
+            }
+            return features.toArray(new Feature[features.size()]);
+        }
+    }
 }

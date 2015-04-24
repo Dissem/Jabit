@@ -16,10 +16,11 @@
 
 package ch.dissem.bitmessage.factory;
 
+import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.NetworkMessage;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.*;
-import ch.dissem.bitmessage.utils.Decode;
+import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,17 +54,60 @@ public class Factory {
         }
     }
 
+    public static Pubkey createPubkey(long version, byte[] publicSigningKey, byte[] publicEncryptionKey,
+                                      long nonceTrialsPerByte, long extraBytes, Pubkey.Feature... features) {
+        if (publicSigningKey.length != 64)
+            throw new IllegalArgumentException("64 bytes signing key expected, but it was "
+                    + publicSigningKey.length + " bytes long.");
+        if (publicEncryptionKey.length != 64)
+            throw new IllegalArgumentException("64 bytes encryption key expected, but it was "
+                    + publicEncryptionKey.length + " bytes long.");
+
+        switch ((int) version) {
+            case 2:
+                return new V2Pubkey.Builder()
+                        .publicSigningKey(publicSigningKey)
+                        .publicEncryptionKey(publicEncryptionKey)
+                        .behaviorBitfield(Pubkey.Feature.bitfield(features))
+                        .build();
+            case 3:
+                return new V3Pubkey.Builder()
+                        .publicSigningKey(publicSigningKey)
+                        .publicEncryptionKey(publicEncryptionKey)
+                        .behaviorBitfield(Pubkey.Feature.bitfield(features))
+                        .nonceTrialsPerByte(nonceTrialsPerByte)
+                        .extraBytes(extraBytes)
+                        .build();
+            case 4:
+                return new V4Pubkey(
+                        new V3Pubkey.Builder()
+                                .publicSigningKey(publicSigningKey)
+                                .publicEncryptionKey(publicEncryptionKey)
+                                .behaviorBitfield(Pubkey.Feature.bitfield(features))
+                                .nonceTrialsPerByte(nonceTrialsPerByte)
+                                .extraBytes(extraBytes)
+                                .build()
+                );
+            default:
+                throw new IllegalArgumentException("Unexpected pubkey version " + version);
+        }
+    }
+
+    public static BitmessageAddress generatePrivateAddress(Pubkey.Feature... features) {
+        return new BitmessageAddress(new PrivateKey(1000, 1000, features));
+    }
+
     static ObjectPayload getObjectPayload(long objectType, long version, long streamNumber, InputStream stream, int length) throws IOException {
         if (objectType < 4) {
             switch ((int) objectType) {
                 case 0:
-                    return parseGetPubkey((int) version, streamNumber, stream, length);
+                    return parseGetPubkey(version, streamNumber, stream, length);
                 case 1:
-                    return parsePubkey((int) version, streamNumber, stream, length);
+                    return parsePubkey(version, streamNumber, stream, length);
                 case 2:
-                    return parseMsg((int) version, streamNumber, stream, length);
+                    return parseMsg(version, streamNumber, stream, length);
                 case 3:
-                    return parseBroadcast((int) version, streamNumber, stream, length);
+                    return parseBroadcast(version, streamNumber, stream, length);
                 default:
                     LOG.error("This should not happen, someone broke something in the code!");
             }
@@ -73,29 +117,34 @@ public class Factory {
         return GenericPayload.read(stream, streamNumber, length);
     }
 
-    private static ObjectPayload parseGetPubkey(int version, long streamNumber, InputStream stream, int length) throws IOException {
+    private static ObjectPayload parseGetPubkey(long version, long streamNumber, InputStream stream, int length) throws IOException {
         return GetPubkey.read(stream, streamNumber, length);
     }
 
-    private static ObjectPayload parsePubkey(int version, long streamNumber, InputStream stream, int length) throws IOException {
-        switch (version) {
+    public static Pubkey readPubkey(long version, long stream, InputStream is, int length) throws IOException {
+        switch ((int) version) {
             case 2:
-                return V2Pubkey.read(stream, streamNumber);
+                return V2Pubkey.read(is, stream);
             case 3:
-                return V3Pubkey.read(stream, streamNumber);
+                return V3Pubkey.read(is, stream);
             case 4:
-                return V4Pubkey.read(stream, streamNumber, length);
+                return V4Pubkey.read(is, stream, length);
         }
         LOG.debug("Unexpected pubkey version " + version + ", handling as generic payload object");
-        return GenericPayload.read(stream, streamNumber, length);
+        return null;
     }
 
-    private static ObjectPayload parseMsg(int version, long streamNumber, InputStream stream, int length) throws IOException {
+    private static ObjectPayload parsePubkey(long version, long streamNumber, InputStream stream, int length) throws IOException {
+        Pubkey pubkey = readPubkey(version, streamNumber, stream, length);
+        return pubkey != null ? pubkey : GenericPayload.read(stream, streamNumber, length);
+    }
+
+    private static ObjectPayload parseMsg(long version, long streamNumber, InputStream stream, int length) throws IOException {
         return Msg.read(stream, streamNumber, length);
     }
 
-    private static ObjectPayload parseBroadcast(int version, long streamNumber, InputStream stream, int length) throws IOException {
-        switch (version) {
+    private static ObjectPayload parseBroadcast(long version, long streamNumber, InputStream stream, int length) throws IOException {
+        switch ((int) version) {
             case 4:
                 return V4Broadcast.read(stream, streamNumber, length);
             case 5:

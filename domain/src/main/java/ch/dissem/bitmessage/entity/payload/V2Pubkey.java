@@ -26,7 +26,7 @@ import java.io.OutputStream;
 /**
  * A version 2 public key.
  */
-public class V2Pubkey implements Pubkey {
+public class V2Pubkey extends Pubkey {
     protected long stream;
     protected int behaviorBitfield;
     protected byte[] publicSigningKey; // 64 Bytes
@@ -44,7 +44,7 @@ public class V2Pubkey implements Pubkey {
 
     public static V2Pubkey read(InputStream is, long stream) throws IOException {
         return new V2Pubkey.Builder()
-                .streamNumber(stream)
+                .stream(stream)
                 .behaviorBitfield((int) Decode.uint32(is))
                 .publicSigningKey(Decode.bytes(is, 64))
                 .publicEncryptionKey(Decode.bytes(is, 64))
@@ -87,7 +87,7 @@ public class V2Pubkey implements Pubkey {
         public Builder() {
         }
 
-        public Builder streamNumber(long streamNumber) {
+        public Builder stream(long streamNumber) {
             this.streamNumber = streamNumber;
             return this;
         }

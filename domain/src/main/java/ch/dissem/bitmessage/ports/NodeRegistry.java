@@ -16,25 +16,15 @@
 
 package ch.dissem.bitmessage.ports;
 
-import ch.dissem.bitmessage.entity.BitmessageAddress;
+import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 
 import java.util.List;
 
 /**
- * Created by chris on 23.04.15.
+ * Stores and provides known peers.
  */
-public interface AddressRepository {
-    /**
-     * Returns all Bitmessage addresses that belong to this user, i.e. have a private key.
-     */
-    List<BitmessageAddress> findIdentities();
+public interface NodeRegistry {
+    List<NetworkAddress> getKnownAddresses(int limit, long... streams);
 
-    /**
-     * Returns all Bitmessage addresses that have no private key.
-     */
-    List<BitmessageAddress> findContacts();
-
-    void save(BitmessageAddress address);
-
-    void remove(BitmessageAddress address);
+    void offerAddresses(List<NetworkAddress> addresses);
 }

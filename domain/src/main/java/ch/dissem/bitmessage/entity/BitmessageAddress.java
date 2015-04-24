@@ -17,55 +17,115 @@
 package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.Pubkey;
-import ch.dissem.bitmessage.utils.Base58;
-import ch.dissem.bitmessage.utils.Encode;
-import ch.dissem.bitmessage.utils.Security;
+import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.utils.*;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-
-import static ch.dissem.bitmessage.utils.Security.ripemd160;
-import static ch.dissem.bitmessage.utils.Security.sha512;
+import java.util.Arrays;
 
 /**
  * A Bitmessage address. Can be a user's private address, an address string without public keys or a recipient's address
  * holding private keys.
  */
-public abstract class BitmessageAddress {
+public class BitmessageAddress {
     private long version;
-    private long streamNumber;
+    private long stream;
+    private byte[] ripe;
 
+    private String address;
+
+    private PrivateKey privateKey;
     private Pubkey pubkey;
 
-    public BitmessageAddress(Pubkey pubkey) {
-        this.pubkey = pubkey;
+    private String alias;
+
+    public BitmessageAddress(PrivateKey privateKey) {
+        this.privateKey = privateKey;
+        this.pubkey = privateKey.getPubkey();
+        this.ripe = pubkey.getRipe();
+        this.address = generateAddress();
     }
 
     public BitmessageAddress(String address) {
-        Base58.decode(address.substring(3));
+        try {
+            byte[] bytes = Base58.decode(address.substring(3));
+            ByteArrayInputStream in = new ByteArrayInputStream(bytes);
+            AccessCounter counter = new AccessCounter();
+            this.version = Decode.varInt(in, counter);
+            this.stream = Decode.varInt(in, counter);
+            this.ripe = Decode.bytes(in, bytes.length - counter.length() - 4);
+            testChecksum(Decode.bytes(in, 4), bytes);
+            this.address = generateAddress();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void testChecksum(byte[] expected, byte[] address) {
+        byte[] checksum = Security.doubleSha512(address, address.length - 4);
+        for (int i = 0; i < 4; i++) {
+            if (expected[i] != checksum[i]) throw new IllegalArgumentException("Checksum of address failed");
+        }
+    }
+
+    private String generateAddress() {
+        try {
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            Encode.varInt(version, os);
+            Encode.varInt(stream, os);
+            os.write(ripe);
+
+            byte[] checksum = Security.doubleSha512(os.toByteArray());
+            for (int i = 0; i < 4; i++) {
+                os.write(checksum[i]);
+            }
+            return "BM-" + Base58.encode(os.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public long getStream() {
+        return stream;
+    }
+
+    public long getVersion() {
+        return version;
+    }
+
+    public Pubkey getPubkey() {
+        return pubkey;
+    }
+
+    public void setPubkey(Pubkey pubkey) {
+        if (!Arrays.equals(ripe, pubkey.getRipe())) throw new IllegalArgumentException("Pubkey has incompatible RIPE");
+        this.pubkey = pubkey;
+    }
+
+    public PrivateKey getPrivateKey() {
+        return privateKey;
+    }
+
+    public void setAlias(String alias) {
+        this.alias = alias;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public String getAlias() {
+        return alias;
     }
 
     @Override
     public String toString() {
-        try {
-            byte[] combinedKeys = new byte[pubkey.getSigningKey().length + pubkey.getEncryptionKey().length];
-            System.arraycopy(pubkey.getSigningKey(), 0, combinedKeys, 0, pubkey.getSigningKey().length);
-            System.arraycopy(pubkey.getEncryptionKey(), 0, combinedKeys, pubkey.getSigningKey().length, pubkey.getEncryptionKey().length);
+        return alias != null ? alias : address;
+    }
 
-            byte[] hash = ripemd160(sha512(combinedKeys));
-
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            Encode.varInt(version, stream);
-            Encode.varInt(streamNumber, stream);
-            stream.write(hash);
-
-            byte[] checksum = Security.doubleSha512(stream.toByteArray());
-            for (int i = 0; i < 4; i++) {
-                stream.write(checksum[i]);
-            }
-            return "BM-" + Base58.encode(stream.toByteArray());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public byte[] getRipe() {
+        return ripe;
     }
 }

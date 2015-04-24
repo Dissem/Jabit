@@ -28,7 +28,7 @@ import java.io.OutputStream;
  * use that pubkey. This prevents people from gathering pubkeys sent around the network and using the data from them
  * to create messages to be used in spam or in flooding attacks.
  */
-public class V4Pubkey implements Pubkey {
+public class V4Pubkey extends Pubkey {
     private long stream;
     private byte[] tag;
     private byte[] encrypted;
@@ -47,7 +47,7 @@ public class V4Pubkey implements Pubkey {
         // TODO: this.encrypted
     }
 
-    public static ObjectPayload read(InputStream stream, long streamNumber, int length) throws IOException {
+    public static V4Pubkey read(InputStream stream, long streamNumber, int length) throws IOException {
         return new V4Pubkey(streamNumber, Decode.bytes(stream, 32), Decode.bytes(stream, length - 32));
     }
 

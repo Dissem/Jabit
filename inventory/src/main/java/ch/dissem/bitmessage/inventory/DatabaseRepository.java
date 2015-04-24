@@ -17,17 +17,19 @@
 package ch.dissem.bitmessage.inventory;
 
 import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.entity.Streamable;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.factory.Factory;
-import ch.dissem.bitmessage.ports.AddressRepository;
 import ch.dissem.bitmessage.ports.Inventory;
+import ch.dissem.bitmessage.ports.NodeRegistry;
 import org.flywaydb.core.Flyway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
@@ -38,7 +40,7 @@ import static ch.dissem.bitmessage.utils.UnixTime.now;
 /**
  * Stores everything in a database
  */
-public class DatabaseRepository implements Inventory, AddressRepository {
+public class DatabaseRepository implements Inventory, NodeRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(DatabaseRepository.class);
 
     private static final String DB_URL = "jdbc:h2:~/jabit";
@@ -170,6 +172,13 @@ public class DatabaseRepository implements Inventory, AddressRepository {
         }
     }
 
+    protected void writeBlob(PreparedStatement ps, int parameterIndex, Streamable data) throws SQLException, IOException {
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        data.write(os);
+        ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
+        ps.setBlob(parameterIndex, is);
+    }
+
     @Override
     public void cleanup() {
         try {
@@ -180,7 +189,7 @@ public class DatabaseRepository implements Inventory, AddressRepository {
         }
     }
 
-    private Connection getConnection() {
+    protected Connection getConnection() {
         try {
             return DriverManager.getConnection(DB_URL, DB_USER, DB_PWD);
         } catch (SQLException e) {

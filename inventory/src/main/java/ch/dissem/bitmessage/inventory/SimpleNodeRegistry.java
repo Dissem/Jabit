@@ -17,7 +17,7 @@
 package ch.dissem.bitmessage.inventory;
 
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
-import ch.dissem.bitmessage.ports.AddressRepository;
+import ch.dissem.bitmessage.ports.NodeRegistry;
 
 import java.util.Collections;
 import java.util.List;
@@ -25,7 +25,7 @@ import java.util.List;
 /**
  * Created by chris on 06.04.15.
  */
-public class SimpleAddressRepository implements AddressRepository {
+public class SimpleNodeRegistry implements NodeRegistry {
     @Override
     public List<NetworkAddress> getKnownAddresses(int limit, long... streams) {
         return Collections.singletonList(new NetworkAddress.Builder().ipv4(127, 0, 0, 1).port(8444).build());
