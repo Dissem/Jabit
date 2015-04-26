@@ -1,0 +1,103 @@
+\documentclass{bfh}
+
+\usepackage[numbers]{natbib}
+
+\title{Informatikseminar}
+\subtitle{Bitmessage -- Communication Without Metadata}
+\author{Christian Basler}
+\tutor{Kai Brünnler}
+\date{\today}
+
+\newcommand{\msg}[1]{\textit{#1}}
+\newcommand{\obj}[1]{\textbf{#1}}
+\newcommand{\node}[1]{\textbf{#1}}
+
+\begin{document}
+  \maketitle
+
+  \tableofcontents
+
+  \section{Synopsis}
+
+  TODO
+
+
+  % Section basics
+  \input{basics}
+
+
+  \section{Protocol}
+
+  \subsection{Nomenclature}
+
+  There are a few terms that are easily mixed up. Here's a list of the most confusing ones:
+
+  \listinginfo{}{message}{is sent from one node to another, i.e. to announce new objects or to initialize the network connection.}{}
+  \listinginfo{}{msg}{is the object payload containing the actual message written by a user. The term 'message' is never used to describe information exchange between users in this document.}{}
+  \listinginfo{}{payload}{There are two kinds of payload: message payload for message types, e.g. containing inventory vectors, and object payload, which is distributed throughout the network.}{}
+  \listinginfo{}{object}{is a kind of message whose payload is distributed among all nodes. Somtimes just the payload is meant.}{}
+
+  \subsection{Process Flow}
+
+  The newly started node \node{A} connects to a random node \node{B} from its node registry and sends a \msg{version} message, announcing the latest supported protocol version. If \node{B} accepts the version\footnote{A version is accepted by default if it is higher or equal to a nodes latest supported version. Nodes supporting experimental protocol versions might accept older versions.}, it responds with a \msg{verack} message, followed by a \msg{version} message announcing its own latest supported protocol version. Node \node{A} then decides whether it supports \node{B}'s version and sends its \msg{verack} mesage.
+
+  If both nodes accept the connection, they both send an \msg{addr} message containing up to 1000 of its known nodes, followed by one or more \msg{inv} messages announcing all valid objects they are aware of. They then send \msg{getobject} request for all objects still missing from their inventory.
+
+  \msg{Getobject} requests are answered by \msg{object} messages containing the requested objects.
+
+  If a user writes a new mail on node \node{A}, it is offered via \msg{inv} to up to eight connected nodes. They will get the object and distribute it to up to eight of their connections, and so on.
+
+  \subsection{Messages}
+
+  The messages and binary format are very well discribed in the Bitmessage wiki \cite{wiki:protocol}, the message description is therefore narrowed down to a description of what they do and when they're used.
+
+  \subsubsection{version / verack}
+  A \msg{version} message contains the latest protocol version supported by a node, as well as the streams it is interested in and which features it supports. If the other node accepts, it acknowledges with a \msg{verack} message. The connection is initialized when both nodes sent a \msg{verack} message.
+
+  \subsubsection{addr}
+  Contains up to 1000 known nodes with their IP addresses, ports, streams and supported features.
+
+  \subsubsection{inv}
+  One \msg{inv} message contains the hashes of up to 50000 valid objects. If your inventory is larger, several messages can be sent.
+
+  \subsubsection{getdata}
+  Can request up to 50000 objects by sending their hashes.
+
+  \subsubsection{object}
+  Contains one requested object, which might be one of:
+
+  \listinginfo{}{getpubkey}{A request for a public key, which is needed to encrypt a message to a specific user.}{}
+  \listinginfo{}{pubkey}{A public key. See \ref{subsec:addrenc} \nameref{subsec:addrenc}}{}
+  \listinginfo{}{msg}{}{}
+  \listinginfo{}{broadcast}{}{}
+
+  \subsubsection{ping / pong}
+
+  \subsection{Addresses and Encryption}
+  \label{subsec:addrenc}
+
+
+  \section{Issues}
+
+  \subsection{Scalability}
+
+  TODO
+
+
+  \section{Discussion}
+
+  TODO
+
+
+  \bibliographystyle{plain}
+  \bibliography{bibliography}
+
+  \appendix
+  \addcontentsline{toc}{section}{Appendix}
+  \section*{Appendix}
+  \renewcommand{\thesubsection}{\Alph{subsection}}
+
+  \subsection{TODO}
+
+
+\end{document}
