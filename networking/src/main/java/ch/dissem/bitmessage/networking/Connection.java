@@ -151,7 +151,7 @@ public class Connection implements Runnable {
                 try {
                     LOG.debug("Received object " + objectMessage.getInventoryVector());
                     Security.checkProofOfWork(objectMessage, ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
-                    ctx.getInventory().storeObject(version, objectMessage);
+                    ctx.getInventory().storeObject(objectMessage);
                 } catch (IOException e) {
                     LOG.debug(e.getMessage(), e);
                 }

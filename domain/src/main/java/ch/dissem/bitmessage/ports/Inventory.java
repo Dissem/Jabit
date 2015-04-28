@@ -31,7 +31,7 @@ public interface Inventory {
 
     ObjectMessage getObject(InventoryVector vector);
 
-    void storeObject(int version, ObjectMessage object);
+    void storeObject(ObjectMessage object);
 
     void cleanup();
 }

@@ -4,5 +4,5 @@ CREATE TABLE Inventory (
   expires BIGINT     NOT NULL,
   data    BLOB       NOT NULL,
   type    BIGINT     NOT NULL,
-  version INT        NOT NULL
+  version BIGINT     NOT NULL
 );

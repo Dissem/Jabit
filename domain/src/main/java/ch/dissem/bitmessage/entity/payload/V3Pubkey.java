@@ -118,6 +118,7 @@ public class V3Pubkey extends V2Pubkey {
         }
 
         public V3Pubkey build() {
+            // TODO: check signature
             return new V3Pubkey(this);
         }
     }

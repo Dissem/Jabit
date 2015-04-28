@@ -44,7 +44,7 @@ public class SimpleInventory implements Inventory {
     }
 
     @Override
-    public void storeObject(int version, ObjectMessage object) {
+    public void storeObject(ObjectMessage object) {
         throw new NotImplementedException();
     }
 

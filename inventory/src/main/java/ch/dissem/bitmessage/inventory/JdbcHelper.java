@@ -42,7 +42,7 @@ abstract class JdbcHelper {
 
     static {
         Flyway flyway = new Flyway();
-        flyway.setDataSource(DB_URL, DB_USER, null);
+        flyway.setDataSource(DB_URL, DB_USER, DB_PWD);
         flyway.migrate();
     }
 

@@ -76,6 +76,10 @@ public class ObjectMessage implements MessagePayload {
         return payload;
     }
 
+    public long getVersion() {
+        return version;
+    }
+
     public long getStream() {
         return stream;
     }

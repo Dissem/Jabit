@@ -72,7 +72,7 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
     }
 
     @Override
-    public void storeObject(int version, ObjectMessage object) {
+    public void storeObject(ObjectMessage object) {
         try {
             PreparedStatement ps = getConnection().prepareStatement("INSERT INTO Inventory (hash, stream, expires, data, type, version) VALUES (?, ?, ?, ?, ?, ?)");
             InventoryVector iv = object.getInventoryVector();
@@ -82,7 +82,7 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
             ps.setLong(3, object.getExpiresTime());
             writeBlob(ps, 4, object);
             ps.setLong(5, object.getType());
-            ps.setInt(6, version);
+            ps.setLong(6, object.getVersion());
             ps.executeUpdate();
         } catch (SQLException e) {
             LOG.error("Error storing object of type " + object.getPayload().getClass().getSimpleName(), e);
