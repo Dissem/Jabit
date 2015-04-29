@@ -33,7 +33,7 @@
   There are a few terms that are easily mixed up. Here's a list of the most confusing ones:
 
   \listinginfo{}{message}{is sent from one node to another, i.e. to announce new objects or to initialize the network connection.}{}
-  \listinginfo{}{msg}{is the object payload containing the actual message written by a user. The term 'message' is never used to describe information exchange between users in this document.}{}
+  \listinginfo{}{msg}{is the object payload containing the actual message written by a user. The term 'message' is never used to describe information exchange between users in this document. 'Content' is mostly used instead.}{}
   \listinginfo{}{payload}{There are two kinds of payload: message payload for message types, e.g. containing inventory vectors, and object payload, which is distributed throughout the network.}{}
   \listinginfo{}{object}{is a kind of message whose payload is distributed among all nodes. Somtimes just the payload is meant.}{}
 
@@ -68,8 +68,8 @@
 
   \listinginfo{}{getpubkey}{A request for a public key, which is needed to encrypt a message to a specific user.}{}
   \listinginfo{}{pubkey}{A public key. See \ref{subsec:addrenc} \nameref{subsec:addrenc}}{}
-  \listinginfo{}{msg}{A TODO intended to be received by one user.}{}
-  \listinginfo{}{broadcast}{A TODO sent in a way that the Addresses public key can be used to decrypt it, allowing any subscriber who knows the address to receive the such a message}{}
+  \listinginfo{}{msg}{Content intended to be received by one user.}{}
+  \listinginfo{}{broadcast}{Content sent in a way that the Addresses public key can be used to decrypt it, allowing any subscriber who knows the address to receive the such a message}{}
 
   \subsubsection{ping / pong}
 
