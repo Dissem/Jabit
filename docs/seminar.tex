@@ -49,7 +49,7 @@
 
   \subsection{Messages}
 
-  The messages and binary format are very well discribed in the Bitmessage wiki \cite{wiki:protocol}, the message description is therefore narrowed down to a description of what they do and when they're used.
+  The messages, objects and binary format are very well discribed in the Bitmessage wiki \cite{wiki:protocol}, the message description is therefore narrowed down to a description of what they do and when they're used.
 
   \subsubsection{version / verack}
   A \msg{version} message contains the latest protocol version supported by a node, as well as the streams it is interested in and which features it supports. If the other node accepts, it acknowledges with a \msg{verack} message. The connection is initialized when both nodes sent a \msg{verack} message.
@@ -68,21 +68,35 @@
 
   \listinginfo{}{getpubkey}{A request for a public key, which is needed to encrypt a message to a specific user.}{}
   \listinginfo{}{pubkey}{A public key. See \ref{subsec:addrenc} \nameref{subsec:addrenc}}{}
-  \listinginfo{}{msg}{}{}
-  \listinginfo{}{broadcast}{}{}
+  \listinginfo{}{msg}{A TODO intended to be received by one user.}{}
+  \listinginfo{}{broadcast}{A TODO sent in a way that the Addresses public key can be used to decrypt it, allowing any subscriber who knows the address to receive the such a message}{}
 
   \subsubsection{ping / pong}
 
-  \subsection{Addresses and Encryption}
+  \subsection{Addresses \& Encryption}
   \label{subsec:addrenc}
+  TODO
 
 
   \section{Issues}
 
   \subsection{Scalability}
 
+  Bitmessage doen't really scale. If there are very few users, anonymity isn't given anymore, and with many users traffic and storage use grows quadratically.
+
+  \subsubsection{Streams}
+  The intended solution for this problem is splitting traffic\footnote{Addresses, actualy} into streams. When all active streams are full, a new one is created which should be used for new addresses. All users can send messages to any stream, but only listen to the streams belonging to their addresses. The unsolved problem is to determine when a stream is full. The other issue is the fact that, as the overall network grows, traffic on full streams still grows, as there are more users who might wanto to write someone on the full stream.
+
+  \subsubsection{Prefix Filtering}
   TODO
 
+  \subsection{Forward Secrecy}
+
+  Obviously it's trivial for an attacker to collect all (encrypted) objects distributed through the Bitmessage network\footnote{As long as disk space is not an issue.}. If this attacker can somehow get the private key of a user, they can decrypt all stored messages intended for that user, as well as impersonate said user\footnote{The latter might be more difficult if they got the key through a brute force attack.}.
+
+  Plausible deniability can, in some scenarios, help against this. This action, called "nuking an address", is done by anonymously publishing the private keys somewhere publicly accessible\footnote{Soo \url{https://bitmessage.ch/nuked/} for an example.}.
+
+  Perfect forward secrecy seems impractical to implement, as it requires to exchange messages prior to sending content. That would in turn need proof of work to protect the network, resulting in twice the work for the sender and three times longer to send --- that is if both clients are online.
 
   \section{Discussion}
 
