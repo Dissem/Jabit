@@ -54,7 +54,7 @@ public class Factory {
         }
     }
 
-    public static Pubkey createPubkey(long version, byte[] publicSigningKey, byte[] publicEncryptionKey,
+    public static Pubkey createPubkey(long version, long stream, byte[] publicSigningKey, byte[] publicEncryptionKey,
                                       long nonceTrialsPerByte, long extraBytes, Pubkey.Feature... features) {
         if (publicSigningKey.length != 64)
             throw new IllegalArgumentException("64 bytes signing key expected, but it was "
@@ -66,12 +66,14 @@ public class Factory {
         switch ((int) version) {
             case 2:
                 return new V2Pubkey.Builder()
+                        .stream(stream)
                         .publicSigningKey(publicSigningKey)
                         .publicEncryptionKey(publicEncryptionKey)
                         .behaviorBitfield(Pubkey.Feature.bitfield(features))
                         .build();
             case 3:
                 return new V3Pubkey.Builder()
+                        .stream(stream)
                         .publicSigningKey(publicSigningKey)
                         .publicEncryptionKey(publicEncryptionKey)
                         .behaviorBitfield(Pubkey.Feature.bitfield(features))
@@ -81,6 +83,7 @@ public class Factory {
             case 4:
                 return new V4Pubkey(
                         new V3Pubkey.Builder()
+                                .stream(stream)
                                 .publicSigningKey(publicSigningKey)
                                 .publicEncryptionKey(publicEncryptionKey)
                                 .behaviorBitfield(Pubkey.Feature.bitfield(features))
@@ -93,8 +96,8 @@ public class Factory {
         }
     }
 
-    public static BitmessageAddress generatePrivateAddress(Pubkey.Feature... features) {
-        return new BitmessageAddress(new PrivateKey(1000, 1000, features));
+    public static BitmessageAddress generatePrivateAddress(long stream, Pubkey.Feature... features) {
+        return new BitmessageAddress(new PrivateKey(stream, 1000, 1000, features));
     }
 
     static ObjectPayload getObjectPayload(long objectType, long version, long streamNumber, InputStream stream, int length) throws IOException {

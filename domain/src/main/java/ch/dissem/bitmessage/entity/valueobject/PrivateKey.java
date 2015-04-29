@@ -35,25 +35,25 @@ public class PrivateKey implements Streamable {
 
     private final Pubkey pubkey;
 
-    public PrivateKey(long nonceTrialsPerByte, long extraBytes, Pubkey.Feature... features) {
+    public PrivateKey(long stream, long nonceTrialsPerByte, long extraBytes, Pubkey.Feature... features) {
         this.privateSigningKey = Security.randomBytes(64);
         this.privateEncryptionKey = Security.randomBytes(64);
-        this.pubkey = Security.createPubkey(Pubkey.LATEST_VERSION, privateSigningKey, privateEncryptionKey,
+        this.pubkey = Security.createPubkey(Pubkey.LATEST_VERSION, stream, privateSigningKey, privateEncryptionKey,
                 nonceTrialsPerByte, extraBytes, features);
     }
 
-    private PrivateKey(byte[] privateSigningKey, byte[] privateEncryptionKey, Pubkey pubkey) {
+    public PrivateKey(byte[] privateSigningKey, byte[] privateEncryptionKey, Pubkey pubkey) {
         this.privateSigningKey = privateSigningKey;
         this.privateEncryptionKey = privateEncryptionKey;
         this.pubkey = pubkey;
     }
 
-    public PrivateKey(long version, String passphrase, long nonceTrialsPerByte, long extraBytes, Pubkey.Feature... features) {
+    public PrivateKey(long version, long stream, String passphrase, long nonceTrialsPerByte, long extraBytes, Pubkey.Feature... features) {
         try {
             // FIXME: this is most definitely wrong
             this.privateSigningKey = Bytes.truncate(Security.sha512(passphrase.getBytes("UTF-8"), new byte[]{0}), 32);
             this.privateEncryptionKey = Bytes.truncate(Security.sha512(passphrase.getBytes("UTF-8"), new byte[]{1}), 32);
-            this.pubkey = Security.createPubkey(version, privateSigningKey, privateEncryptionKey,
+            this.pubkey = Security.createPubkey(version, stream, privateSigningKey, privateEncryptionKey,
                     nonceTrialsPerByte, extraBytes, features);
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);

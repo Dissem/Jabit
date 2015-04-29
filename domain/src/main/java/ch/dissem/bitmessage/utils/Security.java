@@ -129,15 +129,17 @@ public class Security {
         }
     }
 
-    public static Pubkey createPubkey(long version, byte[] privateSigningKey, byte[] privateEncryptionKey,
+    public static Pubkey createPubkey(long version, long stream, byte[] privateSigningKey, byte[] privateEncryptionKey,
                                       long nonceTrialsPerByte, long extraBytes, Pubkey.Feature... features) {
         byte[] publicSigningKey = EC_PARAMETERS.getG().multiply(keyToBigInt(privateSigningKey)).getEncoded(false);
         byte[] publicEncryptionKey = EC_PARAMETERS.getG().multiply(keyToBigInt(privateEncryptionKey)).getEncoded(false);
-        return Factory.createPubkey(version, Bytes.subArray(publicSigningKey, 1, 64), Bytes.subArray(publicEncryptionKey, 1, 64),
+        return Factory.createPubkey(version, stream, // publicSigningKey, publicEncryptionKey,
+                Bytes.subArray(publicSigningKey, 1, publicSigningKey.length - 1),
+                Bytes.subArray(publicEncryptionKey, 1, publicEncryptionKey.length - 1),
                 nonceTrialsPerByte, extraBytes, features);
     }
 
     private static BigInteger keyToBigInt(byte[] key) {
-        return new BigInteger(Bytes.concatenate((byte) 0x00, key));
+        return new BigInteger(1, key);
     }
 }

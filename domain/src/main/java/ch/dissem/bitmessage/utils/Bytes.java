@@ -99,4 +99,27 @@ public class Bytes {
         System.arraycopy(bytes, 0, result, 1, bytes.length);
         return result;
     }
+
+    public static byte[] fromHex(String hex) {
+        if (hex.length() % 2 != 0) throw new IllegalArgumentException("expected even number of characters");
+        byte[] result = new byte[hex.length() / 2];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = (byte) (hexValue(hex.charAt(i * 2)) * 16);
+            result[i] += hexValue(hex.charAt(i * 2 + 1));
+        }
+        return result;
+    }
+
+    private static int hexValue(char c) {
+        if (c >= '0' && c <= '9') {
+            return c - '0';
+        }
+        if (c >= 'a' && c <= 'f') {
+            return 10 + c - 'a';
+        }
+        if (c >= 'A' && c <= 'F') {
+            return 10 + c - 'A';
+        }
+        throw new IllegalArgumentException("'" + c + "' is not a valid hex value");
+    }
 }
