@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.inventory;
 
 import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.Inventory;
@@ -62,9 +63,41 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
     public ObjectMessage getObject(InventoryVector vector) {
         try {
             Statement stmt = getConnection().createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT data, version FROM Inventory WHERE hash = " + vector);
-            Blob data = rs.getBlob("data");
-            return Factory.getObjectMessage(rs.getInt("version"), data.getBinaryStream(), (int) data.length());
+            ResultSet rs = stmt.executeQuery("SELECT data, version FROM Inventory WHERE hash = X'" + vector + "'");
+            if (rs.next()) {
+                Blob data = rs.getBlob("data");
+                return Factory.getObjectMessage(rs.getInt("version"), data.getBinaryStream(), (int) data.length());
+            } else {
+                LOG.info("Object requested that we don't have. IV: " + vector);
+                return null;
+            }
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public List<ObjectMessage> getObjects(long stream, long version, ObjectType type) {
+        try {
+            StringBuilder query = new StringBuilder("SELECT data, version FROM Inventory WHERE 1=1");
+            if (stream >= 0) {
+                query.append(" AND stream = ").append(stream);
+            }
+            if (version >= 0) {
+                query.append(" AND version = ").append(version);
+            }
+            if (type != null) {
+                query.append(" AND type = ").append(type.getNumber());
+            }
+            Statement stmt = getConnection().createStatement();
+            ResultSet rs = stmt.executeQuery(query.toString());
+            List<ObjectMessage> result = new LinkedList<>();
+            while (rs.next()) {
+                Blob data = rs.getBlob("data");
+                result.add(Factory.getObjectMessage(rs.getInt("version"), data.getBinaryStream(), (int) data.length()));
+            }
+            return result;
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
             throw new RuntimeException(e);

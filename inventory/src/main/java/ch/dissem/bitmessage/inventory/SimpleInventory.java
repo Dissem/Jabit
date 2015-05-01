@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.inventory;
 
 import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.ports.Inventory;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
@@ -41,6 +42,11 @@ public class SimpleInventory implements Inventory {
     @Override
     public ObjectMessage getObject(InventoryVector vector) {
         throw new NotImplementedException();
+    }
+
+    @Override
+    public List<ObjectMessage> getObjects(long stream, long version, ObjectType type) {
+        return new LinkedList<>();
     }
 
     @Override

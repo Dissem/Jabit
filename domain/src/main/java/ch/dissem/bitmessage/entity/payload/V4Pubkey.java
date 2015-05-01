@@ -63,6 +63,11 @@ public class V4Pubkey extends Pubkey {
     }
 
     @Override
+    public ObjectType getType() {
+        return ObjectType.PUBKEY;
+    }
+
+    @Override
     public long getStream() {
         return stream;
     }

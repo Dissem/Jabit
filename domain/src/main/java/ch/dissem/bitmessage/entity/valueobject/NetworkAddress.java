@@ -103,7 +103,7 @@ public class NetworkAddress implements Streamable {
 
     @Override
     public String toString() {
-        return toInetAddress() + ":" + port;
+        return "[" + toInetAddress() + "]:" + port;
     }
 
     @Override

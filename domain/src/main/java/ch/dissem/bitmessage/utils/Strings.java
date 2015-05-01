@@ -20,7 +20,7 @@ package ch.dissem.bitmessage.utils;
  * Created by chris on 13.04.15.
  */
 public class Strings {
-    public static CharSequence join(byte[]... objects) {
+    public static StringBuilder join(byte[]... objects) {
         StringBuilder streamList = new StringBuilder();
         for (int i = 0; i < objects.length; i++) {
             if (i > 0) streamList.append(", ");
@@ -29,7 +29,7 @@ public class Strings {
         return streamList;
     }
 
-    public static CharSequence join(long... objects) {
+    public static StringBuilder join(long... objects) {
         StringBuilder streamList = new StringBuilder();
         for (int i = 0; i < objects.length; i++) {
             if (i > 0) streamList.append(", ");
@@ -38,7 +38,7 @@ public class Strings {
         return streamList;
     }
 
-    public static CharSequence join(Object... objects) {
+    public static StringBuilder join(Object... objects) {
         StringBuilder streamList = new StringBuilder();
         for (int i = 0; i < objects.length; i++) {
             if (i > 0) streamList.append(", ");
@@ -47,9 +47,8 @@ public class Strings {
         return streamList;
     }
 
-    public static CharSequence hex(byte[] bytes) {
+    public static StringBuilder hex(byte[] bytes) {
         StringBuilder hex = new StringBuilder(bytes.length + 2);
-        hex.append("0x");
         for (byte b : bytes) {
             hex.append(String.format("%02x", b));
         }

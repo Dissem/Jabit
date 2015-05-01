@@ -40,6 +40,11 @@ public class GenericPayload implements ObjectPayload {
     }
 
     @Override
+    public ObjectType getType() {
+        return null;
+    }
+
+    @Override
     public long getStream() {
         return stream;
     }

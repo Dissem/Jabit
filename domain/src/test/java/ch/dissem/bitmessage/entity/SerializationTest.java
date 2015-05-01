@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.factory.Factory;
+import ch.dissem.bitmessage.utils.TestUtils;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -69,24 +70,12 @@ public class SerializationTest {
     }
 
     private void doTest(String resourceName, int version, Class<?> expectedPayloadType) throws IOException {
-        byte[] data = getBytes(resourceName);
+        byte[] data = TestUtils.getBytes(resourceName);
         InputStream in = new ByteArrayInputStream(data);
         ObjectMessage object = Factory.getObjectMessage(version, in, data.length);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         object.write(out);
         assertArrayEquals(data, out.toByteArray());
         assertEquals(expectedPayloadType.getCanonicalName(), object.getPayload().getClass().getCanonicalName());
-    }
-
-    private byte[] getBytes(String resourceName) throws IOException {
-        InputStream in = getClass().getClassLoader().getResourceAsStream(resourceName);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        byte[] buffer = new byte[1024];
-        int len = in.read(buffer);
-        while (len != -1) {
-            out.write(buffer, 0, len);
-            len = in.read(buffer);
-        }
-        return out.toByteArray();
     }
 }

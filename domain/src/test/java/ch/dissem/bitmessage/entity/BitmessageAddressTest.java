@@ -16,14 +16,14 @@
 
 package ch.dissem.bitmessage.entity;
 
+import ch.dissem.bitmessage.entity.payload.V3Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
-import ch.dissem.bitmessage.utils.Base58;
-import ch.dissem.bitmessage.utils.Bytes;
-import ch.dissem.bitmessage.utils.Security;
+import ch.dissem.bitmessage.utils.*;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import java.io.IOException;
+
+import static org.junit.Assert.*;
 
 public class BitmessageAddressTest {
     @Test
@@ -50,23 +50,58 @@ public class BitmessageAddressTest {
     }
 
     @Test
+    public void testV3() {
+//        ripe 007402be6e76c3cb87caa946d0c003a3d4d8e1d5
+//        publicSigningKey in hex: 0435e3f10f4884ec42f11f1a815ace8c7c4575cad455ca98db19a245c4c57baebdce990919b647f2657596b75aa939b858bd70c55a03492dd95119bef009cf9eea
+//        publicEncryptionKey in hex: 04bf30a7ee7854f9381332a6285659215a6a4b2ab3479fa87fe996f7cd11710367748371d8d2545f8466964dd3140ab80508b2b18e45616ef6cc4d8e54db923761
+        BitmessageAddress address = new BitmessageAddress("BM-2D9Vc5rFxxR5vTi53T9gkLfemViHRMVLQZ");
+        V3Pubkey pubkey = new V3Pubkey.Builder()
+                .stream(1)
+                .publicSigningKey(Bytes.fromHex("0435e3f10f4884ec42f11f1a815ace8c7c4575cad455ca98db19a245c4c57baebdce990919b647f2657596b75aa939b858bd70c55a03492dd95119bef009cf9eea"))
+                .publicEncryptionKey(Bytes.fromHex("04bf30a7ee7854f9381332a6285659215a6a4b2ab3479fa87fe996f7cd11710367748371d8d2545f8466964dd3140ab80508b2b18e45616ef6cc4d8e54db923761"))
+                .build();
+        address.setPubkey(pubkey);
+        assertArrayEquals(Bytes.fromHex("007402be6e76c3cb87caa946d0c003a3d4d8e1d5"), address.getRipe());
+    }
+
+    @Test
+    public void testV3PubkeyImport() throws IOException {
+        ObjectMessage object = TestUtils.loadObjectMessage(3, "V3Pubkey.payload");
+        V3Pubkey pubkey = (V3Pubkey) object.getPayload();
+        BitmessageAddress address = new BitmessageAddress("BM-2DAjcCFrqFrp88FUxExhJ9kPqHdunQmiyn");
+        address.setPubkey(pubkey);
+    }
+
+    @Test
     public void testV3Import() {
-        assertEquals(3, new BitmessageAddress("BM-2DAjcCFrqFrp88FUxExhJ9kPqHdunQmiyn").getVersion());
-        assertEquals(1, new BitmessageAddress("BM-2DAjcCFrqFrp88FUxExhJ9kPqHdunQmiyn").getStream());
+        String address_string = "BM-2DAjcCFrqFrp88FUxExhJ9kPqHdunQmiyn";
+        assertEquals(3, new BitmessageAddress(address_string).getVersion());
+        assertEquals(1, new BitmessageAddress(address_string).getStream());
 
-        byte[] privsigningkey = Base58.decode("5KU2gbe9u4rKJ8PHYb1rvwMnZnAJj4gtV5GLwoYckeYzygWUzB9");
-        byte[] privencryptionkey = Base58.decode("5KHd4c6cavd8xv4kzo3PwnVaYuBgEfg7voPQ5V97aZKgpYBXGck");
-        assertEquals((byte) 0x80, privsigningkey[0]);
-        assertEquals((byte) 0x80, privencryptionkey[0]);
-        privsigningkey = Bytes.subArray(privsigningkey, 1, privsigningkey.length - 5);
-        privencryptionkey = Bytes.subArray(privencryptionkey, 1, privencryptionkey.length - 5);
+        byte[] privsigningkey = getSecret("5KU2gbe9u4rKJ8PHYb1rvwMnZnAJj4gtV5GLwoYckeYzygWUzB9");
+        byte[] privencryptionkey = getSecret("5KHd4c6cavd8xv4kzo3PwnVaYuBgEfg7voPQ5V97aZKgpYBXGck");
 
-        privsigningkey = Bytes.expand(privsigningkey, 32);
-        privencryptionkey = Bytes.expand(privencryptionkey, 32);
+        System.out.println("\n\n" + Strings.hex(privsigningkey) + "\n\n");
+
+//        privsigningkey = Bytes.expand(privsigningkey, 32);
+//        privencryptionkey = Bytes.expand(privencryptionkey, 32);
 
         BitmessageAddress address = new BitmessageAddress(new PrivateKey(privsigningkey, privencryptionkey,
                 Security.createPubkey(3, 1, privsigningkey, privencryptionkey, 320, 14000)));
-        assertEquals("BM-2DAjcCFrqFrp88FUxExhJ9kPqHdunQmiyn", address.getAddress());
+        assertEquals(address_string, address.getAddress());
+    }
+
+    private byte[] getSecret(String walletImportFormat) {
+        byte[] bytes = Base58.decode("5KU2gbe9u4rKJ8PHYb1rvwMnZnAJj4gtV5GLwoYckeYzygWUzB9");
+        assertEquals(37, bytes.length);
+        assertEquals((byte) 0x80, bytes[0]);
+        byte[] checksum = Bytes.subArray(bytes, bytes.length - 4, 4);
+        byte[] secret = Bytes.subArray(bytes, 1, 32);
+//        assertArrayEquals("Checksum failed", checksum, Bytes.subArray(Security.doubleSha512(new byte[]{(byte) 0x80}, secret, new byte[]{0x01}), 0, 4));
+        byte[] result = new byte[33];
+        result[0] = 0x04;
+        System.arraycopy(secret, 0, result, 1, secret.length);
+        return result;
     }
 
     @Test

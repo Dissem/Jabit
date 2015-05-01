@@ -25,6 +25,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 
+import static ch.dissem.bitmessage.utils.Decode.bytes;
+import static ch.dissem.bitmessage.utils.Decode.varInt;
+
 /**
  * A Bitmessage address. Can be a user's private address, an address string without public keys or a recipient's address
  * holding private keys.
@@ -53,10 +56,10 @@ public class BitmessageAddress {
             byte[] bytes = Base58.decode(address.substring(3));
             ByteArrayInputStream in = new ByteArrayInputStream(bytes);
             AccessCounter counter = new AccessCounter();
-            this.version = Decode.varInt(in, counter);
-            this.stream = Decode.varInt(in, counter);
-            this.ripe = Decode.bytes(in, bytes.length - counter.length() - 4);
-            testChecksum(Decode.bytes(in, 4), bytes);
+            this.version = varInt(in, counter);
+            this.stream = varInt(in, counter);
+            this.ripe = Bytes.expand(bytes(in, bytes.length - counter.length() - 4), 20);
+            testChecksum(bytes(in, 4), bytes);
             this.address = generateAddress();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -108,16 +111,16 @@ public class BitmessageAddress {
         return privateKey;
     }
 
-    public void setAlias(String alias) {
-        this.alias = alias;
-    }
-
     public String getAddress() {
         return address;
     }
 
     public String getAlias() {
         return alias;
+    }
+
+    public void setAlias(String alias) {
+        this.alias = alias;
     }
 
     @Override

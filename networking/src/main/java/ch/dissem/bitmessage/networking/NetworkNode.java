@@ -18,7 +18,7 @@ package ch.dissem.bitmessage.networking;
 
 import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.BitmessageContext.ContextHolder;
-import ch.dissem.bitmessage.entity.payload.ObjectPayload;
+import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.ports.NetworkHandler;
 import org.slf4j.Logger;
@@ -40,9 +40,9 @@ import static ch.dissem.bitmessage.networking.Connection.State.*;
  */
 public class NetworkNode implements NetworkHandler, ContextHolder {
     private final static Logger LOG = LoggerFactory.getLogger(NetworkNode.class);
-    private BitmessageContext ctx;
     private final ExecutorService pool;
     private final List<Connection> connections = new LinkedList<>();
+    private BitmessageContext ctx;
     private ServerSocket serverSocket;
     private Thread connectionManager;
 
@@ -137,7 +137,15 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
     }
 
     @Override
-    public void send(final ObjectPayload payload) {
-        // TODO: sendingQueue.add(message);
+    public void offer(final InventoryVector iv) {
+        // TODO:
+        // - should offer to (random) 8 nodes during 8 seconds (if possible)
+        // - should probably offer later if no connection available at the moment?
+        synchronized (connections) {
+            LOG.debug(connections.size() + " connections available to offer " + iv);
+            for (Connection connection : connections) {
+                connection.offer(iv);
+            }
+        }
     }
 }

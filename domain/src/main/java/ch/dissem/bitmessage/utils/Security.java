@@ -80,6 +80,9 @@ public class Security {
     }
 
     public static void doProofOfWork(ObjectMessage object, ProofOfWorkEngine worker, long nonceTrialsPerByte, long extraBytes) throws IOException {
+        if (nonceTrialsPerByte < 1000) nonceTrialsPerByte = 1000;
+        if (extraBytes < 1000) extraBytes = 1000;
+
         byte[] initialHash = getInitialHash(object);
 
         byte[] target = getProofOfWorkTarget(object, nonceTrialsPerByte, extraBytes);

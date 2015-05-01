@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.ports;
 
 import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 
 import java.util.List;
@@ -30,6 +31,8 @@ public interface Inventory {
     List<InventoryVector> getMissing(List<InventoryVector> offer, long... streams);
 
     ObjectMessage getObject(InventoryVector vector);
+
+    List<ObjectMessage> getObjects(long stream, long version, ObjectType type);
 
     void storeObject(ObjectMessage object);
 

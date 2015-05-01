@@ -32,7 +32,14 @@ public class BytesTest {
     public static final Random rnd = new Random();
 
     @Test
-    public void testIncrement() throws IOException {
+    public void ensureExpandsCorrectly() {
+        byte[] source = {1};
+        byte[] expected = {0,1};
+        assertArrayEquals(expected, Bytes.expand(source, 2));
+    }
+
+    @Test
+    public void ensureIncrementCarryWorks() throws IOException {
         byte[] bytes = {0, -1};
         Bytes.inc(bytes);
         assertArrayEquals(TestUtils.int16(256), bytes);

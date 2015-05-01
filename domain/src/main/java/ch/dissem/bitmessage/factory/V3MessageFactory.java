@@ -46,7 +46,10 @@ class V3MessageFactory {
 
             if (testChecksum(checksum, payloadBytes)) {
                 MessagePayload payload = getPayload(command, new ByteArrayInputStream(payloadBytes), length);
-                return new NetworkMessage(payload);
+                if (payload != null)
+                    return new NetworkMessage(payload);
+                else
+                    return null;
             } else {
                 throw new IOException("Checksum failed for message '" + command + "'");
             }
@@ -84,14 +87,14 @@ class V3MessageFactory {
         long version = Decode.varInt(stream, counter);
         long streamNumber = Decode.varInt(stream, counter);
 
-        ObjectPayload payload = Factory.getObjectPayload(objectType, version, streamNumber, stream, length-counter.length());
+        ObjectPayload payload = Factory.getObjectPayload(objectType, version, streamNumber, stream, length - counter.length());
 
         return new ObjectMessage.Builder()
                 .nonce(nonce)
                 .expiresTime(expiresTime)
                 .objectType(objectType)
                 .version(version)
-                .streamNumber(streamNumber)
+                .stream(streamNumber)
                 .payload(payload)
                 .build();
     }

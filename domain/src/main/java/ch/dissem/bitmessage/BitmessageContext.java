@@ -16,11 +16,15 @@
 
 package ch.dissem.bitmessage;
 
-import ch.dissem.bitmessage.ports.AddressRepository;
-import ch.dissem.bitmessage.ports.Inventory;
-import ch.dissem.bitmessage.ports.NetworkHandler;
-import ch.dissem.bitmessage.ports.NodeRegistry;
+import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.entity.payload.ObjectPayload;
+import ch.dissem.bitmessage.ports.*;
+import ch.dissem.bitmessage.utils.Security;
+import ch.dissem.bitmessage.utils.UnixTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.TreeSet;
 
@@ -29,15 +33,16 @@ import java.util.TreeSet;
  */
 public class BitmessageContext {
     public static final int CURRENT_VERSION = 3;
+    private final static Logger LOG = LoggerFactory.getLogger(BitmessageContext.class);
+    private final Inventory inventory;
+    private final NodeRegistry nodeRegistry;
+    private final NetworkHandler networkHandler;
+    private final AddressRepository addressRepo;
+    private final ProofOfWorkEngine proofOfWorkEngine;
 
-    private Inventory inventory;
-    private NodeRegistry nodeRegistry;
-    private NetworkHandler networkHandler;
-    private AddressRepository addressRepo;
+    private final TreeSet<Long> streams;
 
-    private Collection<Long> streams = new TreeSet<>();
-
-    private int port;
+    private final int port;
 
     private long networkNonceTrialsPerByte = 1000;
     private long networkExtraBytes = 1000;
@@ -48,9 +53,10 @@ public class BitmessageContext {
         nodeRegistry = builder.nodeRegistry;
         networkHandler = builder.networkHandler;
         addressRepo = builder.addressRepo;
+        proofOfWorkEngine = builder.proofOfWorkEngine;
         streams = builder.streams;
 
-        init(inventory, nodeRegistry, networkHandler, addressRepo);
+        init(inventory, nodeRegistry, networkHandler, addressRepo, proofOfWorkEngine);
     }
 
     private void init(Object... objects) {
@@ -59,6 +65,20 @@ public class BitmessageContext {
                 ((ContextHolder) o).setContext(this);
             }
         }
+    }
+
+    public void send(long stream, long version, ObjectPayload payload, long timeToLive, long nonceTrialsPerByte, long extraBytes) throws IOException {
+        long expires = UnixTime.now(+timeToLive);
+        LOG.info("Expires at " + expires);
+        ObjectMessage object = new ObjectMessage.Builder()
+                .stream(stream)
+                .version(version)
+                .expiresTime(expires)
+                .payload(payload)
+                .build();
+        Security.doProofOfWork(object, proofOfWorkEngine, nonceTrialsPerByte, extraBytes);
+        inventory.storeObject(object);
+        networkHandler.offer(object.getInventoryVector());
     }
 
     public Inventory getInventory() {
@@ -113,7 +133,8 @@ public class BitmessageContext {
         private NodeRegistry nodeRegistry;
         private NetworkHandler networkHandler;
         private AddressRepository addressRepo;
-        private Collection<Long> streams;
+        private ProofOfWorkEngine proofOfWorkEngine;
+        private TreeSet<Long> streams;
 
         public Builder() {
         }
@@ -143,8 +164,13 @@ public class BitmessageContext {
             return this;
         }
 
+        public Builder proofOfWorkEngine(ProofOfWorkEngine proofOfWorkEngine) {
+            this.proofOfWorkEngine = proofOfWorkEngine;
+            return this;
+        }
+
         public Builder streams(Collection<Long> streams) {
-            this.streams = streams;
+            this.streams = new TreeSet<>(streams);
             return this;
         }
 
@@ -163,6 +189,9 @@ public class BitmessageContext {
             nonNull("addressRepo", addressRepo);
             if (streams == null) {
                 streams(1);
+            }
+            if (proofOfWorkEngine == null) {
+                proofOfWorkEngine = new MultiThreadedPOWEngine();
             }
             return new BitmessageContext(this);
         }

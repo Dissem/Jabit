@@ -16,8 +16,13 @@
 
 package ch.dissem.bitmessage.utils;
 
+import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.factory.Factory;
+
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * If there's ever a need for this in production code, it should be rewritten to be more efficient.
@@ -26,6 +31,24 @@ public class TestUtils {
     public static byte[] int16(int number) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Encode.int16(number, out);
+        return out.toByteArray();
+    }
+
+    public static ObjectMessage loadObjectMessage(int version, String resourceName) throws IOException {
+        byte[] data = getBytes(resourceName);
+        InputStream in = new ByteArrayInputStream(data);
+        return Factory.getObjectMessage(version, in, data.length);
+    }
+
+    public static byte[] getBytes(String resourceName) throws IOException {
+        InputStream in = TestUtils.class.getClassLoader().getResourceAsStream(resourceName);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int len = in.read(buffer);
+        while (len != -1) {
+            out.write(buffer, 0, len);
+            len = in.read(buffer);
+        }
         return out.toByteArray();
     }
 }

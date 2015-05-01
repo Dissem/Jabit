@@ -14,23 +14,31 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.ports;
-
-import ch.dissem.bitmessage.BitmessageContext;
-import ch.dissem.bitmessage.entity.payload.ObjectPayload;
-import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
+package ch.dissem.bitmessage.entity.payload;
 
 /**
- * Handles incoming messages
+ * Known types for 'object' messages. Must not be used where an unknown type must be resent.
  */
-public interface NetworkHandler {
-    void start(MessageListener listener);
+public enum ObjectType {
+    GET_PUBKEY(0),
+    PUBKEY(1),
+    MSG(2),
+    BROADCAST(3);
 
-    void stop();
+    int number;
 
-    void offer(InventoryVector iv);
+    ObjectType(int number) {
+        this.number = number;
+    }
 
-    interface MessageListener {
-        void receive(ObjectPayload payload);
+    public static ObjectType fromNumber(long number) {
+        for (ObjectType type : values()) {
+            if (type.number == number) return type;
+        }
+        return null;
+    }
+
+    public long getNumber() {
+        return number;
     }
 }

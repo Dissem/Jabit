@@ -41,6 +41,11 @@ public class V4Broadcast implements Broadcast {
     }
 
     @Override
+    public ObjectType getType() {
+        return ObjectType.BROADCAST;
+    }
+
+    @Override
     public long getStream() {
         return stream;
     }

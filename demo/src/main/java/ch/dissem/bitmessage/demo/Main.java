@@ -16,18 +16,17 @@
 
 package ch.dissem.bitmessage.demo;
 
-import ch.dissem.bitmessage.BitmessageContext;
-import ch.dissem.bitmessage.entity.payload.ObjectPayload;
-import ch.dissem.bitmessage.inventory.JdbcAddressRepository;
+import ch.dissem.bitmessage.entity.BitmessageAddress;
+import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.entity.payload.ObjectType;
+import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.inventory.JdbcInventory;
-import ch.dissem.bitmessage.inventory.JdbcNodeRegistry;
-import ch.dissem.bitmessage.networking.NetworkNode;
-import ch.dissem.bitmessage.ports.NetworkHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Scanner;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Created by chris on 06.04.15.
@@ -36,26 +35,60 @@ public class Main {
     private final static Logger LOG = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) throws IOException {
-        BitmessageContext ctx = new BitmessageContext.Builder()
-                .addressRepo(new JdbcAddressRepository())
-                .inventory(new JdbcInventory())
-                .nodeRegistry(new JdbcNodeRegistry())
-                .networkHandler(new NetworkNode())
-                .port(48444)
-                .streams(1)
-                .build();
-        ctx.getNetworkHandler().start(new NetworkHandler.MessageListener() {
-            @Override
-            public void receive(ObjectPayload payload) {
-//                LOG.info("message received: " + payload);
-//                System.out.print('.');
-            }
-        });
+        final BitmessageAddress address = new BitmessageAddress("BM-2D9Vc5rFxxR5vTi53T9gkLfemViHRMVLQZ");
 
-        System.out.print("Press Enter to exit\n");
-        Scanner scanner = new Scanner(System.in);
-        scanner.nextLine();
-        LOG.info("Shutting down client");
-        ctx.getNetworkHandler().stop();
+//        BitmessageContext ctx = new BitmessageContext.Builder()
+//                .addressRepo(new JdbcAddressRepository())
+//                .inventory(new JdbcInventory())
+//                .nodeRegistry(new JdbcNodeRegistry())
+//                .networkHandler(new NetworkNode())
+//                .port(48444)
+//                .streams(1)
+//                .build();
+//
+//        ctx.getNetworkHandler().start(new NetworkHandler.MessageListener() {
+//            @Override
+//            public void receive(ObjectPayload payload) {
+////                LOG.info("message received: " + payload);
+////                System.out.print('.');
+//                if (payload instanceof V3Pubkey) {
+//                    V3Pubkey pubkey = (V3Pubkey) payload;
+//                    try {
+//                        address.setPubkey(pubkey);
+//                        System.out.println(address);
+//                    } catch (Exception ignore) {
+//                        System.err.println("Received pubkey we didn't request.");
+//                    }
+//                }
+//            }
+//        });
+//
+//        Scanner scanner = new Scanner(System.in);
+//        System.out.println("Press Enter to request pubkey for address " + address);
+//        scanner.nextLine();
+//        ctx.send(1, address.getVersion(), new GetPubkey(address), 3000, 1000, 1000);
+//
+//        System.out.println("Press Enter to exit");
+//        scanner.nextLine();
+//        LOG.info("Shutting down client");
+//        ctx.getNetworkHandler().stop();
+
+        List<ObjectMessage> objects = new JdbcInventory().getObjects(address.getStream(), address.getVersion(), ObjectType.PUBKEY);
+        System.out.println("Address version: " + address.getVersion());
+        System.out.println("Address stream:  " + address.getStream());
+        for (ObjectMessage o : objects) {
+            Pubkey pubkey = (Pubkey) o.getPayload();
+            if (Arrays.equals(address.getRipe(), pubkey.getRipe()))
+                System.out.println("Pubkey found!");
+            try {
+                address.setPubkey(pubkey);
+                System.out.println(address);
+            } catch (Exception ignore) {
+                System.out.println("But setPubkey failed? " + address.getRipe().length + "/" + pubkey.getRipe().length);
+                if (Arrays.equals(address.getRipe(), pubkey.getRipe())) {
+                    ignore.printStackTrace();
+                }
+            }
+        }
     }
 }

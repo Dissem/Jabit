@@ -26,4 +26,8 @@ public class UnixTime {
     public static long now() {
         return System.currentTimeMillis() / 1000;
     }
+
+    public static long now(long shiftSeconds) {
+        return (System.currentTimeMillis() / 1000) + shiftSeconds;
+    }
 }

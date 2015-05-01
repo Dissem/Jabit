@@ -45,6 +45,11 @@ public class Msg implements ObjectPayload {
     }
 
     @Override
+    public ObjectType getType() {
+        return ObjectType.MSG;
+    }
+
+    @Override
     public long getStream() {
         return stream;
     }

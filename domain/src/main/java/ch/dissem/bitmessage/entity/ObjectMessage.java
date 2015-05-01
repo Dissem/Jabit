@@ -89,20 +89,20 @@ public class ObjectMessage implements MessagePayload {
     }
 
     @Override
-    public void write(OutputStream stream) throws IOException {
-        stream.write(nonce);
-        stream.write(getPayloadBytesWithoutNonce());
+    public void write(OutputStream out) throws IOException {
+        out.write(nonce);
+        out.write(getPayloadBytesWithoutNonce());
     }
 
     public byte[] getPayloadBytesWithoutNonce() throws IOException {
         if (payloadBytes == null) {
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            Encode.int64(expiresTime, stream);
-            Encode.int32(objectType, stream);
-            Encode.varInt(version, stream);
-            Encode.varInt(this.stream, stream);
-            payload.write(stream);
-            payloadBytes = stream.toByteArray();
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            Encode.int64(expiresTime, out);
+            Encode.int32(objectType, out);
+            Encode.varInt(version, out);
+            Encode.varInt(stream, out);
+            payload.write(out);
+            payloadBytes = out.toByteArray();
         }
         return payloadBytes;
     }
@@ -110,8 +110,8 @@ public class ObjectMessage implements MessagePayload {
     public static final class Builder {
         private byte[] nonce;
         private long expiresTime;
-        private long objectType;
-        private long version;
+        private long objectType = -1;
+        private long version = -1;
         private long streamNumber;
         private ObjectPayload payload;
 
@@ -138,13 +138,15 @@ public class ObjectMessage implements MessagePayload {
             return this;
         }
 
-        public Builder streamNumber(long streamNumber) {
+        public Builder stream(long streamNumber) {
             this.streamNumber = streamNumber;
             return this;
         }
 
         public Builder payload(ObjectPayload payload) {
             this.payload = payload;
+            if (this.objectType == -1)
+                this.objectType = payload.getType().getNumber();
             return this;
         }
 

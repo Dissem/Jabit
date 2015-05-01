@@ -101,27 +101,28 @@ public class Factory {
     }
 
     static ObjectPayload getObjectPayload(long objectType, long version, long streamNumber, InputStream stream, int length) throws IOException {
-        if (objectType < 4) {
-            switch ((int) objectType) {
-                case 0:
+        ObjectType type = ObjectType.fromNumber(objectType);
+        if (type != null) {
+            switch (type) {
+                case GET_PUBKEY:
                     return parseGetPubkey(version, streamNumber, stream, length);
-                case 1:
+                case PUBKEY:
                     return parsePubkey(version, streamNumber, stream, length);
-                case 2:
+                case MSG:
                     return parseMsg(version, streamNumber, stream, length);
-                case 3:
+                case BROADCAST:
                     return parseBroadcast(version, streamNumber, stream, length);
                 default:
                     LOG.error("This should not happen, someone broke something in the code!");
             }
         }
         // fallback: just store the message - we don't really care what it is
-        LOG.warn("Unexpected object type: " + objectType);
+//        LOG.info("Unexpected object type: " + objectType);
         return GenericPayload.read(stream, streamNumber, length);
     }
 
     private static ObjectPayload parseGetPubkey(long version, long streamNumber, InputStream stream, int length) throws IOException {
-        return GetPubkey.read(stream, streamNumber, length);
+        return GetPubkey.read(stream, streamNumber, length, version);
     }
 
     public static Pubkey readPubkey(long version, long stream, InputStream is, int length) throws IOException {

@@ -91,6 +91,7 @@ public class Connection implements Runnable {
                 switch (state) {
                     case ACTIVE:
                         receiveMessage(msg.getPayload());
+                        sendQueue();
                         break;
 
                     default:
@@ -121,11 +122,16 @@ public class Connection implements Runnable {
                 }
             } catch (SocketTimeoutException e) {
                 if (state == ACTIVE) {
-                    for (MessagePayload msg = sendingQueue.poll(); msg != null; msg = sendingQueue.poll()) {
-                        send(msg);
-                    }
+                    sendQueue();
                 }
             }
+        }
+    }
+
+    private void sendQueue() {
+        LOG.debug("Sending " + sendingQueue.size() + " messages to node " + node);
+        for (MessagePayload msg = sendingQueue.poll(); msg != null; msg = sendingQueue.poll()) {
+            send(msg);
         }
     }
 
@@ -140,11 +146,10 @@ public class Connection implements Runnable {
                 break;
             case GETDATA:
                 GetData getData = (GetData) messagePayload;
-//                for (InventoryVector iv : getData.getInventory()) {
-//                    ObjectMessage om = ctx.getInventory().getObject(iv);
-//                    sendingQueue.offer(om);
-//                }
-                LOG.error("Node requests data!!!! This shouldn't happen, the hash is done wrong!!!");
+                for (InventoryVector iv : getData.getInventory()) {
+                    ObjectMessage om = ctx.getInventory().getObject(iv);
+                    if (om != null) sendingQueue.offer(om);
+                }
                 break;
             case OBJECT:
                 ObjectMessage objectMessage = (ObjectMessage) messagePayload;
@@ -199,6 +204,13 @@ public class Connection implements Runnable {
             LOG.error(e.getMessage(), e);
             disconnect();
         }
+    }
+
+    public void offer(InventoryVector iv) {
+        LOG.debug("Offering " + iv + " to node " + node.toString());
+        sendingQueue.offer(new Inv.Builder()
+                .addInventoryVector(iv)
+                .build());
     }
 
     public enum State {SERVER, CLIENT, ACTIVE, DISCONNECTED}
