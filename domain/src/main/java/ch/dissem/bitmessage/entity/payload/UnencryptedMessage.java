@@ -16,7 +16,6 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
-import ch.dissem.bitmessage.entity.Streamable;
 import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.IOException;
@@ -25,7 +24,7 @@ import java.io.OutputStream;
 /**
  * The unencrypted message to be sent by 'msg' or 'broadcast'.
  */
-public class UnencryptedMessage implements Streamable {
+public class UnencryptedMessage {
     private final long addressVersion;
     private final long stream;
     private final int behaviorBitfield;
@@ -35,11 +34,7 @@ public class UnencryptedMessage implements Streamable {
     private final long extraBytes;
     private final long encoding;
     private final byte[] message;
-    private final byte[] signature;
-
-    public long getStream() {
-        return stream;
-    }
+    private byte[] signature;
 
     private UnencryptedMessage(Builder builder) {
         addressVersion = builder.addressVersion;
@@ -54,8 +49,19 @@ public class UnencryptedMessage implements Streamable {
         signature = builder.signature;
     }
 
-    @Override
-    public void write(OutputStream os) throws IOException {
+    public long getStream() {
+        return stream;
+    }
+
+    public byte[] getSignature() {
+        return signature;
+    }
+
+    public void setSignature(byte[] signature) {
+        this.signature = signature;
+    }
+
+    public void write(OutputStream os, boolean includeSignature) throws IOException {
         Encode.varInt(addressVersion, os);
         Encode.varInt(stream, os);
         Encode.int32(behaviorBitfield, os);
@@ -66,8 +72,10 @@ public class UnencryptedMessage implements Streamable {
         Encode.varInt(encoding, os);
         Encode.varInt(message.length, os);
         os.write(message);
-        Encode.varInt(signature.length, os);
-        os.write(signature);
+        if (includeSignature) {
+            Encode.varInt(signature.length, os);
+            os.write(signature);
+        }
     }
 
     public static final class Builder {

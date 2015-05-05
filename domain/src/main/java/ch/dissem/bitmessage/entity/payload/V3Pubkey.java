@@ -34,8 +34,8 @@ public class V3Pubkey extends V2Pubkey {
     protected V3Pubkey(Builder builder) {
         stream = builder.streamNumber;
         behaviorBitfield = builder.behaviorBitfield;
-        publicSigningKey = builder.publicSigningKey;
-        publicEncryptionKey = builder.publicEncryptionKey;
+        publicSigningKey = add0x04(builder.publicSigningKey);
+        publicEncryptionKey = add0x04(builder.publicEncryptionKey);
 
         nonceTrialsPerByte = builder.nonceTrialsPerByte;
         extraBytes = builder.extraBytes;
@@ -56,12 +56,10 @@ public class V3Pubkey extends V2Pubkey {
     }
 
     @Override
-    public void write(OutputStream os) throws IOException {
-        super.write(os);
-        Encode.varInt(nonceTrialsPerByte, os);
-        Encode.varInt(extraBytes, os);
-        Encode.varInt(signature.length, os);
-        os.write(signature);
+    public void write(OutputStream out) throws IOException {
+        writeBytesToSign(out);
+        Encode.varInt(signature.length, out);
+        out.write(signature);
     }
 
     @Override
@@ -69,7 +67,27 @@ public class V3Pubkey extends V2Pubkey {
         return 3;
     }
 
-    public static class Builder extends V2Pubkey.Builder {
+    public boolean isSigned() {
+        return true;
+    }
+
+    public void writeBytesToSign(OutputStream out) throws IOException {
+        super.write(out);
+        Encode.varInt(nonceTrialsPerByte, out);
+        Encode.varInt(extraBytes, out);
+    }
+
+    @Override
+    public byte[] getSignature() {
+        return signature;
+    }
+
+    @Override
+    public void setSignature(byte[] signature) {
+        this.signature = signature;
+    }
+
+    public static class Builder {
         private long streamNumber;
         private int behaviorBitfield;
         private byte[] publicSigningKey;

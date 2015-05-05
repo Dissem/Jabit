@@ -17,7 +17,9 @@
 package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
+import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
+import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.utils.Bytes;
 import ch.dissem.bitmessage.utils.Encode;
 import ch.dissem.bitmessage.utils.Security;
@@ -88,19 +90,43 @@ public class ObjectMessage implements MessagePayload {
         return new InventoryVector(Bytes.truncate(Security.doubleSha512(nonce, getPayloadBytesWithoutNonce()), 32));
     }
 
+    public boolean isSigned() {
+        return payload.isSigned();
+    }
+
+    private byte[] getBytesToSign() throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        writeHeaderWithoutNonce(out);
+        payload.writeBytesToSign(out);
+        return out.toByteArray();
+    }
+
+    public void sign(PrivateKey key) {
+        // TODO
+    }
+
+    public boolean isSignatureValid() throws IOException {
+        Pubkey pubkey=null; // TODO
+        return Security.isSignatureValid(getBytesToSign(), payload.getSignature(), pubkey);
+    }
+
     @Override
     public void write(OutputStream out) throws IOException {
         out.write(nonce);
         out.write(getPayloadBytesWithoutNonce());
     }
 
+    private void writeHeaderWithoutNonce(OutputStream out) throws IOException {
+        Encode.int64(expiresTime, out);
+        Encode.int32(objectType, out);
+        Encode.varInt(version, out);
+        Encode.varInt(stream, out);
+    }
+
     public byte[] getPayloadBytesWithoutNonce() throws IOException {
         if (payloadBytes == null) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            Encode.int64(expiresTime, out);
-            Encode.int32(objectType, out);
-            Encode.varInt(version, out);
-            Encode.varInt(stream, out);
+            writeHeaderWithoutNonce(out);
             payload.write(out);
             payloadBytes = out.toByteArray();
         }

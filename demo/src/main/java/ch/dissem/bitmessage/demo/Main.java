@@ -21,9 +21,13 @@ import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.inventory.JdbcInventory;
+import ch.dissem.bitmessage.utils.Base58;
+import ch.dissem.bitmessage.utils.Encode;
+import ch.dissem.bitmessage.utils.Security;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -73,10 +77,13 @@ public class Main {
 //        LOG.info("Shutting down client");
 //        ctx.getNetworkHandler().stop();
 
+
         List<ObjectMessage> objects = new JdbcInventory().getObjects(address.getStream(), address.getVersion(), ObjectType.PUBKEY);
         System.out.println("Address version: " + address.getVersion());
         System.out.println("Address stream:  " + address.getStream());
         for (ObjectMessage o : objects) {
+//            if (!o.isSignatureValid()) System.out.println("Invalid signature.");
+//            System.out.println(o.getPayload().getSignature().length);
             Pubkey pubkey = (Pubkey) o.getPayload();
             if (Arrays.equals(address.getRipe(), pubkey.getRipe()))
                 System.out.println("Pubkey found!");
@@ -85,10 +92,26 @@ public class Main {
                 System.out.println(address);
             } catch (Exception ignore) {
                 System.out.println("But setPubkey failed? " + address.getRipe().length + "/" + pubkey.getRipe().length);
+                System.out.println("Failed address: " + generateAddress(address.getStream(), address.getVersion(), pubkey.getRipe()));
                 if (Arrays.equals(address.getRipe(), pubkey.getRipe())) {
                     ignore.printStackTrace();
                 }
             }
+        }
+    }
+
+    public static String generateAddress(long stream, long version, byte[] ripe) {
+        try {
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            Encode.varInt(version, os);
+            Encode.varInt(stream, os);
+            os.write(ripe);
+
+            byte[] checksum = Security.doubleSha512(os.toByteArray());
+            os.write(checksum, 0, 4);
+            return "BM-" + Base58.encode(os.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }

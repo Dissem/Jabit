@@ -85,4 +85,17 @@ public class V4Pubkey extends Pubkey {
     public byte[] getEncryptionKey() {
         return decrypted.getEncryptionKey();
     }
+
+    @Override
+    public byte[] getSignature() {
+        if (decrypted != null)
+            return decrypted.getSignature();
+        else
+            return null;
+    }
+
+    @Override
+    public void setSignature(byte[] signature) {
+        decrypted.setSignature(signature);
+    }
 }

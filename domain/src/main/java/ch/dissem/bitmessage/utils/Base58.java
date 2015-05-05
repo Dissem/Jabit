@@ -19,6 +19,8 @@ package ch.dissem.bitmessage.utils;
 
 import java.io.UnsupportedEncodingException;
 
+import static java.util.Arrays.copyOfRange;
+
 /**
  * Base58 encoder and decoder
  */
@@ -120,7 +122,6 @@ public class Base58 {
         while (j < temp.length && temp[j] == 0) {
             ++j;
         }
-
         return copyOfRange(temp, j - zeroCount, temp.length);
     }
 
@@ -156,12 +157,5 @@ public class Base58 {
         }
 
         return (byte) remainder;
-    }
-
-    private static byte[] copyOfRange(byte[] source, int from, int to) {
-        byte[] range = new byte[to - from];
-        System.arraycopy(source, from, range, 0, range.length);
-
-        return range;
     }
 }

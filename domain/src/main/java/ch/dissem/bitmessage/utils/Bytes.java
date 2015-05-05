@@ -122,4 +122,15 @@ public class Bytes {
         }
         throw new IllegalArgumentException("'" + c + "' is not a valid hex value");
     }
+
+    public static byte[] stripLeadingZeros(byte[] bytes) {
+        for (int i = 0; i < bytes.length; i++) {
+            if (bytes[i] != 0) {
+                byte[] result = new byte[bytes.length - i];
+                System.arraycopy(bytes, i, result, i, bytes.length - i);
+                return result;
+            }
+        }
+        return new byte[0];
+    }
 }

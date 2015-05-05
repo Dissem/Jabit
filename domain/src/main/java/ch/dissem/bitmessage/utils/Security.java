@@ -20,18 +20,19 @@ import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine;
-import org.bouncycastle.asn1.sec.SECNamedCurves;
-import org.bouncycastle.asn1.x9.X9ECParameters;
-import org.bouncycastle.crypto.params.ECDomainParameters;
+import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.jce.ECPointUtil;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jce.spec.ECNamedCurveSpec;
+import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
-import java.security.SecureRandom;
+import java.security.*;
+import java.security.interfaces.ECPublicKey;
+import java.security.spec.*;
 
 /**
  * Provides some methods to help with hashing and encryption.
@@ -40,8 +41,7 @@ public class Security {
     public static final Logger LOG = LoggerFactory.getLogger(Security.class);
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final BigInteger TWO = BigInteger.valueOf(2);
-    private static final X9ECParameters EC_CURVE = SECNamedCurves.getByName("secp256k1");
-    private static final ECDomainParameters EC_PARAMETERS = new ECDomainParameters(EC_CURVE.getCurve(), EC_CURVE.getG(), EC_CURVE.getN(), EC_CURVE.getH());
+    private static final ECGenParameterSpec EC_PARAMETERS = new ECGenParameterSpec("secp256k1");
 
     static {
         java.security.Security.addProvider(new BouncyCastleProvider());
@@ -67,6 +67,12 @@ public class Security {
 
     public static byte[] ripemd160(byte[]... data) {
         return hash("RIPEMD160", data);
+    }
+
+    public static byte[] doubleSha256(byte[] data, int length) {
+        MessageDigest mda = md("SHA-256");
+        mda.update(data, 0, length);
+        return mda.digest(mda.digest());
     }
 
     public static byte[] sha1(byte[]... data) {
@@ -134,15 +140,48 @@ public class Security {
 
     public static Pubkey createPubkey(long version, long stream, byte[] privateSigningKey, byte[] privateEncryptionKey,
                                       long nonceTrialsPerByte, long extraBytes, Pubkey.Feature... features) {
-        byte[] publicSigningKey = EC_PARAMETERS.getG().multiply(keyToBigInt(privateSigningKey)).getEncoded(false);
-        byte[] publicEncryptionKey = EC_PARAMETERS.getG().multiply(keyToBigInt(privateEncryptionKey)).getEncoded(false);
-        return Factory.createPubkey(version, stream, // publicSigningKey, publicEncryptionKey,
-                Bytes.subArray(publicSigningKey, 1, publicSigningKey.length - 1),
-                Bytes.subArray(publicEncryptionKey, 1, publicEncryptionKey.length - 1),
-                nonceTrialsPerByte, extraBytes, features);
+//        ECPublicKeySpec pubKey = new ECPublicKeySpec(
+//                ECPointUtil.decodePoint(curve, Hex.decode("025b6dc53bc61a2548ffb0f671472de6c9521a9d2d2534e65abfcbd5fe0c70")), // Q
+//                EC_PARAMETERS);
+//        byte[] publicSigningKey = EC_PARAMETERS.getG().multiply(keyToBigInt(privateSigningKey)).getEncoded(false);
+//        byte[] publicEncryptionKey = EC_PARAMETERS.getG().multiply(keyToBigInt(privateEncryptionKey)).getEncoded(false);
+//        return Factory.createPubkey(version, stream, // publicSigningKey, publicEncryptionKey,
+//                Bytes.subArray(publicSigningKey, 1, publicSigningKey.length - 1),
+//                Bytes.subArray(publicEncryptionKey, 1, publicEncryptionKey.length - 1),
+//                nonceTrialsPerByte, extraBytes, features);
+        return null;
+    }
+
+    private static byte[] createPublicKey(byte[] privateKey){
+//        ECParameterSpec spec = new ECNamedCurveSpec(ECNamedCurveTable.getParameterSpec("prime239v1"));
+//        ECPrivateKeySpec priKey = new ECPrivateKeySpec(
+//                new BigInteger("876300101507107567501066130761671078357010671067781776716671676178726717"), // d
+//                spec);
+//        ECPublicKeySpec pubKey = new ECPublicKeySpec(
+//                ECPointUtil.decodePoint(
+//                        spec.getCurve(),
+//                        Hex.decode("025b6dc53bc61a2548ffb0f671472de6c9521a9d2d2534e65abfcbd5fe0c70")), // Q
+//                spec);
+        return null;
     }
 
     private static BigInteger keyToBigInt(byte[] key) {
         return new BigInteger(1, key);
+    }
+
+    public static boolean isSignatureValid(byte[] bytesToSign, byte[] signature, Pubkey pubkey) {
+//        ECPoint W = EC_CURVE.getCurve().decodePoint(pubkey.getSigningKey()); // TODO: probably this needs 0x04 added
+        try {
+            ECParameterSpec param = null;
+//            KeySpec keySpec = new ECPublicKeySpec(W,param);;
+//            PublicKey publicKey = KeyFactory.getInstance("ECDSA", "BC").generatePublic(keySpec);
+
+            Signature sig = Signature.getInstance("ECDSA", "BC");
+//            sig.initVerify(publicKey);
+            sig.update(bytesToSign);
+            return sig.verify(signature);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

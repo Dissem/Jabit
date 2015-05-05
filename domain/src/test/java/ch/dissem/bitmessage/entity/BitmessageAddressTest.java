@@ -16,16 +16,26 @@
 
 package ch.dissem.bitmessage.entity;
 
+import ch.dissem.bitmessage.entity.payload.ObjectType;
+import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.payload.V3Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.inventory.JdbcInventory;
 import ch.dissem.bitmessage.utils.*;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.List;
 
 import static org.junit.Assert.*;
 
 public class BitmessageAddressTest {
+    @Test
+    public void ensureBase58DecodesCorrectly() {
+        assertHexEquals("800C28FCA386C7A227600B2FE50B7CAE11EC86D3BF1FBE471BE89827E19D72AA1D507A5B8D",
+                Base58.decode("5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ"));
+    }
+
     @Test
     public void ensureAddressStaysSame() {
         String address = "BM-2D9Vc5rFxxR5vTi53T9gkLfemViHRMVLQZ";
@@ -65,6 +75,13 @@ public class BitmessageAddressTest {
     }
 
     @Test
+    public void testV2PubkeyImport() throws IOException {
+        ObjectMessage object = TestUtils.loadObjectMessage(2, "V2Pubkey.payload");
+        V3Pubkey pubkey = (V3Pubkey) object.getPayload();
+        BitmessageAddress address = new BitmessageAddress("BM-2DAjcCFrqFrp88FUxExhJ9kPqHdunQmiyn"); // TODO: find address
+        address.setPubkey(pubkey);
+    }
+    @Test
     public void testV3PubkeyImport() throws IOException {
         ObjectMessage object = TestUtils.loadObjectMessage(3, "V3Pubkey.payload");
         V3Pubkey pubkey = (V3Pubkey) object.getPayload();
@@ -73,7 +90,7 @@ public class BitmessageAddressTest {
     }
 
     @Test
-    public void testV3Import() {
+    public void testV3Import() throws IOException {
         String address_string = "BM-2DAjcCFrqFrp88FUxExhJ9kPqHdunQmiyn";
         assertEquals(3, new BitmessageAddress(address_string).getVersion());
         assertEquals(1, new BitmessageAddress(address_string).getStream());
@@ -83,24 +100,31 @@ public class BitmessageAddressTest {
 
         System.out.println("\n\n" + Strings.hex(privsigningkey) + "\n\n");
 
-//        privsigningkey = Bytes.expand(privsigningkey, 32);
-//        privencryptionkey = Bytes.expand(privencryptionkey, 32);
-
         BitmessageAddress address = new BitmessageAddress(new PrivateKey(privsigningkey, privencryptionkey,
                 Security.createPubkey(3, 1, privsigningkey, privencryptionkey, 320, 14000)));
         assertEquals(address_string, address.getAddress());
     }
 
-    private byte[] getSecret(String walletImportFormat) {
-        byte[] bytes = Base58.decode("5KU2gbe9u4rKJ8PHYb1rvwMnZnAJj4gtV5GLwoYckeYzygWUzB9");
-        assertEquals(37, bytes.length);
-        assertEquals((byte) 0x80, bytes[0]);
-        byte[] checksum = Bytes.subArray(bytes, bytes.length - 4, 4);
-        byte[] secret = Bytes.subArray(bytes, 1, 32);
-//        assertArrayEquals("Checksum failed", checksum, Bytes.subArray(Security.doubleSha512(new byte[]{(byte) 0x80}, secret, new byte[]{0x01}), 0, 4));
+    @Test
+    public void testGetSecret() throws IOException {
+        assertHexEquals("040C28FCA386C7A227600B2FE50B7CAE11EC86D3BF1FBE471BE89827E19D72AA1D",
+                getSecret("5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ"));
+    }
+
+    private byte[] getSecret(String walletImportFormat) throws IOException {
+        byte[] bytes = Base58.decode(walletImportFormat);
+        if (bytes[0] != (byte) 0x80)
+            throw new IOException("Unknown format: 0x80 expected as first byte, but secret " + walletImportFormat + " was " + bytes[0]);
+        if (bytes.length != 37)
+            throw new IOException("Unknown format: 37 bytes expected, but secret " + walletImportFormat + " was " + bytes.length + " long");
+
+        byte[] hash = Security.doubleSha256(bytes, 33);
+        for (int i = 0; i < 4; i++) {
+            if (hash[i] != bytes[33 + i]) throw new IOException("Hash check failed for secret " + walletImportFormat);
+        }
         byte[] result = new byte[33];
         result[0] = 0x04;
-        System.arraycopy(secret, 0, result, 1, secret.length);
+        System.arraycopy(bytes, 1, result, 1, 32);
         return result;
     }
 
@@ -112,5 +136,9 @@ public class BitmessageAddressTest {
         BitmessageAddress address = new BitmessageAddress(new PrivateKey(privsigningkey, privencryptionkey,
                 Security.createPubkey(3, 1, privsigningkey, privencryptionkey, 320, 14000)));
         assertEquals("BM-2cV5f9EpzaYARxtoruSpa6pDoucSf9ZNke", address.getAddress());
+    }
+
+    private void assertHexEquals(String hex, byte[] bytes) {
+        assertEquals(hex.toLowerCase(), Strings.hex(bytes).toString().toLowerCase());
     }
 }

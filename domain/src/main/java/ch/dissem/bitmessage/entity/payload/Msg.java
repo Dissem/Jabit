@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.entity.payload;
 
 import ch.dissem.bitmessage.utils.Decode;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -25,7 +26,7 @@ import java.io.OutputStream;
 /**
  * Used for person-to-person messages.
  */
-public class Msg implements ObjectPayload {
+public class Msg extends ObjectPayload {
     private long stream;
     private byte[] encrypted;
     private UnencryptedMessage unencrypted;
@@ -54,9 +55,29 @@ public class Msg implements ObjectPayload {
         return stream;
     }
 
+    @Override
+    public boolean isSigned() {
+        return unencrypted != null;
+    }
+
+    @Override
+    public void writeBytesToSign(OutputStream out) throws IOException {
+        unencrypted.write(out, false);
+    }
+
+    @Override
+    public byte[] getSignature() {
+        return unencrypted.getSignature();
+    }
+
+    @Override
+    public void setSignature(byte[] signature) {
+        unencrypted.setSignature(signature);
+    }
+
     public byte[] getEncrypted() {
         if (encrypted == null) {
-            // TODO
+            // TODO encrypt
         }
         return encrypted;
     }

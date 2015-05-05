@@ -16,6 +16,8 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
+import ch.dissem.bitmessage.utils.Bytes;
+
 import java.util.ArrayList;
 
 import static ch.dissem.bitmessage.utils.Security.ripemd160;
@@ -24,7 +26,7 @@ import static ch.dissem.bitmessage.utils.Security.sha512;
 /**
  * Public keys for signing and encryption, the answer to a 'getpubkey' request.
  */
-public abstract class Pubkey implements ObjectPayload {
+public abstract class Pubkey extends ObjectPayload {
     public final static long LATEST_VERSION = 4;
 
     public abstract long getVersion();
@@ -34,7 +36,15 @@ public abstract class Pubkey implements ObjectPayload {
     public abstract byte[] getEncryptionKey();
 
     public byte[] getRipe() {
-        return ripemd160(sha512(getSigningKey(), getEncryptionKey()));
+        return Bytes.stripLeadingZeros(ripemd160(sha512(getSigningKey(), getEncryptionKey())));
+    }
+
+    protected byte[] add0x04(byte[] key){
+        if (key.length==65) return key;
+        byte[] result = new byte[65];
+        result[0] = 4;
+        System.arraycopy(key, 0, result, 1, 64);
+        return result;
     }
 
     /**

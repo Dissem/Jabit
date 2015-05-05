@@ -20,6 +20,6 @@ package ch.dissem.bitmessage.entity.payload;
  * Users who are subscribed to the sending address will see the message appear in their inbox.
  * Broadcasts are version 4 or 5.
  */
-public interface Broadcast extends ObjectPayload {
-    byte[] getEncrypted();
+public abstract class Broadcast extends ObjectPayload {
+    public abstract byte[] getEncrypted();
 }

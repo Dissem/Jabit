@@ -38,8 +38,8 @@ public class V2Pubkey extends Pubkey {
     private V2Pubkey(Builder builder) {
         stream = builder.streamNumber;
         behaviorBitfield = builder.behaviorBitfield;
-        publicSigningKey = builder.publicSigningKey;
-        publicEncryptionKey = builder.publicEncryptionKey;
+        publicSigningKey = add0x04(builder.publicSigningKey);
+        publicEncryptionKey = add0x04(builder.publicEncryptionKey);
     }
 
     public static V2Pubkey read(InputStream is, long stream) throws IOException {
@@ -79,8 +79,8 @@ public class V2Pubkey extends Pubkey {
     @Override
     public void write(OutputStream os) throws IOException {
         Encode.int32(behaviorBitfield, os);
-        os.write(publicSigningKey);
-        os.write(publicEncryptionKey);
+        os.write(publicSigningKey, 1, 64);
+        os.write(publicEncryptionKey, 1, 64);
     }
 
     public static class Builder {

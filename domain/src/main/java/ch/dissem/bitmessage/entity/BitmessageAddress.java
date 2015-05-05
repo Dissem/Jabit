@@ -18,7 +18,10 @@ package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
-import ch.dissem.bitmessage.utils.*;
+import ch.dissem.bitmessage.utils.AccessCounter;
+import ch.dissem.bitmessage.utils.Base58;
+import ch.dissem.bitmessage.utils.Encode;
+import ch.dissem.bitmessage.utils.Security;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -58,7 +61,7 @@ public class BitmessageAddress {
             AccessCounter counter = new AccessCounter();
             this.version = varInt(in, counter);
             this.stream = varInt(in, counter);
-            this.ripe = Bytes.expand(bytes(in, bytes.length - counter.length() - 4), 20);
+            this.ripe = bytes(in, bytes.length - counter.length() - 4);
             testChecksum(bytes(in, 4), bytes);
             this.address = generateAddress();
         } catch (IOException e) {
@@ -81,9 +84,7 @@ public class BitmessageAddress {
             os.write(ripe);
 
             byte[] checksum = Security.doubleSha512(os.toByteArray());
-            for (int i = 0; i < 4; i++) {
-                os.write(checksum[i]);
-            }
+            os.write(checksum, 0, 4);
             return "BM-" + Base58.encode(os.toByteArray());
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -103,7 +104,8 @@ public class BitmessageAddress {
     }
 
     public void setPubkey(Pubkey pubkey) {
-        if (!Arrays.equals(ripe, pubkey.getRipe())) throw new IllegalArgumentException("Pubkey has incompatible RIPE");
+        if (!Arrays.equals(ripe, pubkey.getRipe()))
+            throw new IllegalArgumentException("Pubkey has incompatible RIPE");
         this.pubkey = pubkey;
     }
 

@@ -26,7 +26,7 @@ import java.io.OutputStream;
  * Users who are subscribed to the sending address will see the message appear in their inbox.
  * Broadcasts are version 4 or 5.
  */
-public class V4Broadcast implements Broadcast {
+public class V4Broadcast extends Broadcast {
     private long stream;
     private byte[] encrypted;
     private UnencryptedMessage unencrypted;
@@ -52,6 +52,21 @@ public class V4Broadcast implements Broadcast {
 
     public byte[] getEncrypted() {
         return encrypted;
+    }
+
+    @Override
+    public void writeBytesToSign(OutputStream out) throws IOException {
+        unencrypted.write(out, false);
+    }
+
+    @Override
+    public byte[] getSignature() {
+        return unencrypted.getSignature();
+    }
+
+    @Override
+    public void setSignature(byte[] signature) {
+        unencrypted.setSignature(signature);
     }
 
     @Override

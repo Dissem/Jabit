@@ -27,7 +27,7 @@ import java.io.OutputStream;
 /**
  * Request for a public key.
  */
-public class GetPubkey implements ObjectPayload {
+public class GetPubkey extends ObjectPayload {
     private long stream;
     private byte[] ripe;
     private byte[] tag;

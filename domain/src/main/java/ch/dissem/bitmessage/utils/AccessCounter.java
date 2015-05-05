@@ -41,4 +41,9 @@ public class AccessCounter {
     public int length() {
         return count;
     }
+
+    @Override
+    public String toString() {
+        return String.valueOf(count);
+    }
 }

@@ -26,7 +26,7 @@ import java.io.OutputStream;
  * In cases we don't know what to do with an object, we just store its bytes and send it again - we don't really
  * have to know what it is.
  */
-public class GenericPayload implements ObjectPayload {
+public class GenericPayload extends ObjectPayload {
     private long stream;
     private byte[] data;
 
