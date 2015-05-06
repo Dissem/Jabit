@@ -16,16 +16,13 @@
 
 package ch.dissem.bitmessage.entity;
 
-import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.payload.V3Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
-import ch.dissem.bitmessage.inventory.JdbcInventory;
 import ch.dissem.bitmessage.utils.*;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.List;
 
 import static org.junit.Assert.*;
 
@@ -60,33 +57,32 @@ public class BitmessageAddressTest {
     }
 
     @Test
-    public void testV3() {
-//        ripe 007402be6e76c3cb87caa946d0c003a3d4d8e1d5
-//        publicSigningKey in hex: 0435e3f10f4884ec42f11f1a815ace8c7c4575cad455ca98db19a245c4c57baebdce990919b647f2657596b75aa939b858bd70c55a03492dd95119bef009cf9eea
-//        publicEncryptionKey in hex: 04bf30a7ee7854f9381332a6285659215a6a4b2ab3479fa87fe996f7cd11710367748371d8d2545f8466964dd3140ab80508b2b18e45616ef6cc4d8e54db923761
-        BitmessageAddress address = new BitmessageAddress("BM-2D9Vc5rFxxR5vTi53T9gkLfemViHRMVLQZ");
-        V3Pubkey pubkey = new V3Pubkey.Builder()
-                .stream(1)
-                .publicSigningKey(Bytes.fromHex("0435e3f10f4884ec42f11f1a815ace8c7c4575cad455ca98db19a245c4c57baebdce990919b647f2657596b75aa939b858bd70c55a03492dd95119bef009cf9eea"))
-                .publicEncryptionKey(Bytes.fromHex("04bf30a7ee7854f9381332a6285659215a6a4b2ab3479fa87fe996f7cd11710367748371d8d2545f8466964dd3140ab80508b2b18e45616ef6cc4d8e54db923761"))
-                .build();
+    public void testV2PubkeyImport() throws IOException {
+        ObjectMessage object = TestUtils.loadObjectMessage(2, "V2Pubkey.payload");
+        Pubkey pubkey = (Pubkey) object.getPayload();
+        BitmessageAddress address = new BitmessageAddress("BM-opWQhvk9xtMFvQA2Kvetedpk8LkbraWHT");
         address.setPubkey(pubkey);
-        assertArrayEquals(Bytes.fromHex("007402be6e76c3cb87caa946d0c003a3d4d8e1d5"), address.getRipe());
     }
 
     @Test
-    public void testV2PubkeyImport() throws IOException {
-        ObjectMessage object = TestUtils.loadObjectMessage(2, "V2Pubkey.payload");
-        V3Pubkey pubkey = (V3Pubkey) object.getPayload();
-        BitmessageAddress address = new BitmessageAddress("BM-2DAjcCFrqFrp88FUxExhJ9kPqHdunQmiyn"); // TODO: find address
-        address.setPubkey(pubkey);
-    }
-    @Test
     public void testV3PubkeyImport() throws IOException {
+        BitmessageAddress address = new BitmessageAddress("BM-2D9Vc5rFxxR5vTi53T9gkLfemViHRMVLQZ");
+        assertArrayEquals(Bytes.fromHex("7402be6e76c3cb87caa946d0c003a3d4d8e1d5"), address.getRipe());
+
         ObjectMessage object = TestUtils.loadObjectMessage(3, "V3Pubkey.payload");
-        V3Pubkey pubkey = (V3Pubkey) object.getPayload();
-        BitmessageAddress address = new BitmessageAddress("BM-2DAjcCFrqFrp88FUxExhJ9kPqHdunQmiyn");
+        Pubkey pubkey = (Pubkey) object.getPayload();
         address.setPubkey(pubkey);
+
+        assertArrayEquals(Bytes.fromHex("7402be6e76c3cb87caa946d0c003a3d4d8e1d5"), pubkey.getRipe());
+    }
+
+    @Test
+    public void testV4PubkeyImport() throws IOException {
+        // TODO
+//        ObjectMessage object = TestUtils.loadObjectMessage(3, "V4Pubkey.payload");
+//        Pubkey pubkey = (Pubkey) object.getPayload();
+//        BitmessageAddress address = new BitmessageAddress("BM-2D9Vc5rFxxR5vTi53T9gkLfemViHRMVLQZ");
+//        address.setPubkey(pubkey);
     }
 
     @Test
