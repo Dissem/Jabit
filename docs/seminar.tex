@@ -67,16 +67,24 @@
   Contains one requested object, which might be one of:
 
   \listinginfo{}{getpubkey}{A request for a public key, which is needed to encrypt a message to a specific user.}{}
-  \listinginfo{}{pubkey}{A public key. See \ref{subsec:addrenc} \nameref{subsec:addrenc}}{}
+  \listinginfo{}{pubkey}{A public key. See \ref{subsec:addr} \nameref{subsec:addr}}{}
   \listinginfo{}{msg}{Content intended to be received by one user.}{}
   \listinginfo{}{broadcast}{Content sent in a way that the Addresses public key can be used to decrypt it, allowing any subscriber who knows the address to receive the such a message}{}
 
   \subsubsection{ping / pong}
 
-  \subsection{Addresses \& Encryption}
-  \label{subsec:addrenc}
-  TODO
+  \subsection{Addresses}
+  \label{subsec:addr}
 
+  \textit{BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h}: Addresses start with "BM-" and are, like Bitcoin addresses, Base58 encoded\footnote{Which avoids the easily confused characters I, l, 0 and O.}.
+
+  \listinginfo{}{version}{Address version.}{}
+  \listinginfo{}{stream}{Stream number.}{}
+  \listinginfo{}{ripe}{Hash of both public signing and encryption key. Please note that the keys are sent without the leading 0x04 in \obj{pubkey} objects, but for creating the ripe it must be prepended. This is also necessary for most other applications, so it's a good idea to do it by default.}{ripemd160(sha512(pubSigKey + pubEncKey))}
+  \listinginfo{}{checksum}{First four bytes of a double SHA-512 hash of the above.}{sha512(sha512(version + stream + ripe))}
+
+  \subsection{Encryption}
+  TODO
 
   \section{Issues}
 
