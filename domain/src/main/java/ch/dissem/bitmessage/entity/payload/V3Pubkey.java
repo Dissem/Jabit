@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.entity.payload;
 
 import ch.dissem.bitmessage.utils.Decode;
 import ch.dissem.bitmessage.utils.Encode;
+import ch.dissem.bitmessage.utils.Security;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,23 +37,21 @@ public class V3Pubkey extends V2Pubkey {
         behaviorBitfield = builder.behaviorBitfield;
         publicSigningKey = add0x04(builder.publicSigningKey);
         publicEncryptionKey = add0x04(builder.publicEncryptionKey);
-
         nonceTrialsPerByte = builder.nonceTrialsPerByte;
         extraBytes = builder.extraBytes;
         signature = builder.signature;
     }
 
     public static V3Pubkey read(InputStream is, long stream) throws IOException {
-        V3Pubkey.Builder v3 = new V3Pubkey.Builder()
+        return new V3Pubkey.Builder()
                 .stream(stream)
-                .behaviorBitfield((int) Decode.uint32(is))
+                .behaviorBitfield(Decode.int32(is))
                 .publicSigningKey(Decode.bytes(is, 64))
                 .publicEncryptionKey(Decode.bytes(is, 64))
                 .nonceTrialsPerByte(Decode.varInt(is))
-                .extraBytes(Decode.varInt(is));
-        int sigLength = (int) Decode.varInt(is);
-        v3.signature(Decode.bytes(is, sigLength));
-        return v3.build();
+                .extraBytes(Decode.varInt(is))
+                .signature(Decode.varBytes(is))
+                .build();
     }
 
     @Override
@@ -92,7 +91,6 @@ public class V3Pubkey extends V2Pubkey {
         private int behaviorBitfield;
         private byte[] publicSigningKey;
         private byte[] publicEncryptionKey;
-
         private long nonceTrialsPerByte;
         private long extraBytes;
         private byte[] signature;
@@ -136,7 +134,6 @@ public class V3Pubkey extends V2Pubkey {
         }
 
         public V3Pubkey build() {
-            // TODO: check signature
             return new V3Pubkey(this);
         }
     }

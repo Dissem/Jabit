@@ -17,11 +17,9 @@
 package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.Pubkey;
+import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
-import ch.dissem.bitmessage.utils.AccessCounter;
-import ch.dissem.bitmessage.utils.Base58;
-import ch.dissem.bitmessage.utils.Encode;
-import ch.dissem.bitmessage.utils.Security;
+import ch.dissem.bitmessage.utils.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -36,9 +34,14 @@ import static ch.dissem.bitmessage.utils.Decode.varInt;
  * holding private keys.
  */
 public class BitmessageAddress {
-    private long version;
-    private long stream;
-    private byte[] ripe;
+    private final long version;
+    private final long stream;
+    private final byte[] ripe;
+    private final byte[] tag;
+    /**
+     * Used for V4 address encryption. It's easier to just create it regardless of address version.
+     */
+    private final byte[] privateEncryptionKey;
 
     private String address;
 
@@ -47,45 +50,55 @@ public class BitmessageAddress {
 
     private String alias;
 
-    public BitmessageAddress(PrivateKey privateKey) {
-        this.privateKey = privateKey;
-        this.pubkey = privateKey.getPubkey();
-        this.ripe = pubkey.getRipe();
-        this.address = generateAddress();
-    }
-
-    public BitmessageAddress(String address) {
+    private BitmessageAddress(long version, long stream, byte[] ripe) {
         try {
-            byte[] bytes = Base58.decode(address.substring(3));
-            ByteArrayInputStream in = new ByteArrayInputStream(bytes);
-            AccessCounter counter = new AccessCounter();
-            this.version = varInt(in, counter);
-            this.stream = varInt(in, counter);
-            this.ripe = bytes(in, bytes.length - counter.length() - 4);
-            testChecksum(bytes(in, 4), bytes);
-            this.address = generateAddress();
+            this.version = version;
+            this.stream = stream;
+            this.ripe = ripe;
+
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            Encode.varInt(version, os);
+            Encode.varInt(stream, os);
+            // for the tag, the checksum has to be created with 0x00 padding
+            byte[] checksum = Security.doubleSha512(os.toByteArray(), ripe);
+            this.tag = Arrays.copyOfRange(checksum, 32, 64);
+            this.privateEncryptionKey = Arrays.copyOfRange(checksum, 0, 32);
+            // but for the address and its checksum they need to be stripped
+            os.write(Bytes.stripLeadingZeros(ripe));
+            checksum = Security.doubleSha512(os.toByteArray(), ripe);
+            os.write(checksum, 0, 4);
+            this.address = "BM-" + Base58.encode(os.toByteArray());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void testChecksum(byte[] expected, byte[] address) {
-        byte[] checksum = Security.doubleSha512(address, address.length - 4);
-        for (int i = 0; i < 4; i++) {
-            if (expected[i] != checksum[i]) throw new IllegalArgumentException("Checksum of address failed");
-        }
+    public BitmessageAddress(PrivateKey privateKey) {
+        this(privateKey.getPubkey().getVersion(), privateKey.getPubkey().getStream(), privateKey.getPubkey().getRipe());
+        this.privateKey = privateKey;
+        this.pubkey = privateKey.getPubkey();
     }
 
-    private String generateAddress() {
+    public BitmessageAddress(String address) {
         try {
-            ByteArrayOutputStream os = new ByteArrayOutputStream();
-            Encode.varInt(version, os);
-            Encode.varInt(stream, os);
-            os.write(ripe);
+            this.address = address;
+            byte[] bytes = Base58.decode(address.substring(3));
+            ByteArrayInputStream in = new ByteArrayInputStream(bytes);
+            AccessCounter counter = new AccessCounter();
+            this.version = varInt(in, counter);
+            this.stream = varInt(in, counter);
+            this.ripe = Bytes.expand(bytes(in, bytes.length - counter.length() - 4), 20);
 
-            byte[] checksum = Security.doubleSha512(os.toByteArray());
-            os.write(checksum, 0, 4);
-            return "BM-" + Base58.encode(os.toByteArray());
+            // test checksum
+            byte[] checksum = Security.doubleSha512(bytes, bytes.length - 4);
+            byte[] expectedChecksum = bytes(in, 4);
+            for (int i = 0; i < 4; i++) {
+                if (expectedChecksum[i] != checksum[i])
+                    throw new IllegalArgumentException("Checksum of address failed");
+            }
+            checksum = Security.doubleSha512(Arrays.copyOfRange(bytes, 0, counter.length()), ripe);
+            this.tag = Arrays.copyOfRange(checksum, 32, 64);
+            this.privateEncryptionKey = Arrays.copyOfRange(checksum, 0, 32);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -104,8 +117,18 @@ public class BitmessageAddress {
     }
 
     public void setPubkey(Pubkey pubkey) {
+        if (pubkey instanceof V4Pubkey) {
+            try {
+                V4Pubkey v4 = (V4Pubkey) pubkey;
+                if (!Arrays.equals(tag, v4.getTag()))
+                    throw new IllegalArgumentException("Pubkey has incompatible tag");
+                v4.decrypt(privateEncryptionKey);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
         if (!Arrays.equals(ripe, pubkey.getRipe()))
-            throw new IllegalArgumentException("Pubkey has incompatible RIPE");
+            throw new IllegalArgumentException("Pubkey has incompatible ripe");
         this.pubkey = pubkey;
     }
 
@@ -132,5 +155,9 @@ public class BitmessageAddress {
 
     public byte[] getRipe() {
         return ripe;
+    }
+
+    public byte[] getTag() {
+        return tag;
     }
 }

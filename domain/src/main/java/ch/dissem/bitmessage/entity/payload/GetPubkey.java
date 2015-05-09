@@ -19,6 +19,7 @@ package ch.dissem.bitmessage.entity.payload;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.utils.Bytes;
 import ch.dissem.bitmessage.utils.Decode;
+import ch.dissem.bitmessage.utils.Security;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,7 +38,7 @@ public class GetPubkey extends ObjectPayload {
         if (address.getVersion() < 4)
             this.ripe = address.getRipe();
         else
-            this.tag = ((V4Pubkey) address.getPubkey()).getTag();
+            this.tag = address.getTag();
     }
 
     private GetPubkey(long stream, long version, byte[] ripeOrTag) {

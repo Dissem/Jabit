@@ -106,7 +106,7 @@ public class ObjectMessage implements MessagePayload {
     }
 
     public boolean isSignatureValid() throws IOException {
-        Pubkey pubkey=null; // TODO
+        Pubkey pubkey = null; // TODO
         return Security.isSignatureValid(getBytesToSign(), payload.getSignature(), pubkey);
     }
 

@@ -28,7 +28,6 @@ import java.io.InputStream;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Created by chris on 28.04.15.
@@ -60,13 +59,20 @@ public class SerializationTest {
     public void ensureV1MsgIsDeserializedAndSerializedCorrectly() throws IOException {
         doTest("V1Msg.payload", 1, Msg.class);
     }
+
     @Test
     public void ensureV4BroadcastIsDeserializedAndSerializedCorrectly() throws IOException {
         doTest("V4Broadcast.payload", 4, V4Broadcast.class);
     }
+
     @Test
     public void ensureV5BroadcastIsDeserializedAndSerializedCorrectly() throws IOException {
         doTest("V5Broadcast.payload", 5, V5Broadcast.class);
+    }
+
+    @Test
+    public void ensureUnknownDataIsDeserializedAndSerializedCorrectly() throws IOException {
+        doTest("V1MsgStrangeData.payload", 1, GenericPayload.class);
     }
 
     private void doTest(String resourceName, int version, Class<?> expectedPayloadType) throws IOException {

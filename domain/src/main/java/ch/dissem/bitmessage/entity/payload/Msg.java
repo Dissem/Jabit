@@ -16,9 +16,6 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
-import ch.dissem.bitmessage.utils.Decode;
-
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -28,21 +25,22 @@ import java.io.OutputStream;
  */
 public class Msg extends ObjectPayload {
     private long stream;
-    private byte[] encrypted;
-    private UnencryptedMessage unencrypted;
+    private CryptoBox encrypted;
+    private UnencryptedMessage decrypted;
 
-    private Msg(long stream, byte[] encrypted) {
+    private Msg(long stream, CryptoBox encrypted) {
         this.stream = stream;
         this.encrypted = encrypted;
     }
 
-    public Msg(UnencryptedMessage unencrypted) {
+    public Msg(UnencryptedMessage unencrypted, Pubkey publicKey) {
         this.stream = unencrypted.getStream();
-        this.unencrypted = unencrypted;
+        this.decrypted = unencrypted;
+        this.encrypted = new CryptoBox(unencrypted, publicKey.getEncryptionKey());
     }
 
-    public static Msg read(InputStream is, long stream, int length) throws IOException {
-        return new Msg(stream, Decode.bytes(is, length));
+    public static Msg read(InputStream in, long stream, int length) throws IOException {
+        return new Msg(stream, CryptoBox.read(in, length));
     }
 
     @Override
@@ -57,33 +55,30 @@ public class Msg extends ObjectPayload {
 
     @Override
     public boolean isSigned() {
-        return unencrypted != null;
+        return decrypted != null;
     }
 
     @Override
     public void writeBytesToSign(OutputStream out) throws IOException {
-        unencrypted.write(out, false);
+        decrypted.write(out, false);
     }
 
     @Override
     public byte[] getSignature() {
-        return unencrypted.getSignature();
+        return decrypted.getSignature();
     }
 
     @Override
     public void setSignature(byte[] signature) {
-        unencrypted.setSignature(signature);
+        decrypted.setSignature(signature);
     }
 
-    public byte[] getEncrypted() {
-        if (encrypted == null) {
-            // TODO encrypt
-        }
-        return encrypted;
+    public void decrypt(byte[] privateKey) throws IOException {
+        decrypted = UnencryptedMessage.read(encrypted.decrypt(privateKey));
     }
 
     @Override
-    public void write(OutputStream stream) throws IOException {
-        stream.write(getEncrypted());
+    public void write(OutputStream out) throws IOException {
+        encrypted.write(out);
     }
 }

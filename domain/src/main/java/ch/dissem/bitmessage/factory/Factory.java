@@ -56,10 +56,10 @@ public class Factory {
 
     public static Pubkey createPubkey(long version, long stream, byte[] publicSigningKey, byte[] publicEncryptionKey,
                                       long nonceTrialsPerByte, long extraBytes, Pubkey.Feature... features) {
-        if (publicSigningKey.length != 64)
+        if (publicSigningKey.length != 64 && publicSigningKey.length != 65)
             throw new IllegalArgumentException("64 bytes signing key expected, but it was "
                     + publicSigningKey.length + " bytes long.");
-        if (publicEncryptionKey.length != 64)
+        if (publicEncryptionKey.length != 64 && publicEncryptionKey.length != 65)
             throw new IllegalArgumentException("64 bytes encryption key expected, but it was "
                     + publicEncryptionKey.length + " bytes long.");
 
@@ -82,6 +82,7 @@ public class Factory {
                         .build();
             case 4:
                 return new V4Pubkey(
+                        null, // FIXME: calculate tag
                         new V3Pubkey.Builder()
                                 .stream(stream)
                                 .publicSigningKey(publicSigningKey)

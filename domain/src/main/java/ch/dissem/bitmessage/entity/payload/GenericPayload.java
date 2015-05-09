@@ -30,7 +30,7 @@ public class GenericPayload extends ObjectPayload {
     private long stream;
     private byte[] data;
 
-    private GenericPayload(long stream, byte[] data) {
+    public GenericPayload(long stream, byte[] data) {
         this.stream = stream;
         this.data = data;
     }

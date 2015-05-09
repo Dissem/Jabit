@@ -16,15 +16,18 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
+import ch.dissem.bitmessage.entity.Streamable;
+import ch.dissem.bitmessage.utils.Decode;
 import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
  * The unencrypted message to be sent by 'msg' or 'broadcast'.
  */
-public class UnencryptedMessage {
+public class UnencryptedMessage implements Streamable {
     private final long addressVersion;
     private final long stream;
     private final int behaviorBitfield;
@@ -49,6 +52,21 @@ public class UnencryptedMessage {
         signature = builder.signature;
     }
 
+    public static UnencryptedMessage read(InputStream is) throws IOException {
+        return new Builder()
+                .addressVersion(Decode.varInt(is))
+                .stream(Decode.varInt(is))
+                .behaviorBitfield(Decode.int32(is))
+                .publicSigningKey(Decode.bytes(is, 64))
+                .publicEncryptionKey(Decode.bytes(is, 64))
+                .nonceTrialsPerByte(Decode.varInt(is))
+                .extraBytes(Decode.varInt(is))
+                .encoding(Decode.varInt(is))
+                .message(Decode.varBytes(is))
+                .signature(Decode.varBytes(is))
+                .build();
+    }
+
     public long getStream() {
         return stream;
     }
@@ -61,21 +79,26 @@ public class UnencryptedMessage {
         this.signature = signature;
     }
 
-    public void write(OutputStream os, boolean includeSignature) throws IOException {
-        Encode.varInt(addressVersion, os);
-        Encode.varInt(stream, os);
-        Encode.int32(behaviorBitfield, os);
-        os.write(publicSigningKey);
-        os.write(publicEncryptionKey);
-        Encode.varInt(nonceTrialsPerByte, os);
-        Encode.varInt(extraBytes, os);
-        Encode.varInt(encoding, os);
-        Encode.varInt(message.length, os);
-        os.write(message);
+    public void write(OutputStream out, boolean includeSignature) throws IOException {
+        Encode.varInt(addressVersion, out);
+        Encode.varInt(stream, out);
+        Encode.int32(behaviorBitfield, out);
+        out.write(publicSigningKey);
+        out.write(publicEncryptionKey);
+        Encode.varInt(nonceTrialsPerByte, out);
+        Encode.varInt(extraBytes, out);
+        Encode.varInt(encoding, out);
+        Encode.varInt(message.length, out);
+        out.write(message);
         if (includeSignature) {
-            Encode.varInt(signature.length, os);
-            os.write(signature);
+            Encode.varInt(signature.length, out);
+            out.write(signature);
         }
+    }
+
+    @Override
+    public void write(OutputStream out) throws IOException {
+        write(out, true);
     }
 
     public static final class Builder {

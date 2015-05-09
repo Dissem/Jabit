@@ -27,6 +27,21 @@ import static ch.dissem.bitmessage.utils.AccessCounter.inc;
  * https://bitmessage.org/wiki/Protocol_specification#Common_structures
  */
 public class Decode {
+    public static byte[] shortVarBytes(InputStream stream, AccessCounter counter) throws IOException {
+        int length = uint16(stream, counter);
+        return bytes(stream, length, counter);
+    }
+
+    public static byte[] varBytes(InputStream stream) throws IOException {
+        int length = (int) varInt(stream, null);
+        return bytes(stream, length, null);
+    }
+
+    public static byte[] varBytes(InputStream stream, AccessCounter counter) throws IOException {
+        int length = (int) varInt(stream, counter);
+        return bytes(stream, length, counter);
+    }
+
     public static byte[] bytes(InputStream stream, int count) throws IOException {
         return bytes(stream, count, null);
     }
@@ -97,6 +112,11 @@ public class Decode {
     }
 
     public static int int32(InputStream stream) throws IOException {
+        return int32(stream, null);
+    }
+
+    public static int int32(InputStream stream, AccessCounter counter) throws IOException {
+        inc(counter, 4);
         return ByteBuffer.wrap(bytes(stream, 4)).getInt();
     }
 

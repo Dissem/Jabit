@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.payload.V3Pubkey;
+import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.utils.*;
 import org.junit.Test;
@@ -67,22 +68,22 @@ public class BitmessageAddressTest {
     @Test
     public void testV3PubkeyImport() throws IOException {
         BitmessageAddress address = new BitmessageAddress("BM-2D9Vc5rFxxR5vTi53T9gkLfemViHRMVLQZ");
-        assertArrayEquals(Bytes.fromHex("7402be6e76c3cb87caa946d0c003a3d4d8e1d5"), address.getRipe());
+        assertArrayEquals(Bytes.fromHex("007402be6e76c3cb87caa946d0c003a3d4d8e1d5"), address.getRipe());
 
         ObjectMessage object = TestUtils.loadObjectMessage(3, "V3Pubkey.payload");
         Pubkey pubkey = (Pubkey) object.getPayload();
         address.setPubkey(pubkey);
 
-        assertArrayEquals(Bytes.fromHex("7402be6e76c3cb87caa946d0c003a3d4d8e1d5"), pubkey.getRipe());
+        assertArrayEquals(Bytes.fromHex("007402be6e76c3cb87caa946d0c003a3d4d8e1d5"), pubkey.getRipe());
     }
 
     @Test
     public void testV4PubkeyImport() throws IOException {
         // TODO
-//        ObjectMessage object = TestUtils.loadObjectMessage(3, "V4Pubkey.payload");
-//        Pubkey pubkey = (Pubkey) object.getPayload();
-//        BitmessageAddress address = new BitmessageAddress("BM-2D9Vc5rFxxR5vTi53T9gkLfemViHRMVLQZ");
-//        address.setPubkey(pubkey);
+        ObjectMessage object = TestUtils.loadObjectMessage(4, "V4Pubkey.payload");
+        V4Pubkey pubkey = (V4Pubkey) object.getPayload();
+        BitmessageAddress address = new BitmessageAddress("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h");
+        address.setPubkey(pubkey);
     }
 
     @Test

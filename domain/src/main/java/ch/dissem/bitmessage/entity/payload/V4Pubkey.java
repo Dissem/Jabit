@@ -31,30 +31,36 @@ import java.io.OutputStream;
 public class V4Pubkey extends Pubkey {
     private long stream;
     private byte[] tag;
-    private byte[] encrypted;
+    private CryptoBox encrypted;
     private V3Pubkey decrypted;
 
-    private V4Pubkey(long stream, byte[] tag, byte[] encrypted) {
+    private V4Pubkey(long stream, byte[] tag, CryptoBox encrypted) {
         this.stream = stream;
         this.tag = tag;
         this.encrypted = encrypted;
     }
 
-    public V4Pubkey(V3Pubkey decrypted) {
+    public V4Pubkey(byte[] tag, V3Pubkey decrypted) {
         this.stream = decrypted.stream;
-        // TODO: this.tag = new BitmessageAddress(this).doubleHash
+        this.tag = tag;
         this.decrypted = decrypted;
-        // TODO: this.encrypted
+        this.encrypted = new CryptoBox(decrypted, null);
     }
 
-    public static V4Pubkey read(InputStream stream, long streamNumber, int length) throws IOException {
-        return new V4Pubkey(streamNumber, Decode.bytes(stream, 32), Decode.bytes(stream, length - 32));
+    public static V4Pubkey read(InputStream in, long stream, int length) throws IOException {
+        return new V4Pubkey(stream,
+                Decode.bytes(in, 32),
+                CryptoBox.read(in, length - 32));
+    }
+
+    public void decrypt(byte[] privateKey) throws IOException {
+        decrypted = V3Pubkey.read(encrypted.decrypt(privateKey), stream);
     }
 
     @Override
     public void write(OutputStream stream) throws IOException {
         stream.write(tag);
-        stream.write(encrypted);
+        encrypted.write(stream);
     }
 
     @Override

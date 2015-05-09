@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.factory;
 
 import ch.dissem.bitmessage.entity.*;
+import ch.dissem.bitmessage.entity.payload.GenericPayload;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
@@ -79,22 +80,30 @@ class V3MessageFactory {
         }
     }
 
-    public static ObjectMessage readObject(InputStream stream, int length) throws IOException {
+    public static ObjectMessage readObject(InputStream in, int length) throws IOException {
         AccessCounter counter = new AccessCounter();
-        byte nonce[] = Decode.bytes(stream, 8, counter);
-        long expiresTime = Decode.int64(stream, counter);
-        long objectType = Decode.uint32(stream, counter);
-        long version = Decode.varInt(stream, counter);
-        long streamNumber = Decode.varInt(stream, counter);
+        byte nonce[] = Decode.bytes(in, 8, counter);
+        long expiresTime = Decode.int64(in, counter);
+        long objectType = Decode.uint32(in, counter);
+        long version = Decode.varInt(in, counter);
+        long stream = Decode.varInt(in, counter);
 
-        ObjectPayload payload = Factory.getObjectPayload(objectType, version, streamNumber, stream, length - counter.length());
+        byte[] data = Decode.bytes(in, length - counter.length());
+        ObjectPayload payload;
+        try {
+            ByteArrayInputStream dataStream = new ByteArrayInputStream(data);
+            payload = Factory.getObjectPayload(objectType, version, stream, dataStream, data.length);
+        } catch (IOException e) {
+            LOG.trace("Could not parse object payload - using generic payload instead", e);
+            payload = new GenericPayload(stream, data);
+        }
 
         return new ObjectMessage.Builder()
                 .nonce(nonce)
                 .expiresTime(expiresTime)
                 .objectType(objectType)
                 .version(version)
-                .stream(streamNumber)
+                .stream(stream)
                 .payload(payload)
                 .build();
     }

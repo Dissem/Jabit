@@ -36,7 +36,7 @@ public abstract class Pubkey extends ObjectPayload {
     public abstract byte[] getEncryptionKey();
 
     public byte[] getRipe() {
-        return Bytes.stripLeadingZeros(ripemd160(sha512(getSigningKey(), getEncryptionKey())));
+        return ripemd160(sha512(getSigningKey(), getEncryptionKey()));
     }
 
     protected byte[] add0x04(byte[] key){
