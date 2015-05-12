@@ -60,6 +60,14 @@ public class PrivateKey implements Streamable {
         }
     }
 
+    public byte[] getPrivateSigningKey() {
+        return privateSigningKey;
+    }
+
+    public byte[] getPrivateEncryptionKey() {
+        return privateEncryptionKey;
+    }
+
     public static PrivateKey read(InputStream is) throws IOException {
         int version = (int) Decode.varInt(is);
         long stream = Decode.varInt(is);

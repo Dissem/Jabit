@@ -23,10 +23,9 @@ import ch.dissem.bitmessage.ports.ProofOfWorkEngine;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.ec.CustomNamedCurves;
 import org.bouncycastle.crypto.params.ECDomainParameters;
-import org.bouncycastle.jcajce.provider.asymmetric.util.EC5Util;
 import org.bouncycastle.jce.ECNamedCurveTable;
-import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.math.ec.ECPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +34,6 @@ import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.*;
-import java.security.spec.*;
 import java.util.Arrays;
 
 /**
@@ -162,62 +160,46 @@ public class Security {
     public static Pubkey createPubkey(long version, long stream, byte[] privateSigningKey, byte[] privateEncryptionKey,
                                       long nonceTrialsPerByte, long extraBytes, Pubkey.Feature... features) {
         return Factory.createPubkey(version, stream,
-                createPublicKey(privateSigningKey),
-                createPublicKey(privateEncryptionKey),
+                createPublicKey(privateSigningKey).getEncoded(false),
+                createPublicKey(privateEncryptionKey).getEncoded(false),
                 nonceTrialsPerByte, extraBytes, features);
     }
 
-    private static byte[] createPublicKey(byte[] privateKey) {
-        return EC_DOMAIN_PARAMETERS.getG().multiply(keyToBigInt(privateKey)).getEncoded(false);
+    public static ECPoint createPublicKey(byte[] privateKey) {
+        return EC_DOMAIN_PARAMETERS.getG().multiply(keyToBigInt(privateKey)).normalize();
     }
 
     public static BigInteger keyToBigInt(byte[] privateKey) {
         return new BigInteger(1, privateKey);
     }
 
-    private static ECPoint keyToPoint(byte[] publicKey) {
-        BigInteger x = new BigInteger(Arrays.copyOfRange(publicKey, 1, 33));
-        BigInteger y = new BigInteger(Arrays.copyOfRange(publicKey, 33, 65));
-        return new ECPoint(x, y);
+    public static ECPoint keyToPoint(byte[] publicKey) {
+        BigInteger x = new BigInteger(1, Arrays.copyOfRange(publicKey, 1, 33));
+        BigInteger y = new BigInteger(1, Arrays.copyOfRange(publicKey, 33, 65));
+        return EC_DOMAIN_PARAMETERS.getCurve().createPoint(x, y);
+    }
+
+    public static ECPoint createPoint(byte[] x, byte[] y) {
+        return EC_DOMAIN_PARAMETERS.getCurve().createPoint(
+                new BigInteger(1, x),
+                new BigInteger(1, y)
+        );
     }
 
     public static boolean isSignatureValid(byte[] bytesToSign, byte[] signature, Pubkey pubkey) {
         ECPoint W = keyToPoint(pubkey.getSigningKey());
-        try {
-            ECParameterSpec param = null;
-            KeySpec keySpec = new ECPublicKeySpec(W, param);
-            PublicKey publicKey = KeyFactory.getInstance("ECDSA", "BC").generatePublic(keySpec);
-
-            Signature sig = Signature.getInstance("ECDSA", "BC");
-            sig.initVerify(publicKey);
-            sig.update(bytesToSign);
-            return sig.verify(signature);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static ECPublicKey getPublicKey(byte[] publicKey) {
-        if (publicKey[0] != 0x04) throw new IllegalArgumentException("Public key starting with 0x04 expected");
-        return getPublicKey(
-                Arrays.copyOfRange(publicKey, 1, 33),
-                Arrays.copyOfRange(publicKey, 33, 65)
-        );
-    }
-
-    public static ECPublicKey getPublicKey(byte[] X, byte[] Y) {
-        try {
-            ECPoint w = new ECPoint(keyToBigInt(X), keyToBigInt(Y));
-            EllipticCurve curve = EC5Util.convertCurve(EC_DOMAIN_PARAMETERS.getCurve(), EC_CURVE_PARAMETERS.getSeed());
-            ECParameterSpec params = EC5Util.convertSpec(curve, ECNamedCurveTable.getParameterSpec(EC_CURVE_NAME));
-            ECPublicKeySpec keySpec = new ECPublicKeySpec(w, params);
-            return (ECPublicKey) getKeyFactory().generatePublic(keySpec);
-        } catch (GeneralSecurityException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static KeyFactory getKeyFactory() throws NoSuchProviderException, NoSuchAlgorithmException {
-        return KeyFactory.getInstance("EC", "BC");
+//        try {
+//            ECParameterSpec param = null;
+//            KeySpec keySpec = new ECPublicKeySpec(W, param);
+//            PublicKey publicKey = KeyFactory.getInstance("ECDSA", "BC").generatePublic(keySpec);
+//
+//            Signature sig = Signature.getInstance("ECDSA", "BC");
+//            sig.initVerify(publicKey);
+//            sig.update(bytesToSign);
+//            return sig.verify(signature);
+//        } catch (Exception e) {
+//            throw new RuntimeException(e);
+//        }
+        return false; // TODO
     }
 }

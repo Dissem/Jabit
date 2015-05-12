@@ -16,6 +16,12 @@
 
 package ch.dissem.bitmessage.utils;
 
+import ch.dissem.bitmessage.entity.Streamable;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Arrays;
+
 /**
  * A helper class for working with byte arrays interpreted as unsigned big endian integers.
  */
@@ -41,6 +47,9 @@ public class Bytes {
         }
     }
 
+    /**
+     * Returns true if a < b.
+     */
     public static boolean lt(byte[] a, byte[] b) {
         byte[] max = (a.length > b.length ? a : b);
         byte[] min = (max == a ? b : a);
@@ -57,6 +66,9 @@ public class Bytes {
         return false;
     }
 
+    /**
+     * Returns true if a < b, where the first [size] bytes are checked.
+     */
     public static boolean lt(byte[] a, byte[] b, int size) {
         for (int i = 0; i < size; i++) {
             if (a[i] != b[i]) {
@@ -123,14 +135,25 @@ public class Bytes {
         throw new IllegalArgumentException("'" + c + "' is not a valid hex value");
     }
 
-    public static byte[] stripLeadingZeros(byte[] bytes) {
-        for (int i = 0; i < bytes.length; i++) {
-            if (bytes[i] != 0) {
-                byte[] result = new byte[bytes.length - i];
-                System.arraycopy(bytes, i, result, 0, bytes.length - i);
-                return result;
-            }
+    public static int numberOfLeadingZeros(byte[] bytes) {
+        int i;
+        for (i = 0; i < bytes.length; i++) {
+            if (bytes[i] != 0) return i;
         }
-        return new byte[0];
+        return i;
+    }
+
+    public static byte[] stripLeadingZeros(byte[] bytes) {
+        return Arrays.copyOfRange(bytes, numberOfLeadingZeros(bytes), bytes.length);
+    }
+
+    public static byte[] from(Streamable data) {
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            data.write(out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

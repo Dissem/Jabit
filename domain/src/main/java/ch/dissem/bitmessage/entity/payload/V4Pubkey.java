@@ -16,7 +16,9 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
+import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.utils.Decode;
+import ch.dissem.bitmessage.utils.Security;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,17 +42,21 @@ public class V4Pubkey extends Pubkey {
         this.encrypted = encrypted;
     }
 
-    public V4Pubkey(byte[] tag, V3Pubkey decrypted) {
+    public V4Pubkey(V3Pubkey decrypted) {
         this.stream = decrypted.stream;
-        this.tag = tag;
+        this.tag = BitmessageAddress.calculateTag(4, decrypted.getStream(), decrypted.getRipe());
         this.decrypted = decrypted;
-        this.encrypted = new CryptoBox(decrypted, null);
     }
 
     public static V4Pubkey read(InputStream in, long stream, int length) throws IOException {
         return new V4Pubkey(stream,
                 Decode.bytes(in, 32),
                 CryptoBox.read(in, length - 32));
+    }
+
+    public void encrypt(byte[] privateKey) throws IOException {
+        if (getSignature() == null) throw new IllegalStateException("Pubkey must be signed before encryption.");
+        this.encrypted = new CryptoBox(decrypted, Security.createPublicKey(privateKey));
     }
 
     public void decrypt(byte[] privateKey) throws IOException {

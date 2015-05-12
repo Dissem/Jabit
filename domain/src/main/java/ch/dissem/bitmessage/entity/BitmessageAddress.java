@@ -64,7 +64,8 @@ public class BitmessageAddress {
             this.tag = Arrays.copyOfRange(checksum, 32, 64);
             this.privateEncryptionKey = Arrays.copyOfRange(checksum, 0, 32);
             // but for the address and its checksum they need to be stripped
-            os.write(Bytes.stripLeadingZeros(ripe));
+            int offset = Bytes.numberOfLeadingZeros(ripe);
+            os.write(ripe, offset, ripe.length - offset);
             checksum = Security.doubleSha512(os.toByteArray(), ripe);
             os.write(checksum, 0, 4);
             this.address = "BM-" + Base58.encode(os.toByteArray());
@@ -73,10 +74,14 @@ public class BitmessageAddress {
         }
     }
 
+    private BitmessageAddress(Pubkey publicKey) {
+        this(publicKey.getVersion(), publicKey.getStream(), publicKey.getRipe());
+        this.pubkey = publicKey;
+    }
+
     public BitmessageAddress(PrivateKey privateKey) {
-        this(privateKey.getPubkey().getVersion(), privateKey.getPubkey().getStream(), privateKey.getPubkey().getRipe());
+        this(privateKey.getPubkey());
         this.privateKey = privateKey;
-        this.pubkey = privateKey.getPubkey();
     }
 
     public BitmessageAddress(String address) {
@@ -99,6 +104,18 @@ public class BitmessageAddress {
             checksum = Security.doubleSha512(Arrays.copyOfRange(bytes, 0, counter.length()), ripe);
             this.tag = Arrays.copyOfRange(checksum, 32, 64);
             this.privateEncryptionKey = Arrays.copyOfRange(checksum, 0, 32);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] calculateTag(long version, long stream, byte[] ripe) {
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            Encode.varInt(version, out);
+            Encode.varInt(stream, out);
+            out.write(ripe);
+            return Arrays.copyOfRange(Security.doubleSha512(out.toByteArray()), 32, 64);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

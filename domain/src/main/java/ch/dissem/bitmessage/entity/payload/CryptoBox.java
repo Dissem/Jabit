@@ -27,7 +27,6 @@ import org.bouncycastle.crypto.paddings.PKCS7Padding;
 import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.ParametersWithIV;
-import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.math.ec.ECPoint;
 
 import java.io.*;
@@ -41,36 +40,37 @@ import java.util.Arrays;
 public class CryptoBox implements Streamable {
     private final byte[] initializationVector;
     private final int curveType;
-    private final byte[] xComponent;
-    private final byte[] yComponent;
+    private final ECPoint R;
     private final byte[] mac;
     private byte[] encrypted;
 
     public CryptoBox(Streamable data, byte[] encryptionKey) {
+        this(data, Security.keyToPoint(encryptionKey));
+    }
+
+    public CryptoBox(Streamable data, ECPoint K) {
         curveType = 0x02CA;
 
         // 1. The destination public key is called K.
-        ECPublicKey K = Security.getPublicKey(encryptionKey);
         // 2. Generate 16 random bytes using a secure random number generator. Call them IV.
         initializationVector = Security.randomBytes(16);
 
         // 3. Generate a new random EC key pair with private key called r and public key called R.
-        // TODO
-        BigInteger r = null;
+        byte[] r = Security.randomBytes(64);
+        R = Security.createPublicKey(r);
         // 4. Do an EC point multiply with public key K and private key r. This gives you public key P.
-        ECPoint P = K.getQ().multiply(r).normalize();
-        xComponent = Bytes.stripLeadingZeros(P.getXCoord().getEncoded());
-        yComponent = Bytes.stripLeadingZeros(P.getYCoord().getEncoded());
+        ECPoint P = K.multiply(Security.keyToBigInt(r)).normalize();
+        byte[] X = P.getXCoord().getEncoded();
         // 5. Use the X component of public key P and calculate the SHA512 hash H.
-        byte[] H = Security.sha512(xComponent);
+        byte[] H = Security.sha512(X);
         // 6. The first 32 bytes of H are called key_e and the last 32 bytes are called key_m.
         byte[] key_e = Arrays.copyOfRange(H, 0, 32);
-        byte[] key_m = Arrays.copyOfRange(H, H.length - 32, 32);
+        byte[] key_m = Arrays.copyOfRange(H, 32, 64);
         // 7. Pad the input text to a multiple of 16 bytes, in accordance to PKCS7.
         // 8. Encrypt the data with AES-256-CBC, using IV as initialization vector, key_e as encryption key and the padded input text as payload. Call the output cipher text.
-        encrypted = null; // TODO
+        encrypted = crypt(true, Bytes.from(data), key_e);
         // 9. Calculate a 32 byte MAC with HMACSHA256, using key_m as salt and IV + R + cipher text as data. Call the output MAC.
-        mac = null; // TODO
+        mac = calculateMac(key_m);
 
         // The resulting data is: IV + R + cipher text + MAC
     }
@@ -78,8 +78,7 @@ public class CryptoBox implements Streamable {
     private CryptoBox(Builder builder) {
         initializationVector = builder.initializationVector;
         curveType = builder.curveType;
-        xComponent = builder.xComponent;
-        yComponent = builder.yComponent;
+        R = Security.createPoint(builder.xComponent, builder.yComponent);
         encrypted = builder.encrypted;
         mac = builder.mac;
     }
@@ -101,53 +100,65 @@ public class CryptoBox implements Streamable {
      */
     public InputStream decrypt(byte[] privateKey) {
         // 1. The private key used to decrypt is called k.
-        BigInteger K = Security.keyToBigInt(privateKey);
+        BigInteger k = Security.keyToBigInt(privateKey);
         // 2. Do an EC point multiply with private key k and public key R. This gives you public key P.
-        ECPublicKey R = Security.getPublicKey(xComponent, yComponent);
-        ECPoint P = R.getQ().multiply(K).normalize();
+        ECPoint P = R.multiply(k).normalize();
         // 3. Use the X component of public key P and calculate the SHA512 hash H.
-        byte[] sha512key = Security.sha512(Bytes.expand(P.getXCoord().toBigInteger().toByteArray(), 32));
+        byte[] H = Security.sha512(P.getXCoord().getEncoded());
         // 4. The first 32 bytes of H are called key_e and the last 32 bytes are called key_m.
-        byte[] key_e = Arrays.copyOfRange(sha512key, 0, 32);
-        byte[] key_m = Arrays.copyOfRange(sha512key, 32, 64);
+        byte[] key_e = Arrays.copyOfRange(H, 0, 32);
+        byte[] key_m = Arrays.copyOfRange(H, 32, 64);
 
         // 5. Calculate MAC' with HMACSHA256, using key_m as salt and IV + R + cipher text as data.
-        ByteArrayOutputStream macData = new ByteArrayOutputStream();
-        try {
-            writeWithoutMAC(macData);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
         // 6. Compare MAC with MAC'. If not equal, decryption will fail.
-        if (!Arrays.equals(mac, Security.mac(key_m, macData.toByteArray()))) {
+        if (!Arrays.equals(mac, calculateMac(key_m))) {
             throw new RuntimeException("Invalid MAC while decrypting");
         }
 
         // 7. Decrypt the cipher text with AES-256-CBC, using IV as initialization vector, key_e as decryption key
         //    and the cipher text as payload. The output is the padded input text.
+        return new ByteArrayInputStream(crypt(false, encrypted, key_e));
+    }
+
+    private byte[] calculateMac(byte[] key_m) {
+        try {
+            ByteArrayOutputStream macData = new ByteArrayOutputStream();
+            writeWithoutMAC(macData);
+            return Security.mac(key_m, macData.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private byte[] crypt(boolean encrypt, byte[] data, byte[] key_e) {
         BufferedBlockCipher cipher = new PaddedBufferedBlockCipher(new CBCBlockCipher(new AESEngine()), new PKCS7Padding());
 
         CipherParameters params = new ParametersWithIV(new KeyParameter(key_e), initializationVector);
 
-        cipher.init(false, params);
+        cipher.init(encrypt, params);
 
-        byte[] buffer = new byte[cipher.getOutputSize(encrypted.length)];
-        int length = cipher.processBytes(encrypted, 0, encrypted.length, buffer, 0);
+        byte[] buffer = new byte[cipher.getOutputSize(data.length)];
+        int length = cipher.processBytes(data, 0, data.length, buffer, 0);
         try {
             length += cipher.doFinal(buffer, length);
         } catch (InvalidCipherTextException e) {
             throw new IllegalArgumentException(e);
         }
-        return new ByteArrayInputStream(buffer, 0, length);
+        if (length < buffer.length) {
+            return Arrays.copyOfRange(buffer, 0, length);
+        }
+        return buffer;
     }
 
     private void writeWithoutMAC(OutputStream stream) throws IOException {
         stream.write(initializationVector);
         Encode.int16(curveType, stream);
-        Encode.int16(xComponent.length, stream);
-        stream.write(xComponent);
-        Encode.int16(yComponent.length, stream);
-        stream.write(yComponent);
+        byte[] x = R.getXCoord().getEncoded();
+        byte[] y = R.getYCoord().getEncoded();
+        Encode.int16(x.length, stream);
+        stream.write(x);
+        Encode.int16(y.length, stream);
+        stream.write(y);
         stream.write(encrypted);
     }
 

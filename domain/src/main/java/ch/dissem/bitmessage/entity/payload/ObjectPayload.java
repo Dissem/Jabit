@@ -34,7 +34,7 @@ public abstract class ObjectPayload implements Streamable {
         return false;
     }
 
-    public void writeBytesToSign(OutputStream out) throws IOException{
+    public void writeBytesToSign(OutputStream out) throws IOException {
         // nothing to do
     }
 

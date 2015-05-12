@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.utils.Decode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 
 /**
  * In cases we don't know what to do with an object, we just store its bytes and send it again - we don't really
@@ -52,5 +53,23 @@ public class GenericPayload extends ObjectPayload {
     @Override
     public void write(OutputStream stream) throws IOException {
         stream.write(data);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        GenericPayload that = (GenericPayload) o;
+
+        if (stream != that.stream) return false;
+        return Arrays.equals(data, that.data);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (int) (stream ^ (stream >>> 32));
+        result = 31 * result + Arrays.hashCode(data);
+        return result;
     }
 }

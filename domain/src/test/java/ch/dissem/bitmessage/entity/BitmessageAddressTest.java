@@ -25,6 +25,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 
+import static ch.dissem.bitmessage.entity.payload.Pubkey.Feature.DOES_ACK;
 import static org.junit.Assert.*;
 
 public class BitmessageAddressTest {
@@ -53,7 +54,7 @@ public class BitmessageAddressTest {
 
     @Test
     public void testCreateAddress() {
-        BitmessageAddress address = new BitmessageAddress(new PrivateKey(0, 0, 0));
+        BitmessageAddress address = new BitmessageAddress(new PrivateKey(1, 1000, 1000, DOES_ACK));
         assertNotNull(address.getPubkey());
     }
 

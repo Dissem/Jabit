@@ -82,7 +82,6 @@ public class Factory {
                         .build();
             case 4:
                 return new V4Pubkey(
-                        null, // FIXME: calculate tag
                         new V3Pubkey.Builder()
                                 .stream(stream)
                                 .publicSigningKey(publicSigningKey)
