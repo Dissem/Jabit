@@ -17,8 +17,8 @@
 package ch.dissem.bitmessage.entity.payload;
 
 import ch.dissem.bitmessage.entity.BitmessageAddress;
+import ch.dissem.bitmessage.entity.Encrypted;
 import ch.dissem.bitmessage.utils.Decode;
-import ch.dissem.bitmessage.utils.Security;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,7 +30,7 @@ import java.io.OutputStream;
  * use that pubkey. This prevents people from gathering pubkeys sent around the network and using the data from them
  * to create messages to be used in spam or in flooding attacks.
  */
-public class V4Pubkey extends Pubkey {
+public class V4Pubkey extends Pubkey implements Encrypted {
     private long stream;
     private byte[] tag;
     private CryptoBox encrypted;
@@ -54,11 +54,13 @@ public class V4Pubkey extends Pubkey {
                 CryptoBox.read(in, length - 32));
     }
 
-    public void encrypt(byte[] privateKey) throws IOException {
+    @Override
+    public void encrypt(byte[] publicKey) throws IOException {
         if (getSignature() == null) throw new IllegalStateException("Pubkey must be signed before encryption.");
-        this.encrypted = new CryptoBox(decrypted, Security.createPublicKey(privateKey));
+        this.encrypted = new CryptoBox(decrypted, publicKey);
     }
 
+    @Override
     public void decrypt(byte[] privateKey) throws IOException {
         decrypted = V3Pubkey.read(encrypted.decrypt(privateKey), stream);
     }

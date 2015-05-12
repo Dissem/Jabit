@@ -22,8 +22,6 @@ import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.ec.CustomNamedCurves;
-import org.bouncycastle.crypto.params.ECDomainParameters;
-import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.math.ec.ECPoint;
 import org.slf4j.Logger;
@@ -33,7 +31,9 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.security.*;
+import java.security.GeneralSecurityException;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.util.Arrays;
 
 /**
@@ -43,14 +43,7 @@ public class Security {
     public static final Logger LOG = LoggerFactory.getLogger(Security.class);
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final BigInteger TWO = BigInteger.valueOf(2);
-    private static final String EC_CURVE_NAME = "secp256k1";
-    private static final X9ECParameters EC_CURVE_PARAMETERS = CustomNamedCurves.getByName(EC_CURVE_NAME);
-    private static final ECDomainParameters EC_DOMAIN_PARAMETERS = new ECDomainParameters(
-            EC_CURVE_PARAMETERS.getCurve(),
-            EC_CURVE_PARAMETERS.getG(),
-            EC_CURVE_PARAMETERS.getN(),
-            EC_CURVE_PARAMETERS.getH()
-    );
+    private static final X9ECParameters EC_CURVE_PARAMETERS = CustomNamedCurves.getByName("secp256k1");
 
     static {
         java.security.Security.addProvider(new BouncyCastleProvider());
@@ -166,7 +159,7 @@ public class Security {
     }
 
     public static ECPoint createPublicKey(byte[] privateKey) {
-        return EC_DOMAIN_PARAMETERS.getG().multiply(keyToBigInt(privateKey)).normalize();
+        return EC_CURVE_PARAMETERS.getG().multiply(keyToBigInt(privateKey)).normalize();
     }
 
     public static BigInteger keyToBigInt(byte[] privateKey) {
@@ -176,11 +169,11 @@ public class Security {
     public static ECPoint keyToPoint(byte[] publicKey) {
         BigInteger x = new BigInteger(1, Arrays.copyOfRange(publicKey, 1, 33));
         BigInteger y = new BigInteger(1, Arrays.copyOfRange(publicKey, 33, 65));
-        return EC_DOMAIN_PARAMETERS.getCurve().createPoint(x, y);
+        return EC_CURVE_PARAMETERS.getCurve().createPoint(x, y);
     }
 
     public static ECPoint createPoint(byte[] x, byte[] y) {
-        return EC_DOMAIN_PARAMETERS.getCurve().createPoint(
+        return EC_CURVE_PARAMETERS.getCurve().createPoint(
                 new BigInteger(1, x),
                 new BigInteger(1, y)
         );
