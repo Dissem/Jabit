@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement />
+  <nodes>
+    <node x="299.75" y="401.0">ch.dissem.bitmessage.entity.VerAck</node>
+    <node x="284.5625" y="0.0">ch.dissem.bitmessage.entity.Streamable</node>
+    <node x="0.0" y="608.0">ch.dissem.bitmessage.ports.Inventory</node>
+    <node x="548.75" y="313.0">ch.dissem.bitmessage.entity.Version</node>
+    <node x="428.9236111111111" y="156.5">ch.dissem.bitmessage.entity.MessagePayload</node>
+    <node x="0.0" y="771.0">ch.dissem.bitmessage.ports.NetworkMessageReceiver</node>
+    <node x="108.75" y="378.5">ch.dissem.bitmessage.entity.NetworkMessage</node>
+    <node x="957.75" y="389.5">ch.dissem.bitmessage.entity.Addr</node>
+    <node x="418.0" y="608.0">ch.dissem.bitmessage.ports.NetworkMessageSender</node>
+    <node x="0.0" y="145.0">ch.dissem.bitmessage.entity.valueobject.InventoryVector</node>
+    <node x="338.0" y="771.0">ch.dissem.bitmessage.entity.ObjectPayload</node>
+    <node x="884.1736111111111" y="101.0">ch.dissem.bitmessage.entity.valueobject.NetworkAddress</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="ch.dissem.bitmessage.entity.NetworkMessage" target="ch.dissem.bitmessage.entity.Streamable">
+      <point x="-42.75" y="-59.5" />
+      <point x="151.5" y="81.0" />
+      <point x="362.9375" y="81.0" />
+      <point x="-26.125" y="25.5" />
+    </edge>
+    <edge source="ch.dissem.bitmessage.entity.valueobject.InventoryVector" target="ch.dissem.bitmessage.entity.Streamable">
+      <point x="0.0" y="-37.0" />
+      <point x="70.5" y="71.0" />
+      <point x="310.6875" y="71.0" />
+      <point x="-78.375" y="25.5" />
+    </edge>
+    <edge source="ch.dissem.bitmessage.entity.Version" target="ch.dissem.bitmessage.entity.valueobject.NetworkAddress">
+      <point x="97.25" y="-125.0" />
+      <point x="840.5" y="293.0" />
+      <point x="937.1736111111111" y="293.0" />
+      <point x="-53.0" y="81.0" />
+    </edge>
+    <edge source="ch.dissem.bitmessage.entity.valueobject.NetworkAddress" target="ch.dissem.bitmessage.entity.Streamable">
+      <point x="0.0" y="-81.0" />
+      <point x="990.1736111111111" y="71.0" />
+      <point x="467.4375" y="71.0" />
+      <point x="78.375" y="25.5" />
+    </edge>
+    <edge source="ch.dissem.bitmessage.entity.Version" target="ch.dissem.bitmessage.entity.MessagePayload">
+      <point x="-97.25" y="-125.0" />
+      <point x="646.0" y="293.0" />
+      <point x="525.7986111111111" y="293.0" />
+      <point x="19.375" y="25.5" />
+    </edge>
+    <edge source="ch.dissem.bitmessage.entity.NetworkMessage" target="ch.dissem.bitmessage.entity.MessagePayload">
+      <point x="42.75" y="-59.5" />
+      <point x="237.0" y="283.0" />
+      <point x="448.2986111111111" y="283.0" />
+      <point x="-58.125" y="25.5" />
+    </edge>
+    <edge source="ch.dissem.bitmessage.entity.VerAck" target="ch.dissem.bitmessage.entity.MessagePayload">
+      <point x="0.0" y="-37.0" />
+      <point x="414.25" y="293.0" />
+      <point x="487.0486111111111" y="293.0" />
+      <point x="-19.375" y="25.5" />
+    </edge>
+    <edge source="ch.dissem.bitmessage.entity.MessagePayload" target="ch.dissem.bitmessage.entity.Streamable">
+      <point x="0.0" y="-25.5" />
+      <point x="506.4236111111111" y="81.0" />
+      <point x="415.1875" y="81.0" />
+      <point x="26.125" y="25.5" />
+    </edge>
+    <edge source="ch.dissem.bitmessage.entity.Addr" target="ch.dissem.bitmessage.entity.MessagePayload">
+      <point x="-76.5" y="-48.5" />
+      <point x="1034.25" y="283.0" />
+      <point x="564.5486111111111" y="283.0" />
+      <point x="58.125" y="25.5" />
+    </edge>
+    <edge source="ch.dissem.bitmessage.entity.Addr" target="ch.dissem.bitmessage.entity.valueobject.NetworkAddress">
+      <point x="76.5" y="-48.5" />
+      <point x="1187.25" y="293.0" />
+      <point x="1043.173611111111" y="293.0" />
+      <point x="53.0" y="81.0" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="0.7909738717339667" x="632.0" y="411.0" />
+  <SelectedNodes />
+  <Categories>
+    <Category>Fields</Category>
+    <Category>Methods</Category>
+    <Category>Properties</Category>
+  </Categories>
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+

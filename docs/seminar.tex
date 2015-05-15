@@ -11,6 +11,7 @@
 \newcommand{\msg}[1]{\textit{#1}}
 \newcommand{\obj}[1]{\textbf{#1}}
 \newcommand{\node}[1]{\textbf{#1}}
+\newcommand{\key}[1]{\textbf{#1}}
 
 \begin{document}
   \maketitle
@@ -76,7 +77,7 @@
   \subsection{Addresses}
   \label{subsec:addr}
 
-  \textit{BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h}: Addresses start with "BM-" and are, like Bitcoin addresses, Base58 encoded\footnote{Which avoids the easily confused characters I, l, 0 and O.}.
+  \textit{BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h}: Addresses start with "BM-" and are, like Bitcoin addresses, Base58 encoded\footnote{Which uses characters 1-9, A-Z and a-z without the easily confused characters I, l, 0 and O.}.
 
   \listinginfo{}{version}{Address version.}{}
   \listinginfo{}{stream}{Stream number.}{}
@@ -84,7 +85,32 @@
   \listinginfo{}{checksum}{First four bytes of a double SHA-512 hash of the above.}{sha512(sha512(version + stream + ripe))}
 
   \subsection{Encryption}
-  TODO
+
+  Bitcoin uses Elliptic Curve Cryptography for both signing and encryption. While the mathematics behind elliptic curves is even harder to understand than the usual prime-and-modulo-until-your-brain-explodes approach, it's based on the same principle that factorizing large numbers is very hard to do. Instead of two very large primes, we multiply a point on the elliptic curve by a very large number\footnote{Please don't ask me how to do it. If your're crazy enough, start at \url{http://en.wikipedia.org/wiki/Elliptic_curve_cryptography}. If you're not that crazy, use a library like Bouncy Casle.}.
+
+  The user, let's call her Alice, needs a key pair, consisting of a private key
+$$k$$
+which represents a huge random number, and a public key
+$$K = G k$$
+which represents a point on the agreed on curve\footnote{Bitmessage uses a curve called \textit{secp256k1}.}. Please note that this is not a simple multiplication, but the multiplication of a point along an elliptic curve. $G$ is the starting point for all operations on a specific curve.
+
+  Another user, Bob, knows the public key. To encrypt a message, Bob creates a temporary key pair
+$$r$$
+and
+$$R = G r$$
+He then calculates
+$$K r$$
+uses the resulting Point to encrypt the message\footnote{A double SHA-512 hash over the x-coordinate is used to create the actual key.} and sends $K$ along with the message.
+
+  When Alice receives the message, she uses the fact that
+$$K r = G k r = G r k = R k$$
+so she just uses $R k$ to decrypt the message.
+
+  The exact method used in Bitmessage is called Elliptic Curve Integrated Encryption Scheme or ECIES\footnote{See \url{http://en.wikipedia.org/wiki/Integrated_Encryption_Scheme}}.
+
+  \subsection{Signature}
+
+ECDSA
 
   \section{Issues}
 
@@ -93,7 +119,7 @@
   Bitmessage doen't really scale. If there are very few users, anonymity isn't given anymore, and with many users traffic and storage use grows quadratically.
 
   \subsubsection{Streams}
-  The intended solution for this problem is splitting traffic\footnote{Addresses, actualy} into streams. When all active streams are full, a new one is created which should be used for new addresses. All users can send messages to any stream, but only listen to the streams belonging to their addresses. The unsolved problem is to determine when a stream is full. The other issue is the fact that, as the overall network grows, traffic on full streams still grows, as there are more users who might wanto to write someone on the full stream.
+  The intended solution for this problem is splitting traffic\footnote{Addresses, actualy.} into streams. When all active streams are full, a new one is created which should be used for new addresses. All users can send messages to any stream, but only listen to the streams belonging to their addresses. The unsolved problem is to determine when a stream is full. The other issue is the fact that, as the overall network grows, traffic on full streams still grows, as there are more users who might wanto to write someone on the full stream.
 
   \subsubsection{Prefix Filtering}
   TODO
