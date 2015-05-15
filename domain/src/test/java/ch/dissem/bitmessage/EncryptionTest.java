@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.utils;
+package ch.dissem.bitmessage;
 
 import ch.dissem.bitmessage.entity.payload.CryptoBox;
 import ch.dissem.bitmessage.entity.payload.GenericPayload;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.utils.Security;
 import org.junit.Ignore;
 import org.junit.Test;
 

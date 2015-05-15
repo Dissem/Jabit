@@ -123,4 +123,9 @@ public class V4Pubkey extends Pubkey implements Encrypted {
     public void setSignature(byte[] signature) {
         decrypted.setSignature(signature);
     }
+
+    @Override
+    public boolean isSigned() {
+        return true;
+    }
 }

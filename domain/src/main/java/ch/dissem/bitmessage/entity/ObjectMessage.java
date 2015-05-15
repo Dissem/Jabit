@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
+import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
@@ -98,27 +99,44 @@ public class ObjectMessage implements MessagePayload {
         return payload.isSigned();
     }
 
-    private byte[] getBytesToSign() throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        writeHeaderWithoutNonce(out);
-        payload.writeBytesToSign(out);
-        return out.toByteArray();
+    private byte[] getBytesToSign() {
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            writeHeaderWithoutNonce(out);
+            payload.writeBytesToSign(out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void sign(PrivateKey key) {
-        // TODO
-//        Security.
+        if (payload.isSigned()) {
+            payload.setSignature(Security.getSignature(getBytesToSign(), key));
+        }
     }
 
     public void decrypt(PrivateKey key) throws IOException {
-        if (payload instanceof Encrypted){
+        if (payload instanceof Encrypted) {
             ((Encrypted) payload).decrypt(key.getPrivateEncryptionKey());
         }
     }
 
     public void decrypt(byte[] privateEncryptionKey) throws IOException {
-        if (payload instanceof Encrypted){
+        if (payload instanceof Encrypted) {
             ((Encrypted) payload).decrypt(privateEncryptionKey);
+        }
+    }
+
+    public void encrypt(byte[] publicEncryptionKey) throws IOException{
+        if (payload instanceof Encrypted){
+            ((Encrypted) payload).encrypt(publicEncryptionKey);
+        }
+    }
+
+    public void encrypt(Pubkey publicKey) throws IOException{
+        if (payload instanceof Encrypted){
+            ((Encrypted) payload).encrypt(publicKey.getEncryptionKey());
         }
     }
 
@@ -173,6 +191,11 @@ public class ObjectMessage implements MessagePayload {
 
         public Builder objectType(long objectType) {
             this.objectType = objectType;
+            return this;
+        }
+
+        public Builder objectType(ObjectType objectType) {
+            this.objectType = objectType.getNumber();
             return this;
         }
 
