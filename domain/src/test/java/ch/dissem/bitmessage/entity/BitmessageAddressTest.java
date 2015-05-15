@@ -73,6 +73,7 @@ public class BitmessageAddressTest {
 
         ObjectMessage object = TestUtils.loadObjectMessage(3, "V3Pubkey.payload");
         Pubkey pubkey = (Pubkey) object.getPayload();
+        assertTrue(object.isSignatureValid(pubkey));
         address.setPubkey(pubkey);
 
         assertArrayEquals(Bytes.fromHex("007402be6e76c3cb87caa946d0c003a3d4d8e1d5"), pubkey.getRipe());
@@ -80,10 +81,11 @@ public class BitmessageAddressTest {
 
     @Test
     public void testV4PubkeyImport() throws IOException {
-        // TODO
-        ObjectMessage object = TestUtils.loadObjectMessage(4, "V4Pubkey.payload");
-        V4Pubkey pubkey = (V4Pubkey) object.getPayload();
         BitmessageAddress address = new BitmessageAddress("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h");
+        ObjectMessage object = TestUtils.loadObjectMessage(4, "V4Pubkey.payload");
+        object.decrypt(address.getPubkeyDecryptionKey());
+        V4Pubkey pubkey = (V4Pubkey) object.getPayload();
+        assertTrue(object.isSignatureValid(pubkey));
         address.setPubkey(pubkey);
     }
 

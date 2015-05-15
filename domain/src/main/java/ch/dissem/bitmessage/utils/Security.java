@@ -22,8 +22,14 @@ import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.ec.CustomNamedCurves;
+import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.jce.ECPointUtil;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jce.spec.ECNamedCurveSpec;
+import org.bouncycastle.jce.spec.ECParameterSpec;
+import org.bouncycastle.jce.spec.ECPublicKeySpec;
 import org.bouncycastle.math.ec.ECPoint;
+import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,9 +37,8 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
-import java.security.SecureRandom;
+import java.security.*;
+import java.security.spec.KeySpec;
 import java.util.Arrays;
 
 /**
@@ -181,18 +186,24 @@ public class Security {
 
     public static boolean isSignatureValid(byte[] bytesToSign, byte[] signature, Pubkey pubkey) {
         ECPoint W = keyToPoint(pubkey.getSigningKey());
-//        try {
-//            ECParameterSpec param = null;
-//            KeySpec keySpec = new ECPublicKeySpec(W, param);
-//            PublicKey publicKey = KeyFactory.getInstance("ECDSA", "BC").generatePublic(keySpec);
-//
-//            Signature sig = Signature.getInstance("ECDSA", "BC");
-//            sig.initVerify(publicKey);
-//            sig.update(bytesToSign);
-//            return sig.verify(signature);
-//        } catch (Exception e) {
-//            throw new RuntimeException(e);
-//        }
-        return false; // TODO
+        try {
+            ECParameterSpec spec = new ECParameterSpec(
+                    EC_CURVE_PARAMETERS.getCurve(),
+                    EC_CURVE_PARAMETERS.getG(),
+                    EC_CURVE_PARAMETERS.getN(),
+                    EC_CURVE_PARAMETERS.getH(),
+                    EC_CURVE_PARAMETERS.getSeed()
+            );
+
+            KeySpec keySpec = new ECPublicKeySpec(W, spec);
+            PublicKey publicKey = KeyFactory.getInstance("ECDSA", "BC").generatePublic(keySpec);
+
+            Signature sig = Signature.getInstance("ECDSA", "BC");
+            sig.initVerify(publicKey);
+            sig.update(bytesToSign);
+            return sig.verify(signature);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

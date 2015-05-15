@@ -41,7 +41,7 @@ public class BitmessageAddress {
     /**
      * Used for V4 address encryption. It's easier to just create it regardless of address version.
      */
-    private final byte[] privateEncryptionKey;
+    private final byte[] pubkeyDecryptionKey;
 
     private String address;
 
@@ -62,7 +62,7 @@ public class BitmessageAddress {
             // for the tag, the checksum has to be created with 0x00 padding
             byte[] checksum = Security.doubleSha512(os.toByteArray(), ripe);
             this.tag = Arrays.copyOfRange(checksum, 32, 64);
-            this.privateEncryptionKey = Arrays.copyOfRange(checksum, 0, 32);
+            this.pubkeyDecryptionKey = Arrays.copyOfRange(checksum, 0, 32);
             // but for the address and its checksum they need to be stripped
             int offset = Bytes.numberOfLeadingZeros(ripe);
             os.write(ripe, offset, ripe.length - offset);
@@ -103,7 +103,7 @@ public class BitmessageAddress {
             }
             checksum = Security.doubleSha512(Arrays.copyOfRange(bytes, 0, counter.length()), ripe);
             this.tag = Arrays.copyOfRange(checksum, 32, 64);
-            this.privateEncryptionKey = Arrays.copyOfRange(checksum, 0, 32);
+            this.pubkeyDecryptionKey = Arrays.copyOfRange(checksum, 0, 32);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -135,18 +135,16 @@ public class BitmessageAddress {
 
     public void setPubkey(Pubkey pubkey) {
         if (pubkey instanceof V4Pubkey) {
-            try {
-                V4Pubkey v4 = (V4Pubkey) pubkey;
-                if (!Arrays.equals(tag, v4.getTag()))
-                    throw new IllegalArgumentException("Pubkey has incompatible tag");
-                v4.decrypt(privateEncryptionKey);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            if (!Arrays.equals(tag, ((V4Pubkey) pubkey).getTag()))
+                throw new IllegalArgumentException("Pubkey has incompatible tag");
         }
         if (!Arrays.equals(ripe, pubkey.getRipe()))
             throw new IllegalArgumentException("Pubkey has incompatible ripe");
         this.pubkey = pubkey;
+    }
+
+    public byte[] getPubkeyDecryptionKey() {
+        return pubkeyDecryptionKey;
     }
 
     public PrivateKey getPrivateKey() {

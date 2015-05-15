@@ -25,4 +25,6 @@ public interface Encrypted {
     void encrypt(byte[] publicKey) throws IOException;
 
     void decrypt(byte[] privateKey) throws IOException;
+
+    boolean isDecrypted();
 }

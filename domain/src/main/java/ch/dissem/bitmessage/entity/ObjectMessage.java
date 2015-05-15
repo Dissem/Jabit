@@ -90,6 +90,10 @@ public class ObjectMessage implements MessagePayload {
         return new InventoryVector(Bytes.truncate(Security.doubleSha512(nonce, getPayloadBytesWithoutNonce()), 32));
     }
 
+    private boolean isEncrypted() {
+        return payload instanceof Encrypted && !((Encrypted) payload).isDecrypted();
+    }
+
     public boolean isSigned() {
         return payload.isSigned();
     }
@@ -103,10 +107,23 @@ public class ObjectMessage implements MessagePayload {
 
     public void sign(PrivateKey key) {
         // TODO
+//        Security.
     }
 
-    public boolean isSignatureValid() throws IOException {
-        Pubkey pubkey = null; // TODO
+    public void decrypt(PrivateKey key) throws IOException {
+        if (payload instanceof Encrypted){
+            ((Encrypted) payload).decrypt(key.getPrivateEncryptionKey());
+        }
+    }
+
+    public void decrypt(byte[] privateEncryptionKey) throws IOException {
+        if (payload instanceof Encrypted){
+            ((Encrypted) payload).decrypt(privateEncryptionKey);
+        }
+    }
+
+    public boolean isSignatureValid(Pubkey pubkey) throws IOException {
+        if (isEncrypted()) throw new IllegalStateException("Payload must be decrypted first");
         return Security.isSignatureValid(getBytesToSign(), payload.getSignature(), pubkey);
     }
 

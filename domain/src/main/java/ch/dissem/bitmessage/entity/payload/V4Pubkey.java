@@ -66,9 +66,20 @@ public class V4Pubkey extends Pubkey implements Encrypted {
     }
 
     @Override
+    public boolean isDecrypted() {
+        return decrypted != null;
+    }
+
+    @Override
     public void write(OutputStream stream) throws IOException {
         stream.write(tag);
         encrypted.write(stream);
+    }
+
+    @Override
+    public void writeBytesToSign(OutputStream out) throws IOException {
+        out.write(tag);
+        decrypted.writeBytesToSign(out);
     }
 
     @Override
