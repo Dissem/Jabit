@@ -16,8 +16,6 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
-import ch.dissem.bitmessage.utils.Bytes;
-
 import java.util.ArrayList;
 
 import static ch.dissem.bitmessage.utils.Security.ripemd160;
@@ -29,6 +27,10 @@ import static ch.dissem.bitmessage.utils.Security.sha512;
 public abstract class Pubkey extends ObjectPayload {
     public final static long LATEST_VERSION = 4;
 
+    public static byte[] getRipe(byte[] publicSigningKey, byte[] publicEncryptionKey) {
+        return ripemd160(sha512(publicSigningKey, publicEncryptionKey));
+    }
+
     public abstract long getVersion();
 
     public abstract byte[] getSigningKey();
@@ -39,8 +41,8 @@ public abstract class Pubkey extends ObjectPayload {
         return ripemd160(sha512(getSigningKey(), getEncryptionKey()));
     }
 
-    protected byte[] add0x04(byte[] key){
-        if (key.length==65) return key;
+    protected byte[] add0x04(byte[] key) {
+        if (key.length == 65) return key;
         byte[] result = new byte[65];
         result[0] = 4;
         System.arraycopy(key, 0, result, 1, 64);
@@ -75,10 +77,10 @@ public abstract class Pubkey extends ObjectPayload {
             return bits;
         }
 
-        public static Feature[] features(int bitfield){
+        public static Feature[] features(int bitfield) {
             ArrayList<Feature> features = new ArrayList<>(Feature.values().length);
-            for (Feature feature:Feature.values()){
-                if ((bitfield & feature.bit) != 0){
+            for (Feature feature : Feature.values()) {
+                if ((bitfield & feature.bit) != 0) {
                     features.add(feature);
                 }
             }

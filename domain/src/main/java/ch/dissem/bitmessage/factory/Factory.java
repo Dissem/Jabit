@@ -96,8 +96,8 @@ public class Factory {
         }
     }
 
-    public static BitmessageAddress generatePrivateAddress(long stream, Pubkey.Feature... features) {
-        return new BitmessageAddress(new PrivateKey(stream, 1000, 1000, features));
+    public static BitmessageAddress generatePrivateAddress(boolean shorter, long stream, Pubkey.Feature... features) {
+        return new BitmessageAddress(new PrivateKey(shorter, stream, 1000, 1000, features));
     }
 
     static ObjectPayload getObjectPayload(long objectType, long version, long streamNumber, InputStream stream, int length) throws IOException {

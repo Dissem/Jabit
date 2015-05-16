@@ -38,7 +38,7 @@ public class SignatureTest {
 
     @Test
     public void ensureSigningWorks() throws IOException {
-        PrivateKey privateKey = new PrivateKey(1, 1000, 1000);
+        PrivateKey privateKey = new PrivateKey(false, 1, 1000, 1000);
         BitmessageAddress address = new BitmessageAddress(privateKey);
 
         ObjectMessage objectMessage = new ObjectMessage.Builder()

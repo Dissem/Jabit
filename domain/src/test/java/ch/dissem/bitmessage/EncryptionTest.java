@@ -36,7 +36,7 @@ public class EncryptionTest {
     public void ensureDecryptedDataIsSameAsBeforeEncryption() throws IOException {
         GenericPayload before = new GenericPayload(1, Security.randomBytes(100));
 
-        PrivateKey privateKey = new PrivateKey(1, 1000, 1000);
+        PrivateKey privateKey = new PrivateKey(false, 1, 1000, 1000);
         CryptoBox cryptoBox = new CryptoBox(before, privateKey.getPubkey().getEncryptionKey());
 
         GenericPayload after = GenericPayload.read(cryptoBox.decrypt(privateKey.getPrivateEncryptionKey()), 1, 100);

@@ -24,6 +24,7 @@ import ch.dissem.bitmessage.utils.*;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import static ch.dissem.bitmessage.entity.payload.Pubkey.Feature.DOES_ACK;
 import static org.junit.Assert.*;
@@ -54,7 +55,7 @@ public class BitmessageAddressTest {
 
     @Test
     public void testCreateAddress() {
-        BitmessageAddress address = new BitmessageAddress(new PrivateKey(1, 1000, 1000, DOES_ACK));
+        BitmessageAddress address = new BitmessageAddress(new PrivateKey(false, 1, 1000, 1000, DOES_ACK));
         assertNotNull(address.getPubkey());
     }
 
@@ -90,7 +91,7 @@ public class BitmessageAddressTest {
     }
 
     @Test
-    public void testV3Import() throws IOException {
+    public void testV3AddressImport() throws IOException {
         String address_string = "BM-2DAjcCFrqFrp88FUxExhJ9kPqHdunQmiyn";
         assertEquals(3, new BitmessageAddress(address_string).getVersion());
         assertEquals(1, new BitmessageAddress(address_string).getStream());
@@ -107,7 +108,7 @@ public class BitmessageAddressTest {
 
     @Test
     public void testGetSecret() throws IOException {
-        assertHexEquals("040C28FCA386C7A227600B2FE50B7CAE11EC86D3BF1FBE471BE89827E19D72AA1D",
+        assertHexEquals("0C28FCA386C7A227600B2FE50B7CAE11EC86D3BF1FBE471BE89827E19D72AA1D",
                 getSecret("5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ"));
     }
 
@@ -122,19 +123,16 @@ public class BitmessageAddressTest {
         for (int i = 0; i < 4; i++) {
             if (hash[i] != bytes[33 + i]) throw new IOException("Hash check failed for secret " + walletImportFormat);
         }
-        byte[] result = new byte[33];
-        result[0] = 0x04;
-        System.arraycopy(bytes, 1, result, 1, 32);
-        return result;
+        return Arrays.copyOfRange(bytes, 1, 33);
     }
 
     @Test
-    public void testV4Import() {
+    public void testV4AddressImport() throws IOException {
         assertEquals(4, new BitmessageAddress("BM-2cV5f9EpzaYARxtoruSpa6pDoucSf9ZNke").getVersion());
-        byte[] privsigningkey = Base58.decode("5KMWqfCyJZGFgW6QrnPJ6L9Gatz25B51y7ErgqNr1nXUVbtZbdU");
-        byte[] privencryptionkey = Base58.decode("5JXXWEuhHQEPk414SzEZk1PHDRi8kCuZd895J7EnKeQSahJPxGz");
+        byte[] privsigningkey = getSecret("5KMWqfCyJZGFgW6QrnPJ6L9Gatz25B51y7ErgqNr1nXUVbtZbdU");
+        byte[] privencryptionkey = getSecret("5JXXWEuhHQEPk414SzEZk1PHDRi8kCuZd895J7EnKeQSahJPxGz");
         BitmessageAddress address = new BitmessageAddress(new PrivateKey(privsigningkey, privencryptionkey,
-                Security.createPubkey(3, 1, privsigningkey, privencryptionkey, 320, 14000)));
+                Security.createPubkey(4, 1, privsigningkey, privencryptionkey, 320, 14000)));
         assertEquals("BM-2cV5f9EpzaYARxtoruSpa6pDoucSf9ZNke", address.getAddress());
     }
 

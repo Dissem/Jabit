@@ -35,9 +35,21 @@ public class PrivateKey implements Streamable {
 
     private final Pubkey pubkey;
 
-    public PrivateKey(long stream, long nonceTrialsPerByte, long extraBytes, Pubkey.Feature... features) {
-        this.privateSigningKey = Security.randomBytes(64);
-        this.privateEncryptionKey = Security.randomBytes(64);
+    public PrivateKey(boolean shorter, long stream, long nonceTrialsPerByte, long extraBytes, Pubkey.Feature... features) {
+        byte[] privSK;
+        byte[] pubSK;
+        byte[] privEK;
+        byte[] pubEK;
+        byte[] ripe;
+        do {
+            privSK = Security.randomBytes(64);
+            privEK = Security.randomBytes(64);
+            pubSK = Security.createPublicKey(privSK).getEncoded(false);
+            pubEK = Security.createPublicKey(privEK).getEncoded(false);
+            ripe = Pubkey.getRipe(pubSK, pubEK);
+        } while (ripe[0] != 0 || (shorter && ripe[1] != 0));
+        this.privateSigningKey = privSK;
+        this.privateEncryptionKey = privEK;
         this.pubkey = Security.createPubkey(Pubkey.LATEST_VERSION, stream, privateSigningKey, privateEncryptionKey,
                 nonceTrialsPerByte, extraBytes, features);
     }
@@ -60,14 +72,6 @@ public class PrivateKey implements Streamable {
         }
     }
 
-    public byte[] getPrivateSigningKey() {
-        return privateSigningKey;
-    }
-
-    public byte[] getPrivateEncryptionKey() {
-        return privateEncryptionKey;
-    }
-
     public static PrivateKey read(InputStream is) throws IOException {
         int version = (int) Decode.varInt(is);
         long stream = Decode.varInt(is);
@@ -78,6 +82,14 @@ public class PrivateKey implements Streamable {
         len = (int) Decode.varInt(is);
         byte[] encryptionKey = Decode.bytes(is, len);
         return new PrivateKey(signingKey, encryptionKey, pubkey);
+    }
+
+    public byte[] getPrivateSigningKey() {
+        return privateSigningKey;
+    }
+
+    public byte[] getPrivateEncryptionKey() {
+        return privateEncryptionKey;
     }
 
     public Pubkey getPubkey() {

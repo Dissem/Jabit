@@ -66,7 +66,7 @@ public class BitmessageAddress {
             // but for the address and its checksum they need to be stripped
             int offset = Bytes.numberOfLeadingZeros(ripe);
             os.write(ripe, offset, ripe.length - offset);
-            checksum = Security.doubleSha512(os.toByteArray(), ripe);
+            checksum = Security.doubleSha512(os.toByteArray());
             os.write(checksum, 0, 4);
             this.address = "BM-" + Base58.encode(os.toByteArray());
         } catch (IOException e) {
