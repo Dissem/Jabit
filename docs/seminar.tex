@@ -108,9 +108,9 @@ so she just uses $R k$ to decrypt the message.
 
   The exact method used in Bitmessage is called Elliptic Curve Integrated Encryption Scheme or ECIES\footnote{See \url{http://en.wikipedia.org/wiki/Integrated_Encryption_Scheme}}.
 
-  \subsection{Signature}
+  \subsubsection{Signature}
 
-ECDSA
+  To sign objects, Bitmessage uses Elliptic Curve Digital Signature Algorithm or ECDSA. This is slightly more complicated, if you want the details, Wikipedia is a fine starting point: \url{http://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm}.
 
   \section{Issues}
 
@@ -119,7 +119,9 @@ ECDSA
   Bitmessage doen't really scale. If there are very few users, anonymity isn't given anymore, and with many users traffic and storage use grows quadratically.
 
   \subsubsection{Streams}
-  The intended solution for this problem is splitting traffic\footnote{Addresses, actualy.} into streams. When all active streams are full, a new one is created which should be used for new addresses. All users can send messages to any stream, but only listen to the streams belonging to their addresses. The unsolved problem is to determine when a stream is full. The other issue is the fact that, as the overall network grows, traffic on full streams still grows, as there are more users who might wanto to write someone on the full stream.
+  The intended solution for this problem is splitting traffic -- addresses, more precisely -- into streams. A node listens only on the streams that concern its addresses. If it wants to send an object to another stream, it just connects to a node in this stream to send the object, then disconnects. When all active streams are full, a new one is created which should be used for new addresses.
+
+  The unsolved problem is to determine when a stream is full. Another issue is the fact that, as the overall network grows, traffic on full streams still grows, as there are more users who might wanto to write someone on the full stream.
 
   \subsubsection{Prefix Filtering}
   TODO
