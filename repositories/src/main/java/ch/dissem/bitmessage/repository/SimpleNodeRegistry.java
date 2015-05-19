@@ -14,17 +14,24 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.entity;
+package ch.dissem.bitmessage.repository;
 
-import java.io.IOException;
+import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
+import ch.dissem.bitmessage.ports.NodeRegistry;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
- * Used for objects that have encrypted content
+ * Created by chris on 06.04.15.
  */
-public interface Encrypted {
-    void encrypt(byte[] publicKey) throws IOException;
+public class SimpleNodeRegistry implements NodeRegistry {
+    @Override
+    public List<NetworkAddress> getKnownAddresses(int limit, long... streams) {
+        return Collections.singletonList(new NetworkAddress.Builder().ipv4(127, 0, 0, 1).port(8444).build());
+    }
 
-    void decrypt(byte[] privateKey) throws IOException;
-
-    boolean isDecrypted();
+    @Override
+    public void offerAddresses(List<NetworkAddress> addresses) {
+    }
 }

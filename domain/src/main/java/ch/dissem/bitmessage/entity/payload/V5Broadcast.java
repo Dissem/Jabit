@@ -28,13 +28,13 @@ import java.io.OutputStream;
 public class V5Broadcast extends V4Broadcast {
     private byte[] tag;
 
-    private V5Broadcast(long stream, byte[] tag, byte[] encrypted) {
+    private V5Broadcast(long stream, byte[] tag, CryptoBox encrypted) {
         super(stream, encrypted);
         this.tag = tag;
     }
 
     public static V5Broadcast read(InputStream is, long stream, int length) throws IOException {
-        return new V5Broadcast(stream, Decode.bytes(is, 32), Decode.bytes(is, length - 32));
+        return new V5Broadcast(stream, Decode.bytes(is, 32), CryptoBox.read(is, length - 32));
     }
 
     public byte[] getTag() {
@@ -42,8 +42,8 @@ public class V5Broadcast extends V4Broadcast {
     }
 
     @Override
-    public void write(OutputStream stream) throws IOException {
-        stream.write(tag);
-        super.write(stream);
+    public void write(OutputStream out) throws IOException {
+        out.write(tag);
+        super.write(out);
     }
 }

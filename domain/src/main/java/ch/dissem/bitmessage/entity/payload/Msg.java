@@ -16,6 +16,9 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
+import ch.dissem.bitmessage.entity.Encrypted;
+import ch.dissem.bitmessage.entity.Plaintext;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -23,24 +26,27 @@ import java.io.OutputStream;
 /**
  * Used for person-to-person messages.
  */
-public class Msg extends ObjectPayload {
+public class Msg extends ObjectPayload implements Encrypted {
     private long stream;
     private CryptoBox encrypted;
-    private UnencryptedMessage decrypted;
+    private Plaintext plaintext;
 
     private Msg(long stream, CryptoBox encrypted) {
         this.stream = stream;
         this.encrypted = encrypted;
     }
 
-    public Msg(UnencryptedMessage unencrypted, Pubkey publicKey) {
-        this.stream = unencrypted.getStream();
-        this.decrypted = unencrypted;
-        this.encrypted = new CryptoBox(unencrypted, publicKey.getEncryptionKey());
+    public Msg(Plaintext plaintext) {
+        this.stream = plaintext.getStream();
+        this.plaintext = plaintext;
     }
 
     public static Msg read(InputStream in, long stream, int length) throws IOException {
         return new Msg(stream, CryptoBox.read(in, length));
+    }
+
+    public Plaintext getPlaintext() {
+        return plaintext;
     }
 
     @Override
@@ -55,26 +61,37 @@ public class Msg extends ObjectPayload {
 
     @Override
     public boolean isSigned() {
-        return decrypted != null;
+        return true;
     }
 
     @Override
     public void writeBytesToSign(OutputStream out) throws IOException {
-        decrypted.write(out, false);
+        plaintext.write(out, false);
     }
 
     @Override
     public byte[] getSignature() {
-        return decrypted.getSignature();
+        return plaintext.getSignature();
     }
 
     @Override
     public void setSignature(byte[] signature) {
-        decrypted.setSignature(signature);
+        plaintext.setSignature(signature);
     }
 
+    @Override
+    public void encrypt(byte[] publicKey) throws IOException {
+        this.encrypted = new CryptoBox(plaintext, publicKey);
+    }
+
+    @Override
     public void decrypt(byte[] privateKey) throws IOException {
-        decrypted = UnencryptedMessage.read(encrypted.decrypt(privateKey));
+        plaintext = Plaintext.read(encrypted.decrypt(privateKey));
+    }
+
+    @Override
+    public boolean isDecrypted() {
+        return plaintext != null;
     }
 
     @Override

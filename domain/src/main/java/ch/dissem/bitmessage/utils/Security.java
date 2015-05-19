@@ -89,16 +89,20 @@ public class Security {
         return result;
     }
 
-    public static void doProofOfWork(ObjectMessage object, ProofOfWorkEngine worker, long nonceTrialsPerByte, long extraBytes) throws IOException {
-        if (nonceTrialsPerByte < 1000) nonceTrialsPerByte = 1000;
-        if (extraBytes < 1000) extraBytes = 1000;
+    public static void doProofOfWork(ObjectMessage object, ProofOfWorkEngine worker, long nonceTrialsPerByte, long extraBytes) {
+        try {
+            if (nonceTrialsPerByte < 1000) nonceTrialsPerByte = 1000;
+            if (extraBytes < 1000) extraBytes = 1000;
 
-        byte[] initialHash = getInitialHash(object);
+            byte[] initialHash = getInitialHash(object);
 
-        byte[] target = getProofOfWorkTarget(object, nonceTrialsPerByte, extraBytes);
+            byte[] target = getProofOfWorkTarget(object, nonceTrialsPerByte, extraBytes);
 
-        byte[] nonce = worker.calculateNonce(initialHash, target);
-        object.setNonce(nonce);
+            byte[] nonce = worker.calculateNonce(initialHash, target);
+            object.setNonce(nonce);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**

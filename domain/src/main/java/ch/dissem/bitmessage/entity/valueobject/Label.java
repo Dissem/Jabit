@@ -14,24 +14,35 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.inventory;
+package ch.dissem.bitmessage.entity.valueobject;
 
-import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
-import ch.dissem.bitmessage.ports.NodeRegistry;
+public class Label {
+    private Object id;
+    private String label;
+    private int color;
 
-import java.util.Collections;
-import java.util.List;
+    public Label(String label, int color) {
+        this.label = label;
+        this.color = color;
+    }
 
-/**
- * Created by chris on 06.04.15.
- */
-public class SimpleNodeRegistry implements NodeRegistry {
-    @Override
-    public List<NetworkAddress> getKnownAddresses(int limit, long... streams) {
-        return Collections.singletonList(new NetworkAddress.Builder().ipv4(127, 0, 0, 1).port(8444).build());
+    /**
+     * RGBA representation for the color.
+     */
+    public int getColor() {
+        return color;
+    }
+
+    public void setColor(int color) {
+        this.color = color;
     }
 
     @Override
-    public void offerAddresses(List<NetworkAddress> addresses) {
+    public String toString() {
+        return label;
+    }
+
+    public Object getId() {
+        return id;
     }
 }

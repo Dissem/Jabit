@@ -18,7 +18,6 @@ package ch.dissem.bitmessage.entity.payload;
 
 import ch.dissem.bitmessage.utils.Decode;
 import ch.dissem.bitmessage.utils.Encode;
-import ch.dissem.bitmessage.utils.Security;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -64,6 +63,14 @@ public class V3Pubkey extends V2Pubkey {
     @Override
     public long getVersion() {
         return 3;
+    }
+
+    public long getNonceTrialsPerByte() {
+        return nonceTrialsPerByte;
+    }
+
+    public long getExtraBytes() {
+        return extraBytes;
     }
 
     public boolean isSigned() {

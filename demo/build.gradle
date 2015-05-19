@@ -10,7 +10,7 @@ repositories {
 dependencies {
     compile project(':domain')
     compile project(':networking')
-    compile project(':inventory')
+    compile project(':repositories')
     compile 'org.slf4j:slf4j-simple:1.7.12'
     testCompile 'junit:junit:4.11'
 }

@@ -128,15 +128,19 @@ public class ObjectMessage implements MessagePayload {
         }
     }
 
-    public void encrypt(byte[] publicEncryptionKey) throws IOException{
-        if (payload instanceof Encrypted){
+    public void encrypt(byte[] publicEncryptionKey) throws IOException {
+        if (payload instanceof Encrypted) {
             ((Encrypted) payload).encrypt(publicEncryptionKey);
         }
     }
 
-    public void encrypt(Pubkey publicKey) throws IOException{
-        if (payload instanceof Encrypted){
-            ((Encrypted) payload).encrypt(publicKey.getEncryptionKey());
+    public void encrypt(Pubkey publicKey) {
+        try {
+            if (payload instanceof Encrypted) {
+                ((Encrypted) payload).encrypt(publicKey.getEncryptionKey());
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 

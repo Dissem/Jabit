@@ -18,13 +18,11 @@ package ch.dissem.bitmessage.demo;
 
 import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
-import ch.dissem.bitmessage.entity.ObjectMessage;
-import ch.dissem.bitmessage.entity.payload.*;
-import ch.dissem.bitmessage.inventory.JdbcAddressRepository;
-import ch.dissem.bitmessage.inventory.JdbcInventory;
-import ch.dissem.bitmessage.inventory.JdbcNodeRegistry;
+import ch.dissem.bitmessage.repository.JdbcAddressRepository;
+import ch.dissem.bitmessage.repository.JdbcInventory;
+import ch.dissem.bitmessage.repository.JdbcMessageRepository;
+import ch.dissem.bitmessage.repository.JdbcNodeRegistry;
 import ch.dissem.bitmessage.networking.NetworkNode;
-import ch.dissem.bitmessage.ports.NetworkHandler;
 import ch.dissem.bitmessage.utils.Base58;
 import ch.dissem.bitmessage.utils.Encode;
 import ch.dissem.bitmessage.utils.Security;
@@ -33,9 +31,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Scanner;
 
 /**
  * Created by chris on 06.04.15.
@@ -51,61 +46,56 @@ public class Main {
                 .inventory(new JdbcInventory())
                 .nodeRegistry(new JdbcNodeRegistry())
                 .networkHandler(new NetworkNode())
+                .messageRepo(new JdbcMessageRepository())
                 .port(48444)
                 .streams(1)
                 .build();
 
-        ctx.getNetworkHandler().start(new NetworkHandler.MessageListener() {
-            @Override
-            public void receive(ObjectPayload payload) {
-//                LOG.info("message received: " + payload);
-//                System.out.print('.');
-                if (payload instanceof V4Pubkey) {
-                    V4Pubkey pubkey = (V4Pubkey) payload;
-                    if (Arrays.equals(address.getTag(), pubkey.getTag())) {
-                        System.out.println("Pubkey found!");
-                        try {
-                            address.setPubkey(pubkey);
-                        } catch (Exception ignore) {
-                            System.err.println("Received pubkey we didn't request.");
-                        }
-                    }
-                }
-            }
-        });
+//        ctx.startup(new BitmessageContext.Listener() {
+//            @Override
+//            public void receive(Plaintext plaintext) {
+//                // TODO
+//                try {
+//                    System.out.println(new String(plaintext.getMessage(), "UTF-8"));
+//                } catch (UnsupportedEncodingException e) {
+//                    LOG.error(e.getMessage(), e);
+//                }
+//            }
+//        });
 
-        Scanner scanner = new Scanner(System.in);
-//        System.out.println("Press Enter to request pubkey for address " + address);
+
+//        Scanner scanner = new Scanner(System.in);
+////        System.out.println("Press Enter to request pubkey for address " + address);
+////        scanner.nextLine();
+////        ctx.send(1, address.getVersion(), new GetPubkey(address), 3000, 1000, 1000);
+//
+//        System.out.println("Press Enter to exit");
 //        scanner.nextLine();
-//        ctx.send(1, address.getVersion(), new GetPubkey(address), 3000, 1000, 1000);
-
-        System.out.println("Press Enter to exit");
-        scanner.nextLine();
-        LOG.info("Shutting down client");
-        ctx.getNetworkHandler().stop();
-
-
-        List<ObjectMessage> objects = new JdbcInventory().getObjects(address.getStream(), address.getVersion(), ObjectType.PUBKEY);
-        System.out.println("Address version: " + address.getVersion());
-        System.out.println("Address stream:  " + address.getStream());
-        for (ObjectMessage o : objects) {
-//            if (!o.isSignatureValid()) System.out.println("Invalid signature.");
-//            System.out.println(o.getPayload().getSignature().length);
-            V4Pubkey pubkey = (V4Pubkey) o.getPayload();
-            if (Arrays.equals(address.getTag(), pubkey.getTag())) {
-                System.out.println("Pubkey found!");
-                try {
-                    System.out.println("IV: "+o.getInventoryVector());
-                    address.setPubkey(pubkey);
-                } catch (Exception ignore) {
-                    System.out.println("But setPubkey failed? " + address.getRipe().length + "/" + pubkey.getRipe().length);
-                    System.out.println("Failed address: " + generateAddress(address.getStream(), address.getVersion(), pubkey.getRipe()));
-                    if (Arrays.equals(address.getRipe(), pubkey.getRipe())) {
-                        ignore.printStackTrace();
-                    }
-                }
-            }
-        }
+//        LOG.info("Shutting down client");
+//        ctx.shutdown();
+//
+//
+//        List<ObjectMessage> objects = new JdbcInventory().getObjects(address.getStream(), address.getVersion(), ObjectType.PUBKEY);
+//        System.out.println("Address version: " + address.getVersion());
+//        System.out.println("Address stream:  " + address.getStream());
+//        for (ObjectMessage o : objects) {
+////            if (!o.isSignatureValid()) System.out.println("Invalid signature.");
+////            System.out.println(o.getPayload().getSignature().length);
+//            V4Pubkey pubkey = (V4Pubkey) o.getPayload();
+//            if (Arrays.equals(address.getTag(), pubkey.getTag())) {
+//                System.out.println("Pubkey found!");
+//                try {
+//                    System.out.println("IV: " + o.getInventoryVector());
+//                    address.setPubkey(pubkey);
+//                } catch (Exception ignore) {
+//                    System.out.println("But setPubkey failed? " + address.getRipe().length + "/" + pubkey.getRipe().length);
+//                    System.out.println("Failed address: " + generateAddress(address.getStream(), address.getVersion(), pubkey.getRipe()));
+//                    if (Arrays.equals(address.getRipe(), pubkey.getRipe())) {
+//                        ignore.printStackTrace();
+//                    }
+//                }
+//            }
+//        }
     }
 
     public static String generateAddress(long stream, long version, byte[] ripe) {

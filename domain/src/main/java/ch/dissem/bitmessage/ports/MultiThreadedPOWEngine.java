@@ -28,7 +28,7 @@ import java.util.List;
 import static ch.dissem.bitmessage.utils.Bytes.inc;
 
 /**
- * Created by chris on 14.04.15.
+ * A POW engine using all available CPU cores.
  */
 public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
     private static Logger LOG = LoggerFactory.getLogger(MultiThreadedPOWEngine.class);

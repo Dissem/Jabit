@@ -16,8 +16,16 @@
 
 package ch.dissem.bitmessage;
 
+import ch.dissem.bitmessage.entity.BitmessageAddress;
+import ch.dissem.bitmessage.entity.Encrypted;
 import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.entity.Plaintext;
+import ch.dissem.bitmessage.entity.Plaintext.Encoding;
+import ch.dissem.bitmessage.entity.payload.GetPubkey;
+import ch.dissem.bitmessage.entity.payload.Msg;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
+import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
+import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Security;
 import ch.dissem.bitmessage.utils.UnixTime;
@@ -26,7 +34,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 import java.util.TreeSet;
+
+import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
+import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 
 /**
  * Created by chris on 05.04.15.
@@ -34,107 +46,114 @@ import java.util.TreeSet;
 public class BitmessageContext {
     public static final int CURRENT_VERSION = 3;
     private final static Logger LOG = LoggerFactory.getLogger(BitmessageContext.class);
-    private final Inventory inventory;
-    private final NodeRegistry nodeRegistry;
-    private final NetworkHandler networkHandler;
-    private final AddressRepository addressRepo;
-    private final ProofOfWorkEngine proofOfWorkEngine;
 
-    private final TreeSet<Long> streams;
-
-    private final int port;
-
-    private long networkNonceTrialsPerByte = 1000;
-    private long networkExtraBytes = 1000;
+    private final InternalContext ctx;
 
     private BitmessageContext(Builder builder) {
-        port = builder.port;
-        inventory = builder.inventory;
-        nodeRegistry = builder.nodeRegistry;
-        networkHandler = builder.networkHandler;
-        addressRepo = builder.addressRepo;
-        proofOfWorkEngine = builder.proofOfWorkEngine;
-        streams = builder.streams;
-
-        init(inventory, nodeRegistry, networkHandler, addressRepo, proofOfWorkEngine);
+        ctx = new InternalContext(builder);
     }
 
-    private void init(Object... objects) {
-        for (Object o : objects) {
-            if (o instanceof ContextHolder) {
-                ((ContextHolder) o).setContext(this);
-            }
+    public List<BitmessageAddress> getIdentities() {
+        return ctx.getAddressRepo().getIdentities();
+    }
+
+    public BitmessageAddress createIdentity(boolean shorter, Feature... features) {
+        BitmessageAddress identity = new BitmessageAddress(new PrivateKey(
+                shorter,
+                ctx.getStreams()[0],
+                ctx.getNetworkNonceTrialsPerByte(),
+                ctx.getNetworkExtraBytes(),
+                features
+        ));
+        ctx.getAddressRepo().save(identity);
+        return identity;
+    }
+
+    public void addDistributedMailingList(String address, String alias) {
+        // TODO
+    }
+
+    public void send(BitmessageAddress from, BitmessageAddress to, String subject, String message) {
+        if (from.getPrivateKey() == null) {
+            throw new IllegalArgumentException("'From' must be an identity, i.e. have a private key.");
         }
-    }
-
-    public void send(long stream, long version, ObjectPayload payload, long timeToLive, long nonceTrialsPerByte, long extraBytes) throws IOException {
-        long expires = UnixTime.now(+timeToLive);
-        LOG.info("Expires at " + expires);
-        ObjectMessage object = new ObjectMessage.Builder()
-                .stream(stream)
-                .version(version)
-                .expiresTime(expires)
-                .payload(payload)
+        Plaintext msg = new Plaintext.Builder()
+                .from(from)
+                .to(to)
+                .encoding(Encoding.SIMPLE)
+                .message(subject, message)
                 .build();
-        Security.doProofOfWork(object, proofOfWorkEngine, nonceTrialsPerByte, extraBytes);
-        inventory.storeObject(object);
-        networkHandler.offer(object.getInventoryVector());
-    }
-
-    public Inventory getInventory() {
-        return inventory;
-    }
-
-    public NodeRegistry getAddressRepository() {
-        return nodeRegistry;
-    }
-
-    public NetworkHandler getNetworkHandler() {
-        return networkHandler;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public long[] getStreams() {
-        long[] result = new long[streams.size()];
-        int i = 0;
-        for (long stream : streams) {
-            result[i++] = stream;
+        if (to.getPubkey() == null) {
+            requestPubkey(from, to);
+            msg.setStatus(PUBKEY_REQUESTED);
+            ctx.getMessageRepository().save(msg);
+        } else {
+            msg.setStatus(DOING_PROOF_OF_WORK);
+            ctx.getMessageRepository().save(msg);
+            ctx.send(
+                    from,
+                    to,
+                    new Msg(msg),
+                    +2 * DAY,
+                    ctx.getNonceTrialsPerByte(to),
+                    ctx.getExtraBytes(to)
+            );
+            msg.setStatus(SENT);
+            ctx.getMessageRepository().save(msg);
         }
-        return result;
     }
 
-    public void addStream(long stream) {
-        streams.add(stream);
+    private void requestPubkey(BitmessageAddress requestingIdentity, BitmessageAddress address) {
+        ctx.send(
+                requestingIdentity,
+                address,
+                new GetPubkey(address),
+                +28 * DAY,
+                ctx.getNetworkNonceTrialsPerByte(),
+                ctx.getNetworkExtraBytes()
+        );
     }
 
-    public void removeStream(long stream) {
-        streams.remove(stream);
+    private void send(long stream, long version, ObjectPayload payload, long timeToLive) {
+        try {
+            long expires = UnixTime.now(+timeToLive);
+            LOG.info("Expires at " + expires);
+            ObjectMessage object = new ObjectMessage.Builder()
+                    .stream(stream)
+                    .version(version)
+                    .expiresTime(expires)
+                    .payload(payload)
+                    .build();
+            Security.doProofOfWork(object, ctx.getProofOfWorkEngine(),
+                    ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
+            ctx.getInventory().storeObject(object);
+            ctx.getNetworkHandler().offer(object.getInventoryVector());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public long getNetworkNonceTrialsPerByte() {
-        return networkNonceTrialsPerByte;
+    public void startup(Listener listener) {
+        ctx.getNetworkHandler().start(new DefaultMessageListener(ctx, listener));
     }
 
-    public long getNetworkExtraBytes() {
-        return networkExtraBytes;
+    public void shutdown() {
+        ctx.getNetworkHandler().stop();
     }
 
-
-    public interface ContextHolder {
-        void setContext(BitmessageContext context);
+    public interface Listener {
+        void receive(Plaintext plaintext);
     }
 
     public static final class Builder {
-        private int port = 8444;
-        private Inventory inventory;
-        private NodeRegistry nodeRegistry;
-        private NetworkHandler networkHandler;
-        private AddressRepository addressRepo;
-        private ProofOfWorkEngine proofOfWorkEngine;
-        private TreeSet<Long> streams;
+        int port = 8444;
+        Inventory inventory;
+        NodeRegistry nodeRegistry;
+        NetworkHandler networkHandler;
+        AddressRepository addressRepo;
+        MessageRepository messageRepo;
+        ProofOfWorkEngine proofOfWorkEngine;
+        TreeSet<Long> streams;
 
         public Builder() {
         }
@@ -164,6 +183,11 @@ public class BitmessageContext {
             return this;
         }
 
+        public Builder messageRepo(MessageRepository messageRepo) {
+            this.messageRepo = messageRepo;
+            return this;
+        }
+
         public Builder proofOfWorkEngine(ProofOfWorkEngine proofOfWorkEngine) {
             this.proofOfWorkEngine = proofOfWorkEngine;
             return this;
@@ -187,6 +211,7 @@ public class BitmessageContext {
             nonNull("nodeRegistry", nodeRegistry);
             nonNull("networkHandler", networkHandler);
             nonNull("addressRepo", addressRepo);
+            nonNull("messageRepo", messageRepo);
             if (streams == null) {
                 streams(1);
             }
@@ -200,4 +225,5 @@ public class BitmessageContext {
             if (o == null) throw new IllegalStateException(name + " must not be null");
         }
     }
+
 }

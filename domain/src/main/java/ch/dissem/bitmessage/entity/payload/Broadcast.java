@@ -16,10 +16,47 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
+import ch.dissem.bitmessage.entity.Encrypted;
+import ch.dissem.bitmessage.entity.Plaintext;
+
+import java.io.IOException;
+
 /**
  * Users who are subscribed to the sending address will see the message appear in their inbox.
  * Broadcasts are version 4 or 5.
  */
-public abstract class Broadcast extends ObjectPayload {
-    public abstract byte[] getEncrypted();
+public abstract class Broadcast extends ObjectPayload implements Encrypted {
+    protected final long stream;
+    protected CryptoBox encrypted;
+    protected Plaintext plaintext;
+
+    protected Broadcast(long stream, CryptoBox encrypted, Plaintext plaintext) {
+        this.stream = stream;
+        this.encrypted = encrypted;
+        this.plaintext = plaintext;
+    }
+
+    @Override
+    public long getStream() {
+        return stream;
+    }
+
+    public Plaintext getPlaintext() {
+        return plaintext;
+    }
+
+    @Override
+    public void encrypt(byte[] publicKey) throws IOException {
+        this.encrypted = new CryptoBox(plaintext, publicKey);
+    }
+
+    @Override
+    public void decrypt(byte[] privateKey) throws IOException {
+        plaintext = Plaintext.read(encrypted.decrypt(privateKey));
+    }
+
+    @Override
+    public boolean isDecrypted() {
+        return plaintext != null;
+    }
 }

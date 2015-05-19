@@ -112,6 +112,11 @@ public class V4Pubkey extends Pubkey implements Encrypted {
     }
 
     @Override
+    public int getBehaviorBitfield() {
+        return decrypted.getBehaviorBitfield();
+    }
+
+    @Override
     public byte[] getSignature() {
         if (decrypted != null)
             return decrypted.getSignature();
@@ -127,5 +132,13 @@ public class V4Pubkey extends Pubkey implements Encrypted {
     @Override
     public boolean isSigned() {
         return true;
+    }
+
+    public long getNonceTrialsPerByte() {
+        return decrypted.getNonceTrialsPerByte();
+    }
+
+    public long getExtraBytes() {
+        return decrypted.getExtraBytes();
     }
 }

@@ -16,8 +16,8 @@
 
 package ch.dissem.bitmessage.networking;
 
-import ch.dissem.bitmessage.BitmessageContext;
-import ch.dissem.bitmessage.BitmessageContext.ContextHolder;
+import ch.dissem.bitmessage.InternalContext;
+import ch.dissem.bitmessage.InternalContext.ContextHolder;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.ports.NetworkHandler;
@@ -42,7 +42,7 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
     private final static Logger LOG = LoggerFactory.getLogger(NetworkNode.class);
     private final ExecutorService pool;
     private final List<Connection> connections = new LinkedList<>();
-    private BitmessageContext ctx;
+    private InternalContext ctx;
     private ServerSocket serverSocket;
     private Thread connectionManager;
 
@@ -51,7 +51,7 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
     }
 
     @Override
-    public void setContext(BitmessageContext context) {
+    public void setContext(InternalContext context) {
         this.ctx = context;
     }
 
@@ -88,7 +88,7 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
                             }
                         }
                         if (connections.size() < 1) {
-                            List<NetworkAddress> addresses = ctx.getAddressRepository().getKnownAddresses(8, ctx.getStreams());
+                            List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(8, ctx.getStreams());
                             for (NetworkAddress address : addresses) {
                                 try {
                                     startConnection(new Connection(ctx, CLIENT, new Socket(address.toInetAddress(), address.getPort()), listener));

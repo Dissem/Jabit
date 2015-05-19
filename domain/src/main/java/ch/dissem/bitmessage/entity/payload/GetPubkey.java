@@ -17,9 +17,7 @@
 package ch.dissem.bitmessage.entity.payload;
 
 import ch.dissem.bitmessage.entity.BitmessageAddress;
-import ch.dissem.bitmessage.utils.Bytes;
 import ch.dissem.bitmessage.utils.Decode;
-import ch.dissem.bitmessage.utils.Security;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,28 +28,31 @@ import java.io.OutputStream;
  */
 public class GetPubkey extends ObjectPayload {
     private long stream;
-    private byte[] ripe;
-    private byte[] tag;
+    private byte[] ripeTag;
 
     public GetPubkey(BitmessageAddress address) {
         this.stream = address.getStream();
         if (address.getVersion() < 4)
-            this.ripe = address.getRipe();
+            this.ripeTag = address.getRipe();
         else
-            this.tag = address.getTag();
+            this.ripeTag = address.getTag();
     }
 
     private GetPubkey(long stream, long version, byte[] ripeOrTag) {
         this.stream = stream;
-        if (version < 4) {
-            ripe = ripeOrTag;
-        } else {
-            tag = ripeOrTag;
-        }
+        this.ripeTag = ripeOrTag;
     }
 
     public static GetPubkey read(InputStream is, long stream, int length, long version) throws IOException {
         return new GetPubkey(stream, version, Decode.bytes(is, length));
+    }
+
+    /**
+     * Returns an array of bytes that represent either the ripe, or the tag of an address, depending on the
+     * address version.
+     */
+    public byte[] getRipeTag() {
+        return ripeTag;
     }
 
     @Override
@@ -66,10 +67,6 @@ public class GetPubkey extends ObjectPayload {
 
     @Override
     public void write(OutputStream stream) throws IOException {
-        if (tag != null) {
-            stream.write(tag);
-        } else {
-            stream.write(ripe);
-        }
+        stream.write(ripeTag);
     }
 }

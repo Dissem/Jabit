@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.ports;
 
 import ch.dissem.bitmessage.BitmessageContext;
+import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 
@@ -31,6 +32,6 @@ public interface NetworkHandler {
     void offer(InventoryVector iv);
 
     interface MessageListener {
-        void receive(ObjectPayload payload);
+        void receive(ObjectMessage object);
     }
 }

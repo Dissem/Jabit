@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.networking;
 
 import ch.dissem.bitmessage.BitmessageContext;
+import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.*;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
@@ -43,7 +44,7 @@ import static ch.dissem.bitmessage.networking.Connection.State.*;
 public class Connection implements Runnable {
     private final static Logger LOG = LoggerFactory.getLogger(Connection.class);
 
-    private BitmessageContext ctx;
+    private InternalContext ctx;
 
     private State state;
     private Socket socket;
@@ -59,7 +60,7 @@ public class Connection implements Runnable {
 
     private Queue<MessagePayload> sendingQueue = new ConcurrentLinkedDeque<>();
 
-    public Connection(BitmessageContext context, State state, Socket socket, MessageListener listener) throws IOException {
+    public Connection(InternalContext context, State state, Socket socket, MessageListener listener) throws IOException {
         this.ctx = context;
         this.state = state;
         this.socket = socket;
@@ -161,12 +162,12 @@ public class Connection implements Runnable {
                     LOG.debug(e.getMessage(), e);
                 }
                 // It's probably pointless, but let the listener decide if we accept the message for the client.
-                listener.receive(objectMessage.getPayload());
+                listener.receive(objectMessage);
                 break;
             case ADDR:
                 Addr addr = (Addr) messagePayload;
                 LOG.debug("Received " + addr.getAddresses().size() + " addresses.");
-                ctx.getAddressRepository().offerAddresses(addr.getAddresses());
+                ctx.getNodeRegistry().offerAddresses(addr.getAddresses());
                 break;
             case VERACK:
             case VERSION:
@@ -175,7 +176,7 @@ public class Connection implements Runnable {
     }
 
     private void sendAddresses() {
-        List<NetworkAddress> addresses = ctx.getAddressRepository().getKnownAddresses(1000, streams);
+        List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(1000, streams);
         sendingQueue.offer(new Addr.Builder().addresses(addresses).build());
     }
 

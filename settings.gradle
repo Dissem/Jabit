@@ -4,7 +4,7 @@ include 'domain'
 
 include 'networking'
 
-include 'inventory'
+include 'repositories'
 
 include 'demo'
 

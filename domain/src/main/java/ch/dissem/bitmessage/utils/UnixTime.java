@@ -20,6 +20,8 @@ package ch.dissem.bitmessage.utils;
  * Created by chris on 18.04.15.
  */
 public class UnixTime {
+    public static final long DAY = 60 * 60 * 24;
+
     /**
      * Returns the time in second based Unix time ({@link System#currentTimeMillis()}/1000)
      */

@@ -14,17 +14,25 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.entity;
+package ch.dissem.bitmessage.ports;
 
-import java.io.IOException;
+import ch.dissem.bitmessage.entity.BitmessageAddress;
+import ch.dissem.bitmessage.entity.Plaintext;
+import ch.dissem.bitmessage.entity.Plaintext.Status;
+import ch.dissem.bitmessage.entity.valueobject.Label;
 
-/**
- * Used for objects that have encrypted content
- */
-public interface Encrypted {
-    void encrypt(byte[] publicKey) throws IOException;
+import java.util.List;
 
-    void decrypt(byte[] privateKey) throws IOException;
+public interface MessageRepository {
+    List<String> getLabels();
 
-    boolean isDecrypted();
+    List<Plaintext> findMessages(Label label);
+
+    List<Plaintext> findMessages(Status status);
+
+    List<Plaintext> findMessages(Status status, BitmessageAddress recipient);
+
+    void save(Plaintext message);
+
+    void remove(Plaintext message);
 }

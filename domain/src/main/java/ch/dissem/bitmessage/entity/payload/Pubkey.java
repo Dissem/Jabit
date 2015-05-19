@@ -37,8 +37,18 @@ public abstract class Pubkey extends ObjectPayload {
 
     public abstract byte[] getEncryptionKey();
 
+    public abstract int getBehaviorBitfield();
+
     public byte[] getRipe() {
         return ripemd160(sha512(getSigningKey(), getEncryptionKey()));
+    }
+
+    public long getNonceTrialsPerByte() {
+        return 0;
+    }
+
+    public long getExtraBytes() {
+        return 0;
     }
 
     protected byte[] add0x04(byte[] key) {

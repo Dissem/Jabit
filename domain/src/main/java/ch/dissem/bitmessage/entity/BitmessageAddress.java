@@ -49,8 +49,9 @@ public class BitmessageAddress {
     private Pubkey pubkey;
 
     private String alias;
+    private boolean subscribed;
 
-    private BitmessageAddress(long version, long stream, byte[] ripe) {
+    BitmessageAddress(long version, long stream, byte[] ripe) {
         try {
             this.version = version;
             this.stream = stream;
@@ -74,7 +75,7 @@ public class BitmessageAddress {
         }
     }
 
-    private BitmessageAddress(Pubkey publicKey) {
+    BitmessageAddress(Pubkey publicKey) {
         this(publicKey.getVersion(), publicKey.getStream(), publicKey.getRipe());
         this.pubkey = publicKey;
     }
@@ -161,6 +162,10 @@ public class BitmessageAddress {
 
     public void setAlias(String alias) {
         this.alias = alias;
+    }
+
+    public void setSubscribed(boolean subscribed) {
+        this.subscribed = subscribed;
     }
 
     @Override

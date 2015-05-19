@@ -77,6 +77,11 @@ public class V2Pubkey extends Pubkey {
     }
 
     @Override
+    public int getBehaviorBitfield() {
+        return behaviorBitfield;
+    }
+
+    @Override
     public void write(OutputStream os) throws IOException {
         Encode.int32(behaviorBitfield, os);
         os.write(publicSigningKey, 1, 64);

@@ -16,8 +16,6 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
-import ch.dissem.bitmessage.utils.Decode;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -27,17 +25,12 @@ import java.io.OutputStream;
  * Broadcasts are version 4 or 5.
  */
 public class V4Broadcast extends Broadcast {
-    private long stream;
-    private byte[] encrypted;
-    private UnencryptedMessage unencrypted;
-
-    protected V4Broadcast(long stream, byte[] encrypted) {
-        this.stream = stream;
-        this.encrypted = encrypted;
+    protected V4Broadcast(long stream, CryptoBox encrypted) {
+        super(stream, encrypted, null);
     }
 
-    public static V4Broadcast read(InputStream is, long stream, int length) throws IOException {
-        return new V4Broadcast(stream, Decode.bytes(is, length));
+    public static V4Broadcast read(InputStream in, long stream, int length) throws IOException {
+        return new V4Broadcast(stream, CryptoBox.read(in, length));
     }
 
     @Override
@@ -46,31 +39,22 @@ public class V4Broadcast extends Broadcast {
     }
 
     @Override
-    public long getStream() {
-        return stream;
-    }
-
-    public byte[] getEncrypted() {
-        return encrypted;
-    }
-
-    @Override
     public void writeBytesToSign(OutputStream out) throws IOException {
-        unencrypted.write(out, false);
+        plaintext.write(out, false);
     }
 
     @Override
     public byte[] getSignature() {
-        return unencrypted.getSignature();
+        return plaintext.getSignature();
     }
 
     @Override
     public void setSignature(byte[] signature) {
-        unencrypted.setSignature(signature);
+        plaintext.setSignature(signature);
     }
 
     @Override
-    public void write(OutputStream stream) throws IOException {
-        stream.write(getEncrypted());
+    public void write(OutputStream out) throws IOException {
+        encrypted.write(out);
     }
 }

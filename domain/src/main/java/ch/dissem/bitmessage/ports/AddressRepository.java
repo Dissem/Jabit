@@ -20,21 +20,25 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 
 import java.util.List;
 
-/**
- * Created by chris on 23.04.15.
- */
 public interface AddressRepository {
+    BitmessageAddress findContact(byte[] ripeOrTag);
+
+    BitmessageAddress findIdentity(byte[] ripeOrTag);
+
     /**
      * Returns all Bitmessage addresses that belong to this user, i.e. have a private key.
      */
-    List<BitmessageAddress> findIdentities();
+    List<BitmessageAddress> getIdentities();
 
+    List<BitmessageAddress> getSubscriptions();
     /**
      * Returns all Bitmessage addresses that have no private key.
      */
-    List<BitmessageAddress> findContacts();
+    List<BitmessageAddress> getContacts();
 
     void save(BitmessageAddress address);
 
     void remove(BitmessageAddress address);
+
+    BitmessageAddress getAddress(String address);
 }
