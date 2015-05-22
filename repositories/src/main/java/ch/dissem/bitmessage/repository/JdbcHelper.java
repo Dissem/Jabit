@@ -24,10 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 
 /**
  * Helper class that does Flyway migration, provides JDBC connections and some helper methods.
@@ -47,10 +44,14 @@ abstract class JdbcHelper {
     }
 
     protected void writeBlob(PreparedStatement ps, int parameterIndex, Streamable data) throws SQLException, IOException {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        data.write(os);
-        ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
-        ps.setBlob(parameterIndex, is);
+        if (data != null) {
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            data.write(os);
+            ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
+            ps.setBlob(parameterIndex, is);
+        } else {
+            ps.setBlob(parameterIndex, (Blob) null);
+        }
     }
 
     protected Connection getConnection() {

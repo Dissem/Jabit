@@ -75,6 +75,23 @@ public class SerializationTest {
         doTest("V1MsgStrangeData.payload", 1, GenericPayload.class);
     }
 
+    @Test
+    public void ensurePlaintextIsSerializedAndDeserializedCorrectly() throws IOException {
+        Plaintext p1 = new Plaintext.Builder()
+                .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
+                .to(TestUtils.loadContact())
+                .encoding(Plaintext.Encoding.SIMPLE)
+                .message("Subject", "Message")
+                .ack("ack".getBytes())
+                .signature(new byte[0])
+                .build();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        p1.write(out);
+        ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+        Plaintext p2 = Plaintext.read(in);
+        assertEquals(p1, p2);
+    }
+
     private void doTest(String resourceName, int version, Class<?> expectedPayloadType) throws IOException {
         byte[] data = TestUtils.getBytes(resourceName);
         InputStream in = new ByteArrayInputStream(data);

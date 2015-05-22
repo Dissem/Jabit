@@ -25,9 +25,8 @@ import javax.xml.bind.DatatypeConverter;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.KeyPairGenerator;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
 
+import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 import static org.junit.Assert.assertArrayEquals;
 
 /**
@@ -72,7 +71,8 @@ public class SecurityTest {
     public void testProofOfWorkFails() throws IOException {
         ObjectMessage objectMessage = new ObjectMessage.Builder()
                 .nonce(new byte[8])
-                .expiresTime(UnixTime.now() + 300) // 5 minutes
+                .expiresTime(UnixTime.now(+2 * DAY)) // 5 minutes
+                .objectType(0)
                 .payload(GenericPayload.read(new ByteArrayInputStream(new byte[0]), 1, 0))
                 .build();
         Security.checkProofOfWork(objectMessage, 1000, 1000);
@@ -80,11 +80,10 @@ public class SecurityTest {
 
     @Test
     public void testDoProofOfWork() throws IOException {
-        Calendar expires = new GregorianCalendar();
-        expires.add(1, Calendar.HOUR);
         ObjectMessage objectMessage = new ObjectMessage.Builder()
                 .nonce(new byte[8])
-                .expiresTime(expires.getTimeInMillis() / 1000)
+                .expiresTime(UnixTime.now(+2 * DAY))
+                .objectType(0)
                 .payload(GenericPayload.read(new ByteArrayInputStream(new byte[0]), 1, 0))
                 .build();
         Security.doProofOfWork(objectMessage, new MultiThreadedPOWEngine(), 1000, 1000);

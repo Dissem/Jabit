@@ -52,10 +52,23 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
         }
         return result;
     }
+    private List<InventoryVector> getFullInventory(long... streams) {
+        List<InventoryVector> result = new LinkedList<>();
+        try {
+            Statement stmt = getConnection().createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT hash FROM Inventory WHERE stream IN (" + join(streams) + ")");
+            while (rs.next()) {
+                result.add(new InventoryVector(rs.getBytes("hash")));
+            }
+        } catch (SQLException e) {
+            LOG.error(e.getMessage(), e);
+        }
+        return result;
+    }
 
     @Override
     public List<InventoryVector> getMissing(List<InventoryVector> offer, long... streams) {
-        offer.removeAll(getInventory(streams));
+        offer.removeAll(getFullInventory(streams));
         return offer;
     }
 
@@ -78,17 +91,17 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
     }
 
     @Override
-    public List<ObjectMessage> getObjects(long stream, long version, ObjectType type) {
+    public List<ObjectMessage> getObjects(long stream, long version, ObjectType... types) {
         try {
             StringBuilder query = new StringBuilder("SELECT data, version FROM Inventory WHERE 1=1");
-            if (stream >= 0) {
+            if (stream > 0) {
                 query.append(" AND stream = ").append(stream);
             }
-            if (version >= 0) {
+            if (version > 0) {
                 query.append(" AND version = ").append(version);
             }
-            if (type != null) {
-                query.append(" AND type = ").append(type.getNumber());
+            if (types.length > 0) {
+                query.append(" AND type IN (").append(join(types)).append(")");
             }
             Statement stmt = getConnection().createStatement();
             ResultSet rs = stmt.executeQuery(query.toString());

@@ -16,6 +16,8 @@
 
 package ch.dissem.bitmessage.utils;
 
+import ch.dissem.bitmessage.entity.payload.ObjectType;
+
 /**
  * Created by chris on 13.04.15.
  */
@@ -34,6 +36,15 @@ public class Strings {
         for (int i = 0; i < objects.length; i++) {
             if (i > 0) streamList.append(", ");
             streamList.append(objects[i]);
+        }
+        return streamList;
+    }
+
+    public static StringBuilder join(ObjectType... types) {
+        StringBuilder streamList = new StringBuilder();
+        for (int i = 0; i < types.length; i++) {
+            if (i > 0) streamList.append(", ");
+            streamList.append(types[i].getNumber());
         }
         return streamList;
     }

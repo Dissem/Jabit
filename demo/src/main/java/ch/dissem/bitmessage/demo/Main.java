@@ -18,11 +18,12 @@ package ch.dissem.bitmessage.demo;
 
 import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
+import ch.dissem.bitmessage.entity.Plaintext;
+import ch.dissem.bitmessage.networking.NetworkNode;
 import ch.dissem.bitmessage.repository.JdbcAddressRepository;
 import ch.dissem.bitmessage.repository.JdbcInventory;
 import ch.dissem.bitmessage.repository.JdbcMessageRepository;
 import ch.dissem.bitmessage.repository.JdbcNodeRegistry;
-import ch.dissem.bitmessage.networking.NetworkNode;
 import ch.dissem.bitmessage.utils.Base58;
 import ch.dissem.bitmessage.utils.Encode;
 import ch.dissem.bitmessage.utils.Security;
@@ -31,48 +32,18 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.Scanner;
 
 /**
  * Created by chris on 06.04.15.
  */
 public class Main {
-    private final static Logger LOG = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) throws IOException {
         final BitmessageAddress address = new BitmessageAddress("BM-87hJ99tPAXxtetvnje7Z491YSvbEtBJVc5e");
 
-        BitmessageContext ctx = new BitmessageContext.Builder()
-                .addressRepo(new JdbcAddressRepository())
-                .inventory(new JdbcInventory())
-                .nodeRegistry(new JdbcNodeRegistry())
-                .networkHandler(new NetworkNode())
-                .messageRepo(new JdbcMessageRepository())
-                .port(48444)
-                .streams(1)
-                .build();
-
-//        ctx.startup(new BitmessageContext.Listener() {
-//            @Override
-//            public void receive(Plaintext plaintext) {
-//                // TODO
-//                try {
-//                    System.out.println(new String(plaintext.getMessage(), "UTF-8"));
-//                } catch (UnsupportedEncodingException e) {
-//                    LOG.error(e.getMessage(), e);
-//                }
-//            }
-//        });
-
-
-//        Scanner scanner = new Scanner(System.in);
-////        System.out.println("Press Enter to request pubkey for address " + address);
-////        scanner.nextLine();
-////        ctx.send(1, address.getVersion(), new GetPubkey(address), 3000, 1000, 1000);
-//
-//        System.out.println("Press Enter to exit");
-//        scanner.nextLine();
-//        LOG.info("Shutting down client");
-//        ctx.shutdown();
+        new Application();
 //
 //
 //        List<ObjectMessage> objects = new JdbcInventory().getObjects(address.getStream(), address.getVersion(), ObjectType.PUBKEY);

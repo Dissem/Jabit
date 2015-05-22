@@ -17,16 +17,17 @@
 package ch.dissem.bitmessage;
 
 import ch.dissem.bitmessage.entity.BitmessageAddress;
-import ch.dissem.bitmessage.entity.Encrypted;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.Plaintext.Encoding;
 import ch.dissem.bitmessage.entity.payload.GetPubkey;
 import ch.dissem.bitmessage.entity.payload.Msg;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
+import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.ports.*;
+import ch.dissem.bitmessage.ports.NetworkHandler.MessageListener;
 import ch.dissem.bitmessage.utils.Security;
 import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
@@ -34,10 +35,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.List;
 import java.util.TreeSet;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
+import static ch.dissem.bitmessage.entity.payload.ObjectType.GET_PUBKEY;
+import static ch.dissem.bitmessage.entity.payload.ObjectType.MSG;
+import static ch.dissem.bitmessage.entity.payload.ObjectType.PUBKEY;
 import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 
 /**
@@ -53,8 +56,12 @@ public class BitmessageContext {
         ctx = new InternalContext(builder);
     }
 
-    public List<BitmessageAddress> getIdentities() {
-        return ctx.getAddressRepo().getIdentities();
+    public AddressRepository addresses() {
+        return ctx.getAddressRepo();
+    }
+
+    public MessageRepository messages() {
+        return ctx.getMessageRepository();
     }
 
     public BitmessageAddress createIdentity(boolean shorter, Feature... features) {
@@ -66,6 +73,7 @@ public class BitmessageContext {
                 features
         ));
         ctx.getAddressRepo().save(identity);
+        ctx.sendPubkey(identity, identity.getStream());
         return identity;
     }
 
@@ -134,11 +142,21 @@ public class BitmessageContext {
     }
 
     public void startup(Listener listener) {
-        ctx.getNetworkHandler().start(new DefaultMessageListener(ctx, listener));
+        MessageListener messageListener = new DefaultMessageListener(ctx, listener);
+        for (ObjectMessage object : ctx.getInventory().getObjects(0, 0, PUBKEY, MSG)) {
+            messageListener.receive(object);
+        }
+        ctx.getNetworkHandler().start(messageListener);
     }
 
     public void shutdown() {
         ctx.getNetworkHandler().stop();
+    }
+
+    public void addContact(BitmessageAddress contact) {
+        ctx.getAddressRepo().save(contact);
+        // TODO: search pubkey in inventory
+        ctx.requestPubkey(contact);
     }
 
     public interface Listener {

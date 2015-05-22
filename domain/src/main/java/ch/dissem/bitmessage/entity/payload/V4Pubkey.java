@@ -23,6 +23,7 @@ import ch.dissem.bitmessage.utils.Decode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 
 /**
  * A version 4 public key. When version 4 pubkeys are created, most of the data in the pubkey is encrypted. This is
@@ -43,15 +44,18 @@ public class V4Pubkey extends Pubkey implements Encrypted {
     }
 
     public V4Pubkey(V3Pubkey decrypted) {
+        this.decrypted = decrypted;
         this.stream = decrypted.stream;
         this.tag = BitmessageAddress.calculateTag(4, decrypted.getStream(), decrypted.getRipe());
-        this.decrypted = decrypted;
     }
 
-    public static V4Pubkey read(InputStream in, long stream, int length) throws IOException {
-        return new V4Pubkey(stream,
-                Decode.bytes(in, 32),
-                CryptoBox.read(in, length - 32));
+    public static V4Pubkey read(InputStream in, long stream, int length, boolean encrypted) throws IOException {
+        if (encrypted)
+            return new V4Pubkey(stream,
+                    Decode.bytes(in, 32),
+                    CryptoBox.read(in, length - 32));
+        else
+            return new V4Pubkey(V3Pubkey.read(in, stream));
     }
 
     @Override
@@ -74,6 +78,11 @@ public class V4Pubkey extends Pubkey implements Encrypted {
     public void write(OutputStream stream) throws IOException {
         stream.write(tag);
         encrypted.write(stream);
+    }
+
+    @Override
+    public void writeUnencrypted(OutputStream out) throws IOException {
+        decrypted.write(out);
     }
 
     @Override
@@ -140,5 +149,26 @@ public class V4Pubkey extends Pubkey implements Encrypted {
 
     public long getExtraBytes() {
         return decrypted.getExtraBytes();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        V4Pubkey v4Pubkey = (V4Pubkey) o;
+
+        if (stream != v4Pubkey.stream) return false;
+        if (!Arrays.equals(tag, v4Pubkey.tag)) return false;
+        return !(decrypted != null ? !decrypted.equals(v4Pubkey.decrypted) : v4Pubkey.decrypted != null);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (int) (stream ^ (stream >>> 32));
+        result = 31 * result + Arrays.hashCode(tag);
+        result = 31 * result + (decrypted != null ? decrypted.hashCode() : 0);
+        return result;
     }
 }

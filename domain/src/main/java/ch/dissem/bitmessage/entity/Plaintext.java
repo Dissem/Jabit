@@ -22,10 +22,7 @@ import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.Decode;
 import ch.dissem.bitmessage.utils.Encode;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -121,8 +118,8 @@ public class Plaintext implements Streamable {
         Encode.varInt(from.getVersion(), out);
         Encode.varInt(from.getStream(), out);
         Encode.int32(from.getPubkey().getBehaviorBitfield(), out);
-        out.write(from.getPubkey().getSigningKey());
-        out.write(from.getPubkey().getEncryptionKey());
+        out.write(from.getPubkey().getSigningKey(), 1, 64);
+        out.write(from.getPubkey().getEncryptionKey(), 1, 64);
         Encode.varInt(from.getPubkey().getNonceTrialsPerByte(), out);
         Encode.varInt(from.getPubkey().getExtraBytes(), out);
         out.write(to.getRipe());
@@ -167,6 +164,30 @@ public class Plaintext implements Streamable {
         this.status = status;
     }
 
+    public String getSubject() {
+        Scanner s = new Scanner(new ByteArrayInputStream(message), "UTF-8");
+        String firstLine = s.nextLine();
+        if (encoding == 2) {
+            return firstLine.substring("Subject:".length()).trim();
+        } else if (firstLine.length() > 50) {
+            return firstLine.substring(0, 50).trim() + "...";
+        } else {
+            return firstLine;
+        }
+    }
+
+    public String getText() {
+        try {
+            String text = new String(message, "UTF-8");
+            if (encoding == 2) {
+                return text.substring(text.indexOf("\nBody:") + 6);
+            }
+            return text;
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public enum Encoding {
         IGNORE(0), TRIVIAL(1), SIMPLE(2);
 
@@ -176,23 +197,21 @@ public class Plaintext implements Streamable {
             this.code = code;
         }
 
-        public static Encoding fromCode(long code) {
-            for (Encoding e : values()) {
-                if (e.getCode() == code) return e;
-            }
-            return null;
-        }
-
         public long getCode() {
             return code;
         }
     }
 
     public enum Status {
+        // For sent messages
         PUBKEY_REQUESTED,
         DOING_PROOF_OF_WORK,
         SENT,
-        ACKNOWLEDGED
+        SENT_ACKNOWLEDGED,
+
+        // For received messages
+        RECEIVED,
+        READ
     }
 
     public static final class Builder {
@@ -340,7 +359,7 @@ public class Plaintext implements Streamable {
                         publicEncryptionKey,
                         nonceTrialsPerByte,
                         extraBytes,
-                        Pubkey.Feature.features(behaviorBitfield)
+                        behaviorBitfield
                 ));
             }
             if (to == null) {
@@ -348,5 +367,27 @@ public class Plaintext implements Streamable {
             }
             return new Plaintext(this);
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Plaintext plaintext = (Plaintext) o;
+        return Objects.equals(encoding, plaintext.encoding) &&
+                Objects.equals(from, plaintext.from) &&
+                Arrays.equals(message, plaintext.message) &&
+                Arrays.equals(ack, plaintext.ack) &&
+                Arrays.equals(to.getRipe(), plaintext.to.getRipe()) &&
+                Arrays.equals(signature, plaintext.signature) &&
+                Objects.equals(status, plaintext.status) &&
+                Objects.equals(sent, plaintext.sent) &&
+                Objects.equals(received, plaintext.received) &&
+                Objects.equals(labels, plaintext.labels);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(from, encoding, message, ack, to, signature, status, sent, received, labels);
     }
 }

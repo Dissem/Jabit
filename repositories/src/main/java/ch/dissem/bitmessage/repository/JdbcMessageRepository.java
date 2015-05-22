@@ -41,7 +41,7 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         List<String> result = new LinkedList<>();
         try {
             Statement stmt = getConnection().createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT label FROM Label ORDER BY order");
+            ResultSet rs = stmt.executeQuery("SELECT label FROM Label ORDER BY ord");
             while (rs.next()) {
                 result.add(rs.getString("label"));
             }
@@ -58,7 +58,7 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     @Override
     public List<Plaintext> findMessages(Plaintext.Status status, BitmessageAddress recipient) {
-        return find("status='" + status.name() + "' AND to='" + recipient.getAddress() + "'");
+        return find("status='" + status.name() + "' AND recipient='" + recipient.getAddress() + "'");
     }
 
     @Override
@@ -70,14 +70,14 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         List<Plaintext> result = new LinkedList<>();
         try {
             Statement stmt = getConnection().createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT \"id\", \"from\", \"to\", \"data\", \"sent\", \"received\", \"status\" FROM Message WHERE " + where);
+            ResultSet rs = stmt.executeQuery("SELECT id, sender, recipient, data, sent, received, status FROM Message WHERE " + where);
             while (rs.next()) {
                 Blob data = rs.getBlob("data");
                 Plaintext.Builder builder = Plaintext.readWithoutSignature(data.getBinaryStream());
                 long id = rs.getLong("id");
                 builder.id(id);
-                builder.from(ctx.getAddressRepo().getAddress(rs.getString("from")));
-                builder.to(ctx.getAddressRepo().getAddress(rs.getString("to")));
+                builder.from(ctx.getAddressRepo().getAddress(rs.getString("sender")));
+                builder.to(ctx.getAddressRepo().getAddress(rs.getString("recipient")));
                 builder.sent(rs.getLong("sent"));
                 builder.received(rs.getLong("received"));
                 builder.status(Plaintext.Status.valueOf(rs.getString("status")));
@@ -94,7 +94,7 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         List<Label> result = new ArrayList<>();
         try {
             Statement stmt = getConnection().createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT \"label\", \"color\" FROM Label WHERE id IN SELECT label_id FROM Message_Label WHERE message_id=" + messageId);
+            ResultSet rs = stmt.executeQuery("SELECT label, color FROM Label WHERE id IN SELECT label_id FROM Message_Label WHERE message_id=" + messageId);
             while (rs.next()) {
                 result.add(new Label(rs.getString("label"), rs.getInt("color")));
             }
@@ -151,7 +151,7 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     private void insert(Connection connection, Plaintext message) throws SQLException, IOException {
         PreparedStatement ps = connection.prepareStatement(
-                "INSERT INTO Message (\"from\", \"to\", \"data\", \"sent\", \"received\", \"status\") VALUES (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+                "INSERT INTO Message (sender, recipient, data, sent, received, status) VALUES (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
         ps.setString(1, message.getFrom().getAddress());
         ps.setString(2, message.getTo().getAddress());
         writeBlob(ps, 3, message);
@@ -168,7 +168,7 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     private void update(Connection connection, Plaintext message) throws SQLException, IOException {
         PreparedStatement ps = connection.prepareStatement(
-                "UPDATE Message SET \"sent\"=?, \"received\"=?, \"status\"=?");
+                "UPDATE Message SET sent=?, received=?, status=?");
         ps.setLong(1, message.getSent());
         ps.setLong(2, message.getReceived());
         ps.setString(3, message.getStatus().name());

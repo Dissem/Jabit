@@ -18,6 +18,8 @@ package ch.dissem.bitmessage.entity.valueobject;
 
 import ch.dissem.bitmessage.entity.Streamable;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
+import ch.dissem.bitmessage.entity.payload.V3Pubkey;
+import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.Bytes;
 import ch.dissem.bitmessage.utils.Decode;
@@ -76,7 +78,7 @@ public class PrivateKey implements Streamable {
         int version = (int) Decode.varInt(is);
         long stream = Decode.varInt(is);
         int len = (int) Decode.varInt(is);
-        Pubkey pubkey = Factory.readPubkey(version, stream, is, len);
+        Pubkey pubkey = Factory.readPubkey(version, stream, is, len, false);
         len = (int) Decode.varInt(is);
         byte[] signingKey = Decode.bytes(is, len);
         len = (int) Decode.varInt(is);
@@ -97,16 +99,16 @@ public class PrivateKey implements Streamable {
     }
 
     @Override
-    public void write(OutputStream os) throws IOException {
-        Encode.varInt(pubkey.getVersion(), os);
-        Encode.varInt(pubkey.getStream(), os);
+    public void write(OutputStream out) throws IOException {
+        Encode.varInt(pubkey.getVersion(), out);
+        Encode.varInt(pubkey.getStream(), out);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        pubkey.write(baos);
-        Encode.varInt(baos.size(), os);
-        os.write(baos.toByteArray());
-        Encode.varInt(privateSigningKey.length, os);
-        os.write(privateSigningKey);
-        Encode.varInt(privateEncryptionKey.length, os);
-        os.write(privateEncryptionKey);
+        pubkey.writeUnencrypted(baos);
+        Encode.varInt(baos.size(), out);
+        out.write(baos.toByteArray());
+        Encode.varInt(privateSigningKey.length, out);
+        out.write(privateSigningKey);
+        Encode.varInt(privateEncryptionKey.length, out);
+        out.write(privateEncryptionKey);
     }
 }

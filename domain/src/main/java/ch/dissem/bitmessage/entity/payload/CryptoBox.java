@@ -28,16 +28,17 @@ import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.ParametersWithIV;
 import org.bouncycastle.math.ec.ECPoint;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.math.BigInteger;
 import java.util.Arrays;
 
 
-/**
- * Created by chris on 09.04.15.
- */
 public class CryptoBox implements Streamable {
+    private static final Logger LOG = LoggerFactory.getLogger(CryptoBox.class);
+
     private final byte[] initializationVector;
     private final int curveType;
     private final ECPoint R;
@@ -182,7 +183,7 @@ public class CryptoBox implements Streamable {
         }
 
         public Builder curveType(int curveType) {
-            if (curveType != 0x2CA) System.out.println("Unexpected curve type " + curveType);
+            if (curveType != 0x2CA) LOG.debug("Unexpected curve type " + curveType);
             this.curveType = curveType;
             return this;
         }

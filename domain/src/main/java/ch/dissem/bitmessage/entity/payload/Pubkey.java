@@ -16,6 +16,8 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 
 import static ch.dissem.bitmessage.utils.Security.ripemd160;
@@ -49,6 +51,10 @@ public abstract class Pubkey extends ObjectPayload {
 
     public long getExtraBytes() {
         return 0;
+    }
+
+    public void writeUnencrypted(OutputStream out) throws IOException {
+        write(out);
     }
 
     protected byte[] add0x04(byte[] key) {

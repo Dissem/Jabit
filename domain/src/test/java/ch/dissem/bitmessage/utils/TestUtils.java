@@ -16,13 +16,18 @@
 
 package ch.dissem.bitmessage.utils;
 
+import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.entity.payload.V4Pubkey;
+import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.factory.Factory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * If there's ever a need for this in production code, it should be rewritten to be more efficient.
@@ -50,5 +55,24 @@ public class TestUtils {
             len = in.read(buffer);
         }
         return out.toByteArray();
+    }
+
+    public static InputStream getResource(String resourceName) {
+        return TestUtils.class.getClassLoader().getResourceAsStream(resourceName);
+    }
+
+    public static BitmessageAddress loadIdentity(String address) throws IOException {
+        PrivateKey privateKey = PrivateKey.read(TestUtils.getResource(address + ".privkey"));
+        BitmessageAddress identity = new BitmessageAddress(privateKey);
+        assertEquals(address, identity.getAddress());
+        return identity;
+    }
+
+    public static BitmessageAddress loadContact() throws IOException {
+        BitmessageAddress address = new BitmessageAddress("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h");
+        ObjectMessage object = TestUtils.loadObjectMessage(4, "V4Pubkey.payload");
+        object.decrypt(address.getPubkeyDecryptionKey());
+        address.setPubkey((V4Pubkey) object.getPayload());
+        return address;
     }
 }

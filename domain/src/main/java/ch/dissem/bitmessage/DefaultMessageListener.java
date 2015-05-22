@@ -17,13 +17,10 @@
 package ch.dissem.bitmessage;
 
 import ch.dissem.bitmessage.entity.BitmessageAddress;
-import ch.dissem.bitmessage.entity.Encrypted;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.ports.NetworkHandler;
-import ch.dissem.bitmessage.utils.Security;
-import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +44,8 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
     @Override
     public void receive(ObjectMessage object) {
         ObjectPayload payload = object.getPayload();
+        if (payload.getType() == null) return;
+
         switch (payload.getType()) {
             case GET_PUBKEY: {
                 receive(object, (GetPubkey) payload);
@@ -70,28 +69,8 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
     protected void receive(ObjectMessage object, GetPubkey getPubkey) {
         BitmessageAddress identity = ctx.getAddressRepo().findIdentity(getPubkey.getRipeTag());
         if (identity != null && identity.getPrivateKey() != null) {
-            try {
-                long expires = UnixTime.now(+28 * DAY);
-                LOG.info("Expires at " + expires);
-                ObjectMessage response = new ObjectMessage.Builder()
-                        .stream(object.getStream())
-                        .version(identity.getVersion())
-                        .expiresTime(expires)
-                        .payload(identity.getPubkey())
-                        .build();
-                Security.doProofOfWork(response, ctx.getProofOfWorkEngine(),
-                        ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
-                if (response.isSigned()) {
-                    response.sign(identity.getPrivateKey());
-                }
-                if (response instanceof Encrypted) {
-                    response.encrypt(Security.createPublicKey(identity.getPubkeyDecryptionKey()).getEncoded(false));
-                }
-                ctx.getInventory().storeObject(response);
-                ctx.getNetworkHandler().offer(response.getInventoryVector());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            LOG.debug("Got pubkey request for identity " + identity);
+            ctx.sendPubkey(identity, object.getStream());
         }
     }
 
@@ -109,8 +88,9 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
             }
             if (address != null) {
                 address.setPubkey(pubkey);
+                LOG.debug("Got pubkey for contact " + address);
                 List<Plaintext> messages = ctx.getMessageRepository().findMessages(Plaintext.Status.PUBKEY_REQUESTED, address);
-                for (Plaintext msg:messages){
+                for (Plaintext msg : messages) {
                     // TODO: send messages enqueued for this address
                     msg.setStatus(DOING_PROOF_OF_WORK);
                     ctx.getMessageRepository().save(msg);
@@ -140,7 +120,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
                 ctx.getMessageRepository().save(msg.getPlaintext());
                 listener.receive(msg.getPlaintext());
                 break;
-            } catch (IOException ignore) {
+            } catch (IOException | RuntimeException ignore) {
             }
         }
     }

@@ -17,7 +17,7 @@
 package ch.dissem.bitmessage.utils;
 
 import ch.dissem.bitmessage.entity.ObjectMessage;
-import ch.dissem.bitmessage.entity.payload.Pubkey;
+import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine;
 import org.bouncycastle.asn1.x9.X9ECParameters;
@@ -35,6 +35,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.*;
+import java.security.PrivateKey;
 import java.security.spec.KeySpec;
 import java.util.Arrays;
 

@@ -22,6 +22,8 @@ import ch.dissem.bitmessage.utils.Encode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * A version 3 public key.
@@ -100,7 +102,7 @@ public class V3Pubkey extends V2Pubkey {
         private byte[] publicEncryptionKey;
         private long nonceTrialsPerByte;
         private long extraBytes;
-        private byte[] signature;
+        private byte[] signature = new byte[0];
 
         public Builder() {
         }
@@ -143,5 +145,23 @@ public class V3Pubkey extends V2Pubkey {
         public V3Pubkey build() {
             return new V3Pubkey(this);
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        V3Pubkey pubkey = (V3Pubkey) o;
+        return Objects.equals(nonceTrialsPerByte, pubkey.nonceTrialsPerByte) &&
+                Objects.equals(extraBytes, pubkey.extraBytes) &&
+                stream == pubkey.stream &&
+                behaviorBitfield == pubkey.behaviorBitfield &&
+                Arrays.equals(publicSigningKey, pubkey.publicSigningKey) &&
+                Arrays.equals(publicEncryptionKey, pubkey.publicEncryptionKey);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(nonceTrialsPerByte, extraBytes);
     }
 }

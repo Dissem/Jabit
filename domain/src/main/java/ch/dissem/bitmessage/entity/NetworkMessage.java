@@ -60,15 +60,15 @@ public class NetworkMessage implements Streamable {
     }
 
     @Override
-    public void write(OutputStream stream) throws IOException {
+    public void write(OutputStream out) throws IOException {
         // magic
-        Encode.int32(MAGIC, stream);
+        Encode.int32(MAGIC, out);
 
         // ASCII string identifying the packet content, NULL padded (non-NULL padding results in packet rejected)
         String command = payload.getCommand().name().toLowerCase();
-        stream.write(command.getBytes("ASCII"));
+        out.write(command.getBytes("ASCII"));
         for (int i = command.length(); i < 12; i++) {
-            stream.write('\0');
+            out.write('\0');
         }
 
         ByteArrayOutputStream payloadStream = new ByteArrayOutputStream();
@@ -78,16 +78,16 @@ public class NetworkMessage implements Streamable {
         // Length of payload in number of bytes. Because of other restrictions, there is no reason why this length would
         // ever be larger than 1600003 bytes. Some clients include a sanity-check to avoid processing messages which are
         // larger than this.
-        Encode.int32(payloadBytes.length, stream);
+        Encode.int32(payloadBytes.length, out);
 
         // checksum
         try {
-            stream.write(getChecksum(payloadBytes));
+            out.write(getChecksum(payloadBytes));
         } catch (GeneralSecurityException e) {
             throw new RuntimeException(e);
         }
 
         // message payload
-        stream.write(payloadBytes);
+        out.write(payloadBytes);
     }
 }

@@ -32,7 +32,7 @@ public interface Inventory {
 
     ObjectMessage getObject(InventoryVector vector);
 
-    List<ObjectMessage> getObjects(long stream, long version, ObjectType type);
+    List<ObjectMessage> getObjects(long stream, long version, ObjectType... types);
 
     void storeObject(ObjectMessage object);
 

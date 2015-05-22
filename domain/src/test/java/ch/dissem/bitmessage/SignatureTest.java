@@ -18,15 +18,19 @@ package ch.dissem.bitmessage;
 
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.entity.Plaintext;
+import ch.dissem.bitmessage.entity.payload.Msg;
 import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
+import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.utils.TestUtils;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Date;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class SignatureTest {
     @Test
@@ -39,7 +43,6 @@ public class SignatureTest {
     @Test
     public void ensureSigningWorks() throws IOException {
         PrivateKey privateKey = new PrivateKey(false, 1, 1000, 1000);
-        BitmessageAddress address = new BitmessageAddress(privateKey);
 
         ObjectMessage objectMessage = new ObjectMessage.Builder()
                 .objectType(ObjectType.PUBKEY)
@@ -50,5 +53,26 @@ public class SignatureTest {
         objectMessage.sign(privateKey);
 
         assertTrue(objectMessage.isSignatureValid(privateKey.getPubkey()));
+    }
+
+    @Test
+    public void ensureMessageIsProperlySigned() throws IOException {
+        BitmessageAddress identity = TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8");
+
+        ObjectMessage object = TestUtils.loadObjectMessage(3, "V1Msg.payload");
+        Msg msg = (Msg) object.getPayload();
+        msg.decrypt(identity.getPrivateKey().getPrivateEncryptionKey());
+        Plaintext plaintext = msg.getPlaintext();
+        assertEquals(0, object.getExpiresTime());
+        assertEquals(loadPubkey(), plaintext.getFrom().getPubkey());
+        assertNotNull(plaintext);
+        assertTrue(object.isSignatureValid(plaintext.getFrom().getPubkey()));
+    }
+
+    private V4Pubkey loadPubkey() throws IOException {
+        BitmessageAddress address = new BitmessageAddress("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h");
+        ObjectMessage object = TestUtils.loadObjectMessage(4, "V4Pubkey.payload");
+        object.decrypt(address.getPubkeyDecryptionKey());
+        return (V4Pubkey) object.getPayload();
     }
 }

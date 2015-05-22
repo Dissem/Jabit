@@ -16,21 +16,23 @@
 
 package ch.dissem.bitmessage;
 
+import ch.dissem.bitmessage.entity.BitmessageAddress;
+import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.CryptoBox;
 import ch.dissem.bitmessage.entity.payload.GenericPayload;
+import ch.dissem.bitmessage.entity.payload.Msg;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.utils.Security;
-import org.junit.Ignore;
+import ch.dissem.bitmessage.utils.TestUtils;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.security.KeyPair;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
-/**
- * Created by chris on 10.05.15.
- */
 public class EncryptionTest {
     @Test
     public void ensureDecryptedDataIsSameAsBeforeEncryption() throws IOException {
@@ -42,5 +44,20 @@ public class EncryptionTest {
         GenericPayload after = GenericPayload.read(cryptoBox.decrypt(privateKey.getPrivateEncryptionKey()), 1, 100);
 
         assertEquals(before, after);
+    }
+
+    @Test
+    public void ensureMessageCanBeDecrypted() throws IOException {
+        PrivateKey privateKey = PrivateKey.read(TestUtils.getResource("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8.privkey"));
+        BitmessageAddress identity = new BitmessageAddress(privateKey);
+        assertEquals("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8", identity.getAddress());
+
+        ObjectMessage object = TestUtils.loadObjectMessage(3, "V1Msg.payload");
+        Msg msg = (Msg) object.getPayload();
+        msg.decrypt(privateKey.getPrivateEncryptionKey());
+        Plaintext plaintext = msg.getPlaintext();
+        assertNotNull(plaintext);
+        assertEquals("Test", plaintext.getSubject());
+        assertEquals("Hallo, das ist ein Test von der v4-Adresse", plaintext.getText());
     }
 }

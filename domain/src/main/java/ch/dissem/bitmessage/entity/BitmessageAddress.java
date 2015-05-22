@@ -25,6 +25,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Objects;
 
 import static ch.dissem.bitmessage.utils.Decode.bytes;
 import static ch.dissem.bitmessage.utils.Decode.varInt;
@@ -179,5 +180,20 @@ public class BitmessageAddress {
 
     public byte[] getTag() {
         return tag;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        BitmessageAddress address = (BitmessageAddress) o;
+        return Objects.equals(version, address.version) &&
+                Objects.equals(stream, address.stream) &&
+                Arrays.equals(ripe, address.ripe);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(ripe);
     }
 }

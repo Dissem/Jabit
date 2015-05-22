@@ -56,6 +56,12 @@ public class Factory {
 
     public static Pubkey createPubkey(long version, long stream, byte[] publicSigningKey, byte[] publicEncryptionKey,
                                       long nonceTrialsPerByte, long extraBytes, Pubkey.Feature... features) {
+        return createPubkey(version, stream, publicSigningKey, publicEncryptionKey, nonceTrialsPerByte, extraBytes,
+                Pubkey.Feature.bitfield(features));
+    }
+
+    public static Pubkey createPubkey(long version, long stream, byte[] publicSigningKey, byte[] publicEncryptionKey,
+                                      long nonceTrialsPerByte, long extraBytes, int behaviourBitfield) {
         if (publicSigningKey.length != 64 && publicSigningKey.length != 65)
             throw new IllegalArgumentException("64 bytes signing key expected, but it was "
                     + publicSigningKey.length + " bytes long.");
@@ -69,14 +75,14 @@ public class Factory {
                         .stream(stream)
                         .publicSigningKey(publicSigningKey)
                         .publicEncryptionKey(publicEncryptionKey)
-                        .behaviorBitfield(Pubkey.Feature.bitfield(features))
+                        .behaviorBitfield(behaviourBitfield)
                         .build();
             case 3:
                 return new V3Pubkey.Builder()
                         .stream(stream)
                         .publicSigningKey(publicSigningKey)
                         .publicEncryptionKey(publicEncryptionKey)
-                        .behaviorBitfield(Pubkey.Feature.bitfield(features))
+                        .behaviorBitfield(behaviourBitfield)
                         .nonceTrialsPerByte(nonceTrialsPerByte)
                         .extraBytes(extraBytes)
                         .build();
@@ -86,7 +92,7 @@ public class Factory {
                                 .stream(stream)
                                 .publicSigningKey(publicSigningKey)
                                 .publicEncryptionKey(publicEncryptionKey)
-                                .behaviorBitfield(Pubkey.Feature.bitfield(features))
+                                .behaviorBitfield(behaviourBitfield)
                                 .nonceTrialsPerByte(nonceTrialsPerByte)
                                 .extraBytes(extraBytes)
                                 .build()
@@ -125,21 +131,21 @@ public class Factory {
         return GetPubkey.read(stream, streamNumber, length, version);
     }
 
-    public static Pubkey readPubkey(long version, long stream, InputStream is, int length) throws IOException {
+    public static Pubkey readPubkey(long version, long stream, InputStream is, int length, boolean encrypted) throws IOException {
         switch ((int) version) {
             case 2:
                 return V2Pubkey.read(is, stream);
             case 3:
                 return V3Pubkey.read(is, stream);
             case 4:
-                return V4Pubkey.read(is, stream, length);
+                return V4Pubkey.read(is, stream, length, encrypted);
         }
         LOG.debug("Unexpected pubkey version " + version + ", handling as generic payload object");
         return null;
     }
 
     private static ObjectPayload parsePubkey(long version, long streamNumber, InputStream stream, int length) throws IOException {
-        Pubkey pubkey = readPubkey(version, streamNumber, stream, length);
+        Pubkey pubkey = readPubkey(version, streamNumber, stream, length, true);
         return pubkey != null ? pubkey : GenericPayload.read(stream, streamNumber, length);
     }
 

@@ -18,12 +18,16 @@ package ch.dissem.bitmessage.repository;
 
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
+import ch.dissem.bitmessage.entity.payload.V3Pubkey;
+import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.AddressRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.*;
 import java.util.Arrays;
@@ -62,7 +66,7 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
 
     @Override
     public List<BitmessageAddress> getIdentities() {
-        return find("private_signing_key IS NOT NULL");
+        return find("private_key IS NOT NULL");
     }
 
     @Override
@@ -72,7 +76,7 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
 
     @Override
     public List<BitmessageAddress> getContacts() {
-        return find("private_signing_key IS NULL");
+        return find("private_key IS NULL");
     }
 
     private List<BitmessageAddress> find(String where) {
@@ -91,7 +95,10 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
                     Blob publicKeyBlob = rs.getBlob("public_key");
                     if (publicKeyBlob != null) {
                         Pubkey pubkey = Factory.readPubkey(address.getVersion(), address.getStream(),
-                                publicKeyBlob.getBinaryStream(), (int) publicKeyBlob.length());
+                                publicKeyBlob.getBinaryStream(), (int) publicKeyBlob.length(), false);
+                        if (address.getVersion() == 4) {
+                            pubkey = new V4Pubkey((V3Pubkey) pubkey);
+                        }
                         address.setPubkey(pubkey);
                     }
                 }
@@ -111,7 +118,7 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
             Statement stmt = getConnection().createStatement();
             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM Address WHERE address='" + address.getAddress() + "'");
             rs.next();
-            return rs.getInt(0) > 0;
+            return rs.getInt(1) > 0;
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);
         }
@@ -136,19 +143,30 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
                 "UPDATE Address SET address=?, alias=?, public_key=?, private_key=?");
         ps.setString(1, address.getAddress());
         ps.setString(2, address.getAlias());
-        writeBlob(ps, 3, address.getPubkey());
+        writePubkey(ps, 3, address.getPubkey());
         writeBlob(ps, 4, address.getPrivateKey());
         ps.executeUpdate();
     }
 
     private void insert(BitmessageAddress address) throws IOException, SQLException {
         PreparedStatement ps = getConnection().prepareStatement(
-                "INSERT INTO Address (address, alias, public_key, private_key) VALUES (?, ?, ?, ?, ?)");
+                "INSERT INTO Address (address, alias, public_key, private_key) VALUES (?, ?, ?, ?)");
         ps.setString(1, address.getAddress());
         ps.setString(2, address.getAlias());
-        writeBlob(ps, 3, address.getPubkey());
+        writePubkey(ps, 3, address.getPubkey());
         writeBlob(ps, 4, address.getPrivateKey());
         ps.executeUpdate();
+    }
+
+    protected void writePubkey(PreparedStatement ps, int parameterIndex, Pubkey data) throws SQLException, IOException {
+        if (data != null) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            data.writeUnencrypted(out);
+            ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+            ps.setBlob(parameterIndex, in);
+        } else {
+            ps.setBlob(parameterIndex, (Blob) null);
+        }
     }
 
     @Override

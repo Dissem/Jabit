@@ -19,6 +19,7 @@ package ch.dissem.bitmessage;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Encrypted;
 import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.entity.payload.GetPubkey;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Security;
@@ -28,6 +29,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.TreeSet;
+
+import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 
 /**
  * The internal context should normally only be used for port implementations. If you need it in your client
@@ -155,6 +158,51 @@ public class InternalContext {
             }
             inventory.storeObject(object);
             networkHandler.offer(object.getInventoryVector());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void sendPubkey(BitmessageAddress identity, long targetStream) {
+        try {
+            long expires = UnixTime.now(+28 * DAY);
+            LOG.info("Expires at " + expires);
+            ObjectMessage response = new ObjectMessage.Builder()
+                    .stream(targetStream)
+                    .version(identity.getVersion())
+                    .expiresTime(expires)
+                    .payload(identity.getPubkey())
+                    .build();
+            response.sign(identity.getPrivateKey());
+            response.encrypt(Security.createPublicKey(identity.getPubkeyDecryptionKey()).getEncoded(false));
+            Security.doProofOfWork(response, proofOfWorkEngine, networkNonceTrialsPerByte, networkExtraBytes);
+            if (response.isSigned()) {
+                response.sign(identity.getPrivateKey());
+            }
+            if (response instanceof Encrypted) {
+                response.encrypt(Security.createPublicKey(identity.getPubkeyDecryptionKey()).getEncoded(false));
+            }
+            inventory.storeObject(response);
+            networkHandler.offer(response.getInventoryVector());
+            // TODO: save that the pubkey was just sent, and on which stream!
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void requestPubkey(BitmessageAddress contact) {
+        try {
+            long expires = UnixTime.now(+2 * DAY);
+            LOG.info("Expires at " + expires);
+            ObjectMessage response = new ObjectMessage.Builder()
+                    .stream(contact.getStream())
+                    .version(contact.getVersion())
+                    .expiresTime(expires)
+                    .payload(new GetPubkey(contact))
+                    .build();
+            Security.doProofOfWork(response, proofOfWorkEngine, networkNonceTrialsPerByte, networkExtraBytes);
+            inventory.storeObject(response);
+            networkHandler.offer(response.getInventoryVector());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
