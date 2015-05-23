@@ -23,9 +23,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
 
-/**
- * Created by chris on 13.03.15.
- */
 public class InventoryVector implements Streamable {
     /**
      * Hash of the object

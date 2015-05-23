@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.entity.payload;
 
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Encrypted;
+import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.utils.Decode;
 
 import java.io.IOException;
@@ -65,7 +66,7 @@ public class V4Pubkey extends Pubkey implements Encrypted {
     }
 
     @Override
-    public void decrypt(byte[] privateKey) throws IOException {
+    public void decrypt(byte[] privateKey) throws IOException, DecryptionFailedException {
         decrypted = V3Pubkey.read(encrypted.decrypt(privateKey), stream);
     }
 

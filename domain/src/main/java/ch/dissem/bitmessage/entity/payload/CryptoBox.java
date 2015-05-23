@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity.payload;
 
 import ch.dissem.bitmessage.entity.Streamable;
+import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.utils.*;
 import org.bouncycastle.crypto.BufferedBlockCipher;
 import org.bouncycastle.crypto.CipherParameters;
@@ -99,7 +100,7 @@ public class CryptoBox implements Streamable {
     /**
      * @see <a href='https://bitmessage.org/wiki/Encryption#Decryption'>https://bitmessage.org/wiki/Encryption#Decryption</a>
      */
-    public InputStream decrypt(byte[] privateKey) {
+    public InputStream decrypt(byte[] privateKey) throws DecryptionFailedException {
         // 1. The private key used to decrypt is called k.
         BigInteger k = Security.keyToBigInt(privateKey);
         // 2. Do an EC point multiply with private key k and public key R. This gives you public key P.
@@ -113,7 +114,7 @@ public class CryptoBox implements Streamable {
         // 5. Calculate MAC' with HMACSHA256, using key_m as salt and IV + R + cipher text as data.
         // 6. Compare MAC with MAC'. If not equal, decryption will fail.
         if (!Arrays.equals(mac, calculateMac(key_m))) {
-            throw new RuntimeException("Invalid MAC while decrypting");
+            throw new DecryptionFailedException();
         }
 
         // 7. Decrypt the cipher text with AES-256-CBC, using IV as initialization vector, key_e as decryption key

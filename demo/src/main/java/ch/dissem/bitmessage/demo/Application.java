@@ -206,7 +206,7 @@ public class Application {
 
     private void messages() {
         String command;
-        List<Plaintext> messages = ctx.messages().findMessages(Plaintext.Status.RECEIVED);
+        List<Plaintext> messages = ctx.messages().findMessages(Plaintext.Status.NEW);
         do {
             System.out.println();
             int i = 0;
@@ -230,7 +230,7 @@ public class Application {
                     return;
                 default:
                     try {
-                        int index = Integer.parseInt(command);
+                        int index = Integer.parseInt(command) - 1;
                         show(messages.get(index));
                     } catch (NumberFormatException | IndexOutOfBoundsException e) {
                         System.out.println("Unknown command. Please try again.");
@@ -249,9 +249,9 @@ public class Application {
         System.out.println();
         String command;
         do {
-            System.out.printf("r) reply");
+            System.out.println("r) reply");
             System.out.println("d) delete");
-            System.out.printf("b) back");
+            System.out.println("b) back");
             command = nextCommand();
             switch (command) {
                 case "r":

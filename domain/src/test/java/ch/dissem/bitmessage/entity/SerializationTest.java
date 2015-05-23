@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.*;
+import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.TestUtils;
 import org.junit.Test;
@@ -76,7 +77,7 @@ public class SerializationTest {
     }
 
     @Test
-    public void ensurePlaintextIsSerializedAndDeserializedCorrectly() throws IOException {
+    public void ensurePlaintextIsSerializedAndDeserializedCorrectly() throws IOException, DecryptionFailedException {
         Plaintext p1 = new Plaintext.Builder()
                 .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
                 .to(TestUtils.loadContact())

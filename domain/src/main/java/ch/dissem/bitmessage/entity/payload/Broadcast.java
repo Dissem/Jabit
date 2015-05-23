@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.entity.payload;
 
 import ch.dissem.bitmessage.entity.Encrypted;
 import ch.dissem.bitmessage.entity.Plaintext;
+import ch.dissem.bitmessage.exception.DecryptionFailedException;
 
 import java.io.IOException;
 
@@ -51,7 +52,7 @@ public abstract class Broadcast extends ObjectPayload implements Encrypted {
     }
 
     @Override
-    public void decrypt(byte[] privateKey) throws IOException {
+    public void decrypt(byte[] privateKey) throws IOException, DecryptionFailedException {
         plaintext = Plaintext.read(encrypted.decrypt(privateKey));
     }
 

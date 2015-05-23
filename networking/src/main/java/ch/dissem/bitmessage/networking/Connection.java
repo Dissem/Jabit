@@ -121,7 +121,7 @@ public class Connection implements Runnable {
                                         + msg.getPayload().getCommand());
                         }
                 }
-            } catch (SocketTimeoutException e) {
+            } catch (SocketTimeoutException ignore) {
                 if (state == ACTIVE) {
                     sendQueue();
                 }
@@ -157,12 +157,11 @@ public class Connection implements Runnable {
                 try {
                     LOG.debug("Received object " + objectMessage.getInventoryVector());
                     Security.checkProofOfWork(objectMessage, ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
+                    listener.receive(objectMessage);
                     ctx.getInventory().storeObject(objectMessage);
                 } catch (IOException e) {
-                    LOG.debug(e.getMessage(), e);
+                    LOG.error("Stream " + objectMessage.getStream() + ", object type " + objectMessage.getType() + ": " + e.getMessage(), e);
                 }
-                // It's probably pointless, but let the listener decide if we accept the message for the client.
-                listener.receive(objectMessage);
                 break;
             case ADDR:
                 Addr addr = (Addr) messagePayload;

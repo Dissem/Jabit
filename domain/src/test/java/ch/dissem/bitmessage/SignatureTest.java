@@ -24,6 +24,7 @@ import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.utils.TestUtils;
 import org.junit.Test;
 
@@ -56,23 +57,15 @@ public class SignatureTest {
     }
 
     @Test
-    public void ensureMessageIsProperlySigned() throws IOException {
+    public void ensureMessageIsProperlySigned() throws IOException, DecryptionFailedException {
         BitmessageAddress identity = TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8");
 
         ObjectMessage object = TestUtils.loadObjectMessage(3, "V1Msg.payload");
         Msg msg = (Msg) object.getPayload();
         msg.decrypt(identity.getPrivateKey().getPrivateEncryptionKey());
         Plaintext plaintext = msg.getPlaintext();
-        assertEquals(0, object.getExpiresTime());
-        assertEquals(loadPubkey(), plaintext.getFrom().getPubkey());
+        assertEquals(TestUtils.loadContact().getPubkey(), plaintext.getFrom().getPubkey());
         assertNotNull(plaintext);
         assertTrue(object.isSignatureValid(plaintext.getFrom().getPubkey()));
-    }
-
-    private V4Pubkey loadPubkey() throws IOException {
-        BitmessageAddress address = new BitmessageAddress("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h");
-        ObjectMessage object = TestUtils.loadObjectMessage(4, "V4Pubkey.payload");
-        object.decrypt(address.getPubkeyDecryptionKey());
-        return (V4Pubkey) object.getPayload();
     }
 }

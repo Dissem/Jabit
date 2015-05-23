@@ -19,6 +19,7 @@ package ch.dissem.bitmessage.entity;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.utils.*;
 import org.junit.Test;
 
@@ -80,7 +81,7 @@ public class BitmessageAddressTest {
     }
 
     @Test
-    public void testV4PubkeyImport() throws IOException {
+    public void testV4PubkeyImport() throws IOException, DecryptionFailedException {
         BitmessageAddress address = new BitmessageAddress("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h");
         ObjectMessage object = TestUtils.loadObjectMessage(4, "V4Pubkey.payload");
         object.decrypt(address.getPubkeyDecryptionKey());

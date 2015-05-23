@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.utils.Bytes;
 import ch.dissem.bitmessage.utils.Encode;
 import ch.dissem.bitmessage.utils.Security;
@@ -116,13 +117,13 @@ public class ObjectMessage implements MessagePayload {
         }
     }
 
-    public void decrypt(PrivateKey key) throws IOException {
+    public void decrypt(PrivateKey key) throws IOException, DecryptionFailedException {
         if (payload instanceof Encrypted) {
             ((Encrypted) payload).decrypt(key.getPrivateEncryptionKey());
         }
     }
 
-    public void decrypt(byte[] privateEncryptionKey) throws IOException {
+    public void decrypt(byte[] privateEncryptionKey) throws IOException, DecryptionFailedException {
         if (payload instanceof Encrypted) {
             ((Encrypted) payload).decrypt(privateEncryptionKey);
         }

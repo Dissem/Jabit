@@ -23,6 +23,7 @@ import ch.dissem.bitmessage.entity.payload.CryptoBox;
 import ch.dissem.bitmessage.entity.payload.GenericPayload;
 import ch.dissem.bitmessage.entity.payload.Msg;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.utils.Security;
 import ch.dissem.bitmessage.utils.TestUtils;
 import org.junit.Test;
@@ -35,7 +36,7 @@ import static org.junit.Assert.assertTrue;
 
 public class EncryptionTest {
     @Test
-    public void ensureDecryptedDataIsSameAsBeforeEncryption() throws IOException {
+    public void ensureDecryptedDataIsSameAsBeforeEncryption() throws IOException, DecryptionFailedException {
         GenericPayload before = new GenericPayload(1, Security.randomBytes(100));
 
         PrivateKey privateKey = new PrivateKey(false, 1, 1000, 1000);
@@ -47,7 +48,7 @@ public class EncryptionTest {
     }
 
     @Test
-    public void ensureMessageCanBeDecrypted() throws IOException {
+    public void ensureMessageCanBeDecrypted() throws IOException, DecryptionFailedException {
         PrivateKey privateKey = PrivateKey.read(TestUtils.getResource("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8.privkey"));
         BitmessageAddress identity = new BitmessageAddress(privateKey);
         assertEquals("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8", identity.getAddress());

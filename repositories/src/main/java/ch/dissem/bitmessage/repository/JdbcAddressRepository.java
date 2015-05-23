@@ -96,7 +96,7 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
                     if (publicKeyBlob != null) {
                         Pubkey pubkey = Factory.readPubkey(address.getVersion(), address.getStream(),
                                 publicKeyBlob.getBinaryStream(), (int) publicKeyBlob.length(), false);
-                        if (address.getVersion() == 4) {
+                        if (address.getVersion() == 4 && pubkey instanceof V3Pubkey) {
                             pubkey = new V4Pubkey((V3Pubkey) pubkey);
                         }
                         address.setPubkey(pubkey);
@@ -140,11 +140,11 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
 
     private void update(BitmessageAddress address) throws IOException, SQLException {
         PreparedStatement ps = getConnection().prepareStatement(
-                "UPDATE Address SET address=?, alias=?, public_key=?, private_key=?");
-        ps.setString(1, address.getAddress());
-        ps.setString(2, address.getAlias());
-        writePubkey(ps, 3, address.getPubkey());
-        writeBlob(ps, 4, address.getPrivateKey());
+                "UPDATE Address SET alias=?, public_key=?, private_key=? WHERE address=?");
+        ps.setString(1, address.getAlias());
+        writePubkey(ps, 2, address.getPubkey());
+        writeBlob(ps, 3, address.getPrivateKey());
+        ps.setString(4, address.getAddress());
         ps.executeUpdate();
     }
 

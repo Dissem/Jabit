@@ -20,6 +20,7 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.factory.Factory;
 
 import java.io.ByteArrayInputStream;
@@ -68,7 +69,7 @@ public class TestUtils {
         return identity;
     }
 
-    public static BitmessageAddress loadContact() throws IOException {
+    public static BitmessageAddress loadContact() throws IOException, DecryptionFailedException {
         BitmessageAddress address = new BitmessageAddress("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h");
         ObjectMessage object = TestUtils.loadObjectMessage(4, "V4Pubkey.payload");
         object.decrypt(address.getPubkeyDecryptionKey());

@@ -142,11 +142,7 @@ public class BitmessageContext {
     }
 
     public void startup(Listener listener) {
-        MessageListener messageListener = new DefaultMessageListener(ctx, listener);
-        for (ObjectMessage object : ctx.getInventory().getObjects(0, 0, PUBKEY, MSG)) {
-            messageListener.receive(object);
-        }
-        ctx.getNetworkHandler().start(messageListener);
+        ctx.getNetworkHandler().start(new DefaultMessageListener(ctx, listener));
     }
 
     public void shutdown() {

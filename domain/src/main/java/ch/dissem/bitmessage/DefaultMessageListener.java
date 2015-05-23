@@ -20,6 +20,7 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.*;
+import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.ports.NetworkHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +29,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Status.DOING_PROOF_OF_WORK;
+import static ch.dissem.bitmessage.entity.Plaintext.Status.NEW;
 import static ch.dissem.bitmessage.entity.Plaintext.Status.SENT;
 import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 
@@ -42,7 +44,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
     }
 
     @Override
-    public void receive(ObjectMessage object) {
+    public void receive(ObjectMessage object) throws IOException {
         ObjectPayload payload = object.getPayload();
         if (payload.getType() == null) return;
 
@@ -74,7 +76,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
         }
     }
 
-    protected void receive(ObjectMessage object, Pubkey pubkey) {
+    protected void receive(ObjectMessage object, Pubkey pubkey) throws IOException {
         BitmessageAddress address;
         try {
             if (pubkey instanceof V4Pubkey) {
@@ -106,26 +108,28 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
                     ctx.getMessageRepository().save(msg);
                 }
             }
-        } catch (IllegalArgumentException | IOException e) {
-            LOG.debug(e.getMessage(), e);
+        } catch (DecryptionFailedException ignore) {
+            LOG.debug(ignore.getMessage(), ignore);
         }
     }
 
-    protected void receive(ObjectMessage object, Msg msg) {
+    protected void receive(ObjectMessage object, Msg msg) throws IOException {
         for (BitmessageAddress identity : ctx.getAddressRepo().getIdentities()) {
             try {
                 msg.decrypt(identity.getPrivateKey().getPrivateEncryptionKey());
                 msg.getPlaintext().setTo(identity);
                 object.isSignatureValid(msg.getPlaintext().getFrom().getPubkey());
+                msg.getPlaintext().setStatus(NEW);
                 ctx.getMessageRepository().save(msg.getPlaintext());
                 listener.receive(msg.getPlaintext());
                 break;
-            } catch (IOException | RuntimeException ignore) {
+            } catch (DecryptionFailedException ignore) {
+                LOG.debug(ignore.getMessage(), ignore);
             }
         }
     }
 
-    protected void receive(ObjectMessage object, Broadcast broadcast) {
+    protected void receive(ObjectMessage object, Broadcast broadcast) throws IOException {
         // TODO this should work fine as-is, but checking the tag might be more efficient
 //        V5Broadcast v5 = broadcast instanceof V5Broadcast ? (V5Broadcast) broadcast : null;
         for (BitmessageAddress subscription : ctx.getAddressRepo().getSubscriptions()) {
@@ -133,7 +137,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
                 broadcast.decrypt(subscription.getPubkeyDecryptionKey());
                 object.isSignatureValid(broadcast.getPlaintext().getFrom().getPubkey());
                 listener.receive(broadcast.getPlaintext());
-            } catch (IOException ignore) {
+            } catch (DecryptionFailedException ignore) {
             }
         }
     }

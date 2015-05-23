@@ -53,7 +53,7 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     @Override
     public List<Plaintext> findMessages(Label label) {
-        return find("id IN SELECT message_id FROM Message_Label WHERE label_id=" + label.getId());
+        return find("id IN (SELECT message_id FROM Message_Label WHERE label_id=" + label.getId() + ")");
     }
 
     @Override
@@ -94,7 +94,7 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         List<Label> result = new ArrayList<>();
         try {
             Statement stmt = getConnection().createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT label, color FROM Label WHERE id IN SELECT label_id FROM Message_Label WHERE message_id=" + messageId);
+            ResultSet rs = stmt.executeQuery("SELECT label, color FROM Label WHERE id IN (SELECT label_id FROM Message_Label WHERE message_id=" + messageId + ")");
             while (rs.next()) {
                 result.add(new Label(rs.getString("label"), rs.getInt("color")));
             }
@@ -109,8 +109,8 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         // save from address if necessary
         if (message.getId() == null) {
             BitmessageAddress savedAddress = ctx.getAddressRepo().getAddress(message.getFrom().getAddress());
-            if (savedAddress.getPrivateKey() == null) {
-                if (savedAddress.getAlias() != null) {
+            if (savedAddress == null || savedAddress.getPrivateKey() == null) {
+                if (savedAddress != null && savedAddress.getAlias() != null) {
                     message.getFrom().setAlias(savedAddress.getAlias());
                 }
                 ctx.getAddressRepo().save(message.getFrom());
@@ -157,7 +157,11 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         writeBlob(ps, 3, message);
         ps.setLong(4, message.getSent());
         ps.setLong(5, message.getReceived());
-        ps.setString(6, message.getStatus().name());
+        if (message.getStatus() != null)
+            ps.setString(6, message.getStatus().name());
+        else
+            ps.setString(6, null);
+
         ps.executeUpdate();
 
         // get generated id
@@ -168,10 +172,14 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     private void update(Connection connection, Plaintext message) throws SQLException, IOException {
         PreparedStatement ps = connection.prepareStatement(
-                "UPDATE Message SET sent=?, received=?, status=?");
+                "UPDATE Message SET sent=?, received=?, status=? WHERE id=?");
         ps.setLong(1, message.getSent());
         ps.setLong(2, message.getReceived());
-        ps.setString(3, message.getStatus().name());
+        ps.setLong(3, (Long) message.getId());
+        if (message.getStatus() != null)
+            ps.setString(3, message.getStatus().name());
+        else
+            ps.setString(3, null);
         ps.executeUpdate();
     }
 

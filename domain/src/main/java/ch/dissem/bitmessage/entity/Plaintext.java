@@ -92,7 +92,7 @@ public class Plaintext implements Streamable {
     public void setTo(BitmessageAddress to) {
         if (this.to.getVersion() != 0)
             throw new RuntimeException("Correct address already set");
-        if (Arrays.equals(this.to.getRipe(), to.getRipe())) {
+        if (!Arrays.equals(this.to.getRipe(), to.getRipe())) {
             throw new RuntimeException("RIPEs don't match");
         }
         this.to = to;
@@ -210,7 +210,7 @@ public class Plaintext implements Streamable {
         SENT_ACKNOWLEDGED,
 
         // For received messages
-        RECEIVED,
+        NEW,
         READ
     }
 
@@ -348,9 +348,6 @@ public class Plaintext implements Streamable {
         }
 
         public Plaintext build() {
-            if (id == null) {
-                id = UUID.randomUUID();
-            }
             if (from == null) {
                 from = new BitmessageAddress(Factory.createPubkey(
                         addressVersion,

@@ -16,6 +16,8 @@
 
 package ch.dissem.bitmessage.entity;
 
+import ch.dissem.bitmessage.exception.DecryptionFailedException;
+
 import java.io.IOException;
 
 /**
@@ -24,7 +26,7 @@ import java.io.IOException;
 public interface Encrypted {
     void encrypt(byte[] publicKey) throws IOException;
 
-    void decrypt(byte[] privateKey) throws IOException;
+    void decrypt(byte[] privateKey) throws IOException, DecryptionFailedException;
 
     boolean isDecrypted();
 }

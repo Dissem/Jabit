@@ -21,6 +21,8 @@ import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 
+import java.io.IOException;
+
 /**
  * Handles incoming messages
  */
@@ -32,6 +34,6 @@ public interface NetworkHandler {
     void offer(InventoryVector iv);
 
     interface MessageListener {
-        void receive(ObjectMessage object);
+        void receive(ObjectMessage object) throws IOException;
     }
 }
