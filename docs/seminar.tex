@@ -46,7 +46,7 @@
 
   \msg{Getobject} requests are answered by \msg{object} messages containing the requested objects.
 
-  If a user writes a new mail on node \node{A}, it is offered via \msg{inv} to up to eight connected nodes. They will get the object and distribute it to up to eight of their connections, and so on.
+  A node actively connects to eight other nodes, allowing any number of incoming connections. If a user creates a new object on node \node{A}, it is offered via \msg{inv} to eight of the connected nodes. They will get the object and distribute it to up to eight of their connections, and so on.
 
   \subsection{Messages}
 
@@ -73,7 +73,7 @@
   \listinginfo{}{broadcast}{Content sent in a way that the Addresses public key can be used to decrypt it, allowing any subscriber who knows the address to receive the such a message}{}
 
   \subsubsection{ping / pong / getbiginv}
-  TODO: See https://github.com/Bitmessage/PyBitmessage/issues/112
+  People looking at the PyBitmessage's source code might be irritated by some other messages that seem to be implemented, but aren't mentioned in the official protocol specification. \msg{ping} does actually cause the node that implements this to send a \msg{pong} message, but this feature isn't actually used anywhere. \msg{getbiginv} seems to be thought for requesting the inventory, but as I understand it can't be used. \cite{issue:112}
 
   \subsection{Addresses}
   \label{subsec:addr}
@@ -87,7 +87,7 @@
 
   \subsection{Encryption}
 
-  Bitcoin uses Elliptic Curve Cryptography for both signing and encryption. While the mathematics behind elliptic curves is even harder to understand than the usual prime-and-modulo-until-your-brain-explodes approach, it's based on the same principle that factorizing large numbers is very hard to do. Instead of two very large primes, we multiply a point on the elliptic curve by a very large number\footnote{Please don't ask me how to do it. If your're crazy enough, start at \url{http://en.wikipedia.org/wiki/Elliptic_curve_cryptography}. If you're not that crazy, use a library like Bouncy Casle.}.
+  Bitcoin uses Elliptic Curve Cryptography for both signing and encryption. While the mathematics behind elliptic curves is even harder to understand than the older approach of multiplying huge primes, it's based on the same principle of doing some mathematical operation that can be done fast one way but is very hard to reverse. Instead of two very large primes, we multiply a point on the elliptic curve by a very large number\footnote{Please don't ask me how to do it. If your're crazy enough, start at \url{http://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication} and \url{http://en.wikipedia.org/wiki/Elliptic_curve_cryptography}. If you're not that crazy, use a library like Bouncy Casle that does the hard work for you.}.
 
   The user, let's call her Alice, needs a key pair, consisting of a private key
 $$k$$
@@ -107,11 +107,11 @@ uses the resulting Point to encrypt the message\footnote{A double SHA-512 hash o
 $$K r = G k r = G r k = R k$$
 so she just uses $R k$ to decrypt the message.
 
-  The exact method used in Bitmessage is called Elliptic Curve Integrated Encryption Scheme or ECIES\footnote{See \url{http://en.wikipedia.org/wiki/Integrated_Encryption_Scheme}}.
+  The exact method used in Bitmessage is called Elliptic Curve Integrated Encryption Scheme or ECIES, which is described in detail on Wikipedia (\url{http://en.wikipedia.org/wiki/Integrated_Encryption_Scheme}).
 
   \subsubsection{Signature}
 
-  To sign objects, Bitmessage uses Elliptic Curve Digital Signature Algorithm or ECDSA. This is slightly more complicated, if you want the details, Wikipedia is a fine starting point: \url{http://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm}.
+  To sign objects, Bitmessage uses Elliptic Curve Digital Signature Algorithm or ECDSA. This is slightly more complicated, if you want the details, Wikipedia is once again a fine starting point: \url{http://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm}.
 
   \section{Issues}
 
@@ -119,21 +119,38 @@ so she just uses $R k$ to decrypt the message.
 
   Bitmessage doen't really scale. If there are very few users, anonymity isn't given anymore, and with many users traffic and storage use grows quadratically.
 
+  \subsubsection{Proof of Work}
+  Proof of work has two uses. It helps to protect the network by preventing single nodes from flooding it with objects, and to protect users from spam. There's minimal proof of work required for the network to distribute objects, but users can define higher requirements for their addresses if they get spammed with cheap Viagra\texttrademark{} offers. The proof of work required for an address is defined in the \obj{pubkey}, and senders that are in a user's contacts should not be required to do the higher proof of work.
+
+  The difficulty is calculated from both message size as well as time to live, meaning that a message that is larger or stored longer in the network will be more expensive to send.
+$$ d = \frac{2^{64}}{n (l + \frac{t l}{2^{16}})} $$
+\begin{tabular}{@{}>{$}l<{$}l@{}}
+	d & target difficulty \\
+	n & required trials per byte \\
+	l & payload length + extra bytes (in order to not make it too easy to send a lot of tiny messages) \\
+	t & time to live \\
+\end{tabular}
+
+  To do the proof of work, a nonce must be found such that the first eight bytes of the hash of the object (including the nonce) represent a lower number than the target difficulty.
+
+  \subsubsection{Message Size Limitation}
+  To prevent malicious users from clogging individual nodes, messages must not be larger than 256 KiB. Because of the proof of work, large objects arent' practical for normal use, but might be used to occupy nodes by sending them garbage.
+
   \subsubsection{Streams}
   The intended solution for this problem is splitting traffic -- addresses, more precisely -- into streams. A node listens only on the streams that concern its addresses. If it wants to send an object to another stream, it just connects to a node in this stream to send the object, then disconnects. When all active streams are full, a new one is created which should be used for new addresses.
 
   The unsolved problem is to determine when a stream is full. Another issue is the fact that, as the overall network grows, traffic on full streams still grows, as there are more users who might wanto to write someone on the full stream.
 
   \subsubsection{Prefix Filtering}
-  TODO
+  TODO\cite{wiki:prefixfilter}
 
   \subsection{Forward Secrecy}
 
-  Obviously it's trivial for an attacker to collect all (encrypted) objects distributed through the Bitmessage network\footnote{As long as disk space is not an issue.}. If this attacker can somehow get the private key of a user, they can decrypt all stored messages intended for that user, as well as impersonate said user\footnote{The latter might be more difficult if they got the key through a brute force attack.}.
+  Obviously it's trivial for an attacker to collect all (encrypted) objects distributed through the Bitmessage network -- as long as disk space is not an issue. If this attacker can somehow get the private key of a user, they can decrypt all stored messages intended for that user, as well as impersonate said user\footnote{The latter might be more difficult if they got the key through a brute force attack.}.
 
-  Plausible deniability can, in some scenarios, help against this. This action, called "nuking an address", is done by anonymously publishing the private keys somewhere publicly accessible\footnote{Soo \url{https://bitmessage.ch/nuked/} for an example.}.
+  Plausible deniability can, in some scenarios, help against this. This action, called "nuking an address", is done by anonymously publishing the private keys somewhere publicly accessible\footnote{See \url{https://bitmessage.ch/nuked/} for an example.}.
 
-  Perfect forward secrecy seems impractical to implement, as it requires to exchange messages prior to sending content. That would in turn need proof of work to protect the network, resulting in twice the work for the sender and three times longer to send --- that is if both clients are online.
+  Perfect forward secrecy seems impractical to implement, as it requires to exchange messages prior to sending encrypted content. That would in turn need proof of work to protect the network, resulting in twice the work for the sender and three times longer to send --- that is, if both clients are online. Exchanging messages would be all but impossible if both users are online sporadically.
 
   \section{Discussion}
 
