@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.utils;
 
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
+import ch.dissem.bitmessage.exception.InsufficientProofOfWorkException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine;
 import org.bouncycastle.asn1.x9.X9ECParameters;
@@ -106,13 +107,13 @@ public class Security {
     }
 
     /**
-     * @throws IOException if proof of work doesn't check out
+     * @throws InsufficientProofOfWorkException if proof of work doesn't check out
      */
     public static void checkProofOfWork(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) throws IOException {
         byte[] target = getProofOfWorkTarget(object, nonceTrialsPerByte, extraBytes);
         byte[] value = Security.doubleSha512(object.getNonce(), getInitialHash(object));
         if (Bytes.lt(target, value, 8)) {
-            throw new IOException("Insufficient proof of work: " + Strings.hex(target) + " required, " + Strings.hex(Arrays.copyOfRange(value, 0, 8)) + " achieved.");
+            throw new InsufficientProofOfWorkException(target, value);
         }
     }
 

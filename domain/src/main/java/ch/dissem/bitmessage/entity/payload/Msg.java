@@ -97,6 +97,7 @@ public class Msg extends ObjectPayload implements Encrypted {
 
     @Override
     public void write(OutputStream out) throws IOException {
+        if (encrypted == null) throw new IllegalStateException("Msg must be signed and encrypted before writing it.");
         encrypted.write(out);
     }
 }

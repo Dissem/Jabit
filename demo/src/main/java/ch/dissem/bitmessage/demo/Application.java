@@ -212,7 +212,7 @@ public class Application {
             int i = 0;
             for (Plaintext message : messages) {
                 i++;
-                System.out.print(i + ") From: " + message.getFrom() + "; Subject: " + message.getSubject());
+                System.out.println(i + ") From: " + message.getFrom() + "; Subject: " + message.getSubject());
             }
             if (i == 0) {
                 System.out.println("You have no messages.");
