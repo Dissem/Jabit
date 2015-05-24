@@ -1,0 +1,229 @@
+\documentclass{bfh}
+
+\usepackage[numbers]{natbib}
+\usepackage{xfrac}
+
+\title{Informatikseminar}
+\subtitle{Bitmessage -- Kommunikation ohne Metadaten}
+\author{Christian Basler}
+\tutor{Kai Brünnler}
+\date{\today}
+
+\newcommand{\msg}[1]{\textit{\textcolor{RedOrange}{#1}}}
+\newcommand{\obj}[1]{\textbf{\textcolor{OliveGreen}{#1}}}
+\newcommand{\node}[1]{\textbf{\textcolor{MidnightBlue}{#1}}}
+
+\begin{document}
+  \maketitle
+
+  \tableofcontents
+
+  \listoffigures
+
+  \newpage
+  \section*{Abstract}
+
+  Sogar mit Verschlüsselung offenbaren wir viel über uns in den Metadaten welche wir unwissentlich produzieren. Bitmessage verhindert dies indem es eine Nachricht so verteilt, dass der eigentliche Empfänger daraus nicht erraten werden kann.
+
+  \newpage
+  % Section basics
+  \input{basics}
+
+
+  \newpage
+  \section{Protokoll}
+
+  Wir benutzen die folgende Konvention um zwischen verschiedenen Bestandteilen der Protokolls zu unterscheiden:
+
+  \begin{tabular}{@{}>{$}l<{$}l@{}}
+	\msg{version} & für Meldungen zwischen Netzwerkknoten \\
+	\obj{pubkey} & für Objekte welche im Netzwerk verteilt werden \\
+	\node{A} & für einzelne Netzwerkknoten \\
+  \end{tabular}
+
+
+  \subsection{Nomenklatur}
+
+  Es gibt einige Begriffe welche schnell verwechselt werden können. Es folgt eine Liste der verwirrendsten.
+
+  \subsubsection{message, msg}
+  Eine Nachricht oder \msg{message} wird von einem Netzwerkknoten zum anderen geschickt, z.B. um neue Objekte anzukündigen oder um die Verbindung aufzubauen.
+
+  Ein \obj{msg}-Objekt andererseits enthält die verschlüsselte Nachricht von einem Benutzer an einen anderen.
+
+  \subsubsection{payload}
+  Payload werden die Nutzdaten eines Protokolls genannt. Es gibt drei Arten von Payload:
+  \begin{enumerate}
+  \item Der Payload von Meldungen, z.B. \textit{Inventory Vectors}.
+  \item Der Payload von Objekten. Dieser wird im Netzwerk verteilt.\footnote{Und ist Teil vom Meldungs-Payload.}
+  \item Verschlüsselter Payload, der Chiffretext mit einigen Zusatzinformationen welche für die Entschlüsselung benötigt werden.\footnote{Dieser wiederum ist Teil vom Objekt-Payload.}
+  \end{enumerate}
+
+  \subsubsection{object}
+  Ein Objekt ist einer Art von Meldung, deren Payload zwischen allen Netzwerkknoten verteilt wird. Manchmal wird auch nur der Payload gemeint. Um ein Objekt zu senden, wird ein \textit{Proof of Work} benötigt.
+
+  \subsection{Ablauf}
+
+  Der neu gestartete Netzwerkknoten \node{A} stellt die Verbindung zu einem zufälligen Knoten \node{B} ais seinem Knotenverzeichnis her und sendet eine \msg{version}-Meldung, die die aktuellste unterstützte Protokollversion ankündigt. Falls \node{B} die Version akzeptiert,\footnote{Eine Version wird normalerweise akzeptiert, wenn sie höher oder gleich der eigenen höchsten unterstützten Version ist. Knoten welche eine experimentelle Protokollversion implementieren können auch ältere Versionen akzeptieren.} antwerted er mit einer \msg{verack}-Meldung, gefolgt von der eigenen \msg{version} mit ihrer neusten unterstützten Protokollversion. Knoten \node{A} entscheidet nun ob er die Version von \node{B} akzeptiert und sendet in diesem Fall seine \msg{verack}-Meldung.
+
+  Wenn beide Knoten die Verbindung akzeptieren, senden sie je eine \msg{addr}-Meldung mit bis zu 1000 bekannten Knoten, gefolgt von einer oder mehreren \msg{inv}-Meldungen, welche alle bekannten gültigen Objekte mitteilt. Danach wird eine \msg{getobject}-Meldung für jedes noch fehlende Objekt gesendet.
+
+  Auf \msg{getobject} antwortet der Knoten mit einer \msg{object}-Meldung, welche dann das angeforderte Objekt enthält.
+
+  Ein Knoten verbindet sich aktiv mit acht anderen knoten und erlaubt beliebig viele eingehende Verbindungen. Wenn ein Benutzer an Knoten \node{A} ein neues Objekt erzeugt, wird es mittels \msg{inv}-Meldung bei acht der angebundenen Knoten angeboten. Diese fordern es an und bieten es wiederum bei acht Nachbarknoten an, bis es an alle Knoten verteilt ist.
+
+  \subsection{Meldungen}
+
+  Die Meldungen, Objekte und das Binärformat sind im Bitmessage-Wiki gut dokumentiert\cite{wiki:protocol}, die Beschreibungen hier sind deshalb darauf konzentriert um was es geht und wie man sie benutzt.
+
+  \subsubsection{version / verack}
+  Die \msg{version}-Meldung enthält die aktuellste vom Knoten unterstützte Protokollversion, die Streams für die er sich interessiert und die unterstützten Features. Falls der andere Knoten akzeptiert, bestätigt er mitels \msg{verack}. Die Verbindung gilt als initialisiert wenn beide Knoten eine \msg{verack}-Meldung gesendet haben.
+
+  \subsubsection{addr}
+  Enthält bis zu 1000 bekannte Knoten mit deren IP-Adresse, Port, Stream und unterstützten Features.
+
+  \subsubsection{inv}
+  Eine \msg{inv}-Meldung enthält die Hashes von bis zu 50000 gültigen Objekten. Falls das Inventar mehr Objekte enthält können mehrere Meldungen gesendet werden.
+
+  \subsubsection{getdata}
+  Kann bis zu 50000 Objekte anfordern, indem es deren Hashes sendet.
+
+  \subsubsection{object}
+  Enthält ein angefordertes Objekt, das eines von folgenden sein kann:
+
+  \listinginfo{}{getpubkey}{Eine Aufforderung an eine Adresse, deren öffentlichen Schlüssel zu senden. Dieser wird benötigt um die Meldung an diese Adressen zu verschlüsseln.}{}
+  \listinginfo{}{pubkey}{Ein öffentlicher Schlüssel. Siehe \ref{subsec:addr} \nameref{subsec:addr}}{}
+  \listinginfo{}{msg}{Eine Nachricht an einen bestimmten Benutzer.}{}
+  \listinginfo{}{broadcast}{Eine Nachricht welche so verschlüsselt wird, dass jeder, der die Adresse kennt, sie entschlüsseln kann.}{}
+
+  \subsubsection{ping / pong / getbiginv}
+  Wer den Source Code von PyBitmessage untersucht, ist vielleicht über einige Meldungen irritiert welche implementiert zu sein scheinen, aber nirgends in der offiziellen Spezifikation zu finden sind. \msg{Ping} bringt einen Knoten (sofern implementiert) dazu ein \msg{pong} zurückzusenden. Verwendet wird das Feature jedoch nirgends. \msg{Getbiginv} scheint dafür gedacht zu sein das ganze Inventar abzufragen, aber soweit ich es verstehe wird es nirgends verwendet.\cite{issue:112}
+
+  \subsection{Adressen}
+  \label{subsec:addr}
+
+  \textit{BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h}: Adressen beginnen mit "BM-" und sind, genau wie Bitcoin-Adressen, Base58 codiert.\footnote{Dieses verwendet die Zeichen 1-9, A-Z und a-z ohne die leicht verwechselbaren Zeichen I, l, 0 and O.}
+
+  \listinginfo{}{version}{Adressversion.}{}
+  \listinginfo{}{stream}{Stream-Nummer.}{}
+  \listinginfo{}{ripe}{Hash der aneinandergefügten öffentlichen Schlüssel zum signieren und verschlüsseln. Wichtig: in \obj{pubkey}-Objekten werden die Schlüssel ohne führendes 0x04 gesendet, doch um den Ripe zu berechnen muss dieses Byte vorangestellt werden. Da dies für fast alle Verwendungszwecke der Schlüssel nötig ist, lohnt es sich dies gleich beim erstellen des Objekts zu machen.}{ripemd160(sha512(pubSigKey + pubEncKey))}
+  \listinginfo{}{checksum}{Die ersten vier Bytes eines doppelten SHA-512-Hashs der vorangehenden Daten.}{sha512(sha512(version + stream + ripe))}
+
+  \subsection{Verschlüsselung}
+
+  Bitmessage benutzt Elliptische-Kurven-Kryptographie zum signieren als auch zum verschlüsseln. Während die Matematik hinter elliptischen Korven sogar noch komplizierter zu verstehen ist all der ältere Ansatz, riesige Primzalen zu multiplizieren, so basiert es doch auf dem gleichen Prinzip, eine Mathematische Operation durchzuführen welche in eine Richtung sehr schnell, jedoch sehr schwierig umzukehren ist. An Stelle von zwei grossen Primzahlen werden hier ein Punkt auf der elliptischen Kurve mit einer sehr grossen Zahl multipliziert.\footnote{Bitte fragen Sie mich nicht wie das genau geht. Falls Sie es wirklich wissen möchten, beginnen Sie auf \url{http://de.wikipedia.org/wiki/Elliptische_Kurve} und \url{http://de.wikipedia.org/wiki/Elliptic_Curve_Cryptography}. Falls Sie etwas machen möchten das funktioniert, verwenden Sie lieber eine Bibliothek wie Bouncy Casle welche die harte Arbeit übernimmt.}
+
+  Die Benutzerin, nennen wir sie Alice, benötigt ein Schlüsselpaar, welches aus dem privaten Schlüssel
+$$k$$
+besteht, der eine riesige Zufallszahl darstellt, und einem öffentlichen Schlüssel
+$$K = G k$$
+der einen Punkt auf der vorher definierten Kurve repräsentiert.\footnote{Bitmessage benutzt eine Kurve namens \textit{secp256k1}.} Beachten Sie bitte dass dies keine einfache Multiplikation ist, sondern die skalare Multiplikation eines Punktes auf der elliptischen Kurve. $G$ ist der Startpunkt für alle Operationen auf einer spezifischen Kurve.
+
+  Ein anderer Benutzer, Bob, kennt den öffentlichen Schlüssel. Um eine Nachricht zu verschlüsselt erstellt er das temporäre Schlüsselpaar
+$$r$$
+und
+$$R = G r$$
+Danach berechnet er
+$$K r$$
+benutzt den daraus folgenden Punkt um die Meldung zu verschlüsseln\footnote{Genaugenommen wird ein doppelter SHA-512-Hash über der X-Koordinate benutzt um den symmetrischen Schlüssel zu erzeugen.} und sendet $K$ zusammen mit der verschlüsselten Nachricht.
+
+  Wenn Alice die Meldung empfängt, benutzt Sie die Tatsache dass
+$$K r = G k r = G r k = R k$$
+alse berechnet sie einfach $R k$ um die Meldung zu entschlüsseln.
+
+  Die genaue von Bitmessage verwendete Methode wird Elliptic Curve Integrated Encryption Scheme oder ECIES genannt, welche auf Wikipedia detailliert beschrieben wird (\url{http://de.wikipedia.org/wiki/Elliptic_Curve_Integrated_Encryption_Scheme}).
+
+  \subsubsection{Signatur}
+
+  Um Objekte zu signieren verwendet Bitmessage Elliptic Curve Digital Signature Algorithm oder ECDSA. Dies ist etwas komplizierter als ECIES. Wenn Sie Details wissen möchten ist Wikipedia einmal mehr eine gute Anlaufstelle: \url{http://de.wikipedia.org/wiki/Elliptic_Curve_DSA}.
+
+  Ein interessantes Detail für potentielle Entwickler von Bitmessage-Clients --- vor allem wenn sie es mit einem objektorientierten Ansatz machen möchten: die Signatur geht über alles aus dem Objekt-Header ohne das Nonce und alles aus dem Objekt-Payload ohne die Signatur selbst. Natürlich sind nicht alle Objekte signiert.\footnote{Mein Ansatz: zuerst denken, dann falsch implementieren, dann viel umschreiben.}
+
+  \newpage
+  \section{Probleme}
+
+  \subsection{Skalierbarkeit}
+
+  Bitmessage skaliert nicht.\footnote{Noch nicht.} Gitb es sehr wenige Benutzer, so gibt es auch keine Anonymität. Mit nur einer handvoll Benutzern ist es einfach (beispielsweise für die NSA), den Verkehr zwischen Knoten zu analysieren um herauszufinden wer wem schreiben könnte. Oder man überwacht einfach mal alle.
+
+  Mit vielen Benutzern wächst der benötigte Traffic und Speicherplatz quadratisch. Dies geschieht, weil mit mehr Benutzern um eine Nachricht zu schreiben es auch mehr mögliche Gesprächspartner für bestehende Benutzer gibt.
+
+  \subsubsection{Proof of Work}
+  Proof of work hat zwei zwecke. Es hilft, das Netzwerk zu schützen indem es verhindert dass einzelne Knoten es mit Objekten fluten, aber auch den einzelnen Benutzer vor Spam zu bewahren. Es gibt einen minimal nötigen Proof of Work um Objekte im Netzwerk zu verteilen, doch der Benutzer kann für seine Adressen höhere Anforderungen stellen, falls er mit Angeboten für billiges Viagra\texttrademark{} zugeschüttet wird. Der für eine Adresse nötige Proof of Work wird im \obj{pubkey}-Objekt mitgeteilt. Absender, welche in der Kontaktliste eines Benutzers sind sollten normalerweise kein höherer Proof of Work machen müssen.
+
+  Die Schwierigkeit wird mittels Nachrichtenlänge und Lebensdauer berechnet, das heisst eine grössere Meldung oder eine welche länger im Netzwerk gespeichert wird ist kostet mehr beim senden.
+$$ d = \frac{2^{64}}{n (l + \frac{t l}{2^{16}})} $$
+\begin{tabular}{@{}>{$}l<{$}l@{}}
+	d & zielschwierigkeit \\
+	n & nötige Versuche pro Byte \\
+	l & Payload-Länge + Extra-Bytes (um es nicht zu einfach zu machen viele winzige Meldungen zu versenden) \\
+	t & Lebensdauer \\
+\end{tabular}
+
+  Um den Proof of Work durchzuführen, muss ein Nonce\footnote{Number used once.} gefunden werden, so dass die ersten acht Bytes vom Hash des Objekts (inklusive Nonce) eine kleinere Zahl repräsentieren als die Zielschwierigkeit.
+
+  \subsubsection{Beschränkung der Meldungsgrösse}
+  Um zu verhindern dass bösarige Benutzer einzelne Knoten blockieren, dürfen Meldungen nicht grösser als 256 KiB sein. Wegen des Proof of Work sind grössere Nachrichten für den Normalgebrauch sowieso nicht praktikabel, aber sie könnten benutzt werden um Knoten mit Müll-Meldungen zu beschäftigen.
+
+  \subsubsection{Streams}
+  Die vorgesehene Lösung für das Skalierungsproblem ist, den Traffic -- genau genommen Adressen -- in Streams aufzuteilen. Ein Knoten liest nur auf den Streams, welche seine Adressen betreffen. Wenn er ein Objekt an einen anderen Stream schicken möchten, verbindet er sich einfach mit einem Knoten im gewünschten Stream, sendet sein Objekt und schliesst die Verbindung wieder. Wenn alle aktiven Streams voll sind, wird für neue Adressen ein neuer Stream verwendet.
+
+  Das ungelöste Problem ist, herauszufinden wann ein Stream voll ist. Ein weiteres Problem ist die Tatsache dass, währen das Netzwerk wächst, der Traffic auf den vollen Streams mitwächst, da es mehr Benutzer gibt welche jemandem auf dem vollen Stream schreiben möchten. Der Traffic auf dem vollen Stream wächst also linear mit der Netzwerkgrösse.
+
+  \subsubsection{Präfix-Filterung}
+  Jonathan Coe schlägt diesen interessanten Ansatz vor, den Traffic aufzuteilen. Dies würde ein Protokoll-Update erfordern, würde aber eine viel genauere Kontrolle darüber erlauben, wie viel Traffic ein Knoten verarbeiten will.\cite{wiki:prefixfilter}
+
+  Anstelle von Streams stellen wir uns eine Adresse als Blatt eines Binärbaums der Höhe 65 vor. Die Position wird über die ersten 64 Bits des Ripe einer Adresse. Eine Präfix-Lenge $n$ definiert den Teilbaum ab welchem wir Meldungen lesen. Ein sendender Client setzt ein 64-Bit-Nonce bei welchem die ersten $n$ Bits vom Ripe der Empfängeradresse kopiert und der Rest zufällig gesetzt wird.
+
+  \begin{figure}[htp]
+  \centering
+  \includegraphics[width=\textwidth]{images/prefix-filter-binary-tree.pdf}
+  \caption[Präfix-Filter: Binärbaum]{Die Pefix-Länge geht bis 64, jedes der gelben Dreiecke stellt folglich einen Teilbaum der Höhe 61 dar.}
+  \label{fig:bintree}
+  \end{figure}
+
+  Nehmen wir nun an, der Ripe von Bobs Adresse starte mit \texttt{00101001\ldots} und hat eine Präfix-Länge von 3. Alice sendet ihre Meldung mit dem Tag \texttt{00110100\ldots}. Die ersten drei Bits müssen gleich sein, aber der Rest ist zufällig gewählt. Bobs Client verarbeitet nun alle Meldungen welche seinem Präfix entsprechen, er muss also nur \sfrac{1}{8} des Gesamttraffics lesen.\footnote{Im Moment ist der Traffic insgesamt etwa 1 GiB im Monat.}
+
+  Wie Bitmessage populärer wird, wird es auch mehr und mehr Traffic generieren. Bob möchte deshalb möglicherweise seine Präfix-Länge auf 4 erhöhen, was den zu verarbeitenden Traffic weiter auf \sfrac{1}{16} des Gesamtvolumens reduziert. Um dies zu tun, publiziert er einfach seinen \obj{pubkey} mit seiner aktualisierten Präfix-Länge. Das heisst natürlich auch dass entweder immer ein \obj{pubkey} publiziert sein muss, oder Alice muss wenigstens einmal online sein während der \obj{pubkey} publiziert ist. Andernfalls gibt es in unserem Szenario eine 50\% Chance dass die Nachricht Bob nicht erreicht.
+
+  Dies würde es zwar einem Smartphone-Client erlauben nur seine eigenen Meldungen zu verarbeiten,\footnote{Ein Präfix von 64 würde höchstwahrscheinlich bedeuten dass man auf dem Stream aleine ist.} aber damit würde man auch seine Anonymität beinahe komplett aufgeben.
+
+  \subsection{Forward Secrecy}
+
+  Offensichtlich ist es für einen Angreifer trivial alle (verschlüsselten) Objekte zu sammeln welche durch das Bitmessage-Netzwerk verteilt werden --- sofern Speicherplatz kein Problem ist. Sollte dieser Angreifer irgendwie an den privaten Schlüssel eines Benutzers kommen, kann er alle gespeicherten Meldungen entschlüsseln welche für diesen Benutzer bestimmt sind und sich ausserdem als diesen ausgeben.\footnote{Das letztere ist schwieriger wenn der Schlüssel durch eine Bruteforce-Attacke erworben wurde.}
+
+  Glaubhafte Abstreitbarkeit (plausible deniability) kann, in einigen Szenarios, dagegen helfen. Bei dieser Aktion, auch "eine Adresse atomisieren"\footnote{"Nuking an address."} genannt, wird der private Schlüssel anonym veröffentlicht.\footnote{Siehe \url{https://bitmessage.ch/nuked/} für ein Beispiel.}
+
+  Perfect Forward Secrecy scheint nicht praktikabel implementierbar zu sein, da man dazu vor dem Senden der eigentlichen Nachricht Informationen austauschen muss. Diese brauchten wiederum Proof of Work um das Netzwerk zu schützen, was für den Sender die doppelte Arbeit bedeutet und dreimal solange dauert um sie zu senden --- das heisst, falls beide Clients online sind. Der Austausch von Nachrichten würde so gut wie unmöglich wenn beide Benutzer nur sporadisch online sind.
+
+  \newpage
+  \section{Diskussion}
+
+  Anonymität hat ihren Preis. Bei Bitmessage ist es Traffic, Speicherplatz und Rechenpower. Bei E-Mail ist es Vertrauen. Wenn wir unserem E-Mail-Provider nicht vertrauen können (wer kann das?), ist Bitmessage eine alternative, wenn auch nicht vollständig ausgereift.
+
+  TODO
+
+  .
+
+  .
+
+  .
+
+  .
+
+  .
+
+  .
+
+
+  \bibliographystyle{plain}
+  \bibliography{bibliography}
+
+  \appendix
+  \addcontentsline{toc}{section}{Appendix}
+  \section*{Appendix}
+  \renewcommand{\thesubsection}{\Alph{subsection}}
+
+  \subsection{TODO}
+
+\end{document}

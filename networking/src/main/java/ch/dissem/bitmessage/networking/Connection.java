@@ -21,15 +21,14 @@ import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.*;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
+import ch.dissem.bitmessage.exception.InsufficientProofOfWorkException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.NetworkHandler.MessageListener;
 import ch.dissem.bitmessage.utils.Security;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.List;
@@ -159,6 +158,14 @@ public class Connection implements Runnable {
                     Security.checkProofOfWork(objectMessage, ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
                     listener.receive(objectMessage);
                     ctx.getInventory().storeObject(objectMessage);
+                } catch (InsufficientProofOfWorkException e) {
+                    try {
+                        File f = new File(System.getProperty("user.home")+"/jabit.error/" + objectMessage.getInventoryVector() + ".inv");
+                        f.createNewFile();
+                        objectMessage.write(new FileOutputStream(f));
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    }
                 } catch (IOException e) {
                     LOG.error("Stream " + objectMessage.getStream() + ", object type " + objectMessage.getType() + ": " + e.getMessage(), e);
                 }
