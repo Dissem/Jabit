@@ -18,17 +18,33 @@
 
   \tableofcontents
 
-  \listoffigures
-
-  \newpage
-  \section*{Abstract}
-
-  Sogar mit Verschlüsselung offenbaren wir viel über uns in den Metadaten welche wir unwissentlich produzieren. Bitmessage verhindert dies indem es eine Nachricht so verteilt, dass der eigentliche Empfänger daraus nicht erraten werden kann.
-
   \newpage
   % Section basics
   \input{basics}
 
+  \newpage
+  \section{PyBitmessage}
+
+  PyBitmessage ist der Standard Bitmessage Client und, wie der Name andeutet, in Python implementiert. Der Client bietet zwar alle Funktionen von Bitmessage, die User Experience ist allerdings nicht ganz optimal. Insbesondere lassen sich Nachrichten nicht in Ordner verschieben oder mit Labels versehen.
+
+  \begin{figure}[h]
+  \centering
+  \includegraphics[width=0.8\textwidth]{images/PyBitmessage-Inbox.png}
+  \caption[PyBitmessage: Inbox]{Der Posteingang von PyBitmessage.}
+  \label{fig:inbox}
+  \end{figure}
+
+  Der Client ist ausserdem ziemlich langsam im Berechnen des Proof of Work. Auf einem MacBook Pro von 2012 kann es durchaus einige Minuten dauern bis eine Nachricht gesendet werden kann.
+
+%  \begin{figure}[h]
+  \begin{wrapfigure}{r}{0.5\textwidth}
+  \centering
+  \includegraphics[width=0.5\textwidth]{images/PyBitmessage-Send.png}
+  \caption[PyBitmessage: Senden]{Eine neue Nachricht erfassen.}
+  \label{fig:inbox}
+  \end{wrapfigure}
+
+  Man braucht natürlich nur schon die Idee des Protokolls, um auf die Idee zu kommen Meldungen an mehrere Empfänger gleichzeitig zu senden. Dies geht so, dass die Adresse selbst in einen privaten Schlüssel umgewandelt wird und so zum \textit{entschlüsseln} der Broadcasts benutzt werden kann. Entsprechend kann man beim Erfassen einer Nachricht wählen ob sie an einen bestimmten Empfänger gehen soll, oder an alle, die unsere Broadcasts abonniert haben. Jeder, der die Adresse kennt kann dabei allerdings ihre Broadcasts lesen.
 
   \newpage
   \section{Protokoll}
@@ -196,34 +212,30 @@ $$ d = \frac{2^{64}}{n (l + \frac{t l}{2^{16}})} $$
 
   Perfect Forward Secrecy scheint nicht praktikabel implementierbar zu sein, da man dazu vor dem Senden der eigentlichen Nachricht Informationen austauschen muss. Diese brauchten wiederum Proof of Work um das Netzwerk zu schützen, was für den Sender die doppelte Arbeit bedeutet und dreimal solange dauert um sie zu senden --- das heisst, falls beide Clients online sind. Der Austausch von Nachrichten würde so gut wie unmöglich wenn beide Benutzer nur sporadisch online sind.
 
+  \subsection{Mobile Client}
+
+  Es gibt zwar inzwischen einen Client für Android,\footnote{Bitseal: \url{https://play.google.com/store/apps/details?id=com.github.bitseal}} dieser benötigt jedoch sehr viel Traffic, der Proof of Work dauert ewig und die Batterie hält nicht sehr lange.
+
+  In PyBitmessage gibt es die Option, den Empfänger eindeutig identifizierbar zu machen. Dies würde es einem Server erlauben nur die relevanten Meldungen weiterzuleiten. Zwar gibt man dabei seine Anonymität auf, aber das ist immer noch besser als die Ansätze der E-Mail-Relays, wo der private Schlüssel gleich beim Server liegt.
+
+  Ein Ansatz, der Anonymität trotz unterstützendem Server erlaubt, schlug Dan Smith vor.\cite{forum:msg7871} Dabei wird ein drittes Schlüsselpaar generiert, mit dem der String "IDENTIFICATION" und einige zufällige Bytes verschlüsselt wird. Der Relay-Server muss dabei den privaten Identifikationsschlüssel erhalten --- soweit muss man ihm also noch vertrauen. Wenn er also mit Hilfe des Identifikationsschlüssels den Text "IDENTIFICATION" extrahieren kann, ist die Meldung für einem bestimmt und wird weitergeleitet.
+
+  Der Proof of Work schliesslich lässt sich sehr einfach auf einem Server erledigen. Mit einer optimierten Implementation sollte er aber auf einem modernen Smartphone in vernünftiger Zeit machbar sein. Die Geräte haben inzwischen oftmals mehr als vier Prozessorkerne und einen dedizierten Grafikchip, der sich ausgezeichnet zum parallelen Berechnen von Hashes eignet.
+
   \newpage
   \section{Diskussion}
 
   Anonymität hat ihren Preis. Bei Bitmessage ist es Traffic, Speicherplatz und Rechenpower. Bei E-Mail ist es Vertrauen. Wenn wir unserem E-Mail-Provider nicht vertrauen können (wer kann das?), ist Bitmessage eine alternative, wenn auch nicht vollständig ausgereift.
 
-  TODO
+  Ich finde die Idee eines Trustless-Protokolls\footnote{Ein Protokoll, das kein Vertrauen benötigt.} und Peer-To-Peer Netzwerke die üblicherweise soche Protokolle verwenden äusserst interessant. Zu Beginn war das Internet ein riesiges Netzwerk gleichberechtigter Teilnehmer, aber heutzutage scheint alles zu Google oder Facebook zu führen. P2P und Trustless-Protokolle geben uns ein Stück dieser Freiheit zurück welche in der Cloud verlorengegangen ist.
 
-  .
+  Dass es nun einen P2P E-Mail-Ersatz gibt finde ich absolut grossartig.
 
-  .
+  Ja, es skaliert nicht so gut wie E-Mail. Aber dank Proof of Work denke ich, dass wir kein mit E-Mail vergleichbares Spam-Problem haben, was den Traffic schon mal gut halbiert. Falls Bitmessage E-Mail jemals ersetzt, würde ein grosser Teil des E-Mail-Verkehrs wohl eher durch Instant-Messaging ersetzt. Vor allem Firmenintern, wo eine eigene Infrastruktur aufgebaut werden kann, muss nicht unbedingt Bitmessage verwendet werden.
 
-  .
-
-  .
-
-  .
-
-  .
-
-
+  \newpage
   \bibliographystyle{plain}
   \bibliography{bibliography}
-
-  \appendix
-  \addcontentsline{toc}{section}{Appendix}
-  \section*{Appendix}
-  \renewcommand{\thesubsection}{\Alph{subsection}}
-
-  \subsection{TODO}
+  \listoffigures
 
 \end{document}

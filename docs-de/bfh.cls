@@ -43,7 +43,7 @@
 \RequirePackage{aeguill}
 %\RequirePackage{underscore}
 \RequirePackage{ctable}
-\RequirePackage[english]{babel}
+\RequirePackage[english,ngerman]{babel}
 
 \RequirePackage{tabularx}
 \RequirePackage{wrapfig}
@@ -113,8 +113,8 @@
             %Angaben zum Dokument
             \begin{vfill}
                 \begin{tabularx}{\textwidth}{lX}
-                \textsf{Author} & \@author\\ 
-                \textsf{Tutor}  & \@tutor\\
+                \textsf{Autor} & \@author\\ 
+                \textsf{Betreuer}  & \@tutor\\
 %                \textsf{Expert} & \textsf\DozentA\\
 %                \textsf{Studiengang} & \textsf{\Studiengang}\vspace{5pt}\\
 %                \textsf{Autoren} & \textsf\AutorA\\ 
@@ -123,7 +123,7 @@
 %                                & \textsf\DozentB\vspace{5pt}\\
 %                \textsf{Experten} & \textsf\ExpertA\\
 %                                  & \textsf\ExpertB\vspace{5pt}\\
-                \textsf{Date} & \textsf{\@date}\vspace{5pt}\\
+                \textsf{Datum} & \textsf{\@date}\vspace{5pt}\\
 %                &\\
 %                &\\
 %                \multicolumn{2}{p{\columnwidth-\tabcolsep}}{\textsf{\input{titlepage/titlepage_info}}}\\
