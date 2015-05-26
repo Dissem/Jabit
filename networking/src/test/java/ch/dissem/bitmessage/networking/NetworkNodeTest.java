@@ -20,6 +20,7 @@ import ch.dissem.bitmessage.entity.NetworkMessage;
 import ch.dissem.bitmessage.entity.Version;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.utils.UnixTime;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -28,6 +29,7 @@ import org.junit.Test;
 public class NetworkNodeTest {
     private NetworkAddress localhost = new NetworkAddress.Builder().ipv4(127, 0, 0, 1).port(8444).build();
 
+    @Ignore
     @Test(expected = InterruptedException.class)
     public void testSendMessage() throws Exception {
         final Thread baseThread = Thread.currentThread();
