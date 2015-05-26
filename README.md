@@ -3,6 +3,8 @@ Jabit
 
 A Java implementation for the Bitmessage protocol. To build, use command `gradle build`. Note that for some tests to run, a standard Bitmessage client needs to run on the same system, using port 8444 (the default port).
 
+Please note that development is still heavily in progress, and I will break the database a lot until it's ready for prime time.
+
 Security
 --------
 
