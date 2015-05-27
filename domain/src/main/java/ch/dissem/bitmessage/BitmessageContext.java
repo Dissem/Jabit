@@ -23,11 +23,9 @@ import ch.dissem.bitmessage.entity.Plaintext.Encoding;
 import ch.dissem.bitmessage.entity.payload.GetPubkey;
 import ch.dissem.bitmessage.entity.payload.Msg;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
-import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.ports.*;
-import ch.dissem.bitmessage.ports.NetworkHandler.MessageListener;
 import ch.dissem.bitmessage.utils.Security;
 import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
@@ -38,13 +36,23 @@ import java.util.Collection;
 import java.util.TreeSet;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
-import static ch.dissem.bitmessage.entity.payload.ObjectType.GET_PUBKEY;
-import static ch.dissem.bitmessage.entity.payload.ObjectType.MSG;
-import static ch.dissem.bitmessage.entity.payload.ObjectType.PUBKEY;
 import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 
 /**
- * Created by chris on 05.04.15.
+ * Use this class if you want to create a Bitmessage client.
+ * <p>
+ * You'll need the Builder to create a BitmessageContext, and set the following properties:
+ * <ul>
+ *     <li>addressRepo</li>
+ *     <li>inventory</li>
+ *     <li>nodeRegistry</li>
+ *     <li>networkHandler</li>
+ *     <li>messageRepo</li>
+ *     <li>streams</li>
+ * </ul>
+ * The default implementations in the different module builds can be used.
+ * <p>
+ * The port defaults to 8444 (the default Bitmessage port)
  */
 public class BitmessageContext {
     public static final int CURRENT_VERSION = 3;
