@@ -25,12 +25,12 @@ import java.io.OutputStream;
  * Broadcasts are version 4 or 5.
  */
 public class V4Broadcast extends Broadcast {
-    protected V4Broadcast(long stream, CryptoBox encrypted) {
-        super(stream, encrypted, null);
+    protected V4Broadcast(long version, long stream, CryptoBox encrypted) {
+        super(version, stream, encrypted, null);
     }
 
     public static V4Broadcast read(InputStream in, long stream, int length) throws IOException {
-        return new V4Broadcast(stream, CryptoBox.read(in, length));
+        return new V4Broadcast(4, stream, CryptoBox.read(in, length));
     }
 
     @Override

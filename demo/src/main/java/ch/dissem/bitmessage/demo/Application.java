@@ -9,6 +9,9 @@ import ch.dissem.bitmessage.repository.JdbcAddressRepository;
 import ch.dissem.bitmessage.repository.JdbcInventory;
 import ch.dissem.bitmessage.repository.JdbcMessageRepository;
 import ch.dissem.bitmessage.repository.JdbcNodeRegistry;
+import ch.dissem.bitmessage.utils.Strings;
+import org.flywaydb.core.internal.util.logging.slf4j.Slf4jLog;
+import org.flywaydb.core.internal.util.logging.slf4j.Slf4jLogCreator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,6 +116,7 @@ public class Application {
             switch (command) {
                 case "a":
                     addIdentity();
+                    identities = ctx.addresses().getIdentities();
                     break;
                 case "b":
                     return;
@@ -164,6 +168,7 @@ public class Application {
             switch (command) {
                 case "a":
                     addContact();
+                    contacts = ctx.addresses().getContacts();
                     break;
                 case "b":
                     return;
@@ -201,12 +206,18 @@ public class Application {
         System.out.println(address.getAddress());
         System.out.println("Stream:  " + address.getStream());
         System.out.println("Version: " + address.getVersion());
-
+        if (address.getPrivateKey() == null) {
+            if (address.getPubkey() != null) {
+                System.out.println("Public key available");
+            } else {
+                System.out.println("Public key still missing");
+            }
+        }
     }
 
     private void messages() {
         String command;
-        List<Plaintext> messages = ctx.messages().findMessages(Plaintext.Status.NEW);
+        List<Plaintext> messages = ctx.messages().findMessages(Plaintext.Status.RECEIVED);
         do {
             System.out.println();
             int i = 0;
@@ -247,6 +258,8 @@ public class Application {
         System.out.println();
         System.out.println(message.getText());
         System.out.println();
+        System.out.println("Labels: "+ message.getLabels());
+        System.out.println();
         String command;
         do {
             System.out.println("r) reply");
@@ -269,14 +282,79 @@ public class Application {
 
     private void compose() {
         System.out.println();
-        System.out.println("TODO");
-        // TODO
+        BitmessageAddress from = selectAddress(true);
+        BitmessageAddress to = selectAddress(false);
+
+        compose(from, to, null);
+    }
+
+    private BitmessageAddress selectAddress(boolean id) {
+        List<BitmessageAddress> identities = (id ? ctx.addresses().getIdentities() : ctx.addresses().getContacts());
+        while (identities.size() == 0) {
+            addIdentity();
+            identities = ctx.addresses().getIdentities();
+        }
+        if (identities.size() == 1) {
+            return identities.get(0);
+        }
+
+        String command;
+        do {
+            System.out.println();
+            if (id) {
+                System.out.println("From:");
+            } else {
+                System.out.println("To:");
+            }
+
+            int i = 0;
+            for (BitmessageAddress identity : identities) {
+                i++;
+                System.out.print(i + ") ");
+                if (identity.getAlias() != null) {
+                    System.out.println(identity.getAlias() + " (" + identity.getAddress() + ")");
+                } else {
+                    System.out.println(identity.getAddress());
+                }
+            }
+            System.out.println("b) back");
+
+            command = nextCommand();
+            switch (command) {
+                case "b":
+                    return null;
+                default:
+                    try {
+                        int index = Integer.parseInt(command) - 1;
+                        if (identities.get(index) != null) {
+                            return identities.get(index);
+                        }
+                    } catch (NumberFormatException e) {
+                        System.out.println("Unknown command. Please try again.");
+                    }
+            }
+        } while (!"b".equals(command));
+        return null;
     }
 
     private void compose(BitmessageAddress from, BitmessageAddress to, String subject) {
         System.out.println();
-        System.out.println("TODO");
-        // TODO
+        System.out.println("From:    " + from);
+        System.out.println("To:      " + to);
+        if (subject != null) {
+            System.out.println("Subject: " + subject);
+        } else {
+            System.out.print("Subject: ");
+            subject = nextCommand();
+        }
+        System.out.println("Message:");
+        StringBuilder message = new StringBuilder();
+        String line;
+        do {
+            line = nextCommand();
+            message.append(line).append('\n');
+        } while (line.length() > 0 || !yesNo("Send message?"));
+        ctx.send(from, to, subject, message.toString());
     }
 
     private boolean yesNo(String question) {

@@ -32,10 +32,12 @@ public class V2Pubkey extends Pubkey {
     protected byte[] publicSigningKey; // 64 Bytes
     protected byte[] publicEncryptionKey; // 64 Bytes
 
-    protected V2Pubkey() {
+    protected V2Pubkey(long version) {
+        super(version);
     }
 
-    private V2Pubkey(Builder builder) {
+    private V2Pubkey(long version, Builder builder) {
+        super(version);
         stream = builder.streamNumber;
         behaviorBitfield = builder.behaviorBitfield;
         publicSigningKey = add0x04(builder.publicSigningKey);
@@ -118,7 +120,7 @@ public class V2Pubkey extends Pubkey {
         }
 
         public V2Pubkey build() {
-            return new V2Pubkey(this);
+            return new V2Pubkey(2, this);
         }
     }
 }

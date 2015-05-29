@@ -120,6 +120,7 @@ public class Connection implements Runnable {
                                         + msg.getPayload().getCommand());
                         }
                 }
+                if (socket.isClosed()) state = DISCONNECTED;
             } catch (SocketTimeoutException ignore) {
                 if (state == ACTIVE) {
                     sendQueue();
@@ -160,7 +161,7 @@ public class Connection implements Runnable {
                     ctx.getInventory().storeObject(objectMessage);
                 } catch (InsufficientProofOfWorkException e) {
                     try {
-                        File f = new File(System.getProperty("user.home")+"/jabit.error/" + objectMessage.getInventoryVector() + ".inv");
+                        File f = new File(System.getProperty("user.home") + "/jabit.error/" + objectMessage.getInventoryVector() + ".inv");
                         f.createNewFile();
                         objectMessage.write(new FileOutputStream(f));
                     } catch (IOException e1) {

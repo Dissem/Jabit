@@ -50,7 +50,7 @@ public class ObjectMessage implements MessagePayload {
         nonce = builder.nonce;
         expiresTime = builder.expiresTime;
         objectType = builder.objectType;
-        version = builder.version;
+        version = builder.payload.getVersion();
         stream = builder.streamNumber;
         payload = builder.payload;
     }
@@ -177,7 +177,6 @@ public class ObjectMessage implements MessagePayload {
         private byte[] nonce;
         private long expiresTime;
         private long objectType = -1;
-        private long version = -1;
         private long streamNumber;
         private ObjectPayload payload;
 
@@ -201,11 +200,6 @@ public class ObjectMessage implements MessagePayload {
 
         public Builder objectType(ObjectType objectType) {
             this.objectType = objectType.getNumber();
-            return this;
-        }
-
-        public Builder version(long version) {
-            this.version = version;
             return this;
         }
 

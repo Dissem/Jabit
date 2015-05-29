@@ -39,12 +39,14 @@ public class V4Pubkey extends Pubkey implements Encrypted {
     private V3Pubkey decrypted;
 
     private V4Pubkey(long stream, byte[] tag, CryptoBox encrypted) {
+        super(4);
         this.stream = stream;
         this.tag = tag;
         this.encrypted = encrypted;
     }
 
     public V4Pubkey(V3Pubkey decrypted) {
+        super(4);
         this.decrypted = decrypted;
         this.stream = decrypted.stream;
         this.tag = BitmessageAddress.calculateTag(4, decrypted.getStream(), decrypted.getRipe());

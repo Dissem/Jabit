@@ -31,13 +31,14 @@ public class GenericPayload extends ObjectPayload {
     private long stream;
     private byte[] data;
 
-    public GenericPayload(long stream, byte[] data) {
+    public GenericPayload(long version, long stream, byte[] data) {
+        super(version);
         this.stream = stream;
         this.data = data;
     }
 
-    public static GenericPayload read(InputStream is, long stream, int length) throws IOException {
-        return new GenericPayload(stream, Decode.bytes(is, length));
+    public static GenericPayload read(long version, InputStream is, long stream, int length) throws IOException {
+        return new GenericPayload(version, stream, Decode.bytes(is, length));
     }
 
     @Override

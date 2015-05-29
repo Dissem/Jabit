@@ -73,7 +73,7 @@ public class SecurityTest {
                 .nonce(new byte[8])
                 .expiresTime(UnixTime.now(+2 * DAY)) // 5 minutes
                 .objectType(0)
-                .payload(GenericPayload.read(new ByteArrayInputStream(new byte[0]), 1, 0))
+                .payload(GenericPayload.read(0, new ByteArrayInputStream(new byte[0]), 1, 0))
                 .build();
         Security.checkProofOfWork(objectMessage, 1000, 1000);
     }
@@ -84,7 +84,7 @@ public class SecurityTest {
                 .nonce(new byte[8])
                 .expiresTime(UnixTime.now(+2 * DAY))
                 .objectType(0)
-                .payload(GenericPayload.read(new ByteArrayInputStream(new byte[0]), 1, 0))
+                .payload(GenericPayload.read(0, new ByteArrayInputStream(new byte[0]), 1, 0))
                 .build();
         Security.doProofOfWork(objectMessage, new MultiThreadedPOWEngine(), 1000, 1000);
         Security.checkProofOfWork(objectMessage, 1000, 1000);

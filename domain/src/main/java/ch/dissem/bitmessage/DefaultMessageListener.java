@@ -20,6 +20,7 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.*;
+import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.ports.NetworkHandler;
 import org.slf4j.Logger;
@@ -28,9 +29,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.List;
 
-import static ch.dissem.bitmessage.entity.Plaintext.Status.DOING_PROOF_OF_WORK;
-import static ch.dissem.bitmessage.entity.Plaintext.Status.NEW;
-import static ch.dissem.bitmessage.entity.Plaintext.Status.SENT;
+import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
 import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 
 class DefaultMessageListener implements NetworkHandler.MessageListener {
@@ -107,6 +106,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
                     msg.setStatus(SENT);
                     ctx.getMessageRepository().save(msg);
                 }
+                ctx.getAddressRepo().save(address);
             }
         } catch (DecryptionFailedException ignore) {
             LOG.debug(ignore.getMessage(), ignore);
@@ -119,7 +119,8 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
                 msg.decrypt(identity.getPrivateKey().getPrivateEncryptionKey());
                 msg.getPlaintext().setTo(identity);
                 object.isSignatureValid(msg.getPlaintext().getFrom().getPubkey());
-                msg.getPlaintext().setStatus(NEW);
+                msg.getPlaintext().setStatus(RECEIVED);
+                msg.getPlaintext().addLabels(ctx.getMessageRepository().getLabels(Label.Type.INBOX, Label.Type.UNREAD));
                 ctx.getMessageRepository().save(msg.getPlaintext());
                 listener.receive(msg.getPlaintext());
                 break;

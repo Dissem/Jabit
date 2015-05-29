@@ -16,13 +16,17 @@
 
 package ch.dissem.bitmessage.entity.valueobject;
 
+import java.util.Objects;
+
 public class Label {
     private Object id;
     private String label;
+    private Type type;
     private int color;
 
-    public Label(String label, int color) {
+    public Label(String label, Type type, int color) {
         this.label = label;
+        this.type = type;
         this.color = color;
     }
 
@@ -44,5 +48,34 @@ public class Label {
 
     public Object getId() {
         return id;
+    }
+
+    public Type getType() {
+        return type;
+    }
+
+    public void setId(Object id) {
+        this.id = id;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Label label1 = (Label) o;
+        return Objects.equals(label, label1.label);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(label);
+    }
+
+    public enum Type {
+        INBOX,
+        DRAFTS,
+        SENT,
+        UNREAD,
+        TRASH
     }
 }

@@ -95,14 +95,13 @@ class V3MessageFactory {
             payload = Factory.getObjectPayload(objectType, version, stream, dataStream, data.length);
         } catch (IOException e) {
             LOG.trace("Could not parse object payload - using generic payload instead", e);
-            payload = new GenericPayload(stream, data);
+            payload = new GenericPayload(version, stream, data);
         }
 
         return new ObjectMessage.Builder()
                 .nonce(nonce)
                 .expiresTime(expiresTime)
                 .objectType(objectType)
-                .version(version)
                 .stream(stream)
                 .payload(payload)
                 .build();

@@ -33,7 +33,8 @@ public class V3Pubkey extends V2Pubkey {
     long extraBytes;
     byte[] signature;
 
-    protected V3Pubkey(Builder builder) {
+    protected V3Pubkey(long version, Builder builder) {
+        super(version);
         stream = builder.streamNumber;
         behaviorBitfield = builder.behaviorBitfield;
         publicSigningKey = add0x04(builder.publicSigningKey);
@@ -95,6 +96,24 @@ public class V3Pubkey extends V2Pubkey {
         this.signature = signature;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        V3Pubkey pubkey = (V3Pubkey) o;
+        return Objects.equals(nonceTrialsPerByte, pubkey.nonceTrialsPerByte) &&
+                Objects.equals(extraBytes, pubkey.extraBytes) &&
+                stream == pubkey.stream &&
+                behaviorBitfield == pubkey.behaviorBitfield &&
+                Arrays.equals(publicSigningKey, pubkey.publicSigningKey) &&
+                Arrays.equals(publicEncryptionKey, pubkey.publicEncryptionKey);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(nonceTrialsPerByte, extraBytes);
+    }
+
     public static class Builder {
         private long streamNumber;
         private int behaviorBitfield;
@@ -143,25 +162,7 @@ public class V3Pubkey extends V2Pubkey {
         }
 
         public V3Pubkey build() {
-            return new V3Pubkey(this);
+            return new V3Pubkey(3, this);
         }
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        V3Pubkey pubkey = (V3Pubkey) o;
-        return Objects.equals(nonceTrialsPerByte, pubkey.nonceTrialsPerByte) &&
-                Objects.equals(extraBytes, pubkey.extraBytes) &&
-                stream == pubkey.stream &&
-                behaviorBitfield == pubkey.behaviorBitfield &&
-                Arrays.equals(publicSigningKey, pubkey.publicSigningKey) &&
-                Arrays.equals(publicEncryptionKey, pubkey.publicEncryptionKey);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(nonceTrialsPerByte, extraBytes);
     }
 }

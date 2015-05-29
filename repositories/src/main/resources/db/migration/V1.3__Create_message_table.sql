@@ -1,21 +1,23 @@
 CREATE TABLE Message (
-  id                     BIGINT        AUTO_INCREMENT PRIMARY KEY,
-  sender                 VARCHAR(40)   NOT NULL,
-  recipient              VARCHAR(40)   NOT NULL,
-  data                   BLOB          NOT NULL,
-  sent                   BIGINT,
-  received               BIGINT,
-  status                 VARCHAR(20)   NOT NULL,
+  id                      BIGINT        AUTO_INCREMENT PRIMARY KEY,
+  sender                  VARCHAR(40)   NOT NULL,
+  recipient               VARCHAR(40)   NOT NULL,
+  data                    BLOB          NOT NULL,
+  sent                    BIGINT,
+  received                BIGINT,
+  status                  VARCHAR(20)   NOT NULL,
 
   FOREIGN KEY (sender)    REFERENCES Address (address),
   FOREIGN KEY (recipient) REFERENCES Address (address)
 );
 
 CREATE TABLE Label (
-  id    BIGINT AUTO_INCREMENT PRIMARY KEY,
-  label VARCHAR(255) NOT NULL,
-  color INT,
-  ord   BIGINT,
+  id                      BIGINT AUTO_INCREMENT PRIMARY KEY,
+  label                   VARCHAR(255)  NOT NULL,
+  type                    VARCHAR(20),
+  color                   INT NOT NULL DEFAULT X'FF000000',
+  ord                     BIGINT,
+
   CONSTRAINT UC_label UNIQUE (label),
   CONSTRAINT UC_order UNIQUE (ord)
 );
@@ -29,7 +31,8 @@ CREATE TABLE Message_Label (
   FOREIGN KEY (label_id)   REFERENCES Label (id)
 );
 
-INSERT INTO Label(label, ord) VALUES ('Inbox', 0);
-INSERT INTO Label(label, ord) VALUES ('Sent', 10);
-INSERT INTO Label(label, ord) VALUES ('Drafts', 20);
-INSERT INTO Label(label, ord) VALUES ('Trash', 100);
+INSERT INTO Label(label, type, color, ord) VALUES ('Inbox', 'INBOX', X'FF0000FF', 0);
+INSERT INTO Label(label, type, color, ord) VALUES ('Drafts', 'DRAFTS', X'FFFF9900', 10);
+INSERT INTO Label(label, type, color, ord) VALUES ('Sent', 'SENT', X'FFFFFF00', 20);
+INSERT INTO Label(label, type, ord) VALUES ('Unread', 'UNREAD', 90);
+INSERT INTO Label(label, type, ord) VALUES ('Trash', 'TRASH', 100);

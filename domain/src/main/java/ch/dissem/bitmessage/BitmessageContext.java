@@ -20,9 +20,7 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.Plaintext.Encoding;
-import ch.dissem.bitmessage.entity.payload.GetPubkey;
-import ch.dissem.bitmessage.entity.payload.Msg;
-import ch.dissem.bitmessage.entity.payload.ObjectPayload;
+import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.ports.*;
@@ -32,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.TreeSet;
 
@@ -40,18 +39,18 @@ import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 
 /**
  * Use this class if you want to create a Bitmessage client.
- * <p>
+ * <p/>
  * You'll need the Builder to create a BitmessageContext, and set the following properties:
  * <ul>
- *     <li>addressRepo</li>
- *     <li>inventory</li>
- *     <li>nodeRegistry</li>
- *     <li>networkHandler</li>
- *     <li>messageRepo</li>
- *     <li>streams</li>
+ * <li>addressRepo</li>
+ * <li>inventory</li>
+ * <li>nodeRegistry</li>
+ * <li>networkHandler</li>
+ * <li>messageRepo</li>
+ * <li>streams</li>
  * </ul>
  * The default implementations in the different module builds can be used.
- * <p>
+ * <p/>
  * The port defaults to 8444 (the default Bitmessage port)
  */
 public class BitmessageContext {
@@ -81,6 +80,7 @@ public class BitmessageContext {
                 features
         ));
         ctx.getAddressRepo().save(identity);
+        // TODO: this should happen in a separate thread
         ctx.sendPubkey(identity, identity.getStream());
         return identity;
     }
@@ -93,6 +93,7 @@ public class BitmessageContext {
         if (from.getPrivateKey() == null) {
             throw new IllegalArgumentException("'From' must be an identity, i.e. have a private key.");
         }
+        // TODO: all this should happen in a separate thread
         Plaintext msg = new Plaintext.Builder()
                 .from(from)
                 .to(to)
@@ -100,10 +101,15 @@ public class BitmessageContext {
                 .message(subject, message)
                 .build();
         if (to.getPubkey() == null) {
+            tryToFindMatchingPubkey(to);
+        }
+        if (to.getPubkey() == null) {
+            LOG.info("Public key is missing from recipient. Requesting.");
             requestPubkey(from, to);
             msg.setStatus(PUBKEY_REQUESTED);
             ctx.getMessageRepository().save(msg);
         } else {
+            LOG.info("Sending message.");
             msg.setStatus(DOING_PROOF_OF_WORK);
             ctx.getMessageRepository().save(msg);
             ctx.send(
@@ -130,13 +136,12 @@ public class BitmessageContext {
         );
     }
 
-    private void send(long stream, long version, ObjectPayload payload, long timeToLive) {
+    private void send(long stream, ObjectPayload payload, long timeToLive) {
         try {
             long expires = UnixTime.now(+timeToLive);
             LOG.info("Expires at " + expires);
             ObjectMessage object = new ObjectMessage.Builder()
                     .stream(stream)
-                    .version(version)
                     .expiresTime(expires)
                     .payload(payload)
                     .build();
@@ -159,8 +164,39 @@ public class BitmessageContext {
 
     public void addContact(BitmessageAddress contact) {
         ctx.getAddressRepo().save(contact);
-        // TODO: search pubkey in inventory
-        ctx.requestPubkey(contact);
+        tryToFindMatchingPubkey(contact);
+        if (contact.getPubkey() == null) {
+            ctx.requestPubkey(contact);
+        }
+    }
+
+    private void tryToFindMatchingPubkey(BitmessageAddress address) {
+        for (ObjectMessage object : ctx.getInventory().getObjects(address.getStream(), address.getVersion(), ObjectType.PUBKEY)) {
+            try {
+                Pubkey pubkey = (Pubkey) object.getPayload();
+                if (address.getVersion() == 4) {
+                    V4Pubkey v4Pubkey = (V4Pubkey) pubkey;
+                    if (Arrays.equals(address.getTag(), v4Pubkey.getTag())) {
+                        v4Pubkey.decrypt(address.getPubkeyDecryptionKey());
+                        if (object.isSignatureValid(v4Pubkey)) {
+                            address.setPubkey(v4Pubkey);
+                            ctx.getAddressRepo().save(address);
+                            break;
+                        } else {
+                            LOG.debug("Found pubkey for " + address + " but signature is invalid");
+                        }
+                    }
+                } else {
+                    if (Arrays.equals(pubkey.getRipe(), address.getRipe())) {
+                        address.setPubkey(pubkey);
+                        ctx.getAddressRepo().save(address);
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                LOG.debug(e.getMessage(), e);
+            }
+        }
     }
 
     public interface Listener {

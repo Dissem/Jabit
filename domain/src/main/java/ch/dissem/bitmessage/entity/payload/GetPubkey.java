@@ -31,6 +31,7 @@ public class GetPubkey extends ObjectPayload {
     private byte[] ripeTag;
 
     public GetPubkey(BitmessageAddress address) {
+        super(address.getVersion());
         this.stream = address.getStream();
         if (address.getVersion() < 4)
             this.ripeTag = address.getRipe();
@@ -38,13 +39,14 @@ public class GetPubkey extends ObjectPayload {
             this.ripeTag = address.getTag();
     }
 
-    private GetPubkey(long stream, long version, byte[] ripeOrTag) {
+    private GetPubkey(long version, long stream, byte[] ripeOrTag) {
+        super(version);
         this.stream = stream;
         this.ripeTag = ripeOrTag;
     }
 
     public static GetPubkey read(InputStream is, long stream, int length, long version) throws IOException {
-        return new GetPubkey(stream, version, Decode.bytes(is, length));
+        return new GetPubkey(version, stream, Decode.bytes(is, length));
     }
 
     /**

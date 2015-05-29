@@ -29,7 +29,7 @@ public class V5Broadcast extends V4Broadcast {
     private byte[] tag;
 
     private V5Broadcast(long stream, byte[] tag, CryptoBox encrypted) {
-        super(stream, encrypted);
+        super(5, stream, encrypted);
         this.tag = tag;
     }
 

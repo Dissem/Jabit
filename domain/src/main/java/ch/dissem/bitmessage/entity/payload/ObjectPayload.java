@@ -26,9 +26,20 @@ import java.io.OutputStream;
  * The payload of an 'object' command. This is shared by the network.
  */
 public abstract class ObjectPayload implements Streamable {
+    private final long version;
+
+    protected ObjectPayload(long version) {
+        this.version = version;
+    }
+
+
     public abstract ObjectType getType();
 
     public abstract long getStream();
+
+    public long getVersion() {
+        return version;
+    }
 
     public boolean isSigned() {
         return false;

@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.ports.MessageRepository;
+import ch.dissem.bitmessage.utils.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,13 +38,41 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
     private InternalContext ctx;
 
     @Override
-    public List<String> getLabels() {
-        List<String> result = new LinkedList<>();
+    public List<Label> getLabels() {
+        List<Label> result = new LinkedList<>();
         try {
             Statement stmt = getConnection().createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT label FROM Label ORDER BY ord");
+            ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label ORDER BY ord");
             while (rs.next()) {
-                result.add(rs.getString("label"));
+                result.add(getLabel(rs));
+            }
+        } catch (SQLException e) {
+            LOG.error(e.getMessage(), e);
+        }
+        return result;
+    }
+
+    private Label getLabel(ResultSet rs) throws SQLException {
+        String typeName = rs.getString("type");
+        Label.Type type = null;
+        if (typeName != null) {
+            type = Label.Type.valueOf(typeName);
+        }
+        Label label = new Label(rs.getString("label"), type, rs.getInt("color"));
+        label.setId(rs.getLong("id"));
+
+        return label;
+    }
+
+    @Override
+    public List<Label> getLabels(Label.Type... types) {
+        List<Label> result = new LinkedList<>();
+        try {
+            Statement stmt = getConnection().createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label WHERE type IN (" + Strings.join(types) +
+                    ") ORDER BY ord");
+            while (rs.next()) {
+                result.add(getLabel(rs));
             }
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);
@@ -94,9 +123,9 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         List<Label> result = new ArrayList<>();
         try {
             Statement stmt = getConnection().createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT label, color FROM Label WHERE id IN (SELECT label_id FROM Message_Label WHERE message_id=" + messageId + ")");
+            ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label WHERE id IN (SELECT label_id FROM Message_Label WHERE message_id=" + messageId + ")");
             while (rs.next()) {
-                result.add(new Label(rs.getString("label"), rs.getInt("color")));
+                result.add(getLabel(rs));
             }
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);

@@ -24,7 +24,9 @@ import ch.dissem.bitmessage.entity.valueobject.Label;
 import java.util.List;
 
 public interface MessageRepository {
-    List<String> getLabels();
+    List<Label> getLabels();
+
+    List<Label> getLabels(Label.Type... types);
 
     List<Plaintext> findMessages(Label label);
 

@@ -48,7 +48,6 @@ public class SignatureTest {
         ObjectMessage objectMessage = new ObjectMessage.Builder()
                 .objectType(ObjectType.PUBKEY)
                 .stream(1)
-                .version(1)
                 .payload(privateKey.getPubkey())
                 .build();
         objectMessage.sign(privateKey);

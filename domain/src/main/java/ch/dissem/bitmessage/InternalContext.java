@@ -145,17 +145,16 @@ public class InternalContext {
             LOG.info("Expires at " + expires);
             ObjectMessage object = new ObjectMessage.Builder()
                     .stream(to.getStream())
-                    .version(to.getVersion())
                     .expiresTime(expires)
                     .payload(payload)
                     .build();
-            Security.doProofOfWork(object, proofOfWorkEngine, nonceTrialsPerByte, extraBytes);
             if (object.isSigned()) {
                 object.sign(from.getPrivateKey());
             }
-            if (object instanceof Encrypted) {
+            if (payload instanceof Encrypted) {
                 object.encrypt(to.getPubkey());
             }
+            Security.doProofOfWork(object, proofOfWorkEngine, nonceTrialsPerByte, extraBytes);
             inventory.storeObject(object);
             networkHandler.offer(object.getInventoryVector());
         } catch (IOException e) {
@@ -169,7 +168,6 @@ public class InternalContext {
             LOG.info("Expires at " + expires);
             ObjectMessage response = new ObjectMessage.Builder()
                     .stream(targetStream)
-                    .version(identity.getVersion())
                     .expiresTime(expires)
                     .payload(identity.getPubkey())
                     .build();
@@ -196,7 +194,6 @@ public class InternalContext {
             LOG.info("Expires at " + expires);
             ObjectMessage response = new ObjectMessage.Builder()
                     .stream(contact.getStream())
-                    .version(contact.getVersion())
                     .expiresTime(expires)
                     .payload(new GetPubkey(contact))
                     .build();

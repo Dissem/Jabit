@@ -124,7 +124,7 @@ public class Factory {
         }
         // fallback: just store the message - we don't really care what it is
 //        LOG.info("Unexpected object type: " + objectType);
-        return GenericPayload.read(stream, streamNumber, length);
+        return GenericPayload.read(version, stream, streamNumber, length);
     }
 
     private static ObjectPayload parseGetPubkey(long version, long streamNumber, InputStream stream, int length) throws IOException {
@@ -146,7 +146,7 @@ public class Factory {
 
     private static ObjectPayload parsePubkey(long version, long streamNumber, InputStream stream, int length) throws IOException {
         Pubkey pubkey = readPubkey(version, streamNumber, stream, length, true);
-        return pubkey != null ? pubkey : GenericPayload.read(stream, streamNumber, length);
+        return pubkey != null ? pubkey : GenericPayload.read(version, stream, streamNumber, length);
     }
 
     private static ObjectPayload parseMsg(long version, long streamNumber, InputStream stream, int length) throws IOException {
@@ -161,7 +161,7 @@ public class Factory {
                 return V5Broadcast.read(stream, streamNumber, length);
             default:
                 LOG.debug("Encountered unknown broadcast version " + version);
-                return GenericPayload.read(stream, streamNumber, length);
+                return GenericPayload.read(version, stream, streamNumber, length);
         }
     }
 }

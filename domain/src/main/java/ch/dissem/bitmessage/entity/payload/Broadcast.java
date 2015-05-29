@@ -31,7 +31,8 @@ public abstract class Broadcast extends ObjectPayload implements Encrypted {
     protected CryptoBox encrypted;
     protected Plaintext plaintext;
 
-    protected Broadcast(long stream, CryptoBox encrypted, Plaintext plaintext) {
+    protected Broadcast(long version, long stream, CryptoBox encrypted, Plaintext plaintext) {
+        super(version);
         this.stream = stream;
         this.encrypted = encrypted;
         this.plaintext = plaintext;

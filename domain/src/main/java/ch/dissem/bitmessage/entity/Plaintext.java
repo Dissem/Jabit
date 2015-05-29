@@ -16,7 +16,6 @@
 
 package ch.dissem.bitmessage.entity;
 
-import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.Decode;
@@ -129,8 +128,12 @@ public class Plaintext implements Streamable {
         Encode.varInt(ack.length, out);
         out.write(ack);
         if (includeSignature) {
-            Encode.varInt(signature.length, out);
-            out.write(signature);
+            if (signature == null) {
+                Encode.varInt(0, out);
+            } else {
+                Encode.varInt(signature.length, out);
+                out.write(signature);
+            }
         }
     }
 
@@ -188,6 +191,40 @@ public class Plaintext implements Streamable {
         }
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Plaintext plaintext = (Plaintext) o;
+        return Objects.equals(encoding, plaintext.encoding) &&
+                Objects.equals(from, plaintext.from) &&
+                Arrays.equals(message, plaintext.message) &&
+                Arrays.equals(ack, plaintext.ack) &&
+                Arrays.equals(to.getRipe(), plaintext.to.getRipe()) &&
+                Arrays.equals(signature, plaintext.signature) &&
+                Objects.equals(status, plaintext.status) &&
+                Objects.equals(sent, plaintext.sent) &&
+                Objects.equals(received, plaintext.received) &&
+                Objects.equals(labels, plaintext.labels);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(from, encoding, message, ack, to, signature, status, sent, received, labels);
+    }
+
+    public void addLabels(Label... labels) {
+        if (labels != null) {
+            Collections.addAll(this.labels, labels);
+        }
+    }
+
+    public void addLabels(Collection<Label> labels) {
+        if (labels != null) {
+            this.labels.addAll(labels);
+        }
+    }
+
     public enum Encoding {
         IGNORE(0), TRIVIAL(1), SIMPLE(2);
 
@@ -203,15 +240,13 @@ public class Plaintext implements Streamable {
     }
 
     public enum Status {
+        DRAFT,
         // For sent messages
         PUBKEY_REQUESTED,
         DOING_PROOF_OF_WORK,
         SENT,
         SENT_ACKNOWLEDGED,
-
-        // For received messages
-        NEW,
-        READ
+        RECEIVED
     }
 
     public static final class Builder {
@@ -233,7 +268,7 @@ public class Plaintext implements Streamable {
         private long sent;
         private long received;
         private Status status;
-        private Set<Label> labels = new TreeSet<>();
+        private Set<Label> labels = new HashSet<>();
 
         public Builder() {
         }
@@ -364,27 +399,5 @@ public class Plaintext implements Streamable {
             }
             return new Plaintext(this);
         }
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Plaintext plaintext = (Plaintext) o;
-        return Objects.equals(encoding, plaintext.encoding) &&
-                Objects.equals(from, plaintext.from) &&
-                Arrays.equals(message, plaintext.message) &&
-                Arrays.equals(ack, plaintext.ack) &&
-                Arrays.equals(to.getRipe(), plaintext.to.getRipe()) &&
-                Arrays.equals(signature, plaintext.signature) &&
-                Objects.equals(status, plaintext.status) &&
-                Objects.equals(sent, plaintext.sent) &&
-                Objects.equals(received, plaintext.received) &&
-                Objects.equals(labels, plaintext.labels);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(from, encoding, message, ack, to, signature, status, sent, received, labels);
     }
 }

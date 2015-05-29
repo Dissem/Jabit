@@ -19,7 +19,8 @@ package ch.dissem.bitmessage.utils;
 import ch.dissem.bitmessage.entity.payload.ObjectType;
 
 /**
- * Created by chris on 13.04.15.
+ * Some utilities to handle strings.
+ * TODO: Probably this should be split in a GUI related and an SQL related utility class.
  */
 public class Strings {
     public static StringBuilder join(byte[]... objects) {
@@ -45,6 +46,15 @@ public class Strings {
         for (int i = 0; i < types.length; i++) {
             if (i > 0) streamList.append(", ");
             streamList.append(types[i].getNumber());
+        }
+        return streamList;
+    }
+
+    public static StringBuilder join(Enum... types) {
+        StringBuilder streamList = new StringBuilder();
+        for (int i = 0; i < types.length; i++) {
+            if (i > 0) streamList.append(", ");
+            streamList.append('\'').append(types[i].name()).append('\'');
         }
         return streamList;
     }

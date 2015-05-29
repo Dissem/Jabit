@@ -37,12 +37,12 @@ import static org.junit.Assert.assertTrue;
 public class EncryptionTest {
     @Test
     public void ensureDecryptedDataIsSameAsBeforeEncryption() throws IOException, DecryptionFailedException {
-        GenericPayload before = new GenericPayload(1, Security.randomBytes(100));
+        GenericPayload before = new GenericPayload(0, 1, Security.randomBytes(100));
 
         PrivateKey privateKey = new PrivateKey(false, 1, 1000, 1000);
         CryptoBox cryptoBox = new CryptoBox(before, privateKey.getPubkey().getEncryptionKey());
 
-        GenericPayload after = GenericPayload.read(cryptoBox.decrypt(privateKey.getPrivateEncryptionKey()), 1, 100);
+        GenericPayload after = GenericPayload.read(0, cryptoBox.decrypt(privateKey.getPrivateEncryptionKey()), 1, 100);
 
         assertEquals(before, after);
     }

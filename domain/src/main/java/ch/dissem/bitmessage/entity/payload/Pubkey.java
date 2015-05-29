@@ -29,11 +29,13 @@ import static ch.dissem.bitmessage.utils.Security.sha512;
 public abstract class Pubkey extends ObjectPayload {
     public final static long LATEST_VERSION = 4;
 
+    protected Pubkey(long version) {
+        super(version);
+    }
+
     public static byte[] getRipe(byte[] publicSigningKey, byte[] publicEncryptionKey) {
         return ripemd160(sha512(publicSigningKey, publicEncryptionKey));
     }
-
-    public abstract long getVersion();
 
     public abstract byte[] getSigningKey();
 

@@ -33,11 +33,13 @@ public class Msg extends ObjectPayload implements Encrypted {
     private Plaintext plaintext;
 
     private Msg(long stream, CryptoBox encrypted) {
+        super(1);
         this.stream = stream;
         this.encrypted = encrypted;
     }
 
     public Msg(Plaintext plaintext) {
+        super(1);
         this.stream = plaintext.getStream();
         this.plaintext = plaintext;
     }
