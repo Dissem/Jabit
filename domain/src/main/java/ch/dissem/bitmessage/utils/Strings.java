@@ -23,42 +23,6 @@ import ch.dissem.bitmessage.entity.payload.ObjectType;
  * TODO: Probably this should be split in a GUI related and an SQL related utility class.
  */
 public class Strings {
-    public static StringBuilder join(byte[]... objects) {
-        StringBuilder streamList = new StringBuilder();
-        for (int i = 0; i < objects.length; i++) {
-            if (i > 0) streamList.append(", ");
-            streamList.append(hex(objects[i]));
-        }
-        return streamList;
-    }
-
-    public static StringBuilder join(long... objects) {
-        StringBuilder streamList = new StringBuilder();
-        for (int i = 0; i < objects.length; i++) {
-            if (i > 0) streamList.append(", ");
-            streamList.append(objects[i]);
-        }
-        return streamList;
-    }
-
-    public static StringBuilder join(ObjectType... types) {
-        StringBuilder streamList = new StringBuilder();
-        for (int i = 0; i < types.length; i++) {
-            if (i > 0) streamList.append(", ");
-            streamList.append(types[i].getNumber());
-        }
-        return streamList;
-    }
-
-    public static StringBuilder join(Enum... types) {
-        StringBuilder streamList = new StringBuilder();
-        for (int i = 0; i < types.length; i++) {
-            if (i > 0) streamList.append(", ");
-            streamList.append('\'').append(types[i].name()).append('\'');
-        }
-        return streamList;
-    }
-
     public static StringBuilder join(Object... objects) {
         StringBuilder streamList = new StringBuilder();
         for (int i = 0; i < objects.length; i++) {

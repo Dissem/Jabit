@@ -28,20 +28,20 @@ import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
 
-import static ch.dissem.bitmessage.utils.Strings.join;
 import static ch.dissem.bitmessage.utils.UnixTime.now;
 
-/**
- * Created by chris on 24.04.15.
- */
 public class JdbcInventory extends JdbcHelper implements Inventory {
     private static final Logger LOG = LoggerFactory.getLogger(JdbcInventory.class);
+
+    public JdbcInventory(JdbcConfig config) {
+        super(config);
+    }
 
     @Override
     public List<InventoryVector> getInventory(long... streams) {
         List<InventoryVector> result = new LinkedList<>();
-        try {
-            Statement stmt = getConnection().createStatement();
+        try (Connection connection = config.getConnection()) {
+            Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT hash FROM Inventory WHERE expires > " + now() +
                     " AND stream IN (" + join(streams) + ")");
             while (rs.next()) {
@@ -54,8 +54,8 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
     }
     private List<InventoryVector> getFullInventory(long... streams) {
         List<InventoryVector> result = new LinkedList<>();
-        try {
-            Statement stmt = getConnection().createStatement();
+        try (Connection connection = config.getConnection()) {
+            Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT hash FROM Inventory WHERE stream IN (" + join(streams) + ")");
             while (rs.next()) {
                 result.add(new InventoryVector(rs.getBytes("hash")));
@@ -74,8 +74,8 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
 
     @Override
     public ObjectMessage getObject(InventoryVector vector) {
-        try {
-            Statement stmt = getConnection().createStatement();
+        try (Connection connection = config.getConnection()) {
+            Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT data, version FROM Inventory WHERE hash = X'" + vector + "'");
             if (rs.next()) {
                 Blob data = rs.getBlob("data");
@@ -92,7 +92,7 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
 
     @Override
     public List<ObjectMessage> getObjects(long stream, long version, ObjectType... types) {
-        try {
+        try (Connection connection = config.getConnection()) {
             StringBuilder query = new StringBuilder("SELECT data, version FROM Inventory WHERE 1=1");
             if (stream > 0) {
                 query.append(" AND stream = ").append(stream);
@@ -103,7 +103,7 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
             if (types.length > 0) {
                 query.append(" AND type IN (").append(join(types)).append(")");
             }
-            Statement stmt = getConnection().createStatement();
+            Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery(query.toString());
             List<ObjectMessage> result = new LinkedList<>();
             while (rs.next()) {
@@ -119,8 +119,8 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
 
     @Override
     public void storeObject(ObjectMessage object) {
-        try {
-            PreparedStatement ps = getConnection().prepareStatement("INSERT INTO Inventory (hash, stream, expires, data, type, version) VALUES (?, ?, ?, ?, ?, ?)");
+        try (Connection connection = config.getConnection()) {
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO Inventory (hash, stream, expires, data, type, version) VALUES (?, ?, ?, ?, ?, ?)");
             InventoryVector iv = object.getInventoryVector();
             LOG.trace("Storing object " + iv);
             ps.setBytes(1, iv.getHash());
@@ -139,9 +139,9 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
 
     @Override
     public void cleanup() {
-        try {
+        try (Connection connection = config.getConnection()) {
             // We delete only objects that expired 5 minutes ago or earlier, so we don't request objects we just deleted
-            getConnection().createStatement().executeUpdate("DELETE FROM Inventory WHERE expires < " + (now() - 300));
+            connection.createStatement().executeUpdate("DELETE FROM Inventory WHERE expires < " + (now() - 300));
         } catch (SQLException e) {
             LOG.debug(e.getMessage(), e);
         }

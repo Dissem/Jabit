@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.exception;
+package ch.dissem.bitmessage.repository;
 
-import ch.dissem.bitmessage.utils.Strings;
+import org.junit.Test;
 
-import java.io.IOException;
-import java.util.Arrays;
+import static org.junit.Assert.assertEquals;
 
-public class InsufficientProofOfWorkException extends IOException {
-    public InsufficientProofOfWorkException(byte[] target, byte[] hash) {
-        super("Insufficient proof of work: " + Strings.hex(target) + " required, " + Strings.hex(Arrays.copyOfRange(hash, 0, 8)) + " achieved.");
+public class JdbcHelperTest {
+    @Test
+    public void ensureJoinWorksWithLongArray() {
+        long[] test = {1L, 2L};
+        assertEquals("1, 2", JdbcHelper.join(test).toString());
     }
 }

@@ -97,7 +97,6 @@ public class BitmessageContext {
         Plaintext msg = new Plaintext.Builder()
                 .from(from)
                 .to(to)
-                .encoding(Encoding.SIMPLE)
                 .message(subject, message)
                 .build();
         if (to.getPubkey() == null) {

@@ -25,28 +25,27 @@ import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
 
-import static ch.dissem.bitmessage.utils.Strings.join;
-
-/**
- * Created by chris on 24.04.15.
- */
 public class JdbcNodeRegistry extends JdbcHelper implements NodeRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(JdbcNodeRegistry.class);
+
+    public JdbcNodeRegistry(JdbcConfig config) {
+        super(config);
+    }
 
     @Override
     public List<NetworkAddress> getKnownAddresses(int limit, long... streams) {
         List<NetworkAddress> result = new LinkedList<>();
-        try {
-            Statement stmt = getConnection().createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT * FROM Node WHERE stream IN (" + join(streams) + ")");
+        try (Connection connection = config.getConnection()) {
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM Node WHERE stream IN (" + join(streams) + ") LIMIT " + limit);
             while (rs.next()) {
-//                result.add(new NetworkAddress.Builder()
-//                        .ipv6(rs.getBytes("ip"))
-//                        .port(rs.getByte("port"))
-//                        .services(rs.getLong("services"))
-//                        .stream(rs.getLong("stream"))
-//                        .time(rs.getLong("time"))
-//                        .build());
+                result.add(new NetworkAddress.Builder()
+                        .ipv6(rs.getBytes("ip"))
+                        .port(rs.getInt("port"))
+                        .services(rs.getLong("services"))
+                        .stream(rs.getLong("stream"))
+                        .time(rs.getLong("time"))
+                        .build());
             }
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);
@@ -60,8 +59,7 @@ public class JdbcNodeRegistry extends JdbcHelper implements NodeRegistry {
 
     @Override
     public void offerAddresses(List<NetworkAddress> addresses) {
-        try {
-            Connection connection = getConnection();
+        try (Connection connection = config.getConnection()) {
             PreparedStatement exists = connection.prepareStatement("SELECT port FROM Node WHERE ip = ? AND port = ? AND stream = ?");
             PreparedStatement insert = connection.prepareStatement(
                     "INSERT INTO Node (ip, port, services, stream, time) VALUES (?, ?, ?, ?, ?)");

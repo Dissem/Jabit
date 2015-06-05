@@ -340,6 +340,7 @@ public class Plaintext implements Streamable {
 
         public Builder message(String subject, String message) {
             try {
+                this.encoding = Encoding.SIMPLE.getCode();
                 this.message = ("Subject:" + subject + '\n' + "Body:" + message).getBytes("UTF-8");
             } catch (UnsupportedEncodingException e) {
                 throw new RuntimeException(e);

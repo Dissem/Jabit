@@ -1,3 +1,19 @@
+/*
+ * Copyright 2015 Christian Basler
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package ch.dissem.bitmessage.demo;
 
 import ch.dissem.bitmessage.BitmessageContext;
@@ -5,10 +21,7 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.networking.NetworkNode;
-import ch.dissem.bitmessage.repository.JdbcAddressRepository;
-import ch.dissem.bitmessage.repository.JdbcInventory;
-import ch.dissem.bitmessage.repository.JdbcMessageRepository;
-import ch.dissem.bitmessage.repository.JdbcNodeRegistry;
+import ch.dissem.bitmessage.repository.*;
 import ch.dissem.bitmessage.utils.Strings;
 import org.flywaydb.core.internal.util.logging.slf4j.Slf4jLog;
 import org.flywaydb.core.internal.util.logging.slf4j.Slf4jLogCreator;
@@ -29,12 +42,13 @@ public class Application {
     private BitmessageContext ctx;
 
     public Application() {
+        JdbcConfig jdbcConfig = new JdbcConfig();
         ctx = new BitmessageContext.Builder()
-                .addressRepo(new JdbcAddressRepository())
-                .inventory(new JdbcInventory())
-                .nodeRegistry(new JdbcNodeRegistry())
+                .addressRepo(new JdbcAddressRepository(jdbcConfig))
+                .inventory(new JdbcInventory(jdbcConfig))
+                .nodeRegistry(new JdbcNodeRegistry(jdbcConfig))
+                .messageRepo(new JdbcMessageRepository(jdbcConfig))
                 .networkHandler(new NetworkNode())
-                .messageRepo(new JdbcMessageRepository())
                 .port(48444)
                 .streams(1)
                 .build();
@@ -59,7 +73,7 @@ public class Application {
             System.out.println("i) identities");
             System.out.println("c) contacts");
             System.out.println("m) messages");
-            System.out.println("e) Exit");
+            System.out.println("e) exit");
 
             command = nextCommand();
             try {

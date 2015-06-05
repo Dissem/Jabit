@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.repository;
 
 import ch.dissem.bitmessage.entity.Streamable;
+import ch.dissem.bitmessage.entity.payload.ObjectType;
 import org.flywaydb.core.Flyway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,21 +27,54 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.*;
 
+import static ch.dissem.bitmessage.utils.Strings.hex;
+
 /**
  * Helper class that does Flyway migration, provides JDBC connections and some helper methods.
  */
 abstract class JdbcHelper {
     private static final Logger LOG = LoggerFactory.getLogger(JdbcHelper.class);
 
-    private static final String DB_URL = "jdbc:h2:~/jabit";
-    private static final String DB_USER = "sa";
-    private static final String DB_PWD = null;
+    protected final JdbcConfig config;
 
+    protected JdbcHelper(JdbcConfig config) {
+        this.config = config;
+    }
 
-    static {
-        Flyway flyway = new Flyway();
-        flyway.setDataSource(DB_URL, DB_USER, DB_PWD);
-        flyway.migrate();
+    public static StringBuilder join(long... objects) {
+        StringBuilder streamList = new StringBuilder();
+        for (int i = 0; i < objects.length; i++) {
+            if (i > 0) streamList.append(", ");
+            streamList.append(objects[i]);
+        }
+        return streamList;
+    }
+
+    public static StringBuilder join(byte[]... objects) {
+        StringBuilder streamList = new StringBuilder();
+        for (int i = 0; i < objects.length; i++) {
+            if (i > 0) streamList.append(", ");
+            streamList.append(hex(objects[i]));
+        }
+        return streamList;
+    }
+
+    public static StringBuilder join(ObjectType... types) {
+        StringBuilder streamList = new StringBuilder();
+        for (int i = 0; i < types.length; i++) {
+            if (i > 0) streamList.append(", ");
+            streamList.append(types[i].getNumber());
+        }
+        return streamList;
+    }
+
+    public static StringBuilder join(Enum... types) {
+        StringBuilder streamList = new StringBuilder();
+        for (int i = 0; i < types.length; i++) {
+            if (i > 0) streamList.append(", ");
+            streamList.append('\'').append(types[i].name()).append('\'');
+        }
+        return streamList;
     }
 
     protected void writeBlob(PreparedStatement ps, int parameterIndex, Streamable data) throws SQLException, IOException {
@@ -51,14 +85,6 @@ abstract class JdbcHelper {
             ps.setBlob(parameterIndex, is);
         } else {
             ps.setBlob(parameterIndex, (Blob) null);
-        }
-    }
-
-    protected Connection getConnection() {
-        try {
-            return DriverManager.getConnection(DB_URL, DB_USER, DB_PWD);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
         }
     }
 }

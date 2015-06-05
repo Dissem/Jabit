@@ -14,15 +14,18 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.exception;
+package ch.dissem.bitmessage.repository;
 
-import ch.dissem.bitmessage.utils.Strings;
+/**
+ * Created by chris on 02.06.15.
+ */
+public class TestJdbcConfig extends JdbcConfig {
+    public TestJdbcConfig() {
+        super("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "sa", null);
+    }
 
-import java.io.IOException;
-import java.util.Arrays;
-
-public class InsufficientProofOfWorkException extends IOException {
-    public InsufficientProofOfWorkException(byte[] target, byte[] hash) {
-        super("Insufficient proof of work: " + Strings.hex(target) + " required, " + Strings.hex(Arrays.copyOfRange(hash, 0, 8)) + " achieved.");
+    public void reset() {
+        flyway.clean();
+        flyway.migrate();
     }
 }

@@ -34,11 +34,12 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-/**
- * Created by chris on 23.04.15.
- */
 public class JdbcAddressRepository extends JdbcHelper implements AddressRepository {
     private static final Logger LOG = LoggerFactory.getLogger(JdbcAddressRepository.class);
+
+    public JdbcAddressRepository(JdbcConfig config) {
+        super(config);
+    }
 
     @Override
     public BitmessageAddress findContact(byte[] ripeOrTag) {
@@ -81,8 +82,8 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
 
     private List<BitmessageAddress> find(String where) {
         List<BitmessageAddress> result = new LinkedList<>();
-        try {
-            Statement stmt = getConnection().createStatement();
+        try (Connection connection = config.getConnection()) {
+            Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT address, alias, public_key, private_key, subscribed FROM Address WHERE " + where);
             while (rs.next()) {
                 BitmessageAddress address;
@@ -114,8 +115,8 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
     }
 
     private boolean exists(BitmessageAddress address) {
-        try {
-            Statement stmt = getConnection().createStatement();
+        try (Connection connection = config.getConnection()) {
+            Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM Address WHERE address='" + address.getAddress() + "'");
             rs.next();
             return rs.getInt(1) > 0;
@@ -139,23 +140,26 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
     }
 
     private void update(BitmessageAddress address) throws IOException, SQLException {
-        PreparedStatement ps = getConnection().prepareStatement(
+        try(Connection connection = config.getConnection()){
+        PreparedStatement ps = connection.prepareStatement(
                 "UPDATE Address SET alias=?, public_key=?, private_key=? WHERE address=?");
         ps.setString(1, address.getAlias());
         writePubkey(ps, 2, address.getPubkey());
         writeBlob(ps, 3, address.getPrivateKey());
         ps.setString(4, address.getAddress());
         ps.executeUpdate();
-    }
+    }}
 
     private void insert(BitmessageAddress address) throws IOException, SQLException {
-        PreparedStatement ps = getConnection().prepareStatement(
-                "INSERT INTO Address (address, alias, public_key, private_key) VALUES (?, ?, ?, ?)");
-        ps.setString(1, address.getAddress());
-        ps.setString(2, address.getAlias());
-        writePubkey(ps, 3, address.getPubkey());
-        writeBlob(ps, 4, address.getPrivateKey());
-        ps.executeUpdate();
+        try (Connection connection = config.getConnection()) {
+            PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO Address (address, alias, public_key, private_key) VALUES (?, ?, ?, ?)");
+            ps.setString(1, address.getAddress());
+            ps.setString(2, address.getAlias());
+            writePubkey(ps, 3, address.getPubkey());
+            writeBlob(ps, 4, address.getPrivateKey());
+            ps.executeUpdate();
+        }
     }
 
     protected void writePubkey(PreparedStatement ps, int parameterIndex, Pubkey data) throws SQLException, IOException {
@@ -171,8 +175,8 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
 
     @Override
     public void remove(BitmessageAddress address) {
-        try {
-            Statement stmt = getConnection().createStatement();
+        try (Connection connection = config.getConnection()) {
+            Statement stmt = connection.createStatement();
             stmt.executeUpdate("DELETE FROM Address WHERE address = '" + address.getAddress() + "'");
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);

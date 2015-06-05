@@ -17,23 +17,35 @@
 package ch.dissem.bitmessage.utils;
 
 /**
- * Created by chris on 13.04.15.
+ * Intended to count the bytes read or written during (de-)serialization.
  */
 public class AccessCounter {
     private int count;
 
+    /**
+     * Increases the counter by one, if not null.
+     */
     public static void inc(AccessCounter counter) {
         if (counter != null) counter.inc();
     }
 
-    public static void inc(AccessCounter counter, int count) {
-        if (counter != null) counter.inc(count);
+    /**
+     * Increases the counter by length, if not null.
+     */
+    public static void inc(AccessCounter counter, int length) {
+        if (counter != null) counter.inc(length);
     }
 
+    /**
+     * Increases the counter by one.
+     */
     private void inc() {
         count++;
     }
 
+    /**
+     * Increases the counter by length.
+     */
     private void inc(int length) {
         count += length;
     }

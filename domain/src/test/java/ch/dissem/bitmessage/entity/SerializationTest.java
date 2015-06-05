@@ -81,7 +81,6 @@ public class SerializationTest {
         Plaintext p1 = new Plaintext.Builder()
                 .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
                 .to(TestUtils.loadContact())
-                .encoding(Plaintext.Encoding.SIMPLE)
                 .message("Subject", "Message")
                 .ack("ack".getBytes())
                 .signature(new byte[0])

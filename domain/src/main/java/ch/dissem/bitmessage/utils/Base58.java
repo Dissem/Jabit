@@ -17,12 +17,16 @@
 
 package ch.dissem.bitmessage.utils;
 
+import ch.dissem.bitmessage.exception.AddressFormatException;
+
 import java.io.UnsupportedEncodingException;
 
 import static java.util.Arrays.copyOfRange;
 
 /**
- * Base58 encoder and decoder
+ * Base58 encoder and decoder.
+ *
+ * @author Christian Basler: I removed some dependencies to the BitcoinJ code so it can be used here more easily.
  */
 public class Base58 {
     private static char[] ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();

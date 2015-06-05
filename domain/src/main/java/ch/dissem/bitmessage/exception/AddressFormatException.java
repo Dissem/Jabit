@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.utils;
+package ch.dissem.bitmessage.exception;
 
 /**
  * Indicates an illegal Bitmessage address

@@ -17,9 +17,12 @@
 package ch.dissem.bitmessage.utils;
 
 /**
- * Created by chris on 18.04.15.
+ * A simple utility class that simplifies using the second based time used in Bitmessage.
  */
 public class UnixTime {
+    /**
+     * Length of a day in seconds, intended for use with {@link #now(long)}.
+     */
     public static final long DAY = 60 * 60 * 24;
 
     /**
@@ -29,6 +32,9 @@ public class UnixTime {
         return System.currentTimeMillis() / 1000;
     }
 
+    /**
+     * Same as {@link #now()} + shiftSeconds, but might be more readable.
+     */
     public static long now(long shiftSeconds) {
         return (System.currentTimeMillis() / 1000) + shiftSeconds;
     }

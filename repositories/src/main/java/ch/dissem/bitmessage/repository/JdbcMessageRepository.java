@@ -21,7 +21,6 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.ports.MessageRepository;
-import ch.dissem.bitmessage.utils.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,17 +36,21 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     private InternalContext ctx;
 
+    public JdbcMessageRepository(JdbcConfig config) {
+        super(config);
+    }
+
     @Override
     public List<Label> getLabels() {
         List<Label> result = new LinkedList<>();
-        try {
-            Statement stmt = getConnection().createStatement();
+        try (Connection connection = config.getConnection()) {
+            Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label ORDER BY ord");
             while (rs.next()) {
                 result.add(getLabel(rs));
             }
         } catch (SQLException e) {
-            LOG.error(e.getMessage(), e);
+            throw new RuntimeException(e);
         }
         return result;
     }
@@ -67,9 +70,9 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
     @Override
     public List<Label> getLabels(Label.Type... types) {
         List<Label> result = new LinkedList<>();
-        try {
-            Statement stmt = getConnection().createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label WHERE type IN (" + Strings.join(types) +
+        try (Connection connection = config.getConnection()) {
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label WHERE type IN (" + join(types) +
                     ") ORDER BY ord");
             while (rs.next()) {
                 result.add(getLabel(rs));
@@ -97,8 +100,8 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     private List<Plaintext> find(String where) {
         List<Plaintext> result = new LinkedList<>();
-        try {
-            Statement stmt = getConnection().createStatement();
+        try (Connection connection = config.getConnection()) {
+            Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT id, sender, recipient, data, sent, received, status FROM Message WHERE " + where);
             while (rs.next()) {
                 Blob data = rs.getBlob("data");
@@ -110,7 +113,7 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
                 builder.sent(rs.getLong("sent"));
                 builder.received(rs.getLong("received"));
                 builder.status(Plaintext.Status.valueOf(rs.getString("status")));
-                builder.labels(findLabels(id));
+                builder.labels(findLabels(connection, id));
                 result.add(builder.build());
             }
         } catch (IOException | SQLException e) {
@@ -119,10 +122,10 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         return result;
     }
 
-    private Collection<Label> findLabels(long messageId) {
+    private Collection<Label> findLabels(Connection connection, long messageId) {
         List<Label> result = new ArrayList<>();
         try {
-            Statement stmt = getConnection().createStatement();
+            Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label WHERE id IN (SELECT label_id FROM Message_Label WHERE message_id=" + messageId + ")");
             while (rs.next()) {
                 result.add(getLabel(rs));
@@ -146,34 +149,37 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
             }
         }
 
-        Connection connection = getConnection();
-        try {
-            connection.setAutoCommit(false);
-            // save message
-            if (message.getId() == null) {
-                insert(connection, message);
-
-                // remove existing labels
-                Statement stmt = connection.createStatement();
-                stmt.executeUpdate("DELETE FROM Message_Label WHERE message_id=" + message.getId());
-            } else {
-                update(connection, message);
-            }
-
-            // save labels
-            PreparedStatement ps = connection.prepareStatement("INSERT INTO Message_Label VALUES (" + message.getId() + ", ?)");
-            for (Label label : message.getLabels()) {
-                ps.setLong(1, (Long) label.getId());
-                ps.executeUpdate();
-            }
-
-            connection.commit();
-        } catch (IOException | SQLException e) {
+        try (Connection connection = config.getConnection()) {
             try {
-                connection.rollback();
-            } catch (SQLException e1) {
-                LOG.debug(e1.getMessage(), e);
+                connection.setAutoCommit(false);
+                // save message
+                if (message.getId() == null) {
+                    insert(connection, message);
+
+                    // remove existing labels
+                    Statement stmt = connection.createStatement();
+                    stmt.executeUpdate("DELETE FROM Message_Label WHERE message_id=" + message.getId());
+                } else {
+                    update(connection, message);
+                }
+
+                // save labels
+                PreparedStatement ps = connection.prepareStatement("INSERT INTO Message_Label VALUES (" + message.getId() + ", ?)");
+                for (Label label : message.getLabels()) {
+                    ps.setLong(1, (Long) label.getId());
+                    ps.executeUpdate();
+                }
+
+                connection.commit();
+            } catch (IOException | SQLException e) {
+                try {
+                    connection.rollback();
+                } catch (SQLException e1) {
+                    LOG.debug(e1.getMessage(), e);
+                }
+                throw new RuntimeException(e);
             }
+        } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
@@ -204,18 +210,15 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
                 "UPDATE Message SET sent=?, received=?, status=? WHERE id=?");
         ps.setLong(1, message.getSent());
         ps.setLong(2, message.getReceived());
-        ps.setLong(3, (Long) message.getId());
-        if (message.getStatus() != null)
-            ps.setString(3, message.getStatus().name());
-        else
-            ps.setString(3, null);
+        ps.setString(3, message.getStatus() != null ? message.getStatus().name() : null);
+        ps.setLong(4, (Long) message.getId());
         ps.executeUpdate();
     }
 
     @Override
     public void remove(Plaintext message) {
-        try {
-            Statement stmt = getConnection().createStatement();
+        try (Connection connection = config.getConnection()) {
+            Statement stmt = connection.createStatement();
             stmt.executeUpdate("DELETE FROM Message WHERE id = " + message.getId());
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);

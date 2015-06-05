@@ -24,6 +24,9 @@ import java.util.Arrays;
 
 /**
  * A helper class for working with byte arrays interpreted as unsigned big endian integers.
+ * This is one part due to the fact that Java doesn't support unsigned numbers, and another
+ * part so we don't have to convert between byte arrays and numbers in time critical
+ * situations.
  */
 public class Bytes {
     public static void inc(byte[] nonce) {
@@ -33,6 +36,9 @@ public class Bytes {
         }
     }
 
+    /**
+     * Increases nonce by value, which is used as an unsigned byte value.
+     */
     public static void inc(byte[] nonce, byte value) {
         int i = nonce.length - 1;
         nonce[i] += value;
@@ -67,7 +73,7 @@ public class Bytes {
     }
 
     /**
-     * Returns true if a < b, where the first [size] bytes are checked.
+     * Returns true if a < b, where the first [size] bytes are used as the numbers to check.
      */
     public static boolean lt(byte[] a, byte[] b, int size) {
         for (int i = 0; i < size; i++) {
@@ -84,6 +90,9 @@ public class Bytes {
         return a < b;
     }
 
+    /**
+     * Returns a new byte array of length, left-padded with '0'.
+     */
     public static byte[] expand(byte[] source, int size) {
         byte[] result = new byte[size];
         System.arraycopy(source, 0, result, size - source.length, source.length);
@@ -99,19 +108,10 @@ public class Bytes {
         return result;
     }
 
-    public static byte[] subArray(byte[] source, int offset, int length) {
-        byte[] result = new byte[length];
-        System.arraycopy(source, offset, result, 0, length);
-        return result;
-    }
-
-    public static byte[] concatenate(byte first, byte[] bytes) {
-        byte[] result = new byte[bytes.length + 1];
-        result[0] = first;
-        System.arraycopy(bytes, 0, result, 1, bytes.length);
-        return result;
-    }
-
+    /**
+     * Returns the byte array that hex represents. This is meant for test use and should be rewritten if used in
+     * production code.
+     */
     public static byte[] fromHex(String hex) {
         if (hex.length() % 2 != 0) throw new IllegalArgumentException("expected even number of characters");
         byte[] result = new byte[hex.length() / 2];
@@ -135,6 +135,9 @@ public class Bytes {
         throw new IllegalArgumentException("'" + c + "' is not a valid hex value");
     }
 
+    /**
+     * Returns the number of leading '0' of a byte array.
+     */
     public static int numberOfLeadingZeros(byte[] bytes) {
         int i;
         for (i = 0; i < bytes.length; i++) {
@@ -143,10 +146,16 @@ public class Bytes {
         return i;
     }
 
+    /**
+     * Returns a copy of bytes with leading zeroes stripped.
+     */
     public static byte[] stripLeadingZeros(byte[] bytes) {
         return Arrays.copyOfRange(bytes, numberOfLeadingZeros(bytes), bytes.length);
     }
 
+    /**
+     * Returns the byte array of the serialized data.
+     */
     public static byte[] from(Streamable data) {
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();

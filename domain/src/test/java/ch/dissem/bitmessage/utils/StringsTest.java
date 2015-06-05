@@ -22,12 +22,6 @@ import static org.junit.Assert.assertEquals;
 
 public class StringsTest {
     @Test
-    public void ensureJoinWorksWithLongArray() {
-        long[] test = {1L, 2L};
-        assertEquals("1, 2", Strings.join(test).toString());
-    }
-
-    @Test
     public void testHexString() {
         assertEquals("48656c6c6f21", Strings.hex("Hello!".getBytes()).toString());
         assertEquals("0001", Strings.hex(new byte[]{0, 1}).toString());
