@@ -51,6 +51,12 @@ public class V5Broadcast extends V4Broadcast {
     }
 
     @Override
+    public void writeBytesToSign(OutputStream out) throws IOException {
+        out.write(tag);
+        super.writeBytesToSign(out);
+    }
+
+    @Override
     public void write(OutputStream out) throws IOException {
         out.write(tag);
         super.write(out);
