@@ -18,16 +18,19 @@ package ch.dissem.bitmessage.entity.payload;
 
 import ch.dissem.bitmessage.entity.Encrypted;
 import ch.dissem.bitmessage.entity.Plaintext;
+import ch.dissem.bitmessage.entity.PlaintextHolder;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
+
 /**
  * Used for person-to-person messages.
  */
-public class Msg extends ObjectPayload implements Encrypted {
+public class Msg extends ObjectPayload implements Encrypted, PlaintextHolder {
     private long stream;
     private CryptoBox encrypted;
     private Plaintext plaintext;
@@ -48,6 +51,7 @@ public class Msg extends ObjectPayload implements Encrypted {
         return new Msg(stream, CryptoBox.read(in, length));
     }
 
+    @Override
     public Plaintext getPlaintext() {
         return plaintext;
     }
@@ -89,7 +93,7 @@ public class Msg extends ObjectPayload implements Encrypted {
 
     @Override
     public void decrypt(byte[] privateKey) throws IOException, DecryptionFailedException {
-        plaintext = Plaintext.read(encrypted.decrypt(privateKey));
+        plaintext = Plaintext.read(MSG, encrypted.decrypt(privateKey));
     }
 
     @Override

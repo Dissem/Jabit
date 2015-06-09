@@ -16,17 +16,22 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
+import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Encrypted;
 import ch.dissem.bitmessage.entity.Plaintext;
+import ch.dissem.bitmessage.entity.PlaintextHolder;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
+import ch.dissem.bitmessage.utils.Security;
 
 import java.io.IOException;
+
+import static ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST;
 
 /**
  * Users who are subscribed to the sending address will see the message appear in their inbox.
  * Broadcasts are version 4 or 5.
  */
-public abstract class Broadcast extends ObjectPayload implements Encrypted {
+public abstract class Broadcast extends ObjectPayload implements Encrypted, PlaintextHolder {
     protected final long stream;
     protected CryptoBox encrypted;
     protected Plaintext plaintext;
@@ -38,11 +43,16 @@ public abstract class Broadcast extends ObjectPayload implements Encrypted {
         this.plaintext = plaintext;
     }
 
+    public static long getVersion(BitmessageAddress address) {
+        return address.getVersion() < 4 ? 4 : 5;
+    }
+
     @Override
     public long getStream() {
         return stream;
     }
 
+    @Override
     public Plaintext getPlaintext() {
         return plaintext;
     }
@@ -52,9 +62,17 @@ public abstract class Broadcast extends ObjectPayload implements Encrypted {
         this.encrypted = new CryptoBox(plaintext, publicKey);
     }
 
+    public void encrypt() throws IOException {
+        encrypt(Security.createPublicKey(plaintext.getFrom().getPublicDecryptionKey()).getEncoded(false));
+    }
+
     @Override
     public void decrypt(byte[] privateKey) throws IOException, DecryptionFailedException {
-        plaintext = Plaintext.read(encrypted.decrypt(privateKey));
+        plaintext = Plaintext.read(BROADCAST, encrypted.decrypt(privateKey));
+    }
+
+    public void decrypt(BitmessageAddress address) throws IOException, DecryptionFailedException {
+        decrypt(address.getPublicDecryptionKey());
     }
 
     @Override

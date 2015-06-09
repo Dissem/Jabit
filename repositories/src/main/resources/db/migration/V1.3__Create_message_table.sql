@@ -1,7 +1,9 @@
 CREATE TABLE Message (
   id                      BIGINT        AUTO_INCREMENT PRIMARY KEY,
+  iv                      BINARY(32)    UNIQUE,
+  type                    VARCHAR(20)   NOT NULL,
   sender                  VARCHAR(40)   NOT NULL,
-  recipient               VARCHAR(40)   NOT NULL,
+  recipient               VARCHAR(40),
   data                    BLOB          NOT NULL,
   sent                    BIGINT,
   received                BIGINT,

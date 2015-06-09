@@ -27,6 +27,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
@@ -78,7 +79,7 @@ public class SerializationTest {
 
     @Test
     public void ensurePlaintextIsSerializedAndDeserializedCorrectly() throws IOException, DecryptionFailedException {
-        Plaintext p1 = new Plaintext.Builder()
+        Plaintext p1 = new Plaintext.Builder(MSG)
                 .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
                 .to(TestUtils.loadContact())
                 .message("Subject", "Message")
@@ -88,7 +89,7 @@ public class SerializationTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         p1.write(out);
         ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-        Plaintext p2 = Plaintext.read(in);
+        Plaintext p2 = Plaintext.read(MSG, in);
         assertEquals(p1, p2);
     }
 

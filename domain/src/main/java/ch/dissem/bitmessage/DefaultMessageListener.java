@@ -82,7 +82,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
                 V4Pubkey v4Pubkey = (V4Pubkey) pubkey;
                 address = ctx.getAddressRepo().findContact(v4Pubkey.getTag());
                 if (address != null) {
-                    v4Pubkey.decrypt(address.getPubkeyDecryptionKey());
+                    v4Pubkey.decrypt(address.getPublicDecryptionKey());
                 }
             } else {
                 address = ctx.getAddressRepo().findContact(pubkey.getRipe());
@@ -91,8 +91,8 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
                 address.setPubkey(pubkey);
                 LOG.debug("Got pubkey for contact " + address);
                 List<Plaintext> messages = ctx.getMessageRepository().findMessages(Plaintext.Status.PUBKEY_REQUESTED, address);
+                LOG.debug("Sending " + messages.size() + " messages for contact " + address);
                 for (Plaintext msg : messages) {
-                    // TODO: send messages enqueued for this address
                     msg.setStatus(DOING_PROOF_OF_WORK);
                     ctx.getMessageRepository().save(msg);
                     ctx.send(
@@ -118,14 +118,18 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
             try {
                 msg.decrypt(identity.getPrivateKey().getPrivateEncryptionKey());
                 msg.getPlaintext().setTo(identity);
-                object.isSignatureValid(msg.getPlaintext().getFrom().getPubkey());
-                msg.getPlaintext().setStatus(RECEIVED);
-                msg.getPlaintext().addLabels(ctx.getMessageRepository().getLabels(Label.Type.INBOX, Label.Type.UNREAD));
-                ctx.getMessageRepository().save(msg.getPlaintext());
-                listener.receive(msg.getPlaintext());
+                if (!object.isSignatureValid(msg.getPlaintext().getFrom().getPubkey())) {
+                    LOG.warn("Msg with IV " + object.getInventoryVector() + " was successfully decrypted, but signature check failed. Ignoring.");
+                } else {
+                    msg.getPlaintext().setStatus(RECEIVED);
+                    msg.getPlaintext().addLabels(ctx.getMessageRepository().getLabels(Label.Type.INBOX, Label.Type.UNREAD));
+                    msg.getPlaintext().setInventoryVector(object.getInventoryVector());
+                    ctx.getMessageRepository().save(msg.getPlaintext());
+                    listener.receive(msg.getPlaintext());
+                }
                 break;
             } catch (DecryptionFailedException ignore) {
-                LOG.debug(ignore.getMessage(), ignore);
+                LOG.trace(ignore.getMessage(), ignore);
             }
         }
     }
@@ -135,9 +139,13 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
 //        V5Broadcast v5 = broadcast instanceof V5Broadcast ? (V5Broadcast) broadcast : null;
         for (BitmessageAddress subscription : ctx.getAddressRepo().getSubscriptions()) {
             try {
-                broadcast.decrypt(subscription.getPubkeyDecryptionKey());
-                object.isSignatureValid(broadcast.getPlaintext().getFrom().getPubkey());
-                listener.receive(broadcast.getPlaintext());
+                broadcast.decrypt(subscription.getPublicDecryptionKey());
+                if (!object.isSignatureValid(broadcast.getPlaintext().getFrom().getPubkey())) {
+                    LOG.warn("Broadcast with IV " + object.getInventoryVector() + " was successfully decrypted, but signature check failed. Ignoring.");
+                } else {
+                    broadcast.getPlaintext().setInventoryVector(object.getInventoryVector());
+                    listener.receive(broadcast.getPlaintext());
+                }
             } catch (DecryptionFailedException ignore) {
             }
         }

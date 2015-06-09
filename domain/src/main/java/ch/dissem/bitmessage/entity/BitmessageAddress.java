@@ -42,7 +42,7 @@ public class BitmessageAddress {
     /**
      * Used for V4 address encryption. It's easier to just create it regardless of address version.
      */
-    private final byte[] pubkeyDecryptionKey;
+    private final byte[] publicDecryptionKey;
 
     private String address;
 
@@ -61,14 +61,20 @@ public class BitmessageAddress {
             ByteArrayOutputStream os = new ByteArrayOutputStream();
             Encode.varInt(version, os);
             Encode.varInt(stream, os);
-            // for the tag, the checksum has to be created with 0x00 padding
-            byte[] checksum = Security.doubleSha512(os.toByteArray(), ripe);
-            this.tag = Arrays.copyOfRange(checksum, 32, 64);
-            this.pubkeyDecryptionKey = Arrays.copyOfRange(checksum, 0, 32);
+            if (version < 4) {
+                byte[] checksum = Security.sha512(os.toByteArray(), ripe);
+                this.tag = null;
+                this.publicDecryptionKey = Arrays.copyOfRange(checksum, 0, 32);
+            } else {
+                // for tag and decryption key, the checksum has to be created with 0x00 padding
+                byte[] checksum = Security.doubleSha512(os.toByteArray(), ripe);
+                this.tag = Arrays.copyOfRange(checksum, 32, 64);
+                this.publicDecryptionKey = Arrays.copyOfRange(checksum, 0, 32);
+            }
             // but for the address and its checksum they need to be stripped
             int offset = Bytes.numberOfLeadingZeros(ripe);
             os.write(ripe, offset, ripe.length - offset);
-            checksum = Security.doubleSha512(os.toByteArray());
+            byte[] checksum = Security.doubleSha512(os.toByteArray());
             os.write(checksum, 0, 4);
             this.address = "BM-" + Base58.encode(os.toByteArray());
         } catch (IOException e) {
@@ -103,9 +109,15 @@ public class BitmessageAddress {
                 if (expectedChecksum[i] != checksum[i])
                     throw new IllegalArgumentException("Checksum of address failed");
             }
-            checksum = Security.doubleSha512(Arrays.copyOfRange(bytes, 0, counter.length()), ripe);
-            this.tag = Arrays.copyOfRange(checksum, 32, 64);
-            this.pubkeyDecryptionKey = Arrays.copyOfRange(checksum, 0, 32);
+            if (version < 4) {
+                checksum = Security.sha512(Arrays.copyOfRange(bytes, 0, counter.length()), ripe);
+                this.tag = null;
+                this.publicDecryptionKey = Arrays.copyOfRange(checksum, 0, 32);
+            } else {
+                checksum = Security.doubleSha512(Arrays.copyOfRange(bytes, 0, counter.length()), ripe);
+                this.tag = Arrays.copyOfRange(checksum, 32, 64);
+                this.publicDecryptionKey = Arrays.copyOfRange(checksum, 0, 32);
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -145,8 +157,11 @@ public class BitmessageAddress {
         this.pubkey = pubkey;
     }
 
-    public byte[] getPubkeyDecryptionKey() {
-        return pubkeyDecryptionKey;
+    /**
+     * Returns the private key used to decrypt Pubkey objects (for v4 addresses) and broadcasts.
+     */
+    public byte[] getPublicDecryptionKey() {
+        return publicDecryptionKey;
     }
 
     public PrivateKey getPrivateKey() {
@@ -163,10 +178,6 @@ public class BitmessageAddress {
 
     public void setAlias(String alias) {
         this.alias = alias;
-    }
-
-    public void setSubscribed(boolean subscribed) {
-        this.subscribed = subscribed;
     }
 
     @Override
@@ -195,5 +206,13 @@ public class BitmessageAddress {
     @Override
     public int hashCode() {
         return Arrays.hashCode(ripe);
+    }
+
+    public boolean isSubscribed() {
+        return subscribed;
+    }
+
+    public void setSubscribed(boolean subscribed) {
+        this.subscribed = subscribed;
     }
 }

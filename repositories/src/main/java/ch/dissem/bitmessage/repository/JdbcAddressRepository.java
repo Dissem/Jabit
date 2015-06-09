@@ -140,24 +140,27 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
     }
 
     private void update(BitmessageAddress address) throws IOException, SQLException {
-        try(Connection connection = config.getConnection()){
-        PreparedStatement ps = connection.prepareStatement(
-                "UPDATE Address SET alias=?, public_key=?, private_key=? WHERE address=?");
-        ps.setString(1, address.getAlias());
-        writePubkey(ps, 2, address.getPubkey());
-        writeBlob(ps, 3, address.getPrivateKey());
-        ps.setString(4, address.getAddress());
-        ps.executeUpdate();
-    }}
+        try (Connection connection = config.getConnection()) {
+            PreparedStatement ps = connection.prepareStatement(
+                    "UPDATE Address SET alias=?, public_key=?, private_key=?, subscribed=? WHERE address=?");
+            ps.setString(1, address.getAlias());
+            writePubkey(ps, 2, address.getPubkey());
+            writeBlob(ps, 3, address.getPrivateKey());
+            ps.setBoolean(4, address.isSubscribed());
+            ps.setString(5, address.getAddress());
+            ps.executeUpdate();
+        }
+    }
 
     private void insert(BitmessageAddress address) throws IOException, SQLException {
         try (Connection connection = config.getConnection()) {
             PreparedStatement ps = connection.prepareStatement(
-                    "INSERT INTO Address (address, alias, public_key, private_key) VALUES (?, ?, ?, ?)");
+                    "INSERT INTO Address (address, alias, public_key, private_key, subscribed) VALUES (?, ?, ?, ?, ?)");
             ps.setString(1, address.getAddress());
             ps.setString(2, address.getAlias());
             writePubkey(ps, 3, address.getPubkey());
             writeBlob(ps, 4, address.getPrivateKey());
+            ps.setBoolean(5, address.isSubscribed());
             ps.executeUpdate();
         }
     }

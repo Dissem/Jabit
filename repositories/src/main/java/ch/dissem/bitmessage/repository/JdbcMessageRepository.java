@@ -19,6 +19,7 @@ package ch.dissem.bitmessage.repository;
 import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
+import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.ports.MessageRepository;
 import org.slf4j.Logger;
@@ -102,12 +103,15 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         List<Plaintext> result = new LinkedList<>();
         try (Connection connection = config.getConnection()) {
             Statement stmt = connection.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT id, sender, recipient, data, sent, received, status FROM Message WHERE " + where);
+            ResultSet rs = stmt.executeQuery("SELECT id, iv, type, sender, recipient, data, sent, received, status FROM Message WHERE " + where);
             while (rs.next()) {
+                byte[] iv = rs.getBytes("iv");
                 Blob data = rs.getBlob("data");
-                Plaintext.Builder builder = Plaintext.readWithoutSignature(data.getBinaryStream());
+                Plaintext.Type type = Plaintext.Type.valueOf(rs.getString("type"));
+                Plaintext.Builder builder = Plaintext.readWithoutSignature(type, data.getBinaryStream());
                 long id = rs.getLong("id");
                 builder.id(id);
+                builder.IV(new InventoryVector(iv));
                 builder.from(ctx.getAddressRepo().getAddress(rs.getString("sender")));
                 builder.to(ctx.getAddressRepo().getAddress(rs.getString("recipient")));
                 builder.sent(rs.getLong("sent"));
@@ -155,13 +159,13 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
                 // save message
                 if (message.getId() == null) {
                     insert(connection, message);
-
-                    // remove existing labels
-                    Statement stmt = connection.createStatement();
-                    stmt.executeUpdate("DELETE FROM Message_Label WHERE message_id=" + message.getId());
                 } else {
                     update(connection, message);
                 }
+
+                // remove existing labels
+                Statement stmt = connection.createStatement();
+                stmt.executeUpdate("DELETE FROM Message_Label WHERE message_id=" + message.getId());
 
                 // save labels
                 PreparedStatement ps = connection.prepareStatement("INSERT INTO Message_Label VALUES (" + message.getId() + ", ?)");
@@ -186,16 +190,15 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     private void insert(Connection connection, Plaintext message) throws SQLException, IOException {
         PreparedStatement ps = connection.prepareStatement(
-                "INSERT INTO Message (sender, recipient, data, sent, received, status) VALUES (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
-        ps.setString(1, message.getFrom().getAddress());
-        ps.setString(2, message.getTo().getAddress());
-        writeBlob(ps, 3, message);
-        ps.setLong(4, message.getSent());
-        ps.setLong(5, message.getReceived());
-        if (message.getStatus() != null)
-            ps.setString(6, message.getStatus().name());
-        else
-            ps.setString(6, null);
+                "INSERT INTO Message (iv, type, sender, recipient, data, sent, received, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+        ps.setBytes(1, message.getInventoryVector() != null ? message.getInventoryVector().getHash() : null);
+        ps.setString(2, message.getType().name());
+        ps.setString(3, message.getFrom().getAddress());
+        ps.setString(4, message.getTo() != null ? message.getTo().getAddress() : null);
+        writeBlob(ps, 5, message);
+        ps.setLong(6, message.getSent());
+        ps.setLong(7, message.getReceived());
+        ps.setString(8, message.getStatus() != null ? message.getStatus().name() : null);
 
         ps.executeUpdate();
 
@@ -207,11 +210,12 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     private void update(Connection connection, Plaintext message) throws SQLException, IOException {
         PreparedStatement ps = connection.prepareStatement(
-                "UPDATE Message SET sent=?, received=?, status=? WHERE id=?");
-        ps.setLong(1, message.getSent());
-        ps.setLong(2, message.getReceived());
-        ps.setString(3, message.getStatus() != null ? message.getStatus().name() : null);
-        ps.setLong(4, (Long) message.getId());
+                "UPDATE Message SET iv=?, sent=?, received=?, status=? WHERE id=?");
+        ps.setBytes(1, message.getInventoryVector() != null ? message.getInventoryVector().getHash() : null);
+        ps.setLong(2, message.getSent());
+        ps.setLong(3, message.getReceived());
+        ps.setString(4, message.getStatus() != null ? message.getStatus().name() : null);
+        ps.setLong(5, (Long) message.getId());
         ps.executeUpdate();
     }
 

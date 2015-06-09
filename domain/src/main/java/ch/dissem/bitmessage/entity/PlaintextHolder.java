@@ -14,14 +14,8 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.demo;
+package ch.dissem.bitmessage.entity;
 
-import java.io.IOException;
-
-public class Main {
-    public static void main(String[] args) throws IOException {
-//        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "TRACE");
-//        System.setProperty("org.slf4j.simpleLogger.logFile", "./trace.log");
-        new Application();
-    }
+public interface PlaintextHolder {
+    Plaintext getPlaintext();
 }

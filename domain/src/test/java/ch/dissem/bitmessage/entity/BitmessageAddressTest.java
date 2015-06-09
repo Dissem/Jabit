@@ -84,7 +84,7 @@ public class BitmessageAddressTest {
     public void testV4PubkeyImport() throws IOException, DecryptionFailedException {
         BitmessageAddress address = new BitmessageAddress("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h");
         ObjectMessage object = TestUtils.loadObjectMessage(4, "V4Pubkey.payload");
-        object.decrypt(address.getPubkeyDecryptionKey());
+        object.decrypt(address.getPublicDecryptionKey());
         V4Pubkey pubkey = (V4Pubkey) object.getPayload();
         assertTrue(object.isSignatureValid(pubkey));
         address.setPubkey(pubkey);

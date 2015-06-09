@@ -20,16 +20,19 @@ import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
+import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.ports.AddressRepository;
 import ch.dissem.bitmessage.ports.MessageRepository;
+import ch.dissem.bitmessage.utils.Security;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
 
+import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -116,7 +119,8 @@ public class JdbcMessageRepositoryTest {
 
     @Test
     public void testSave() throws Exception {
-        Plaintext message = new Plaintext.Builder()
+        Plaintext message = new Plaintext.Builder(MSG)
+                .IV(new InventoryVector(Security.randomBytes(32)))
                 .from(identity)
                 .to(contactA)
                 .message("Subject", "Message")
@@ -132,6 +136,19 @@ public class JdbcMessageRepositoryTest {
         List<Plaintext> messages = repo.findMessages(Plaintext.Status.DOING_PROOF_OF_WORK);
 
         assertEquals(1, messages.size());
+        assertNotNull(messages.get(0).getInventoryVector());
+    }
+
+    @Test
+    public void testUpdate() throws Exception {
+        List<Plaintext> messages = repo.findMessages(Plaintext.Status.DRAFT, contactA);
+        Plaintext message = messages.get(0);
+        message.setInventoryVector(new InventoryVector(Security.randomBytes(32)));
+        repo.save(message);
+
+        messages = repo.findMessages(Plaintext.Status.DRAFT, contactA);
+        assertEquals(1, messages.size());
+        assertNotNull(messages.get(0).getInventoryVector());
     }
 
     @Test
@@ -143,7 +160,7 @@ public class JdbcMessageRepositoryTest {
     }
 
     private void addMessage(BitmessageAddress from, BitmessageAddress to, Plaintext.Status status, Label... labels) {
-        Plaintext message = new Plaintext.Builder()
+        Plaintext message = new Plaintext.Builder(MSG)
                 .from(from)
                 .to(to)
                 .message("Subject", "Message")

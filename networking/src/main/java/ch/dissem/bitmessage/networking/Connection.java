@@ -24,6 +24,7 @@ import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.exception.InsufficientProofOfWorkException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.NetworkHandler.MessageListener;
+import ch.dissem.bitmessage.utils.DebugUtils;
 import ch.dissem.bitmessage.utils.Security;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -160,15 +161,10 @@ public class Connection implements Runnable {
                     listener.receive(objectMessage);
                     ctx.getInventory().storeObject(objectMessage);
                 } catch (InsufficientProofOfWorkException e) {
-                    try {
-                        File f = new File(System.getProperty("user.home") + "/jabit.error/" + objectMessage.getInventoryVector() + ".inv");
-                        f.createNewFile();
-                        objectMessage.write(new FileOutputStream(f));
-                    } catch (IOException e1) {
-                        e1.printStackTrace();
-                    }
+//                    DebugUtils.saveToFile(objectMessage);
                 } catch (IOException e) {
                     LOG.error("Stream " + objectMessage.getStream() + ", object type " + objectMessage.getType() + ": " + e.getMessage(), e);
+                    DebugUtils.saveToFile(objectMessage);
                 }
                 break;
             case ADDR:

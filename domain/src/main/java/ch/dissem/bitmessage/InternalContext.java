@@ -16,9 +16,8 @@
 
 package ch.dissem.bitmessage;
 
-import ch.dissem.bitmessage.entity.BitmessageAddress;
-import ch.dissem.bitmessage.entity.Encrypted;
-import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.entity.*;
+import ch.dissem.bitmessage.entity.payload.Broadcast;
 import ch.dissem.bitmessage.entity.payload.GetPubkey;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.ports.*;
@@ -141,6 +140,7 @@ public class InternalContext {
 
     public void send(BitmessageAddress from, BitmessageAddress to, ObjectPayload payload, long timeToLive, long nonceTrialsPerByte, long extraBytes) {
         try {
+            if (to == null) to = from;
             long expires = UnixTime.now(+timeToLive);
             LOG.info("Expires at " + expires);
             ObjectMessage object = new ObjectMessage.Builder()
@@ -151,10 +151,17 @@ public class InternalContext {
             if (object.isSigned()) {
                 object.sign(from.getPrivateKey());
             }
-            if (payload instanceof Encrypted) {
+            if (payload instanceof Broadcast) {
+                ((Broadcast) payload).encrypt();
+            } else if (payload instanceof Encrypted) {
                 object.encrypt(to.getPubkey());
             }
             Security.doProofOfWork(object, proofOfWorkEngine, nonceTrialsPerByte, extraBytes);
+            if (payload instanceof PlaintextHolder) {
+                Plaintext plaintext = ((PlaintextHolder) payload).getPlaintext();
+                plaintext.setInventoryVector(object.getInventoryVector());
+                messageRepository.save(plaintext);
+            }
             inventory.storeObject(object);
             networkHandler.offer(object.getInventoryVector());
         } catch (IOException e) {
@@ -172,13 +179,13 @@ public class InternalContext {
                     .payload(identity.getPubkey())
                     .build();
             response.sign(identity.getPrivateKey());
-            response.encrypt(Security.createPublicKey(identity.getPubkeyDecryptionKey()).getEncoded(false));
+            response.encrypt(Security.createPublicKey(identity.getPublicDecryptionKey()).getEncoded(false));
             Security.doProofOfWork(response, proofOfWorkEngine, networkNonceTrialsPerByte, networkExtraBytes);
             if (response.isSigned()) {
                 response.sign(identity.getPrivateKey());
             }
             if (response instanceof Encrypted) {
-                response.encrypt(Security.createPublicKey(identity.getPubkeyDecryptionKey()).getEncoded(false));
+                response.encrypt(Security.createPublicKey(identity.getPublicDecryptionKey()).getEncoded(false));
             }
             inventory.storeObject(response);
             networkHandler.offer(response.getInventoryVector());

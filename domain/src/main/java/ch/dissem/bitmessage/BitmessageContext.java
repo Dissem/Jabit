@@ -19,10 +19,11 @@ package ch.dissem.bitmessage;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.Plaintext;
-import ch.dissem.bitmessage.entity.Plaintext.Encoding;
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.exception.DecryptionFailedException;
+import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Security;
 import ch.dissem.bitmessage.utils.UnixTime;
@@ -35,6 +36,8 @@ import java.util.Collection;
 import java.util.TreeSet;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
+import static ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST;
+import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
 import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 
 /**
@@ -58,6 +61,8 @@ public class BitmessageContext {
     private final static Logger LOG = LoggerFactory.getLogger(BitmessageContext.class);
 
     private final InternalContext ctx;
+
+    private Listener listener;
 
     private BitmessageContext(Builder builder) {
         ctx = new InternalContext(builder);
@@ -89,12 +94,34 @@ public class BitmessageContext {
         // TODO
     }
 
+    public void broadcast(BitmessageAddress from, String subject, String message) {
+        // TODO: all this should happen in a separate thread
+        Plaintext msg = new Plaintext.Builder(BROADCAST)
+                .from(from)
+                .message(subject, message)
+                .build();
+
+        LOG.info("Sending message.");
+        msg.setStatus(DOING_PROOF_OF_WORK);
+        ctx.getMessageRepository().save(msg);
+        ctx.send(
+                from,
+                from,
+                Factory.getBroadcast(from, msg),
+                +2 * DAY,
+                0,
+                0
+        );
+        msg.setStatus(SENT);
+        ctx.getMessageRepository().save(msg);
+    }
+
     public void send(BitmessageAddress from, BitmessageAddress to, String subject, String message) {
         if (from.getPrivateKey() == null) {
             throw new IllegalArgumentException("'From' must be an identity, i.e. have a private key.");
         }
         // TODO: all this should happen in a separate thread
-        Plaintext msg = new Plaintext.Builder()
+        Plaintext msg = new Plaintext.Builder(MSG)
                 .from(from)
                 .to(to)
                 .message(subject, message)
@@ -154,6 +181,7 @@ public class BitmessageContext {
     }
 
     public void startup(Listener listener) {
+        this.listener = listener;
         ctx.getNetworkHandler().start(new DefaultMessageListener(ctx, listener));
     }
 
@@ -176,7 +204,7 @@ public class BitmessageContext {
                 if (address.getVersion() == 4) {
                     V4Pubkey v4Pubkey = (V4Pubkey) pubkey;
                     if (Arrays.equals(address.getTag(), v4Pubkey.getTag())) {
-                        v4Pubkey.decrypt(address.getPubkeyDecryptionKey());
+                        v4Pubkey.decrypt(address.getPublicDecryptionKey());
                         if (object.isSignatureValid(v4Pubkey)) {
                             address.setPubkey(v4Pubkey);
                             ctx.getAddressRepo().save(address);
@@ -192,6 +220,25 @@ public class BitmessageContext {
                         break;
                     }
                 }
+            } catch (Exception e) {
+                LOG.debug(e.getMessage(), e);
+            }
+        }
+    }
+
+    public void addSubscribtion(BitmessageAddress address) {
+        address.setSubscribed(true);
+        ctx.getAddressRepo().save(address);
+        tryToFindBroadcastsForAddress(address);
+    }
+
+    private void tryToFindBroadcastsForAddress(BitmessageAddress address) {
+        for (ObjectMessage object : ctx.getInventory().getObjects(address.getStream(), Broadcast.getVersion(address), ObjectType.BROADCAST)) {
+            try {
+                Broadcast broadcast = (Broadcast) object.getPayload();
+                broadcast.decrypt(address);
+                listener.receive(broadcast.getPlaintext());
+            } catch (DecryptionFailedException ignore) {
             } catch (Exception e) {
                 LOG.debug(e.getMessage(), e);
             }

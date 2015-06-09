@@ -16,6 +16,8 @@
 
 package ch.dissem.bitmessage.entity.payload;
 
+import ch.dissem.bitmessage.entity.BitmessageAddress;
+import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.utils.Decode;
 
 import java.io.IOException;
@@ -29,8 +31,15 @@ public class V5Broadcast extends V4Broadcast {
     private byte[] tag;
 
     private V5Broadcast(long stream, byte[] tag, CryptoBox encrypted) {
-        super(5, stream, encrypted);
+        super(5, stream, encrypted, null);
         this.tag = tag;
+    }
+
+    public V5Broadcast(BitmessageAddress senderAddress, Plaintext plaintext) {
+        super(5, senderAddress.getStream(), null, plaintext);
+        if (senderAddress.getVersion() < 4)
+            throw new IllegalArgumentException("Address version 4 (or newer) expected, but was " + senderAddress.getVersion());
+        this.tag = senderAddress.getTag();
     }
 
     public static V5Broadcast read(InputStream is, long stream, int length) throws IOException {

@@ -22,9 +22,6 @@ import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.networking.NetworkNode;
 import ch.dissem.bitmessage.repository.*;
-import ch.dissem.bitmessage.utils.Strings;
-import org.flywaydb.core.internal.util.logging.slf4j.Slf4jLog;
-import org.flywaydb.core.internal.util.logging.slf4j.Slf4jLogCreator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,6 +69,7 @@ public class Application {
             System.out.println("available commands:");
             System.out.println("i) identities");
             System.out.println("c) contacts");
+            System.out.println("s) subscriptions");
             System.out.println("m) messages");
             System.out.println("e) exit");
 
@@ -84,6 +82,9 @@ public class Application {
                     }
                     case "c":
                         contacts();
+                        break;
+                    case "s":
+                        subscriptions();
                         break;
                     case "m":
                         messages();
@@ -181,7 +182,7 @@ public class Application {
             command = nextCommand();
             switch (command) {
                 case "a":
-                    addContact();
+                    addContact(false);
                     contacts = ctx.addresses().getContacts();
                     break;
                 case "b":
@@ -197,7 +198,7 @@ public class Application {
         } while (!"b".equals(command));
     }
 
-    private void addContact() {
+    private void addContact(boolean isSubscription) {
         System.out.println();
         System.out.println("Please enter the Bitmessage address you want to add");
         try {
@@ -207,10 +208,54 @@ public class Application {
             if (alias.length() > 0) {
                 address.setAlias(alias);
             }
+            if (isSubscription) {
+                ctx.addSubscribtion(address);
+            }
             ctx.addContact(address);
         } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());
         }
+    }
+
+    private void subscriptions() {
+        String command;
+        List<BitmessageAddress> subscriptions = ctx.addresses().getSubscriptions();
+        do {
+            System.out.println();
+            int i = 0;
+            for (BitmessageAddress contact : subscriptions) {
+                i++;
+                System.out.print(i + ") ");
+                if (contact.getAlias() != null) {
+                    System.out.println(contact.getAlias() + " (" + contact.getAddress() + ")");
+                } else {
+                    System.out.println(contact.getAddress());
+                }
+            }
+            if (i == 0) {
+                System.out.println("You have no subscriptions yet.");
+            }
+            System.out.println();
+            System.out.println("a) add subscription");
+            System.out.println("b) back");
+
+            command = nextCommand();
+            switch (command) {
+                case "a":
+                    addContact(true);
+                    subscriptions = ctx.addresses().getSubscriptions();
+                    break;
+                case "b":
+                    return;
+                default:
+                    try {
+                        int index = Integer.parseInt(command) - 1;
+                        address(subscriptions.get(index));
+                    } catch (NumberFormatException e) {
+                        System.out.println("Unknown command. Please try again.");
+                    }
+            }
+        } while (!"b".equals(command));
     }
 
     private void address(BitmessageAddress address) {
@@ -244,12 +289,16 @@ public class Application {
             }
             System.out.println();
             System.out.println("c) compose message");
+            System.out.println("s) compose broadcast");
             System.out.println("b) back");
 
             command = scanner.nextLine().trim();
             switch (command) {
                 case "c":
-                    compose();
+                    compose(false);
+                    break;
+                case "s":
+                    compose(true);
                     break;
                 case "b":
                     return;
@@ -272,7 +321,7 @@ public class Application {
         System.out.println();
         System.out.println(message.getText());
         System.out.println();
-        System.out.println("Labels: "+ message.getLabels());
+        System.out.println("Labels: " + message.getLabels());
         System.out.println();
         String command;
         do {
@@ -294,10 +343,10 @@ public class Application {
         } while (!"b".equalsIgnoreCase(command));
     }
 
-    private void compose() {
+    private void compose(boolean broadcast) {
         System.out.println();
         BitmessageAddress from = selectAddress(true);
-        BitmessageAddress to = selectAddress(false);
+        BitmessageAddress to = (broadcast ? null : selectAddress(false));
 
         compose(from, to, null);
     }
@@ -352,9 +401,12 @@ public class Application {
     }
 
     private void compose(BitmessageAddress from, BitmessageAddress to, String subject) {
+        boolean broadcast = (to == null);
         System.out.println();
         System.out.println("From:    " + from);
-        System.out.println("To:      " + to);
+        if (!broadcast) {
+            System.out.println("To:      " + to);
+        }
         if (subject != null) {
             System.out.println("Subject: " + subject);
         } else {
@@ -368,7 +420,11 @@ public class Application {
             line = nextCommand();
             message.append(line).append('\n');
         } while (line.length() > 0 || !yesNo("Send message?"));
-        ctx.send(from, to, subject, message.toString());
+        if (broadcast) {
+            ctx.broadcast(from, subject, message.toString());
+        } else {
+            ctx.send(from, to, subject, message.toString());
+        }
     }
 
     private boolean yesNo(String question) {

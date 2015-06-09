@@ -72,7 +72,7 @@ public class TestUtils {
     public static BitmessageAddress loadContact() throws IOException, DecryptionFailedException {
         BitmessageAddress address = new BitmessageAddress("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h");
         ObjectMessage object = TestUtils.loadObjectMessage(4, "V4Pubkey.payload");
-        object.decrypt(address.getPubkeyDecryptionKey());
+        object.decrypt(address.getPublicDecryptionKey());
         address.setPubkey((V4Pubkey) object.getPayload());
         return address;
     }

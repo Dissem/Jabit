@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage.entity;
 
+import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.Decode;
@@ -28,11 +29,13 @@ import java.util.*;
  * The unencrypted message to be sent by 'msg' or 'broadcast'.
  */
 public class Plaintext implements Streamable {
+    private final Type type;
     private final BitmessageAddress from;
     private final long encoding;
     private final byte[] message;
     private final byte[] ack;
     private Object id;
+    private InventoryVector inventoryVector;
     private BitmessageAddress to;
     private byte[] signature;
     private Status status;
@@ -43,6 +46,8 @@ public class Plaintext implements Streamable {
 
     private Plaintext(Builder builder) {
         id = builder.id;
+        inventoryVector = builder.inventoryVector;
+        type = builder.type;
         from = builder.from;
         to = builder.to;
         encoding = builder.encoding;
@@ -55,14 +60,14 @@ public class Plaintext implements Streamable {
         labels = builder.labels;
     }
 
-    public static Plaintext read(InputStream in) throws IOException {
-        return readWithoutSignature(in)
+    public static Plaintext read(Type type, InputStream in) throws IOException {
+        return readWithoutSignature(type, in)
                 .signature(Decode.varBytes(in))
                 .build();
     }
 
-    public static Plaintext.Builder readWithoutSignature(InputStream in) throws IOException {
-        return new Builder()
+    public static Plaintext.Builder readWithoutSignature(Type type, InputStream in) throws IOException {
+        return new Builder(type)
                 .addressVersion(Decode.varInt(in))
                 .stream(Decode.varInt(in))
                 .behaviorBitfield(Decode.int32(in))
@@ -70,10 +75,22 @@ public class Plaintext implements Streamable {
                 .publicEncryptionKey(Decode.bytes(in, 64))
                 .nonceTrialsPerByte(Decode.varInt(in))
                 .extraBytes(Decode.varInt(in))
-                .destinationRipe(Decode.bytes(in, 20))
+                .destinationRipe(type == Type.MSG ? Decode.bytes(in, 20) : null)
                 .encoding(Decode.varInt(in))
                 .message(Decode.varBytes(in))
-                .ack(Decode.varBytes(in));
+                .ack(type == Type.MSG ? Decode.varBytes(in) : null);
+    }
+
+    public InventoryVector getInventoryVector() {
+        return inventoryVector;
+    }
+
+    public void setInventoryVector(InventoryVector inventoryVector) {
+        this.inventoryVector = inventoryVector;
+    }
+
+    public Type getType() {
+        return type;
     }
 
     public byte[] getMessage() {
@@ -121,12 +138,16 @@ public class Plaintext implements Streamable {
         out.write(from.getPubkey().getEncryptionKey(), 1, 64);
         Encode.varInt(from.getPubkey().getNonceTrialsPerByte(), out);
         Encode.varInt(from.getPubkey().getExtraBytes(), out);
-        out.write(to.getRipe());
+        if (type == Type.MSG) {
+            out.write(to.getRipe());
+        }
         Encode.varInt(encoding, out);
         Encode.varInt(message.length, out);
         out.write(message);
-        Encode.varInt(ack.length, out);
-        out.write(ack);
+        if (type == Type.MSG) {
+            Encode.varInt(ack.length, out);
+            out.write(ack);
+        }
         if (includeSignature) {
             if (signature == null) {
                 Encode.varInt(0, out);
@@ -249,8 +270,14 @@ public class Plaintext implements Streamable {
         RECEIVED
     }
 
+    public enum Type {
+        MSG, BROADCAST
+    }
+
     public static final class Builder {
         private Object id;
+        private InventoryVector inventoryVector;
+        private Type type;
         private BitmessageAddress from;
         private BitmessageAddress to;
         private long addressVersion;
@@ -270,11 +297,17 @@ public class Plaintext implements Streamable {
         private Status status;
         private Set<Label> labels = new HashSet<>();
 
-        public Builder() {
+        public Builder(Type type) {
+            this.type = type;
         }
 
         public Builder id(Object id) {
             this.id = id;
+            return this;
+        }
+
+        public Builder IV(InventoryVector iv) {
+            this.inventoryVector = iv;
             return this;
         }
 
@@ -284,6 +317,8 @@ public class Plaintext implements Streamable {
         }
 
         public Builder to(BitmessageAddress address) {
+            if (type != Type.MSG && to != null)
+                throw new IllegalArgumentException("recipient address only allowed for msg");
             to = address;
             return this;
         }
@@ -324,6 +359,7 @@ public class Plaintext implements Streamable {
         }
 
         private Builder destinationRipe(byte[] ripe) {
+            if (type != Type.MSG && ripe != null) throw new IllegalArgumentException("ripe only allowed for msg");
             this.destinationRipe = ripe;
             return this;
         }
@@ -354,6 +390,7 @@ public class Plaintext implements Streamable {
         }
 
         public Builder ack(byte[] ack) {
+            if (type != Type.MSG && ack != null) throw new IllegalArgumentException("ack only allowed for msg");
             this.ack = ack;
             return this;
         }
@@ -395,7 +432,7 @@ public class Plaintext implements Streamable {
                         behaviorBitfield
                 ));
             }
-            if (to == null) {
+            if (to == null && type != Type.BROADCAST) {
                 to = new BitmessageAddress(0, 0, destinationRipe);
             }
             return new Plaintext(this);

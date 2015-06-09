@@ -19,6 +19,7 @@ package ch.dissem.bitmessage.factory;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.NetworkMessage;
 import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import org.slf4j.Logger;
@@ -162,6 +163,14 @@ public class Factory {
             default:
                 LOG.debug("Encountered unknown broadcast version " + version);
                 return GenericPayload.read(version, stream, streamNumber, length);
+        }
+    }
+
+    public static ObjectPayload getBroadcast(BitmessageAddress sendingAddress, Plaintext plaintext) {
+        if (sendingAddress.getVersion() < 4) {
+            return new V4Broadcast(sendingAddress, plaintext);
+        } else {
+            return new V5Broadcast(sendingAddress, plaintext);
         }
     }
 }
