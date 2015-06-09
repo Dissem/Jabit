@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.utils;
 
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
@@ -75,5 +76,11 @@ public class TestUtils {
         object.decrypt(address.getPublicDecryptionKey());
         address.setPubkey((V4Pubkey) object.getPayload());
         return address;
+    }
+
+    public static void loadPubkey(BitmessageAddress address) throws IOException {
+        byte[] bytes = getBytes(address.getAddress() + ".pubkey");
+        Pubkey pubkey = Factory.readPubkey(address.getVersion(), address.getStream(), new ByteArrayInputStream(bytes), bytes.length, false);
+        address.setPubkey(pubkey);
     }
 }

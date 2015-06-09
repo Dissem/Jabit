@@ -27,21 +27,28 @@ import org.junit.Test;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class DecryptionTest {
     @Test
     public void ensureV4BroadcastIsDecryptedCorrectly() throws IOException, DecryptionFailedException {
+        BitmessageAddress address = new BitmessageAddress("BM-2D9Vc5rFxxR5vTi53T9gkLfemViHRMVLQZ");
+        TestUtils.loadPubkey(address);
         ObjectMessage objectMessage = TestUtils.loadObjectMessage(5, "V4Broadcast.payload");
         V4Broadcast broadcast = (V4Broadcast) objectMessage.getPayload();
-        broadcast.decrypt(new BitmessageAddress("BM-2D9Vc5rFxxR5vTi53T9gkLfemViHRMVLQZ"));
+        broadcast.decrypt(address);
         assertEquals("Test-Broadcast", broadcast.getPlaintext().getSubject());
+        assertTrue(objectMessage.isSignatureValid(address.getPubkey()));
     }
 
     @Test
     public void ensureV5BroadcastIsDecryptedCorrectly() throws IOException, DecryptionFailedException {
+        BitmessageAddress address = new BitmessageAddress("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h");
+        TestUtils.loadPubkey(address);
         ObjectMessage objectMessage = TestUtils.loadObjectMessage(5, "V5Broadcast.payload");
         V5Broadcast broadcast = (V5Broadcast) objectMessage.getPayload();
-        broadcast.decrypt(new BitmessageAddress("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h"));
+        broadcast.decrypt(address);
         assertEquals("Test-Broadcast", broadcast.getPlaintext().getSubject());
+        assertTrue(objectMessage.isSignatureValid(address.getPubkey()));
     }
 }

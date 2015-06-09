@@ -53,16 +53,6 @@ public class V4Broadcast extends Broadcast {
     }
 
     @Override
-    public byte[] getSignature() {
-        return plaintext.getSignature();
-    }
-
-    @Override
-    public void setSignature(byte[] signature) {
-        plaintext.setSignature(signature);
-    }
-
-    @Override
     public void write(OutputStream out) throws IOException {
         encrypted.write(out);
     }

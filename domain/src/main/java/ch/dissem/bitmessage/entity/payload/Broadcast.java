@@ -48,6 +48,21 @@ public abstract class Broadcast extends ObjectPayload implements Encrypted, Plai
     }
 
     @Override
+    public boolean isSigned() {
+        return true;
+    }
+
+    @Override
+    public byte[] getSignature() {
+        return plaintext.getSignature();
+    }
+
+    @Override
+    public void setSignature(byte[] signature) {
+        plaintext.setSignature(signature);
+    }
+
+    @Override
     public long getStream() {
         return stream;
     }

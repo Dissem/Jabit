@@ -67,14 +67,15 @@ public class Plaintext implements Streamable {
     }
 
     public static Plaintext.Builder readWithoutSignature(Type type, InputStream in) throws IOException {
+        long version = Decode.varInt(in);
         return new Builder(type)
-                .addressVersion(Decode.varInt(in))
+                .addressVersion(version)
                 .stream(Decode.varInt(in))
                 .behaviorBitfield(Decode.int32(in))
                 .publicSigningKey(Decode.bytes(in, 64))
                 .publicEncryptionKey(Decode.bytes(in, 64))
-                .nonceTrialsPerByte(Decode.varInt(in))
-                .extraBytes(Decode.varInt(in))
+                .nonceTrialsPerByte(version >= 3 ? Decode.varInt(in) : 0)
+                .extraBytes(version >= 3 ? Decode.varInt(in) : 0)
                 .destinationRipe(type == Type.MSG ? Decode.bytes(in, 20) : null)
                 .encoding(Decode.varInt(in))
                 .message(Decode.varBytes(in))
@@ -136,8 +137,10 @@ public class Plaintext implements Streamable {
         Encode.int32(from.getPubkey().getBehaviorBitfield(), out);
         out.write(from.getPubkey().getSigningKey(), 1, 64);
         out.write(from.getPubkey().getEncryptionKey(), 1, 64);
-        Encode.varInt(from.getPubkey().getNonceTrialsPerByte(), out);
-        Encode.varInt(from.getPubkey().getExtraBytes(), out);
+        if (from.getVersion() >= 3) {
+            Encode.varInt(from.getPubkey().getNonceTrialsPerByte(), out);
+            Encode.varInt(from.getPubkey().getExtraBytes(), out);
+        }
         if (type == Type.MSG) {
             out.write(to.getRipe());
         }
