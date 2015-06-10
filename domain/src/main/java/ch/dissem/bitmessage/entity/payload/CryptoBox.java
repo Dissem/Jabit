@@ -28,6 +28,7 @@ import org.bouncycastle.crypto.paddings.PKCS7Padding;
 import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.ParametersWithIV;
+import org.bouncycastle.math.ec.ECFieldElement;
 import org.bouncycastle.math.ec.ECPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -152,16 +153,20 @@ public class CryptoBox implements Streamable {
         return buffer;
     }
 
-    private void writeWithoutMAC(OutputStream stream) throws IOException {
-        stream.write(initializationVector);
-        Encode.int16(curveType, stream);
-        byte[] x = R.getXCoord().getEncoded();
-        byte[] y = R.getYCoord().getEncoded();
-        Encode.int16(x.length, stream);
-        stream.write(x);
-        Encode.int16(y.length, stream);
-        stream.write(y);
-        stream.write(encrypted);
+    private void writeWithoutMAC(OutputStream out) throws IOException {
+        out.write(initializationVector);
+        Encode.int16(curveType, out);
+        writeCoordinateComponent(out, R.getXCoord());
+        writeCoordinateComponent(out, R.getYCoord());
+        out.write(encrypted);
+    }
+
+    private void writeCoordinateComponent(OutputStream out, ECFieldElement coord) throws IOException {
+        byte[] x = coord.getEncoded();
+        int offset = Bytes.numberOfLeadingZeros(x);
+        int length = x.length - offset;
+        Encode.int16(length, out);
+        out.write(x, offset, length);
     }
 
     @Override

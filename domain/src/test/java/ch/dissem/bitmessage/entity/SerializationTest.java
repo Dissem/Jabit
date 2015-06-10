@@ -31,9 +31,6 @@ import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
-/**
- * Created by chris on 28.04.15.
- */
 public class SerializationTest {
     @Test
     public void ensureGetPubkeyIsDeserializedAndSerializedCorrectly() throws IOException {
