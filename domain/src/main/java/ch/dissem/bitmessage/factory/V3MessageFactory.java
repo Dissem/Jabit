@@ -201,13 +201,15 @@ class V3MessageFactory {
         for (int i = 0; i < 1620000; i++) {
             byte b = (byte) in.read();
             if (b == MAGIC_BYTES[pos]) {
-                pos++;
-                if (pos == MAGIC_BYTES.length) {
+                if (pos + 1 == MAGIC_BYTES.length) {
                     return;
                 }
+            } else if (pos > 0 && b == MAGIC_BYTES[0]) {
+                pos = 1;
             } else {
                 pos = 0;
             }
+            pos++;
         }
         throw new IOException("Failed to fine MAGIC bytes in stream");
     }
