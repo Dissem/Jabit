@@ -31,32 +31,30 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import static ch.dissem.bitmessage.entity.NetworkMessage.MAGIC_BYTES;
+
 /**
  * Creates protocol v3 network messages from {@link InputStream InputStreams}
  */
 class V3MessageFactory {
     private static Logger LOG = LoggerFactory.getLogger(V3MessageFactory.class);
 
-    public static NetworkMessage read(InputStream stream) throws IOException {
-        if (testMagic(stream)) {
-            String command = getCommand(stream);
-            int length = (int) Decode.uint32(stream);
-            byte[] checksum = Decode.bytes(stream, 4);
+    public static NetworkMessage read(InputStream in) throws IOException {
+        findMagic(in);
+        String command = getCommand(in);
+        int length = (int) Decode.uint32(in);
+        byte[] checksum = Decode.bytes(in, 4);
 
-            byte[] payloadBytes = Decode.bytes(stream, length);
+        byte[] payloadBytes = Decode.bytes(in, length);
 
-            if (testChecksum(checksum, payloadBytes)) {
-                MessagePayload payload = getPayload(command, new ByteArrayInputStream(payloadBytes), length);
-                if (payload != null)
-                    return new NetworkMessage(payload);
-                else
-                    return null;
-            } else {
-                throw new IOException("Checksum failed for message '" + command + "'");
-            }
+        if (testChecksum(checksum, payloadBytes)) {
+            MessagePayload payload = getPayload(command, new ByteArrayInputStream(payloadBytes), length);
+            if (payload != null)
+                return new NetworkMessage(payload);
+            else
+                return null;
         } else {
-            LOG.debug("Failed test for MAGIC bytes");
-            return null;
+            throw new IOException("Checksum failed for message '" + command + "'");
         }
     }
 
@@ -198,10 +196,19 @@ class V3MessageFactory {
         return new String(bytes, 0, end, "ASCII");
     }
 
-    private static boolean testMagic(InputStream stream) throws IOException {
-        for (byte b : NetworkMessage.MAGIC_BYTES) {
-            if (b != (byte) stream.read()) return false;
+    private static void findMagic(InputStream in) throws IOException {
+        int pos = 0;
+        for (int i = 0; i < 1620000; i++) {
+            byte b = (byte) in.read();
+            if (b == MAGIC_BYTES[pos]) {
+                pos++;
+                if (pos == MAGIC_BYTES.length) {
+                    return;
+                }
+            } else {
+                pos = 0;
+            }
         }
-        return true;
+        throw new IOException("Failed to fine MAGIC bytes in stream");
     }
 }
