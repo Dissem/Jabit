@@ -20,8 +20,8 @@ import java.io.IOException;
 
 public class Main {
     public static void main(String[] args) throws IOException {
-//        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "TRACE");
-//        System.setProperty("org.slf4j.simpleLogger.logFile", "./trace.log");
+        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "DEBUG");
+        System.setProperty("org.slf4j.simpleLogger.logFile", "./jabit.log");
         new Application();
     }
 }

@@ -150,7 +150,7 @@ public class Application {
         System.out.println();
         BitmessageAddress identity = ctx.createIdentity(yesNo("would you like a shorter address? This will take some time to calculate."), Pubkey.Feature.DOES_ACK);
         System.out.println("Please enter an alias for this identity, or an empty string for none");
-        String alias = nextCommand();
+        String alias = scanner.nextLine().trim();
         if (alias.length() > 0) {
             identity.setAlias(alias);
         }
@@ -346,19 +346,30 @@ public class Application {
     private void compose(boolean broadcast) {
         System.out.println();
         BitmessageAddress from = selectAddress(true);
+        if (from == null) {
+            return;
+        }
         BitmessageAddress to = (broadcast ? null : selectAddress(false));
+        if (!broadcast && to == null) {
+            return;
+        }
 
         compose(from, to, null);
     }
 
     private BitmessageAddress selectAddress(boolean id) {
-        List<BitmessageAddress> identities = (id ? ctx.addresses().getIdentities() : ctx.addresses().getContacts());
-        while (identities.size() == 0) {
-            addIdentity();
-            identities = ctx.addresses().getIdentities();
+        List<BitmessageAddress> addresses = (id ? ctx.addresses().getIdentities() : ctx.addresses().getContacts());
+        while (addresses.size() == 0) {
+            if (id) {
+                addIdentity();
+                addresses = ctx.addresses().getIdentities();
+            } else {
+                addContact(false);
+                addresses = ctx.addresses().getContacts();
+            }
         }
-        if (identities.size() == 1) {
-            return identities.get(0);
+        if (addresses.size() == 1) {
+            return addresses.get(0);
         }
 
         String command;
@@ -371,7 +382,7 @@ public class Application {
             }
 
             int i = 0;
-            for (BitmessageAddress identity : identities) {
+            for (BitmessageAddress identity : addresses) {
                 i++;
                 System.out.print(i + ") ");
                 if (identity.getAlias() != null) {
@@ -389,8 +400,8 @@ public class Application {
                 default:
                     try {
                         int index = Integer.parseInt(command) - 1;
-                        if (identities.get(index) != null) {
-                            return identities.get(index);
+                        if (addresses.get(index) != null) {
+                            return addresses.get(index);
                         }
                     } catch (NumberFormatException e) {
                         System.out.println("Unknown command. Please try again.");
@@ -411,13 +422,13 @@ public class Application {
             System.out.println("Subject: " + subject);
         } else {
             System.out.print("Subject: ");
-            subject = nextCommand();
+            subject = scanner.nextLine().trim();
         }
         System.out.println("Message:");
         StringBuilder message = new StringBuilder();
         String line;
         do {
-            line = nextCommand();
+            line = scanner.nextLine();
             message.append(line).append('\n');
         } while (line.length() > 0 || !yesNo("Send message?"));
         if (broadcast) {

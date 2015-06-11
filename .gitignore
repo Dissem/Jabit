@@ -1,5 +1,7 @@
 # Created by https://www.gitignore.io
 
+*.log
+
 ### Gradle ###
 .gradle
 build/
@@ -115,7 +117,8 @@ local.properties
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*
