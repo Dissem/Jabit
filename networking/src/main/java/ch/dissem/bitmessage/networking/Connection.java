@@ -29,10 +29,13 @@ import ch.dissem.bitmessage.utils.Security;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
@@ -161,7 +164,7 @@ public class Connection implements Runnable {
                     listener.receive(objectMessage);
                     ctx.getInventory().storeObject(objectMessage);
                 } catch (InsufficientProofOfWorkException e) {
-//                    DebugUtils.saveToFile(objectMessage);
+                    LOG.warn(e.getMessage());
                 } catch (IOException e) {
                     LOG.error("Stream " + objectMessage.getStream() + ", object type " + objectMessage.getType() + ": " + e.getMessage(), e);
                     DebugUtils.saveToFile(objectMessage);
@@ -215,6 +218,19 @@ public class Connection implements Runnable {
         sendingQueue.offer(new Inv.Builder()
                 .addInventoryVector(iv)
                 .build());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Connection that = (Connection) o;
+        return Objects.equals(node, that.node);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(node);
     }
 
     public enum State {SERVER, CLIENT, ACTIVE, DISCONNECTED}

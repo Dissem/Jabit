@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.InternalContext.ContextHolder;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.ports.NetworkHandler;
+import ch.dissem.bitmessage.utils.Collections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,8 +88,8 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
                                 }
                             }
                         }
-                        if (connections.size() < 1) {
-                            List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(8, ctx.getStreams());
+                        if (connections.size() < 8) {
+                            List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(8 - connections.size(), ctx.getStreams());
                             for (NetworkAddress address : addresses) {
                                 try {
                                     startConnection(new Connection(ctx, CLIENT, new Socket(address.toInetAddress(), address.getPort()), listener));
@@ -96,7 +97,6 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
                                     LOG.debug(e.getMessage(), e);
                                 }
                             }
-                            // FIXME: prevent connecting twice to the same node
                         }
                         try {
                             Thread.sleep(30000);
@@ -131,6 +131,10 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
 
     private void startConnection(Connection c) {
         synchronized (connections) {
+            // prevent connecting twice to the same node
+            if (connections.contains(c)) {
+                return;
+            }
             connections.add(c);
         }
         pool.execute(c);
@@ -138,12 +142,10 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
 
     @Override
     public void offer(final InventoryVector iv) {
-        // TODO:
-        // - should offer to (random) 8 nodes during 8 seconds (if possible)
-        // - should probably offer later if no connection available at the moment?
         synchronized (connections) {
             LOG.debug(connections.size() + " connections available to offer " + iv);
-            for (Connection connection : connections) {
+            List<Connection> random8 = Collections.selectRandom(8, this.connections);
+            for (Connection connection : random8) {
                 connection.offer(iv);
             }
         }

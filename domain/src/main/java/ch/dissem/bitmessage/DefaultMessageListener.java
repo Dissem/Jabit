@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
@@ -109,7 +110,6 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
                 ctx.getAddressRepo().save(address);
             }
         } catch (DecryptionFailedException ignore) {
-            LOG.debug(ignore.getMessage(), ignore);
         }
     }
 
@@ -129,21 +129,25 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
                 }
                 break;
             } catch (DecryptionFailedException ignore) {
-                LOG.trace(ignore.getMessage(), ignore);
             }
         }
     }
 
     protected void receive(ObjectMessage object, Broadcast broadcast) throws IOException {
-        // TODO this should work fine as-is, but checking the tag might be more efficient
-//        V5Broadcast v5 = broadcast instanceof V5Broadcast ? (V5Broadcast) broadcast : null;
-        for (BitmessageAddress subscription : ctx.getAddressRepo().getSubscriptions()) {
+        byte[] tag = broadcast instanceof V5Broadcast ? ((V5Broadcast) broadcast).getTag() : null;
+        for (BitmessageAddress subscription : ctx.getAddressRepo().getSubscriptions(broadcast.getVersion())) {
+            if (tag != null && !Arrays.equals(tag, subscription.getTag())) {
+                continue;
+            }
             try {
                 broadcast.decrypt(subscription.getPublicDecryptionKey());
                 if (!object.isSignatureValid(broadcast.getPlaintext().getFrom().getPubkey())) {
                     LOG.warn("Broadcast with IV " + object.getInventoryVector() + " was successfully decrypted, but signature check failed. Ignoring.");
                 } else {
+                    broadcast.getPlaintext().setStatus(RECEIVED);
+                    broadcast.getPlaintext().addLabels(ctx.getMessageRepository().getLabels(Label.Type.INBOX, Label.Type.UNREAD));
                     broadcast.getPlaintext().setInventoryVector(object.getInventoryVector());
+                    ctx.getMessageRepository().save(broadcast.getPlaintext());
                     listener.receive(broadcast.getPlaintext());
                 }
             } catch (DecryptionFailedException ignore) {

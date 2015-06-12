@@ -31,6 +31,9 @@ public interface AddressRepository {
     List<BitmessageAddress> getIdentities();
 
     List<BitmessageAddress> getSubscriptions();
+
+    List<BitmessageAddress> getSubscriptions(long broadcastVersion);
+
     /**
      * Returns all Bitmessage addresses that have no private key.
      */

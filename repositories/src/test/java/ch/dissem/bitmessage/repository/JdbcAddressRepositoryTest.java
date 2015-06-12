@@ -81,8 +81,26 @@ public class JdbcAddressRepositoryTest {
 
     @Test
     public void testGetSubscriptions() throws Exception {
+        addSubscription("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h");
+        addSubscription("BM-2D9Vc5rFxxR5vTi53T9gkLfemViHRMVLQZ");
+        addSubscription("BM-2D9QKN4teYRvoq2fyzpiftPh9WP9qggtzh");
         List<BitmessageAddress> subscriptions = repo.getSubscriptions();
-        assertEquals(0, subscriptions.size());
+        assertEquals(3, subscriptions.size());
+    }
+
+    @Test
+    public void testGetSubscriptionsForVersion() throws Exception {
+        addSubscription("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h");
+        addSubscription("BM-2D9Vc5rFxxR5vTi53T9gkLfemViHRMVLQZ");
+        addSubscription("BM-2D9QKN4teYRvoq2fyzpiftPh9WP9qggtzh");
+
+        List<BitmessageAddress> subscriptions;
+        
+        subscriptions = repo.getSubscriptions(5);
+        assertEquals(1, subscriptions.size());
+
+        subscriptions = repo.getSubscriptions(4);
+        assertEquals(2, subscriptions.size());
     }
 
     @Test
@@ -122,5 +140,11 @@ public class JdbcAddressRepositoryTest {
         BitmessageAddress address = repo.getAddress(IDENTITY_A);
         assertNotNull(address);
         assertNotNull(address.getPrivateKey());
+    }
+
+    private void addSubscription(String address) {
+        BitmessageAddress subscription = new BitmessageAddress(address);
+        subscription.setSubscribed(true);
+        repo.save(subscription);
     }
 }

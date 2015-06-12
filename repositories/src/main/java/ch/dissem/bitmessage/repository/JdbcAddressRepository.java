@@ -76,6 +76,15 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
     }
 
     @Override
+    public List<BitmessageAddress> getSubscriptions(long broadcastVersion) {
+        if (broadcastVersion > 4) {
+            return find("subscribed = '1' AND version > 3");
+        } else {
+            return find("subscribed = '1' AND version <= 3");
+        }
+    }
+
+    @Override
     public List<BitmessageAddress> getContacts() {
         return find("private_key IS NULL");
     }
@@ -155,12 +164,13 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
     private void insert(BitmessageAddress address) throws IOException, SQLException {
         try (Connection connection = config.getConnection()) {
             PreparedStatement ps = connection.prepareStatement(
-                    "INSERT INTO Address (address, alias, public_key, private_key, subscribed) VALUES (?, ?, ?, ?, ?)");
+                    "INSERT INTO Address (address, version, alias, public_key, private_key, subscribed) VALUES (?, ?, ?, ?, ?, ?)");
             ps.setString(1, address.getAddress());
-            ps.setString(2, address.getAlias());
-            writePubkey(ps, 3, address.getPubkey());
-            writeBlob(ps, 4, address.getPrivateKey());
-            ps.setBoolean(5, address.isSubscribed());
+            ps.setLong(2, address.getVersion());
+            ps.setString(3, address.getAlias());
+            writePubkey(ps, 4, address.getPubkey());
+            writeBlob(ps, 5, address.getPrivateKey());
+            ps.setBoolean(6, address.isSubscribed());
             ps.executeUpdate();
         }
     }
