@@ -52,6 +52,7 @@ public class InternalContext {
     private final int port;
     private long networkNonceTrialsPerByte = 1000;
     private long networkExtraBytes = 1000;
+    private long clientNonce;
 
     public InternalContext(BitmessageContext.Builder builder) {
         this.inventory = builder.inventory;
@@ -60,6 +61,7 @@ public class InternalContext {
         this.addressRepository = builder.addressRepo;
         this.messageRepository = builder.messageRepo;
         this.proofOfWorkEngine = builder.proofOfWorkEngine;
+        this.clientNonce = Security.randomNonce();
 
         port = builder.port;
         streams = builder.streams;
@@ -210,6 +212,14 @@ public class InternalContext {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public long getClientNonce() {
+        return clientNonce;
+    }
+
+    public void setClientNonce(long clientNonce) {
+        this.clientNonce = clientNonce;
     }
 
     public interface ContextHolder {

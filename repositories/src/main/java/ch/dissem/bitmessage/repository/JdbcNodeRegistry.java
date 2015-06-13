@@ -37,7 +37,7 @@ public class JdbcNodeRegistry extends JdbcHelper implements NodeRegistry {
         List<NetworkAddress> result = new LinkedList<>();
         try (Connection connection = config.getConnection()) {
             Statement stmt = connection.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT * FROM Node WHERE stream IN (" + join(streams) + ") LIMIT " + limit);
+            ResultSet rs = stmt.executeQuery("SELECT * FROM Node WHERE stream IN (" + join(streams) + ") ORDER BY RANDOM() LIMIT " + limit);
             while (rs.next()) {
                 result.add(new NetworkAddress.Builder()
                         .ipv6(rs.getBytes("ip"))

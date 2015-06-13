@@ -230,4 +230,8 @@ public class Security {
             throw new RuntimeException(e);
         }
     }
+
+    public static long randomNonce() {
+        return RANDOM.nextLong();
+    }
 }

@@ -102,7 +102,10 @@ public class Connection implements Runnable {
                         switch (msg.getPayload().getCommand()) {
                             case VERSION:
                                 Version payload = (Version) msg.getPayload();
-                                if (payload.getVersion() >= BitmessageContext.CURRENT_VERSION) {
+                                if (payload.getNonce() == ctx.getClientNonce()) {
+                                    LOG.info("Tried to connect to self, disconnecting.");
+                                    disconnect();
+                                } else if (payload.getVersion() >= BitmessageContext.CURRENT_VERSION) {
                                     this.version = payload.getVersion();
                                     this.streams = payload.getStreams();
                                     send(new VerAck());
@@ -120,8 +123,8 @@ public class Connection implements Runnable {
                                 }
                                 break;
                             default:
-                                throw new RuntimeException("Command 'version' or 'verack' expected, but was "
-                                        + msg.getPayload().getCommand());
+                                throw new RuntimeException("Command 'version' or 'verack' expected, but was '"
+                                        + msg.getPayload().getCommand() + "'");
                         }
                 }
                 if (socket.isClosed()) state = DISCONNECTED;
