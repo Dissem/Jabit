@@ -40,7 +40,8 @@ public class JdbcNodeRegistryTest {
         registry.offerAddresses(Arrays.asList(
                 createAddress(1, 8444, 1, now()),
                 createAddress(2, 8444, 1, now()),
-                createAddress(3, 8444, 1, now())
+                createAddress(3, 8444, 1, now()),
+                createAddress(4, 8444, 2, now())
         ));
     }
 

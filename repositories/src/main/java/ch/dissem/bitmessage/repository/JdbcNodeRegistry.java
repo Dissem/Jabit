@@ -76,7 +76,7 @@ public class JdbcNodeRegistry extends JdbcHelper implements NodeRegistry {
                 ResultSet lastConnectionTime = exists.executeQuery();
                 if (lastConnectionTime.next()) {
                     long time = lastConnectionTime.getLong("time");
-                    if (time < node.getTime() && node.getTime() < UnixTime.now()) {
+                    if (time < node.getTime() && node.getTime() <= UnixTime.now()) {
                         time = node.getTime();
                         update.setLong(1, node.getServices());
                         update.setLong(2, time);
@@ -86,7 +86,7 @@ public class JdbcNodeRegistry extends JdbcHelper implements NodeRegistry {
                         update.setLong(5, node.getStream());
                         update.executeUpdate();
                     }
-                } else if (node.getTime() < UnixTime.now()) {
+                } else if (node.getTime() <= UnixTime.now()) {
                     insert.setBytes(1, node.getIPv6());
                     insert.setInt(2, node.getPort());
                     insert.setLong(3, node.getServices());
