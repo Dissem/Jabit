@@ -22,11 +22,13 @@ import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.exception.NodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 
 /**
@@ -38,8 +40,10 @@ public class Factory {
     public static NetworkMessage getNetworkMessage(int version, InputStream stream) throws SocketTimeoutException {
         try {
             return V3MessageFactory.read(stream);
-        } catch (SocketTimeoutException e) {
+        } catch (SocketTimeoutException | NodeException e) {
             throw e;
+        } catch (SocketException e) {
+            throw new NodeException(e.getMessage(), e);
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
             return null;

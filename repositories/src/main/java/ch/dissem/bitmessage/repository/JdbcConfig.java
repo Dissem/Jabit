@@ -42,7 +42,7 @@ public class JdbcConfig {
     }
 
     public JdbcConfig() {
-        this("jdbc:h2:~/jabit", "sa", null);
+        this("jdbc:h2:~/jabit;AUTO_SERVER=TRUE", "sa", null);
     }
 
     public Connection getConnection() {

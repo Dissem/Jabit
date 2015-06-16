@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.entity.payload.GenericPayload;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
+import ch.dissem.bitmessage.exception.NodeException;
 import ch.dissem.bitmessage.utils.AccessCounter;
 import ch.dissem.bitmessage.utils.Decode;
 import ch.dissem.bitmessage.utils.Security;
@@ -211,6 +212,6 @@ class V3MessageFactory {
             }
             pos++;
         }
-        throw new IOException("Failed to fine MAGIC bytes in stream");
+        throw new NodeException("Failed to find MAGIC bytes in stream");
     }
 }

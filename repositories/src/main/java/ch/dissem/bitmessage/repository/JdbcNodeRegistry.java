@@ -18,12 +18,15 @@ package ch.dissem.bitmessage.repository;
 
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.ports.NodeRegistry;
+import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
+
+import static ch.dissem.bitmessage.utils.UnixTime.HOUR;
 
 public class JdbcNodeRegistry extends JdbcHelper implements NodeRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(JdbcNodeRegistry.class);
@@ -60,24 +63,30 @@ public class JdbcNodeRegistry extends JdbcHelper implements NodeRegistry {
     @Override
     public void offerAddresses(List<NetworkAddress> addresses) {
         try (Connection connection = config.getConnection()) {
-            PreparedStatement exists = connection.prepareStatement("SELECT port FROM Node WHERE ip = ? AND port = ? AND stream = ?");
+            PreparedStatement exists = connection.prepareStatement("SELECT time FROM Node WHERE ip = ? AND port = ? AND stream = ?");
             PreparedStatement insert = connection.prepareStatement(
                     "INSERT INTO Node (ip, port, services, stream, time) VALUES (?, ?, ?, ?, ?)");
             PreparedStatement update = connection.prepareStatement(
                     "UPDATE Node SET services = ?, time = ? WHERE ip = ? AND port = ? AND stream = ?");
+            connection.setAutoCommit(false);
             for (NetworkAddress node : addresses) {
                 exists.setBytes(1, node.getIPv6());
                 exists.setInt(2, node.getPort());
                 exists.setLong(3, node.getStream());
-                if (exists.executeQuery().next()) {
-                    update.setLong(1, node.getServices());
-                    update.setLong(2, node.getTime());
+                ResultSet lastConnectionTime = exists.executeQuery();
+                if (lastConnectionTime.next()) {
+                    long time = lastConnectionTime.getLong("time");
+                    if (time < node.getTime() && node.getTime() < UnixTime.now()) {
+                        time = node.getTime();
+                        update.setLong(1, node.getServices());
+                        update.setLong(2, time);
 
-                    update.setBytes(3, node.getIPv6());
-                    update.setInt(4, node.getPort());
-                    update.setLong(5, node.getStream());
-                    update.executeUpdate();
-                } else {
+                        update.setBytes(3, node.getIPv6());
+                        update.setInt(4, node.getPort());
+                        update.setLong(5, node.getStream());
+                        update.executeUpdate();
+                    }
+                } else if (node.getTime() < UnixTime.now()) {
                     insert.setBytes(1, node.getIPv6());
                     insert.setInt(2, node.getPort());
                     insert.setLong(3, node.getServices());
@@ -85,6 +94,14 @@ public class JdbcNodeRegistry extends JdbcHelper implements NodeRegistry {
                     insert.setLong(5, node.getTime());
                     insert.executeUpdate();
                 }
+                connection.commit();
+            }
+            if (addresses.size() > 100) {
+                // Let's clean up after we received an update from another node. This way, we shouldn't end up with an
+                // empty node registry.
+                PreparedStatement cleanup = connection.prepareStatement("DELETE FROM Node WHERE time < ?");
+                cleanup.setLong(1, UnixTime.now(-3 * HOUR));
+                cleanup.execute();
             }
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);

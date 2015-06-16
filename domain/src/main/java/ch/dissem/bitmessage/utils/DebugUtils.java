@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Map;
 
 public class DebugUtils {
     private final static Logger LOG = LoggerFactory.getLogger(DebugUtils.class);
@@ -34,6 +35,14 @@ public class DebugUtils {
             objectMessage.write(new FileOutputStream(f));
         } catch (IOException e) {
             LOG.debug(e.getMessage(), e);
+        }
+    }
+
+    public static <K> void inc(Map<K, Integer> map, K key) {
+        if (map.containsKey(key)) {
+            map.put(key, map.get(key) + 1);
+        } else {
+            map.put(key, 1);
         }
     }
 }

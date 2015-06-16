@@ -22,19 +22,23 @@ import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.ports.NetworkHandler;
 import ch.dissem.bitmessage.utils.Collections;
+import ch.dissem.bitmessage.utils.DebugUtils;
+import ch.dissem.bitmessage.utils.Property;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static ch.dissem.bitmessage.networking.Connection.State.*;
+import static ch.dissem.bitmessage.networking.Connection.Mode.CLIENT;
+import static ch.dissem.bitmessage.networking.Connection.Mode.SERVER;
+import static ch.dissem.bitmessage.networking.Connection.State.ACTIVE;
+import static ch.dissem.bitmessage.networking.Connection.State.DISCONNECTED;
+import static ch.dissem.bitmessage.utils.DebugUtils.inc;
 
 /**
  * Handles all the networky stuff.
@@ -91,11 +95,7 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
                         if (connections.size() < 8) {
                             List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(8 - connections.size(), ctx.getStreams());
                             for (NetworkAddress address : addresses) {
-                                try {
-                                    startConnection(new Connection(ctx, CLIENT, new Socket(address.toInetAddress(), address.getPort()), listener));
-                                } catch (IOException e) {
-                                    LOG.debug(e.getMessage(), e);
-                                }
+                                startConnection(new Connection(ctx, CLIENT, address, listener));
                             }
                         }
                         try {
@@ -142,12 +142,55 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
 
     @Override
     public void offer(final InventoryVector iv) {
+        List<Connection> active = new LinkedList<>();
         synchronized (connections) {
-            LOG.debug(connections.size() + " connections available to offer " + iv);
-            List<Connection> random8 = Collections.selectRandom(8, this.connections);
-            for (Connection connection : random8) {
-                connection.offer(iv);
+            for (Connection connection : connections) {
+                if (connection.getState() == ACTIVE) {
+                    active.add(connection);
+                }
             }
         }
+        LOG.debug(active.size() + " connections available to offer " + iv);
+        List<Connection> random8 = Collections.selectRandom(8, active);
+        for (Connection connection : random8) {
+            connection.offer(iv);
+        }
+    }
+
+    @Override
+    public Property getNetworkStatus() {
+        TreeSet<Long> streams = new TreeSet<>();
+        TreeMap<Long, Integer> incomingConnections = new TreeMap<>();
+        TreeMap<Long, Integer> outgoingConnections = new TreeMap<>();
+
+        synchronized (connections) {
+            for (Connection connection : connections) {
+                if (connection.getState() == ACTIVE) {
+                    long stream = connection.getNode().getStream();
+                    streams.add(stream);
+                    if (connection.getMode() == SERVER) {
+                        inc(incomingConnections, stream);
+                    } else {
+                        inc(outgoingConnections, stream);
+                    }
+                }
+            }
+        }
+        Property[] streamProperties = new Property[streams.size()];
+        int i = 0;
+        for (Long stream : streams) {
+            int incoming = incomingConnections.containsKey(stream) ? incomingConnections.get(stream) : 0;
+            int outgoing = outgoingConnections.containsKey(stream) ? outgoingConnections.get(stream) : 0;
+            streamProperties[i] = new Property("stream " + stream,
+                    null, new Property("nodes", incoming + outgoing),
+                    new Property("incoming", incoming),
+                    new Property("outgoing", outgoing)
+            );
+            i++;
+        }
+        return new Property("network", null,
+                new Property("connectionManager", connectionManager.isAlive() ? "running" : "stopped"),
+                new Property("connections", null, streamProperties)
+        );
     }
 }

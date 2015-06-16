@@ -25,6 +25,7 @@ import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.*;
+import ch.dissem.bitmessage.utils.Property;
 import ch.dissem.bitmessage.utils.Security;
 import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
@@ -243,6 +244,12 @@ public class BitmessageContext {
                 LOG.debug(e.getMessage(), e);
             }
         }
+    }
+
+    public Property status() {
+        return new Property("status", null,
+                ctx.getNetworkHandler().getNetworkStatus()
+        );
     }
 
     public interface Listener {

@@ -121,6 +121,10 @@ public class NetworkAddress implements Streamable {
         Encode.int16(port, stream);
     }
 
+    public void setTime(long time) {
+        this.time = time;
+    }
+
     public static final class Builder {
         private long time;
         private long stream;

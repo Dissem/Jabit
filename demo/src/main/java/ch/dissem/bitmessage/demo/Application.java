@@ -71,6 +71,7 @@ public class Application {
             System.out.println("c) contacts");
             System.out.println("s) subscriptions");
             System.out.println("m) messages");
+            System.out.println("?) info");
             System.out.println("e) exit");
 
             command = nextCommand();
@@ -89,6 +90,9 @@ public class Application {
                     case "m":
                         messages();
                         break;
+                    case "?":
+                        info();
+                        break;
                     case "e":
                         break;
                     default:
@@ -100,6 +104,11 @@ public class Application {
         } while (!"e".equals(command));
         LOG.info("Shutting down client");
         ctx.shutdown();
+    }
+
+    private void info() {
+        System.out.println();
+        System.out.println(ctx.status());
     }
 
     private String nextCommand() {
