@@ -22,9 +22,13 @@ import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetAddress;
 import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Scanner;
 
 import static ch.dissem.bitmessage.utils.UnixTime.HOUR;
 
@@ -37,6 +41,35 @@ public class JdbcNodeRegistry extends JdbcHelper implements NodeRegistry {
 
     @Override
     public List<NetworkAddress> getKnownAddresses(int limit, long... streams) {
+        List<NetworkAddress> result = doGetKnownNodes(limit, streams);
+        if (result.isEmpty()) {
+            try (InputStream in = getClass().getClassLoader().getResourceAsStream("nodes.txt")) {
+                Scanner scanner = new Scanner(in);
+                while (scanner.hasNext()) {
+                    try {
+                        String line = scanner.nextLine().trim();
+                        if (line.startsWith("#") || line.isEmpty()) {
+                            // Ignore
+                            continue;
+                        }
+                        int portIndex = line.lastIndexOf(':');
+                        InetAddress inetAddress = InetAddress.getByName(line.substring(0, portIndex));
+                        int port = Integer.valueOf(line.substring(portIndex + 1));
+                        result.add(new NetworkAddress.Builder().ip(inetAddress).port(port).build());
+                    } catch (IOException e) {
+                        LOG.warn(e.getMessage(), e);
+                    }
+                }
+                offerAddresses(result);
+                return doGetKnownNodes(limit, streams);
+            } catch (IOException e) {
+                LOG.error(e.getMessage(), e);
+            }
+        }
+        return result;
+    }
+
+    private List<NetworkAddress> doGetKnownNodes(int limit, long... streams) {
         List<NetworkAddress> result = new LinkedList<>();
         try (Connection connection = config.getConnection()) {
             Statement stmt = connection.createStatement();
@@ -52,10 +85,6 @@ public class JdbcNodeRegistry extends JdbcHelper implements NodeRegistry {
             }
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);
-        }
-        if (result.isEmpty()) {
-            // FIXME: this is for testing purposes, remove it!
-            result.add(new NetworkAddress.Builder().ipv4(127, 0, 0, 1).port(8444).build());
         }
         return result;
     }

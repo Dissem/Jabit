@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.entity.valueobject;
 
 import ch.dissem.bitmessage.entity.Streamable;
 import ch.dissem.bitmessage.utils.Encode;
+import ch.dissem.bitmessage.utils.UnixTime;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -76,6 +77,10 @@ public class NetworkAddress implements Streamable {
         return time;
     }
 
+    public void setTime(long time) {
+        this.time = time;
+    }
+
     public InetAddress toInetAddress() {
         try {
             return InetAddress.getByAddress(ipv6);
@@ -119,10 +124,6 @@ public class NetworkAddress implements Streamable {
         Encode.int64(services, stream);
         stream.write(ipv6);
         Encode.int16(port, stream);
-    }
-
-    public void setTime(long time) {
-        this.time = time;
     }
 
     public static final class Builder {
@@ -197,6 +198,9 @@ public class NetworkAddress implements Streamable {
         }
 
         public NetworkAddress build() {
+            if (time == 0) {
+                time = UnixTime.now();
+            }
             return new NetworkAddress(this);
         }
     }

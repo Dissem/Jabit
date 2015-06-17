@@ -22,7 +22,6 @@ import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.ports.NetworkHandler;
 import ch.dissem.bitmessage.utils.Collections;
-import ch.dissem.bitmessage.utils.DebugUtils;
 import ch.dissem.bitmessage.utils.Property;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,6 +82,7 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
                 @Override
                 public void run() {
                     while (!Thread.interrupted()) {
+                        int active = 0;
                         synchronized (connections) {
                             for (Iterator<Connection> iterator = connections.iterator(); iterator.hasNext(); ) {
                                 Connection c = iterator.next();
@@ -90,10 +90,13 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
                                     // Remove the current element from the iterator and the list.
                                     iterator.remove();
                                 }
+                                if (c.getState() == ACTIVE) {
+                                    active++;
+                                }
                             }
                         }
-                        if (connections.size() < 8) {
-                            List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(8 - connections.size(), ctx.getStreams());
+                        if (active < 8) {
+                            List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(8 - active, ctx.getStreams());
                             for (NetworkAddress address : addresses) {
                                 startConnection(new Connection(ctx, CLIENT, address, listener));
                             }

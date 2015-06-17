@@ -46,6 +46,13 @@ public class JdbcNodeRegistryTest {
     }
 
     @Test
+    public void testInitNodes() throws Exception {
+        config.reset();
+        List<NetworkAddress> knownAddresses = registry.getKnownAddresses(1, 1);
+        assertEquals(10, knownAddresses.size());
+    }
+
+    @Test
     public void testGetKnownAddresses() throws Exception {
         List<NetworkAddress> knownAddresses = registry.getKnownAddresses(2, 1);
         assertEquals(2, knownAddresses.size());
