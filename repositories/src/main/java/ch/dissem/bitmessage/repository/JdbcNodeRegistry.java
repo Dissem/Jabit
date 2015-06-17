@@ -45,6 +45,7 @@ public class JdbcNodeRegistry extends JdbcHelper implements NodeRegistry {
         if (result.isEmpty()) {
             try (InputStream in = getClass().getClassLoader().getResourceAsStream("nodes.txt")) {
                 Scanner scanner = new Scanner(in);
+                long stream = 1;
                 while (scanner.hasNext()) {
                     try {
                         String line = scanner.nextLine().trim();
@@ -52,10 +53,14 @@ public class JdbcNodeRegistry extends JdbcHelper implements NodeRegistry {
                             // Ignore
                             continue;
                         }
-                        int portIndex = line.lastIndexOf(':');
-                        InetAddress inetAddress = InetAddress.getByName(line.substring(0, portIndex));
-                        int port = Integer.valueOf(line.substring(portIndex + 1));
-                        result.add(new NetworkAddress.Builder().ip(inetAddress).port(port).build());
+                        if (line.startsWith("[stream")) {
+                            stream = Long.parseLong(line.substring(8, line.lastIndexOf(']')));
+                        } else {
+                            int portIndex = line.lastIndexOf(':');
+                            InetAddress inetAddress = InetAddress.getByName(line.substring(0, portIndex));
+                            int port = Integer.valueOf(line.substring(portIndex + 1));
+                            result.add(new NetworkAddress.Builder().ip(inetAddress).port(port).stream(stream).build());
+                        }
                     } catch (IOException e) {
                         LOG.warn(e.getMessage(), e);
                     }

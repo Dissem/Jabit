@@ -159,7 +159,7 @@ public class Connection implements Runnable {
                                     }
                                     break;
                                 default:
-                                    throw new RuntimeException("Command 'version' or 'verack' expected, but was '"
+                                    throw new NodeException("Command 'version' or 'verack' expected, but was '"
                                             + msg.getPayload().getCommand() + "'");
                             }
                     }
@@ -173,6 +173,9 @@ public class Connection implements Runnable {
         } catch (IOException | NodeException e) {
             LOG.debug("disconnection from node " + node + ": " + e.getMessage(), e);
             disconnect();
+        } catch (RuntimeException e) {
+            disconnect();
+            throw e;
         }
     }
 
@@ -215,6 +218,8 @@ public class Connection implements Runnable {
                     listener.receive(objectMessage);
                     ctx.getInventory().storeObject(objectMessage);
                     // offer object to some random nodes so it gets distributed throughout the network:
+                    // FIXME: don't do this while we catch up after initialising our first connection
+                    // (that might be a bit tricky to do)
                     ctx.getNetworkHandler().offer(objectMessage.getInventoryVector());
                 } catch (InsufficientProofOfWorkException e) {
                     LOG.warn(e.getMessage());
