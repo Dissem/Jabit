@@ -30,7 +30,7 @@ public class UnixTime {
     public static final long DAY = 24 * HOUR;
 
     /**
-     * Returns the time in second based Unix time ({@link System#currentTimeMillis()}/1000)
+     * @return the time in second based Unix time ({@link System#currentTimeMillis()}/1000)
      */
     public static long now() {
         return System.currentTimeMillis() / 1000;
@@ -38,6 +38,9 @@ public class UnixTime {
 
     /**
      * Same as {@link #now()} + shiftSeconds, but might be more readable.
+     *
+     * @param shiftSeconds number of seconds from now we're interested in
+     * @return the Unix time in shiftSeconds seconds / shiftSeconds seconds ago
      */
     public static long now(long shiftSeconds) {
         return (System.currentTimeMillis() / 1000) + shiftSeconds;

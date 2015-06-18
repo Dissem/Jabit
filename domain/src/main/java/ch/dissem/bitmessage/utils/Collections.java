@@ -25,8 +25,11 @@ public class Collections {
     private final static Random RANDOM = new Random();
 
     /**
-     * Returns a random subset of the given collection, or a copy of the collection if it's not larger than count.
-     * The randomness
+     * @param count      the number of elements to return (if possible)
+     * @param collection the collection to take samples from
+     * @return a random subset of the given collection, or a copy of the collection if it's not larger than count. The
+     * result is by no means securely random, but should be random enough so not the same objects get selected over
+     * and over again.
      */
     public static <T> List<T> selectRandom(int count, Collection<T> collection) {
         ArrayList<T> result = new ArrayList<>(count);
@@ -44,7 +47,7 @@ public class Collections {
                 } else {
                     result.add(item);
                     resultRest--;
-                    if (resultRest == 0){
+                    if (resultRest == 0) {
                         break;
                     }
                     skipMax = (int) Math.ceil(collectionRest / resultRest);

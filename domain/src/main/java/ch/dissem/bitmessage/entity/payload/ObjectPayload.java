@@ -50,7 +50,7 @@ public abstract class ObjectPayload implements Streamable {
     }
 
     /**
-     * The ECDSA signature which, as of protocol v3, covers the object header starting with the time,
+     * @return the ECDSA signature which, as of protocol v3, covers the object header starting with the time,
      * appended with the data described in this table down to the extra_bytes. Therefore, this must
      * be checked and set in the {@link ObjectMessage} object.
      */

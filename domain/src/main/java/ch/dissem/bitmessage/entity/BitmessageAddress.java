@@ -158,7 +158,7 @@ public class BitmessageAddress {
     }
 
     /**
-     * Returns the private key used to decrypt Pubkey objects (for v4 addresses) and broadcasts.
+     * @return the private key used to decrypt Pubkey objects (for v4 addresses) and broadcasts.
      */
     public byte[] getPublicDecryptionKey() {
         return publicDecryptionKey;

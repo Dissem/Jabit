@@ -47,11 +47,11 @@ public class CryptoBox implements Streamable {
     private final byte[] mac;
     private byte[] encrypted;
 
-    public CryptoBox(Streamable data, byte[] encryptionKey) {
+    public CryptoBox(Streamable data, byte[] encryptionKey) throws IOException {
         this(data, Security.keyToPoint(encryptionKey));
     }
 
-    public CryptoBox(Streamable data, ECPoint K) {
+    public CryptoBox(Streamable data, ECPoint K) throws IOException {
         curveType = 0x02CA;
 
         // 1. The destination public key is called K.
@@ -71,7 +71,7 @@ public class CryptoBox implements Streamable {
         byte[] key_m = Arrays.copyOfRange(H, 32, 64);
         // 7. Pad the input text to a multiple of 16 bytes, in accordance to PKCS7.
         // 8. Encrypt the data with AES-256-CBC, using IV as initialization vector, key_e as encryption key and the padded input text as payload. Call the output cipher text.
-        encrypted = crypt(true, Bytes.from(data), key_e);
+        encrypted = crypt(true, Encode.bytes(data), key_e);
         // 9. Calculate a 32 byte MAC with HMACSHA256, using key_m as salt and IV + R + cipher text as data. Call the output MAC.
         mac = calculateMac(key_m);
 
@@ -99,6 +99,9 @@ public class CryptoBox implements Streamable {
     }
 
     /**
+     * @param privateKey a private key, typically should be 32 bytes long
+     * @return an InputStream yielding the decrypted data
+     * @throws DecryptionFailedException if the payload can't be decrypted using this private key
      * @see <a href='https://bitmessage.org/wiki/Encryption#Decryption'>https://bitmessage.org/wiki/Encryption#Decryption</a>
      */
     public InputStream decrypt(byte[] privateKey) throws DecryptionFailedException {

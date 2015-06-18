@@ -50,7 +50,7 @@ public class GetPubkey extends ObjectPayload {
     }
 
     /**
-     * Returns an array of bytes that represent either the ripe, or the tag of an address, depending on the
+     * @return an array of bytes that represent either the ripe, or the tag of an address, depending on the
      * address version.
      */
     public byte[] getRipeTag() {

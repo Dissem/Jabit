@@ -112,7 +112,9 @@ public class Encode {
     }
 
     /**
-     * Returns an array of bytes representing the given streamable object.
+     * @param streamable the object to be serialized
+     * @return an array of bytes representing the given streamable object.
+     * @throws IOException if an I/O error occurs.
      */
     public static byte[] bytes(Streamable streamable) throws IOException {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
@@ -121,8 +123,10 @@ public class Encode {
     }
 
     /**
-     * Returns the bytes of the given streamable object, 0-padded such that the final
-     * length is x*padding.
+     * @param streamable the object to be serialized
+     * @param padding    the result will be padded such that its length is a multiple of <em>padding</em>
+     * @return the bytes of the given {@link Streamable} object, 0-padded such that the final length is x*padding.
+     * @throws IOException if an I/O error occurs.
      */
     public static byte[] bytes(Streamable streamable, int padding) throws IOException {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();

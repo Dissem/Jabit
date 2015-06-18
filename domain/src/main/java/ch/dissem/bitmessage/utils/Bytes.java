@@ -38,6 +38,9 @@ public class Bytes {
 
     /**
      * Increases nonce by value, which is used as an unsigned byte value.
+     *
+     * @param nonce an unsigned number
+     * @param value to be added to nonce
      */
     public static void inc(byte[] nonce, byte value) {
         int i = nonce.length - 1;
@@ -54,7 +57,7 @@ public class Bytes {
     }
 
     /**
-     * Returns true if a < b.
+     * @return true if a &lt; b.
      */
     public static boolean lt(byte[] a, byte[] b) {
         byte[] max = (a.length > b.length ? a : b);
@@ -73,7 +76,7 @@ public class Bytes {
     }
 
     /**
-     * Returns true if a < b, where the first [size] bytes are used as the numbers to check.
+     * @return true if a &lt; b, where the first [size] bytes are used as the numbers to check.
      */
     public static boolean lt(byte[] a, byte[] b, int size) {
         for (int i = 0; i < size; i++) {
@@ -91,7 +94,7 @@ public class Bytes {
     }
 
     /**
-     * Returns a new byte array of length, left-padded with '0'.
+     * @return a new byte array of length, left-padded with '0'.
      */
     public static byte[] expand(byte[] source, int size) {
         byte[] result = new byte[size];
@@ -100,7 +103,7 @@ public class Bytes {
     }
 
     /**
-     * Returns a new byte array containing the first <em>size</em> bytes of the given array.
+     * @return a new byte array containing the first <em>size</em> bytes of the given array.
      */
     public static byte[] truncate(byte[] source, int size) {
         byte[] result = new byte[size];
@@ -109,7 +112,7 @@ public class Bytes {
     }
 
     /**
-     * Returns the byte array that hex represents. This is meant for test use and should be rewritten if used in
+     * @return the byte array that hex represents. This is meant for test use and should be rewritten if used in
      * production code.
      */
     public static byte[] fromHex(String hex) {
@@ -136,7 +139,7 @@ public class Bytes {
     }
 
     /**
-     * Returns the number of leading '0' of a byte array.
+     * @return the number of leading '0' of a byte array.
      */
     public static int numberOfLeadingZeros(byte[] bytes) {
         int i;
@@ -144,25 +147,5 @@ public class Bytes {
             if (bytes[i] != 0) return i;
         }
         return i;
-    }
-
-    /**
-     * Returns a copy of bytes with leading zeroes stripped.
-     */
-    public static byte[] stripLeadingZeros(byte[] bytes) {
-        return Arrays.copyOfRange(bytes, numberOfLeadingZeros(bytes), bytes.length);
-    }
-
-    /**
-     * Returns the byte array of the serialized data.
-     */
-    public static byte[] from(Streamable data) {
-        try {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            data.write(out);
-            return out.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 }

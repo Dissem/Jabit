@@ -29,9 +29,8 @@ import static java.util.Arrays.copyOfRange;
  * @author Christian Basler: I removed some dependencies to the BitcoinJ code so it can be used here more easily.
  */
 public class Base58 {
-    private static char[] ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
-
     private static final int[] INDEXES = new int[128];
+    private static char[] ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
 
     static {
         for (int i = 0; i < INDEXES.length; i++) {
@@ -44,6 +43,9 @@ public class Base58 {
 
     /**
      * Encodes the given bytes in base58. No checksum is appended.
+     *
+     * @param input to encode
+     * @return base58 encoded input
      */
     public static String encode(byte[] input) {
         if (input.length == 0) {

@@ -26,7 +26,7 @@ public interface AddressRepository {
     BitmessageAddress findIdentity(byte[] ripeOrTag);
 
     /**
-     * Returns all Bitmessage addresses that belong to this user, i.e. have a private key.
+     * @return all Bitmessage addresses that belong to this user, i.e. have a private key.
      */
     List<BitmessageAddress> getIdentities();
 
@@ -35,7 +35,7 @@ public interface AddressRepository {
     List<BitmessageAddress> getSubscriptions(long broadcastVersion);
 
     /**
-     * Returns all Bitmessage addresses that have no private key.
+     * @return all Bitmessage addresses that have no private key.
      */
     List<BitmessageAddress> getContacts();
 

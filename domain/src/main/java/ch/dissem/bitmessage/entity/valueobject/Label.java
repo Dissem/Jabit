@@ -31,12 +31,15 @@ public class Label {
     }
 
     /**
-     * RGBA representation for the color.
+     * @return RGBA representation for the color.
      */
     public int getColor() {
         return color;
     }
 
+    /**
+     * @param color RGBA representation for the color.
+     */
     public void setColor(int color) {
         this.color = color;
     }
@@ -50,12 +53,12 @@ public class Label {
         return id;
     }
 
-    public Type getType() {
-        return type;
-    }
-
     public void setId(Object id) {
         this.id = id;
+    }
+
+    public Type getType() {
+        return type;
     }
 
     @Override

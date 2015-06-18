@@ -40,7 +40,8 @@ import java.security.spec.KeySpec;
 import java.util.Arrays;
 
 /**
- * Provides some methods to help with hashing and encryption.
+ * Provides some methods to help with hashing and encryption. All randoms are created using {@link SecureRandom},
+ * which should be secure enough.
  */
 public class Security {
     public static final Logger LOG = LoggerFactory.getLogger(Security.class);
@@ -52,10 +53,26 @@ public class Security {
         java.security.Security.addProvider(new BouncyCastleProvider());
     }
 
+    /**
+     * A helper method to calculate SHA-512 hashes. Please note that a new {@link MessageDigest} object is created at
+     * each call (to ensure thread safety), so you shouldn't use this if you need to do many hash calculations in
+     * success on the same thread.
+     *
+     * @param data to get hashed
+     * @return SHA-512 hash of data
+     */
     public static byte[] sha512(byte[]... data) {
         return hash("SHA-512", data);
     }
 
+    /**
+     * A helper method to calculate doubleSHA-512 hashes. Please note that a new {@link MessageDigest} object is created
+     * at each call (to ensure thread safety), so you shouldn't use this if you need to do many hash calculations in
+     * success on the same thread.
+     *
+     * @param data to get hashed
+     * @return SHA-512 hash of data
+     */
     public static byte[] doubleSha512(byte[]... data) {
         MessageDigest mda = md("SHA-512");
         for (byte[] d : data) {
@@ -64,33 +81,97 @@ public class Security {
         return mda.digest(mda.digest());
     }
 
+    /**
+     * A helper method to calculate double SHA-512 hashes. This method allows to only use a part of the available bytes
+     * to use for the hash calculation.
+     * <p>
+     * Please note that a new {@link MessageDigest} object is created at each call (to ensure thread safety), so you
+     * shouldn't use this if you need to do many hash calculations in short order on the same thread.
+     * </p>
+     *
+     * @param data   to get hashed
+     * @param length number of bytes to be taken into account
+     * @return SHA-512 hash of data
+     */
     public static byte[] doubleSha512(byte[] data, int length) {
         MessageDigest mda = md("SHA-512");
         mda.update(data, 0, length);
         return mda.digest(mda.digest());
     }
 
+
+    /**
+     * A helper method to calculate RIPEMD-160 hashes. Supplying multiple byte arrays has the same result as a
+     * concatenation of all arrays, but might perform better.
+     * <p>
+     * Please note that a new {@link MessageDigest} object is created at
+     * each call (to ensure thread safety), so you shouldn't use this if you need to do many hash calculations in short
+     * order on the same thread.
+     * </p>
+     *
+     * @param data to get hashed
+     * @return RIPEMD-160 hash of data
+     */
     public static byte[] ripemd160(byte[]... data) {
         return hash("RIPEMD160", data);
     }
 
+    /**
+     * A helper method to calculate double SHA-256 hashes. This method allows to only use a part of the available bytes
+     * to use for the hash calculation.
+     * <p>
+     * Please note that a new {@link MessageDigest} object is created at
+     * each call (to ensure thread safety), so you shouldn't use this if you need to do many hash calculations in short
+     * order on the same thread.
+     * </p>
+     *
+     * @param data   to get hashed
+     * @param length number of bytes to be taken into account
+     * @return SHA-256 hash of data
+     */
     public static byte[] doubleSha256(byte[] data, int length) {
         MessageDigest mda = md("SHA-256");
         mda.update(data, 0, length);
         return mda.digest(mda.digest());
     }
 
+    /**
+     * A helper method to calculate SHA-1 hashes. Supplying multiple byte arrays has the same result as a
+     * concatenation of all arrays, but might perform better.
+     * <p>
+     * Please note that a new {@link MessageDigest} object is created at
+     * each call (to ensure thread safety), so you shouldn't use this if you need to do many hash calculations in short
+     * order on the same thread.
+     * </p>
+     *
+     * @param data to get hashed
+     * @return SHA hash of data
+     */
     public static byte[] sha1(byte[]... data) {
         return hash("SHA-1", data);
     }
 
+    /**
+     * @param length number of bytes to return
+     * @return an array of the given size containing random bytes
+     */
     public static byte[] randomBytes(int length) {
         byte[] result = new byte[length];
         RANDOM.nextBytes(result);
         return result;
     }
 
-    public static void doProofOfWork(ObjectMessage object, ProofOfWorkEngine worker, long nonceTrialsPerByte, long extraBytes) {
+    /**
+     * Calculates the proof of work. This might take a long time, depending on the hardware, message size and time to
+     * live.
+     *
+     * @param object             to do the proof of work for
+     * @param worker             doing the actual proof of work
+     * @param nonceTrialsPerByte difficulty
+     * @param extraBytes         bytes to add to the object size (makes it more difficult to send small messages)
+     */
+    public static void doProofOfWork(ObjectMessage object, ProofOfWorkEngine worker, long nonceTrialsPerByte,
+                                     long extraBytes) {
         try {
             if (nonceTrialsPerByte < 1000) nonceTrialsPerByte = 1000;
             if (extraBytes < 1000) extraBytes = 1000;
@@ -107,9 +188,13 @@ public class Security {
     }
 
     /**
-     * @throws InsufficientProofOfWorkException if proof of work doesn't check out
+     * @param object             to be checked
+     * @param nonceTrialsPerByte difficulty
+     * @param extraBytes         bytes to add to the object size
+     * @throws InsufficientProofOfWorkException if proof of work doesn't check out (makes it more difficult to send small messages)
      */
-    public static void checkProofOfWork(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) throws IOException {
+    public static void checkProofOfWork(ObjectMessage object, long nonceTrialsPerByte, long extraBytes)
+            throws IOException {
         byte[] target = getProofOfWorkTarget(object, nonceTrialsPerByte, extraBytes);
         byte[] value = Security.doubleSha512(object.getNonce(), getInitialHash(object));
         if (Bytes.lt(target, value, 8)) {
@@ -146,6 +231,13 @@ public class Security {
         }
     }
 
+    /**
+     * Calculates the MAC for a message (data)
+     *
+     * @param key_m the symmetric key used
+     * @param data  the message data to calculate the MAC for
+     * @return the MAC
+     */
     public static byte[] mac(byte[] key_m, byte[] data) {
         try {
             Mac mac = Mac.getInstance("HmacSHA256", "BC");
@@ -156,6 +248,18 @@ public class Security {
         }
     }
 
+    /**
+     * Create a new public key fom given private keys.
+     *
+     * @param version              of the public key / address
+     * @param stream               of the address
+     * @param privateSigningKey    private key used for signing
+     * @param privateEncryptionKey private key used for encryption
+     * @param nonceTrialsPerByte   proof of work difficulty
+     * @param extraBytes           bytes to add for the proof of work (make it harder for small messages)
+     * @param features             of the address
+     * @return a public key object
+     */
     public static Pubkey createPubkey(long version, long stream, byte[] privateSigningKey, byte[] privateEncryptionKey,
                                       long nonceTrialsPerByte, long extraBytes, Pubkey.Feature... features) {
         return Factory.createPubkey(version, stream,
@@ -164,10 +268,18 @@ public class Security {
                 nonceTrialsPerByte, extraBytes, features);
     }
 
+    /**
+     * @param privateKey private key as byte array
+     * @return a public key corresponding to the given private key
+     */
     public static ECPoint createPublicKey(byte[] privateKey) {
         return EC_CURVE_PARAMETERS.getG().multiply(keyToBigInt(privateKey)).normalize();
     }
 
+    /**
+     * @param privateKey private key as byte array
+     * @return a big integer representation (unsigned) of the given bytes
+     */
     public static BigInteger keyToBigInt(byte[] privateKey) {
         return new BigInteger(1, privateKey);
     }
@@ -185,7 +297,13 @@ public class Security {
         );
     }
 
-    public static boolean isSignatureValid(byte[] bytesToSign, byte[] signature, Pubkey pubkey) {
+    /**
+     * @param data      to check
+     * @param signature the signature of the message
+     * @param pubkey    the sender's public key
+     * @return true if the signature is valid, false otherwise
+     */
+    public static boolean isSignatureValid(byte[] data, byte[] signature, Pubkey pubkey) {
         try {
             ECParameterSpec spec = new ECParameterSpec(
                     EC_CURVE_PARAMETERS.getCurve(),
@@ -201,13 +319,20 @@ public class Security {
 
             Signature sig = Signature.getInstance("ECDSA", "BC");
             sig.initVerify(publicKey);
-            sig.update(bytesToSign);
+            sig.update(data);
             return sig.verify(signature);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
+    /**
+     * Calculate the signature of data, using the given private key.
+     *
+     * @param data       to be signed
+     * @param privateKey to be used for signing
+     * @return the signature
+     */
     public static byte[] getSignature(byte[] data, ch.dissem.bitmessage.entity.valueobject.PrivateKey privateKey) {
         try {
             ECParameterSpec spec = new ECParameterSpec(
@@ -231,6 +356,9 @@ public class Security {
         }
     }
 
+    /**
+     * @return a random number of type long
+     */
     public static long randomNonce() {
         return RANDOM.nextLong();
     }

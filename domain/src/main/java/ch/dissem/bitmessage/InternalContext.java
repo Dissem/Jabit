@@ -35,8 +35,9 @@ import static ch.dissem.bitmessage.utils.UnixTime.DAY;
  * The internal context should normally only be used for port implementations. If you need it in your client
  * implementation, you're either doing something wrong, something very weird, or the BitmessageContext should
  * get extended.
- * <p/>
+ * <p>
  * On the other hand, if you need the BitmessageContext in a port implementation, the same thing might apply.
+ * </p>
  */
 public class InternalContext {
     private final static Logger LOG = LoggerFactory.getLogger(InternalContext.class);
