@@ -8,4 +8,17 @@ Please note that development is still heavily in progress, and I will break the 
 Security
 --------
 
-If you're able to audit Jabit to verify its security, you would be very very welcome. Please be aware though that the official Bitmessage project would like an audit, too, and they were first in line.
+There are most probably some security issues, me programming this thing all by myself. Jabit doesn't do anything against timing attacks yet, for example. Please feel free to use the library, report bugs and maybe even help out. I hope the code is easy to understand and work with.
+
+Project Status
+--------------
+Basically, everything needed for a working Bitmessage client is there:
+* Creating new identities (private addresses)
+* Adding contracts and subscriptions
+* Receiving broadcasts
+* Receiving messages
+* Sending messages and broadcasts
+* Managing outgoing and incoming connections
+* Initialise and manage a registry of Bitmessage network nodes
+* An easy to use API
+* A command line demo application built using the API
