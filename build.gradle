@@ -1,12 +1,31 @@
-apply plugin: 'java'
+allprojects {
+    apply plugin: 'java'
+    apply plugin: 'maven'
+    apply plugin: 'signing'
 
-sourceCompatibility = 1.7
-version = '0.0.1'
+    sourceCompatibility = 1.7
+    group = 'ch.dissem.jabit'
+    version = '0.1.0'
 
-repositories {
-    mavenCentral()
-}
+    repositories {
+        mavenCentral()
+    }
 
-dependencies {
-    testCompile 'junit:junit:4.11'
+    task javadocJar(type: Jar) {
+        classifier = 'javadoc'
+        from javadoc
+    }
+
+    task sourcesJar(type: Jar) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    artifacts {
+        archives javadocJar, sourcesJar
+    }
+
+//    signing {
+//        sign configurations.archives
+//    }
 }

@@ -6,17 +6,11 @@ task fatCapsule(type: FatCapsule) {
     applicationClass 'ch.dissem.bitmessage.demo.Main'
 }
 
-sourceCompatibility = 1.7
-version = '0.0.1'
-
-repositories {
-    mavenCentral()
-}
-
 dependencies {
     compile project(':domain')
     compile project(':networking')
     compile project(':repositories')
     compile 'org.slf4j:slf4j-simple:1.7.12'
+    compile 'args4j:args4j:2.32'
     testCompile 'junit:junit:4.11'
 }

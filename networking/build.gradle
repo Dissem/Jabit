@@ -1,12 +1,3 @@
-apply plugin: 'java'
-
-sourceCompatibility = 1.7
-version = '0.0.1'
-
-repositories {
-    mavenCentral()
-}
-
 dependencies {
     compile project(':domain')
     testCompile 'org.slf4j:slf4j-simple:1.7.12'

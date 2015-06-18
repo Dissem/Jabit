@@ -55,10 +55,8 @@ import static ch.dissem.bitmessage.utils.UnixTime.DAY;
  * <li>streams</li>
  * </ul>
  * The default implementations in the different module builds can be used.
- * </p>
  * <p>
  * The port defaults to 8444 (the default Bitmessage port)
- * </p>
  */
 public class BitmessageContext {
     public static final int CURRENT_VERSION = 3;
