@@ -5,7 +5,7 @@ allprojects {
 
     sourceCompatibility = 1.7
     group = 'ch.dissem.jabit'
-    version = '0.1.2-SNAPSHOT'
+    version = '0.1.1'
 
     repositories {
         mavenCentral()
