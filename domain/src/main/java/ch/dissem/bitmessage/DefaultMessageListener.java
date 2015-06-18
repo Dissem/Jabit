@@ -145,7 +145,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
                     LOG.warn("Broadcast with IV " + object.getInventoryVector() + " was successfully decrypted, but signature check failed. Ignoring.");
                 } else {
                     broadcast.getPlaintext().setStatus(RECEIVED);
-                    broadcast.getPlaintext().addLabels(ctx.getMessageRepository().getLabels(Label.Type.INBOX, Label.Type.UNREAD));
+                    broadcast.getPlaintext().addLabels(ctx.getMessageRepository().getLabels(Label.Type.INBOX, Label.Type.BROADCAST, Label.Type.UNREAD));
                     broadcast.getPlaintext().setInventoryVector(object.getInventoryVector());
                     ctx.getMessageRepository().save(broadcast.getPlaintext());
                     listener.receive(broadcast.getPlaintext());

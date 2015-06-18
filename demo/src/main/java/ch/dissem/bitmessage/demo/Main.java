@@ -20,8 +20,11 @@ import java.io.IOException;
 
 public class Main {
     public static void main(String[] args) throws IOException {
-        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "DEBUG");
-        System.setProperty("org.slf4j.simpleLogger.logFile", "./jabit.log");
+        if (System.getProperty("org.slf4j.simpleLogger.defaultLogLevel") == null)
+            System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "ERROR");
+        if (System.getProperty("org.slf4j.simpleLogger.logFile") == null)
+            System.setProperty("org.slf4j.simpleLogger.logFile", "./jabit.log");
+
         new Application();
     }
 }

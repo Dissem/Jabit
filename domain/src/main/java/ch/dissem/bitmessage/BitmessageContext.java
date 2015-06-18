@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
+import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.factory.Factory;
@@ -114,6 +115,7 @@ public class BitmessageContext {
                 0
         );
         msg.setStatus(SENT);
+        msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.BROADCAST, Label.Type.SENT));
         ctx.getMessageRepository().save(msg);
     }
 
@@ -148,6 +150,7 @@ public class BitmessageContext {
                     ctx.getExtraBytes(to)
             );
             msg.setStatus(SENT);
+            msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.SENT));
             ctx.getMessageRepository().save(msg);
         }
     }

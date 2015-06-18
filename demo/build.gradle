@@ -1,4 +1,10 @@
-apply plugin: 'java'
+plugins {
+    id "us.kirchmeier.capsule" version "1.0-rc1"
+}
+
+task fatCapsule(type: FatCapsule) {
+    applicationClass 'ch.dissem.bitmessage.demo.Main'
+}
 
 sourceCompatibility = 1.7
 version = '0.0.1'

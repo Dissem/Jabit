@@ -82,32 +82,34 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
                 @Override
                 public void run() {
                     while (!Thread.interrupted()) {
-                        int active = 0;
-                        synchronized (connections) {
-                            for (Iterator<Connection> iterator = connections.iterator(); iterator.hasNext(); ) {
-                                Connection c = iterator.next();
-                                if (c.getState() == DISCONNECTED) {
-                                    // Remove the current element from the iterator and the list.
-                                    iterator.remove();
-                                }
-                                if (c.getState() == ACTIVE) {
-                                    active++;
-                                }
-                            }
-                        }
-                        if (active < 8) {
-                            List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(8 - active, ctx.getStreams());
-                            for (NetworkAddress address : addresses) {
-                                startConnection(new Connection(ctx, CLIENT, address, listener));
-                            }
-                        }
                         try {
+                            int active = 0;
+                            synchronized (connections) {
+                                for (Iterator<Connection> iterator = connections.iterator(); iterator.hasNext(); ) {
+                                    Connection c = iterator.next();
+                                    if (c.getState() == DISCONNECTED) {
+                                        // Remove the current element from the iterator and the list.
+                                        iterator.remove();
+                                    }
+                                    if (c.getState() == ACTIVE) {
+                                        active++;
+                                    }
+                                }
+                            }
+                            if (active < 8) {
+                                List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(8 - active, ctx.getStreams());
+                                for (NetworkAddress address : addresses) {
+                                    startConnection(new Connection(ctx, CLIENT, address, listener));
+                                }
+                            }
                             Thread.sleep(30000);
                         } catch (InterruptedException e) {
-                            LOG.debug(e.getMessage(), e);
                             Thread.currentThread().interrupt();
+                        } catch (Exception e) {
+                            LOG.error("Error in connection manager. Ignored.", e);
                         }
                     }
+                    LOG.debug("Connection manager shutting down.");
                 }
             }, "connection-manager");
             connectionManager.start();

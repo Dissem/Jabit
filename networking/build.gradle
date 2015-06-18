@@ -9,7 +9,6 @@ repositories {
 
 dependencies {
     compile project(':domain')
-    compile 'com.google.guava:guava-concurrent:r03'
     testCompile 'org.slf4j:slf4j-simple:1.7.12'
     testCompile 'junit:junit:4.11'
 }

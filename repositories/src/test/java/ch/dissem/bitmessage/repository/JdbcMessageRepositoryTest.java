@@ -67,7 +67,7 @@ public class JdbcMessageRepositoryTest {
         addressRepo.save(identity);
 
         inbox = repo.getLabels(Label.Type.INBOX).get(0);
-        drafts = repo.getLabels(Label.Type.DRAFTS).get(0);
+        drafts = repo.getLabels(Label.Type.DRAFT).get(0);
 
         addMessage(contactA, identity, Plaintext.Status.RECEIVED, inbox);
         addMessage(identity, contactA, Plaintext.Status.DRAFT, drafts);

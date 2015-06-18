@@ -73,7 +73,8 @@ public class Label {
 
     public enum Type {
         INBOX,
-        DRAFTS,
+        BROADCAST,
+        DRAFT,
         SENT,
         UNREAD,
         TRASH
