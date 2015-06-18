@@ -1,0 +1,44 @@
+\documentclass{bfh}
+
+\title{Bachelor Thesis}
+\subtitle{Android Client for Bitmessage}
+\author{Christian Basler}
+\tutor{Kai Brünnler}
+\date{\today}
+
+\begin{document}
+  \maketitle
+
+  \tableofcontents
+  \newpage
+
+  \section{Project Setup}
+
+  \subsection{Current state -- why is it bad?}
+  Until recently there was not mobile client for the Bitmessage protocol, and the client that turned up since is very wasteful to the devices resources, draining the battery in no time.
+
+  \subsection{How should it be?}
+  We need mobile Bitmessage clients that allows the user to choose the levels of convenience, privacy and resource hunger.
+
+  \subsection{Why is it hard to do?}
+  Bitmessage is very wasteful with resources by design. All messages are being sent to and stored on all nodes, and to protect the network a proof of work (POW) is required for all objects that are distributed.
+
+  \subsection{How do I intend to do it?}
+  As I developed Jabit, a Java implementation of the Bitmessage client, as my last project, I have great knowledge about the Bitmessage protocol. There are a few optimisations that I intend to do;
+  \begin{itemize}
+    \item Connect to only one reliable node instead of eight random nodes
+    \item Don't save objects we can't decrypt
+    \item Only connect to the network if we're on Wi-Fi and charging
+  \end{itemize}
+  Of course every option has its own drawbacks, so they will be configurable. As for the POW: Jabit highly optimises its calculation, which might be enough for modern smartphones.
+
+  Further optimisations might introduce a server component that might do
+  \begin{itemize}
+    \item POW
+    \item Request public keys, requiring us to give up some anonymity towards the server.
+    \item Inform the client about new messages sent to its addresses. This would mean to give up our anonymity towards the server in the best case (which isn't supported by the protocol yet), towards the whole network (which is somewhat supported), or give up the private key to the server (which is just a big NOPE).
+  \end{itemize}
+
+
+
+\end{document}
