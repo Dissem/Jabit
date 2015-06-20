@@ -157,6 +157,8 @@ public class NetworkAddress implements Streamable {
                 this.ipv6 = addr;
             } else if (addr.length == 4) {
                 this.ipv6 = new byte[16];
+                this.ipv6[10] = (byte) 0xff;
+                this.ipv6[11] = (byte) 0xff;
                 System.arraycopy(addr, 0, this.ipv6, 12, 4);
             } else {
                 throw new IllegalArgumentException("Weird address " + inetAddress);
