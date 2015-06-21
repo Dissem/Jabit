@@ -1,4 +1,4 @@
-allprojects {
+subprojects {
     apply plugin: 'java'
     apply plugin: 'maven'
     apply plugin: 'signing'
@@ -25,7 +25,52 @@ allprojects {
         archives javadocJar, sourcesJar
     }
 
-//    signing {
-//        sign configurations.archives
-//    }
+    // Note: to build the project, you'll either need to
+    if (hasProperty('signing.keyId')) {
+        signing {
+            sign configurations.archives
+        }
+    }
+
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+                repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+
+                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+
+                pom.project {
+                    name 'Jabit'
+                    packaging 'jar'
+                    url 'https://github.com/Dissem/Jabit'
+
+                    scm {
+                        connection 'scm:git:https://github.com/Dissem/Jabit.git'
+                        developerConnection 'scm:git:git@github.com:Dissem/Jabit.git'
+                        url 'https://github.com/Dissem/Jabit.git'
+                    }
+
+                    licenses {
+                        license {
+                            name 'The Apache License, Version 2.0'
+                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            name 'Christian Basler'
+                            email 'chrigu.meyer@gmail.com'
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
