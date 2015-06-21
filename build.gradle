@@ -32,41 +32,43 @@ subprojects {
         }
     }
 
-    uploadArchives {
-        repositories {
-            mavenDeployer {
-                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+    if (hasProperty('ossrhUsername')) {
+        uploadArchives {
+            repositories {
+                mavenDeployer {
+                    beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
-                repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                    authentication(userName: ossrhUsername, password: ossrhPassword)
-                }
-
-                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-                    authentication(userName: ossrhUsername, password: ossrhPassword)
-                }
-
-                pom.project {
-                    name 'Jabit'
-                    packaging 'jar'
-                    url 'https://github.com/Dissem/Jabit'
-
-                    scm {
-                        connection 'scm:git:https://github.com/Dissem/Jabit.git'
-                        developerConnection 'scm:git:git@github.com:Dissem/Jabit.git'
-                        url 'https://github.com/Dissem/Jabit.git'
+                    repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                        authentication(userName: ossrhUsername, password: ossrhPassword)
                     }
 
-                    licenses {
-                        license {
-                            name 'The Apache License, Version 2.0'
-                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                        authentication(userName: ossrhUsername, password: ossrhPassword)
+                    }
+
+                    pom.project {
+                        name 'Jabit'
+                        packaging 'jar'
+                        url 'https://github.com/Dissem/Jabit'
+
+                        scm {
+                            connection 'scm:git:https://github.com/Dissem/Jabit.git'
+                            developerConnection 'scm:git:git@github.com:Dissem/Jabit.git'
+                            url 'https://github.com/Dissem/Jabit.git'
                         }
-                    }
 
-                    developers {
-                        developer {
-                            name 'Christian Basler'
-                            email 'chrigu.meyer@gmail.com'
+                        licenses {
+                            license {
+                                name 'The Apache License, Version 2.0'
+                                url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                            }
+                        }
+
+                        developers {
+                            developer {
+                                name 'Christian Basler'
+                                email 'chrigu.meyer@gmail.com'
+                            }
                         }
                     }
                 }
