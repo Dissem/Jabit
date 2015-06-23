@@ -91,6 +91,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
             if (address != null) {
                 address.setPubkey(pubkey);
                 LOG.debug("Got pubkey for contact " + address);
+                ctx.getAddressRepo().save(address);
                 List<Plaintext> messages = ctx.getMessageRepository().findMessages(Plaintext.Status.PUBKEY_REQUESTED, address);
                 LOG.debug("Sending " + messages.size() + " messages for contact " + address);
                 for (Plaintext msg : messages) {
@@ -107,7 +108,6 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
                     msg.setStatus(SENT);
                     ctx.getMessageRepository().save(msg);
                 }
-                ctx.getAddressRepo().save(address);
             }
         } catch (DecryptionFailedException ignore) {
         }
