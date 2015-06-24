@@ -50,9 +50,9 @@ import static ch.dissem.bitmessage.networking.Connection.State.*;
  * A connection to a specific node
  */
 public class Connection implements Runnable {
+    public static final int READ_TIMEOUT = 2000;
     private final static Logger LOG = LoggerFactory.getLogger(Connection.class);
-    private static final int CONNECT_TIMEOUT = 10000;
-
+    private static final int CONNECT_TIMEOUT = 5000;
     private InternalContext ctx;
 
     private Mode mode;
@@ -106,8 +106,10 @@ public class Connection implements Runnable {
     public void run() {
         try (Socket socket = this.socket) {
             if (!socket.isConnected()) {
+                LOG.debug("Trying to connect to node " + node);
                 socket.connect(new InetSocketAddress(node.toInetAddress(), node.getPort()), CONNECT_TIMEOUT);
             }
+            socket.setSoTimeout(READ_TIMEOUT);
             this.in = socket.getInputStream();
             this.out = socket.getOutputStream();
             if (mode == CLIENT) {
@@ -171,8 +173,8 @@ public class Connection implements Runnable {
                 }
             }
         } catch (IOException | NodeException e) {
-            LOG.debug("disconnection from node " + node + ": " + e.getMessage(), e);
             disconnect();
+            LOG.debug("Disconnected from node " + node + ": " + e.getMessage());
         } catch (RuntimeException e) {
             disconnect();
             throw e;
@@ -180,6 +182,7 @@ public class Connection implements Runnable {
     }
 
     private void activateConnection() {
+        LOG.info("Successfully established connection with node " + node);
         state = ACTIVE;
         sendAddresses();
         sendInventory();
@@ -188,7 +191,9 @@ public class Connection implements Runnable {
     }
 
     private void sendQueue() {
-        LOG.debug("Sending " + sendingQueue.size() + " messages to node " + node);
+        if (sendingQueue.size() > 0) {
+            LOG.debug("Sending " + sendingQueue.size() + " messages to node " + node);
+        }
         for (MessagePayload msg = sendingQueue.poll(); msg != null; msg = sendingQueue.poll()) {
             send(msg);
         }

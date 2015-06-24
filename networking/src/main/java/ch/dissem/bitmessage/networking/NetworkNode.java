@@ -131,7 +131,7 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
                 c.disconnect();
             }
         }
-        pool.shutdownNow();
+        pool.shutdown();
     }
 
     private void startConnection(Connection c) {
