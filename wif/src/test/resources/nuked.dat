@@ -1,0 +1,768 @@
+[bitmessagesettings]
+settingsversion = 10
+port = 8444
+timeformat = %%a, %%d %%b %%Y  %%I:%%M %%p
+blackwhitelist = black
+startonlogon = False
+minimizetotray = True
+showtraynotifications = True
+startintray = False
+socksproxytype = none
+sockshostname = localhost
+socksport = 9050
+socksauthentication = False
+socksusername =
+sockspassword =
+keysencrypted = false
+messagesencrypted = false
+defaultnoncetrialsperbyte = 1000
+defaultpayloadlengthextrabytes = 1000
+minimizeonclose = false
+maxacceptablenoncetrialsperbyte = 0
+maxacceptablepayloadlengthextrabytes = 0
+sockslisten = False
+namecoinrpctype = namecoind
+namecoinrpchost = localhost
+namecoinrpcuser =
+namecoinrpcpassword =
+namecoinrpcport = 8336
+userlocale = system
+sendoutgoingconnections = True
+useidenticons = True
+identiconsuffix = yB9avLvDXVq8
+stopresendingafterxdays =
+stopresendingafterxmonths =
+willinglysendtomobile = True
+maxdownloadrate = 0
+maxuploadrate = 0
+replybelow = False
+
+[BM-2DAjcCFrqFrp88FUxExhJ9kPqHdunQmiyn]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KU2gbe9u4rKJ8PHYb1rvwMnZnAJj4gtV5GLwoYckeYzygWUzB9
+privencryptionkey = 5KHd4c6cavd8xv4kzo3PwnVaYuBgEfg7voPQ5V97aZKgpYBXGck
+
+[BM-2D9U2hv3YBMHM1zERP32anKfVKohyPN9x2]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KXhtUnwRwd5TMfAiyH3YXJRe7hRmLVykYUVrbvKEHjyxUg7QE4
+privencryptionkey = 5KLgiRubeZZpyX9jzyNtWcjoDxuDh11t67uaZ8r4qAKQrid6exk
+
+[BM-2DCNKCHG6WWLbPTLT46C7g9dn4ZbpH19eo]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JEcuEVKvx1x3ssw9BSyyddDWEgMv8vc45RZQYUCwoyjx761koX
+privencryptionkey = 5KHXRSRatva4VR9kHSVDbyUbed3daW8Cb31xXmThkKgZG461Bt7
+
+[BM-2DAGGcH6PYkn9Bw9TKtNsZbAJ2Cw3hu7vr]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KfqrS44Wq5BpA6fuSf5x1wf4gq5ZmwWgSVrAwF68AWVWh8temr
+privencryptionkey = 5JGvJyYTmVZjYiCxSP75tJC4PSNoPr1oVy2ukVzLxyfVQRT9vp8
+
+[BM-2DAdRGnXYMKxsjcGXqwQ9WfzTPwHW9RbNK]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JPHNR9nTHHep5wTFYS46e2zyMVmta2vFCEGvDwG8bELFfHncHD
+privencryptionkey = 5KR2USNzgvbFthCQt4bQsttpC2WA2pVt9Q744ffdRykHvfSdzEH
+
+[BM-2DA3fBqzy74zxTxcwDACMbcE2fGwk65BKm]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5HpSiNEPb5ZCZj32oxzdb8id29jeEcuqRxzk48VEDcNAWHA2aKk
+privencryptionkey = 5JT8LmLHVNcok7phR13H2bYe6gzGgpDCqxiX9PTUrz2BAr2w9Gj
+
+[BM-2D8LDiQM5iiwdmS3L44EVmK1CwzV6ib5W3]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KNPe2if2anrzrdnxSm3t8dSXXz4G9nm2jbpQsR9g61me3Br7sL
+privencryptionkey = 5JUFCyai2hoY8XXStAiKF33fWGjRSoN8HPNhfJCRpPxCmHEMSxK
+
+[BM-2DBWYzED6ycuUtTyiTwNrhbUMTrkbRbG5M]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5HrPjG418ZgHyocfSfBWaf4XnxaFVopYSzXwzsF1sNfnSsyKcfv
+privencryptionkey = 5JSzoJLzx4Rb7PcYdvsD2b7h3xXK8n9o4Ki6uzaCT8kLQrNkPXr
+
+[BM-2D9L1tVWexWv1FXhJNj4vmi8SqDk16yuM5]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5HxYyTnwx1gb2AKNLvL66JgXSTt1nTMbc5asoznR42fF3jnF8sE
+privencryptionkey = 5Kesd4ygu8o36YET25Qg3b4FjKf6BvwcZbgCyZo7MySYKtvpzoz
+
+[BM-2DAKUSuRSrz6p46EUDZwvB797yaPYeFt3S]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5K3EK58h8MoJrHykg6vorYBScsYsirmmHMDz29KGbzGtSXmQuxu
+privencryptionkey = 5JozadFrRsHa5A6haPp5cRFNJTL4oM96FnEmWFxSPAJg8y4PgKH
+
+[BM-2D9Pq9fzetLncBamAPkzy9XpY8hMLAa8Fa]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JhvpUDYSaYupCn7U4GHfoT4StM4K7zr2X41yhGuydomoGSaUmG
+privencryptionkey = 5Ja5YCvok42RHVwVh4xUCXjhFkEeLMVGb8zX9bmCSRF89zj65wf
+
+[BM-2DB7JrxVujDAnATPqjFiXTQiH2Y4938XXK]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JdKfLaVPtkpNaS6AKtVXqqh2M7tggA93DbSvRCkbPQUz1uZnsh
+privencryptionkey = 5KTxqVeSTbk6o94Gp53NjWWpgD6Q8Z1oVibpKrUEEx7xJW2D5YK
+
+[BM-2DB7mtsU1mir7ogbRkhYXJGJ2tRVoPausv]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KaegVTNE2rSB3wCvMKEBqsLqwzdHayoucypfS2kQTUPt9NqSHY
+privencryptionkey = 5HwgyCUHmd594BXMbwDyRsVJo931faaXipGNrsRwG87XDrRWC1X
+
+[BM-2D7dUFgpgFny6FRvjhWLTPNvfYmBv824BN]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KJcVvoDgZyCXYMrZ6hMj2a5WLgQeCKZKh5sqjk2bcsEEhBpPXi
+privencryptionkey = 5JPcsY7myguBp28WR1pZgSZmddyS2pnukMAde5XZgL35rqzf14n
+
+[BM-2D8BKyZNzj9bsZBSL7gDZVJ3MJjgP46fKH]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5HtvTWwzByXtAPCcokMkfhc8UkQUuuk32zzW2fVw6Q1NjcSYJ5h
+privencryptionkey = 5K88CUFo4LzFFx2udMAKwFnzeD28ThYT1X8VEgNF1JhqoE9WmwW
+
+[BM-2D7iV3w5JoRs5GtLWFGsoVPHLDnWTSPM96]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5K1Vp37dgw8zyMFgpjWq2xAqkr2HjmDaTJgAyvZgAjngdeGTJXx
+privencryptionkey = 5JDX3RZpg1bk9YpaECUtCCuGJHr2c7JQVutAaUzBFJnLzkzucbE
+
+[BM-2D9mrrsBS2aUq5Vb5qoGiGfKERW91rybT4]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5K1e2WXbt4e1uCqgStmufi8uB8a1BsQueTDoTUo3aaL8TJALg1K
+privencryptionkey = 5KC3R9m5ebLNnDJGAVKp7xRz7PocF4wKJ9bhLQndA671sBueJz5
+
+[BM-2D9Mv1kQVLroMPU8QyHiAVXy9DRJgAy1Vu]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JkP8rNxwGTSx3G9Apht1Sxwand6cTqstGCvGTAUXoQBFTdEQXA
+privencryptionkey = 5Htevivearmy6fKznQJN8jjXLmZYmeTic1MamAUjsBuVpC4RRiZ
+
+[BM-2DCA9QTUoh1kif8U4TfefUherRFgcn8dNk]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KN5jvhChJ48a6kbjAG5iDp4mQ7kjGVdevAKoFL3DVT32XXpSip
+privencryptionkey = 5J4Vz9Jd5g4k4GSWQCccb17R1avCaapBRU3TddHX1AfxdU6ZNQG
+
+[BM-2D7B7XxGBpjP1JafR1zzYk1pDLBRq3h8di]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KjtTbS9BKZLMgZrsXRMa2M67Ymd1ZfPUwik34V1rjAiV9xVNHq
+privencryptionkey = 5Jvo923BYvzoodLceQAmJybXhq5j6tgd3cngXKuXgQ1wFQHZt9E
+
+[BM-2D7uUsJsVbpUiDniXoDJcesMgkskofH5sz]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KA8usSRS3bFGP7Z9JigztNpgjFsp8JnhZ8MoriyauzqSmYvi6W
+privencryptionkey = 5Jaz7gqwSxa1DYiYxBrYsDz8VCbx2Z5en8za5ZfvzCAb5YLTwje
+
+[BM-2D8LUnD7j7gjJ8GWT6GH7SP2fiK1xCiSX1]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JmR6MBk5Bty8Hf7SK47KMYczhxSaan9bwwpuBQ5dZqqNWW7Gqr
+privencryptionkey = 5JRTvg47nhQSj9PJtN2gpBCGZoNjaA7yGJx7B9J4NN7fWmG9aVm
+
+[BM-2DBeDovYwjHjHr8Hu49aBsQ3fEuhAYsWDf]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5J5ZGXSu4KzqNPYJNwYSJqCgvntG6icBgom1u4EFGSUQtYrp1C8
+privencryptionkey = 5K9w4H5Tv4unvXHbA4RTrTkw7c7yA6qhPuuW3FjBoecujzg1tNm
+
+[BM-2D8UrqSKCgyrcrRuKmt8ovM739nkmGopvZ]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5Hvpr6HkmNDwBwB6ay2knNyrD8K7uNVxvwmdgHmyQeKptjaWPGN
+privencryptionkey = 5JKUynmyBwZ8LXf1CfaTXKgPR82qPiUt9mPzQdJFRghKMPJx5HV
+
+[BM-2D99A1wN3uCgoznQo1sFKHWbDNpTWLEvHV]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KNNvizhq6dcj3jtk9raLeRLAtMG3hSHX7awa6e2JEfWw3wTtz3
+privencryptionkey = 5JKUPdsn5YhG8SGrDsDA87znPUuUiWSUkso195f3bWThwARfsFv
+
+[BM-2D7AuMPHkv1UuxKViWEA17sfp9cQs89Znm]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JMhqMCNY51sVfP584KYbbmZkRgNNdBUr8oSja9cGqZhxT4He2q
+privencryptionkey = 5KbC9WfBML1nJkS1qq9rcinq68Vq1cZUr5KNW8H5N7gzkgowS3n
+
+[BM-2cXpehUjQFtmQwUvJpa9ov4w147G1idTXm]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5K9ewJHdeNT5yc5AEUbhUyLVMqvfG2ee8hX5aDVkVGhQwnwgNar
+privencryptionkey = 5J1eyzU885egejHZ1himtsGe7U1gg1GrLhYenWup7KYSFnDS43N
+
+[BM-2cVqXwUZahBWXzPoY2VyeAhqgVnotfH9Ey]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JvaiFEtsRzNBzcZLuJjFPZ99kjm3oJBUQoxBKtTpEBbFEsP2Mu
+privencryptionkey = 5HqduUtt33z1JidXhZS6Q74rszoNehpTQBko8QnHBJrXjZGr7ga
+
+[BM-2DBnGTJmRVvQfbSCYAReabamRSdp4KqXhB]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5J7KtaKBP6fw9g6Ucg4p6ab9HXfBbjd3gdC6dpqi8WFt9WzqpcP
+privencryptionkey = 5KcACCTtYfUTJJnPnpTuffw5BfqBH5Rfe6ALJapjBnqzarhy96N
+
+[BM-2cT7CDzjxPAuwaRhVH86ogQuRL694Wdp2w]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JN9WMYKUGiKX5m9b3C6LomgXkzRDGHuDPJPruV5DUMGSfv4EDC
+privencryptionkey = 5Jr9EC1EBYLyfGvDRSJrjUBWdvLc9HY4EVTC71bfwmKLSeArD85
+
+[BM-2cX2Ywo9xm46g4NfJ2fkBSPmsq2ZgwFkaz]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JsoMruq1fwJyyfkH9xPuufaaCHMqjiDd9RyRTtUq2kVYrsE2n3
+privencryptionkey = 5Hwrv93tRXHsFL3LyjiwUFrpqPzivtmw2wNzLCeDhVubeg7tEnA
+
+[BM-2cSjXbZbCimFcdRmyrVn8g5x36RRmhwhgj]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KgPc9CdMCP5x84v3BGrHh7h69TDvAuDxzdm9T3XapGBJxGkWpB
+privencryptionkey = 5HwvFPJHNzfAScinj5WVbPZMN6zMUa8yC6m7hCU4wzCRhoy4RsN
+
+[BM-2cXVjgABMxhhNDYbVpbhowDE8aX1PAq48s]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5J3XTcnxHqhzB4xsDvLhSoFhaC3KwpzhgTbvz1C5i1K7yV9Jfb7
+privencryptionkey = 5JBJwSLYx7GoH7Cbmjm7FCxu7UYP4bnbJsBFJPVZSoCxz15k933
+
+[BM-2cU6VQbNmbbeN2PNyZFymCmvtFZcpDCZFy]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JbHhBsnP5PdXd6JhcB2fsAjzDHKZhvsGUiGjh9mKLTVxjhoEW4
+privencryptionkey = 5JoPbYK81WwuFkAGDFan3skWbwuFkb5KdBGLBH7pdf4BBKD4dD8
+
+[BM-2cTgSnGeXpZ7QG22jB5gqvYRiCumLJvoK3]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JXGLbLF2ZYoavyusgZL7TaFMngeChFwyNYRSFx2H2QudYkmK8M
+privencryptionkey = 5JLvnDJY2JHKQWv78xcsCENmzqidousgxmDH4btznMWZt2CTBXX
+
+[BM-2cWoFJz6DxG9zjHgzcbVnCvquYXNFktFCk]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KehnNoUFZaH6KwydArEersMXRDe7dAZCe3V3B1MWijz9k5kztL
+privencryptionkey = 5HsmLfdmzL5hUXGV4RZ4XKkr6sjA67GnJo4Vr8eXquaEw984tvK
+
+[BM-2cXTcpQaRTNRsSXqkQE1j6Ro5QDNmijP1q]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JKttSMq4FHQzoX7BSL857CaZ5kUJpvFudw95tpmnkrCZwCdpAH
+privencryptionkey = 5KPLASpXBTUvrqFcvqGBHZxVsjWu5gbxQu587y4ZsmTebfLt5KS
+
+[BM-2DArvbStMuH61ZDSiuynvksm5yLTxsc9mn]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5Ke28hguTUCzMDjK7TxLVnb68Z8W3PwbusddyjJa2RtGqdWc4De
+privencryptionkey = 5KaJHSdukjGLf64X9uJHaPgvZnqfH6R3fSTFebzi3L3hfws7JUn
+
+[BM-2cX6f2355Rf5AAjcdfxYSXmuwsCsy1YLFH]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JGnGjk6385CbEb4EG3YDDmf8JGSAEtFwGnhAxL2q4Q2kk5shB5
+privencryptionkey = 5KPgrnNoHvah9E9atxBdEEcVBj5SphpQc5oVpba2XrgQK9kgt95
+
+[BM-2cW2kNooDnqt6gHJNZDqo2dn9GpzZDRvxr]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JqaqTpLk4nMtac6UD3ioVQBpu6XGQRH9nyRMDyhPwnWxDoV71u
+privencryptionkey = 5JsV7cqsWkAWLwrYVTvTU9LvxQZ8Gww7rSADUsggvEi9RcKKAPd
+
+[BM-2cXvXF3Am4whhZFq4LV2kAcoyAMoKnQ8Wm]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JjhoV9w932braCezpYQT82rMuPumg5cS4Lz3EVcuTjbZvVDBVy
+privencryptionkey = 5JFVdGAURPNfiNRzXXwDJKs42uEgErsh8Wh2niKWYmv6MheFjyw
+
+[BM-2cWHh9d3p6bGvoSk3EdcjuZK3NtEJQz7os]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5HwZoFT9fVjUXJEC7TVTbaWbU7Yg3Lcngoa2UWS64z57wDqtA88
+privencryptionkey = 5J4TEKHNU6BLkUPRRsJwtzWJASbFv5PFJ4vKca688noUwT4Pamg
+
+[BM-2DARPn97uwYdq94nGsGVqMLR7xdB61kTxH]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JRe6vguERZvCHudoZaq2tDXDDqjQqubgECooq52912H6bZW7vr
+privencryptionkey = 5K8hMVLx9baTqLDsUwUdX8SJbXHy2s7Biirhjd5kxtvFvqsmaL4
+
+[BM-2cVtAD2kbM7bYzMhmHBitpwWexAvyu6gck]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JxVeKm3tqAejRw5AyFGxBi3yqJ4RAfJ727tmoHFH1MVCdcSqcC
+privencryptionkey = 5KhudVzj4h7ZWD9s5buEAGrrPw8fRtg7ReGRV3LF7FXhxnc4CSz
+
+[BM-2cT8cuYey2mvHZvgKAF7tWwKDPjieFYG4w]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5HuDuj5Uo6jRBVYQNsYtoh2d6Mp55e3BAeRq9TpYAgvCwjR75c8
+privencryptionkey = 5K22uL1VxYom5FJRPAADpyQP9PPJJQQ5jP2iMxhXZ35V1ouan9P
+
+[BM-2cX38WKpJXYyBvhsopkYegWd14EqrubaTJ]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KkS1jrNfayeFxYQEu8UAm4wWyyk12eu3EY8zGYMjvnHjbjCSGR
+privencryptionkey = 5JkDmyTZC8HzqFNigboCraDhAYSYSyKHERPkFkX1SMEx3umjhwi
+
+[BM-2cT1PGqh2nmRf5e3BcpVGcSg44CzsADSu9]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JvACRXT5bxq55bsdpK2uQZ8yN4BwoB1zQjf6kZAJFbjN74yqmR
+privencryptionkey = 5JwTTCACiQrbNaGU5Bjhqp4tfB1uiXsR3snn4gQufoHRt9vsrU1
+
+[BM-2cVEefYLC7bCUTwjSqPMX3t4r1YcfjDbLJ]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5K6x7cJvQSkjs4LuEVXinFLW4hwJE8Gn32y4tfFJspvFjjqJtNa
+privencryptionkey = 5Jg1sK9chFvEZp5pG5iJh3L2L4kxXTWTQ9guqxBLPoEFEyXnmES
+
+[BM-2cVLR8vzEu6QUjGkYAPHQQTUenPVC62f9B]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JvnKKDF1vWDBnnjCPGMVVzsX2EinsXbiiJj7JUwZ9La4xJ9FWt
+privencryptionkey = 5JTYsHKSzDx6636UatMppek1QzKYL8b5RLeZdayHoi1Qa5yJjJS
+
+[BM-2cW7cD5cDQJDNkE7ibmyTxfvGAmnPqa9Vt]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5Hs858sfv3yhgpiuZZrWPBAPEAvEvggx2E9gErUTu6kdhVzMqoe
+privencryptionkey = 5JKWnNvioVg2BFnbToGgp2DJqye86DUcbKxh2idHAeQ6swjYHh2
+
+[BM-2cWGm3LmYYdvWMuAGzJz6uD9WDTMbs8437]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JUFe7HjmsAmPwe3q44wuB1BTV2Y1uXafpizpDckEzDiphJSGuH
+privencryptionkey = 5JvMrLJYFxgiUQCtYPPQPXkSjCcpGZxpC2ewDj8dyGMnQwG2ysF
+
+[BM-2cWeF1pYd2AYYDxCRBW3CKvsg2TyJqKqjG]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KjJGuDyHQftvzMSGxUYoL6oFutqCP8MmikScAZvYaxsBfxjyzM
+privencryptionkey = 5KbfzpMTsac1JgDPZSQCtrVZuKm61EzQmSGYjKuKBAaez4rnfts
+
+[BM-2cUuzjWQjDWyDfYHL9C93jcJYKW1B8JyS5]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KWFoFRXVHraujrFWuXfNn1fnP4euVUq79QnMWE2QPv3kWhbjs1
+privencryptionkey = 5JYcPUZuMjzgSHmsmcsQcpzFGqM7DdEVtxwNjRZg7KfUTqmepFh
+
+[BM-2cVocv4a4k9PhKvLUrSw34z78tKk13g12w]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5J5M836NLn3vrxXGmKAzSMm5CNJLn4AyVnbBzRTieUJaXJqkCtQ
+privencryptionkey = 5JPTURbrWDbRmPnBdC64Pu24X2pYPQ5CDwrQoEPAXyJwt2gTm8N
+
+[BM-2cUFrQFzG8jjKTfnZo5BCBtZDkfyk9LhWg]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JVh1K937EGcJQ49gc31iGwrWqkakP8zRJKhBCF825Fyv2P6WBo
+privencryptionkey = 5JFYLwvBsor3G3G71d9Db4mqKBhHTRXwP9XTENQF7Vo4VmHNzd7
+
+[BM-2cVwSf2HsDfBGEiXjFfhgJ9LWDKDGRqRQy]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5Jsp39NFNFAL5hm9bo8nmm4P4Z2gXQ15eNCRJB9wQCaBrAfo768
+privencryptionkey = 5KJxAYpf6ftSPNWJk6Z6fzY5TwCa6yeqbodLLEfLQrDFaxdoLNk
+
+[BM-2cVADvyuTBJAMFRnST3NVCCydqqPgW3pgr]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JCzkpcu9F4EVkrC6Z4bhJRKoCyYrTCMjy4HtBKN7n9ndN7qdcb
+privencryptionkey = 5J9BRpXyEjbDAsnFKz3AU57WLfM21PCt4D8NmDG3xkZ6W4YXN7o
+
+[BM-2cVM6521amU8w7CiLHUVCEHesZNH41ERp8]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JpQ6EDck3BZqALZQfswQadi2dffQRVfc2GEK8VrycMq4Lc1Xek
+privencryptionkey = 5JA6KCA8gknz1vdS8dqbextW4WqkpL7ANm2fNSQhoeoF6beikFH
+
+[BM-2cVUJSDtvTqrJ8iDJG7oVjm6NiNXeTxbLG]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5Jcf3Dd1SMgHVfyhLjrps7hxQyXVW5FmkkEsiLEzZkWxj25DpRo
+privencryptionkey = 5JatvXsTr5pTKf3SRHRBsVetFduTfGmrHi76dhvKsxkfHprvETg
+
+[BM-2cVhwaUHhDyEUkzFFv6knFpXp8QrqnbFm7]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KC5MaxSexz9xwAJjGZ9DhZP74HP2D2jEvgpq8AqFZmpqzLjJ3P
+privencryptionkey = 5Jeuw6uTQwcjAwtA4Mm3tr4SXpZrHGbXQsTcKJJi6uKuS8UKSqn
+
+[BM-2cWvi3Afxsy8R4ZY3uUeVsQc7yWCWJZESE]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JeMaVMNasJ6E6Ldr9T6f4QWppVPXRL1eeYDefzQvo47B1VyRP4
+privencryptionkey = 5KSVWmMUnFkGteampznhr8o9gGnW45DzunhUQaCN9KdamDK5cuU
+
+[BM-2cUzpPfJ5Rz1xQQhSxrFYPmtsE1G1ExmuL]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5Ki9cpiiNJQ5xBKchU6PHFCapWS9gxiP1Ld8HdvNVs7PJGV9LYB
+privencryptionkey = 5KYTe4NMnrBwM8cmg9Y6b6mnNCdVDa2D9c9xFhdr4roVphXmk6o
+
+[BM-2cTtkBnb4BUYDndTKun6D9PjtueP2h1bQj]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5K91i1cVACYJrqFu5yQEG2dVYS9jd2fgrr9TnuNuEJrnad7Tdy2
+privencryptionkey = 5JjxUkny9JWu1w9hwntCDtqezg3VYt7mieSHSdT2u2DbofyTPoh
+
+[BM-2cWKgkRASMb2Q6x8hJJ8rZUEJNzboi5nA6]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5Jox2H4mLCm3iLMsUwRcY2hdNa7RTgdtaq7ioWw9dizGN3xaQWh
+privencryptionkey = 5JXYkHycRQuR8Lg7JryswxhNnLu5UTTxp97nrYrSofAwKwW4GZo
+
+[BM-2cWgHUw6xtGuiNrxw1VBZGdRigt7XGkABa]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KT9EajuHRMh3p97JDoTbRrdjyWmLDNDHGSqeHnryDSKSgrAhDY
+privencryptionkey = 5Hy5UydAXjU23ZbKAPib5dH1PxfNA6E6z5GVTvwF7PZPevHy9A6
+
+[BM-2cXGxfuziGt7t8yJdhR7vkgdoHB6TEq1aT]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KLwQLcpjBH25SwHjqQJfbJmwK99J33QMdrZqnSqbtTSinoqPYj
+privencryptionkey = 5JoKAn7dxMhrryTk6n6oKEi4RrQXsg6NBcjpHLbqppnA3xz6Pjv
+
+[BM-2cWXFpesNTjttWCZLiA8sGSBG51N5E9iM1]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5J7ELD2d6Y7awLeFgQuQfcfUNgGtgv6D6bkHt1UDFdAkbdr5FMC
+privencryptionkey = 5HsPMpRDkoVMswx1hFiiW7weS1ttoG9dn9czcf2PBjWw7YxR3vw
+
+[BM-2cXZXdtGqwRGEC7V2gy9jhmhTbXs9UEuJc]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5Jyms61QTseJYZxVP7FNVaLA24WkkiXaJyppgTe6qzFK9ZpWDdy
+privencryptionkey = 5Jqj4NhcpKiECEUwULn1naRn7C9e3ps9uhG19pSJtztsUDS8ghT
+
+[BM-2cSzVfzZKw8T2nGUKeVX4FFYpkevYZz28X]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KLupHGu2f8Nv1cvQPqEiuzTLJWbg4BMg9JTg2t5fvJxprdiyv4
+privencryptionkey = 5KCCcATyhPqdYsBc7sY1rryFwYQ6mVPxWR3SJJRYcq7SgsookqX
+
+[BM-2cSwb9C6dT3WnKofmBMX5vZTJp4sSLAfsQ]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JeMEiiLjoW1PUdexCn7WPKG4o6VDqsqieE6QHG3fZHb1bxXxHb
+privencryptionkey = 5KiDwGMxx3BkrrtDg3igbxYAQkbVZaxYsLAQogA3nLHFJZkYx2e
+
+[BM-2cUXfm1rExvCxNUPZwLrxUMWRMTocxyJQp]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KfekquwzKL7ZaPQnZfupVJgxdbfCEG7scaqhADKd87EkZ3Y2eu
+privencryptionkey = 5KTiypcqHMw8cDJdv8EEnbVSrgViRyXsUszXoWXBTeVF2aHGUhr
+
+[BM-2cXtnTMWth7aFU3AP4C72X5uQYJtnz3pWM]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KEEe39PtftTHQJP9T1CpWNB6hVpAkfGKDRwagi9yc2AYuSbciv
+privencryptionkey = 5Jo2Q3PqvKMDNUXEQtENEGKMBv3WuF5EYZXZwCpAHLsbJFEroBz
+
+[BM-2cTzVrzE4vxTHZooyWxc5v84avdkuHJTUn]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KJCDei1233JqV14xZKbSTMvXbKhEd1C6cbhs3f5uQyXySKChFf
+privencryptionkey = 5JJ7Z1EqyN5Ex7W35W2XCNtxgE3EwqnNc6Cqgeo1Buwfw4PNEko
+
+[BM-2cVvoiFs5BgAZs3hh23G9BPUNfZzxHqxWb]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5J3NHste55fKtx7ym6pV3kwb8RwRjzgiEN3ifALSnDJSErbieJ8
+privencryptionkey = 5KYq4oNwHSKGxvc6QreXDXJXYp218KDddU2qj5hg2K8xXgFwP7N
+
+[BM-2cXgouAATySWGSjNamhwgGySHhRAGKrSaP]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JpJRaBEUHDyBtyZKcbQSmzKTA1aw77BwJXbnLMtD2mMjZXzgYT
+privencryptionkey = 5KimQsWfbMWeX1RQKP78WQJhn5McHKRehPB5bbHYeY7M68wuQa6
+
+[BM-2cWJ4UFRTCehWuWNsW8fJkAYMxU4S8jxci]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JU5t2JA58sP5aJwKAcrYg5EpBA9bJPrBSaFfaZ7ogmwTMDCfHL
+privencryptionkey = 5Kkx5MwjQcM4kyduKvCEPM6nVNynMdRcg88VQ5iVDWUekMz1igH
+
+[BM-2cWgJBJy5NruuohhZWRAd2oy9yEp4zQVHx]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JANShMAgoG3vZ8BcLBksc6EdmZfRL7JfoRM8QQEyTGSJADivAe
+privencryptionkey = 5J89ZroJf9Vu1JS6CpCJJC5qxn8xaSsfNXH43CFhDyinUJggqL1
+
+[BM-2cXr7pRcKcmwhvL3SasAAg3A39FXx72H42]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KKKo56Zh36Y4fXpvZ7cpSHpSREJjm23tQEWBQyAFwVCx1s1qkF
+privencryptionkey = 5JcNUy8Em4P8WFXKcKuJKQKfpAS9hqNFRgUDR63VwBQnpQSeLiN
+
+[BM-2cV5f9EpzaYARxtoruSpa6pDoucSf9ZNke]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KMWqfCyJZGFgW6QrnPJ6L9Gatz25B51y7ErgqNr1nXUVbtZbdU
+privencryptionkey = 5JXXWEuhHQEPk414SzEZk1PHDRi8kCuZd895J7EnKeQSahJPxGz
+
+[BM-2cXJE8qP12RLiqFW2ZJNRg8Q7EUKsPeFwG]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5JNARqdxHnJqEuExZRF3yXSBbjaWK2n4Z4C7mv9H9uuzFXtVYoU
+privencryptionkey = 5Jbwrxdj39Mik2oauT1QD2ZJZ7pg5gz9fPKH6t5x2L1DPnMU6gg
+
+[BM-2cVSPCJPmx5Q8A7BZaVEcTCq6wuuwm2ndW]
+label = Nuked Address
+enabled = true
+decoy = false
+noncetrialsperbyte = 320
+payloadlengthextrabytes = 14000
+privsigningkey = 5KUP7gxNmrKK7NyW2V41Geg9cPz51SEGpZ4kqg7u69X9PWh4DdU
+privencryptionkey = 5JcysgNhoBmhvb5zVjMHkbhza12xgZ493Z5H2pshDWPV2ajWxyv
+
