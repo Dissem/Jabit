@@ -267,7 +267,6 @@ public class BitmessageContext {
         AddressRepository addressRepo;
         MessageRepository messageRepo;
         ProofOfWorkEngine proofOfWorkEngine;
-        TreeSet<Long> streams;
 
         public Builder() {
         }
@@ -307,28 +306,12 @@ public class BitmessageContext {
             return this;
         }
 
-        public Builder streams(Collection<Long> streams) {
-            this.streams = new TreeSet<>(streams);
-            return this;
-        }
-
-        public Builder streams(long... streams) {
-            this.streams = new TreeSet<>();
-            for (long stream : streams) {
-                this.streams.add(stream);
-            }
-            return this;
-        }
-
         public BitmessageContext build() {
             nonNull("inventory", inventory);
             nonNull("nodeRegistry", nodeRegistry);
             nonNull("networkHandler", networkHandler);
             nonNull("addressRepo", addressRepo);
             nonNull("messageRepo", messageRepo);
-            if (streams == null) {
-                streams(1);
-            }
             if (proofOfWorkEngine == null) {
                 proofOfWorkEngine = new MultiThreadedPOWEngine();
             }

@@ -16,14 +16,11 @@
 
 package ch.dissem.bitmessage.ports;
 
-import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.entity.ObjectMessage;
-import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.utils.Property;
 
 import java.io.IOException;
-import java.util.Map;
 
 /**
  * Handles incoming messages

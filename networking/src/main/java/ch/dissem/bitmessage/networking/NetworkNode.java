@@ -30,6 +30,8 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -43,12 +45,16 @@ import static ch.dissem.bitmessage.utils.DebugUtils.inc;
  * Handles all the networky stuff.
  */
 public class NetworkNode implements NetworkHandler, ContextHolder {
+    public final static int NETWORK_MAGIC_NUMBER = 8;
     private final static Logger LOG = LoggerFactory.getLogger(NetworkNode.class);
     private final ExecutorService pool;
     private final List<Connection> connections = new LinkedList<>();
     private InternalContext ctx;
     private ServerSocket serverSocket;
+    private Thread serverThread;
     private Thread connectionManager;
+
+    private ConcurrentMap<InventoryVector, Long> requestedObjects = new ConcurrentHashMap<>();
 
     public NetworkNode() {
         pool = Executors.newCachedThreadPool();
@@ -66,18 +72,21 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
         }
         try {
             serverSocket = new ServerSocket(ctx.getPort());
-            pool.execute(new Runnable() {
+            serverThread = new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    try {
-                        Socket socket = serverSocket.accept();
-                        socket.setSoTimeout(10000);
-                        startConnection(new Connection(ctx, SERVER, socket, listener));
-                    } catch (IOException e) {
-                        LOG.debug(e.getMessage(), e);
+                    while (!serverSocket.isClosed()) {
+                        try {
+                            Socket socket = serverSocket.accept();
+                            socket.setSoTimeout(Connection.READ_TIMEOUT);
+                            startConnection(new Connection(ctx, SERVER, socket, listener, requestedObjects));
+                        } catch (IOException e) {
+                            LOG.debug(e.getMessage(), e);
+                        }
                     }
                 }
-            });
+            }, "server");
+            serverThread.start();
             connectionManager = new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -96,10 +105,11 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
                                     }
                                 }
                             }
-                            if (active < 8) {
-                                List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(8 - active, ctx.getStreams());
+                            if (active < NETWORK_MAGIC_NUMBER) {
+                                List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(
+                                        NETWORK_MAGIC_NUMBER - active, ctx.getStreams());
                                 for (NetworkAddress address : addresses) {
-                                    startConnection(new Connection(ctx, CLIENT, address, listener));
+                                    startConnection(new Connection(ctx, CLIENT, address, listener, requestedObjects));
                                 }
                             }
                             Thread.sleep(30000);
@@ -126,12 +136,12 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
         } catch (IOException e) {
             LOG.debug(e.getMessage(), e);
         }
+        pool.shutdown();
         synchronized (connections) {
             for (Connection c : connections) {
                 c.disconnect();
             }
         }
-        pool.shutdown();
     }
 
     private void startConnection(Connection c) {
@@ -147,17 +157,17 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
 
     @Override
     public void offer(final InventoryVector iv) {
-        List<Connection> active = new LinkedList<>();
+        List<Connection> target = new LinkedList<>();
         synchronized (connections) {
             for (Connection connection : connections) {
-                if (connection.getState() == ACTIVE) {
-                    active.add(connection);
+                if (connection.getState() == ACTIVE && !connection.knowsOf(iv)) {
+                    target.add(connection);
                 }
             }
         }
-        LOG.debug(active.size() + " connections available to offer " + iv);
-        List<Connection> random8 = Collections.selectRandom(8, active);
-        for (Connection connection : random8) {
+        LOG.debug(target.size() + " connections available to offer " + iv);
+        List<Connection> randomSubset = Collections.selectRandom(NETWORK_MAGIC_NUMBER, target);
+        for (Connection connection : randomSubset) {
             connection.offer(iv);
         }
     }

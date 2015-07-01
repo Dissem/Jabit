@@ -35,7 +35,7 @@ public class JdbcNodeRegistryTest {
     public void setUp() throws Exception {
         config = new TestJdbcConfig();
         config.reset();
-        registry = new JdbcNodeRegistry(config);
+        registry = new MemoryNodeRegistry();
 
         registry.offerAddresses(Arrays.asList(
                 createAddress(1, 8444, 1, now()),

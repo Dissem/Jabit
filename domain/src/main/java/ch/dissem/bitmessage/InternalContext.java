@@ -49,7 +49,7 @@ public class InternalContext {
     private final MessageRepository messageRepository;
     private final ProofOfWorkEngine proofOfWorkEngine;
 
-    private final TreeSet<Long> streams;
+    private final TreeSet<Long> streams = new TreeSet<>();
     private final int port;
     private long networkNonceTrialsPerByte = 1000;
     private long networkExtraBytes = 1000;
@@ -65,7 +65,7 @@ public class InternalContext {
         this.clientNonce = Security.randomNonce();
 
         port = builder.port;
-        streams = builder.streams;
+        streams.add(1L); // FIXME
 
         init(inventory, nodeRegistry, networkHandler, addressRepository, messageRepository, proofOfWorkEngine);
     }
