@@ -57,4 +57,15 @@ public class Collections {
         }
         return result;
     }
+
+    public static <T> T selectRandom(Collection<T> collection) {
+        int index = RANDOM.nextInt(collection.size());
+        for (T item : collection) {
+            if (index == 0) {
+                return item;
+            }
+            index--;
+        }
+        throw new IllegalArgumentException("Empty collection? Size: " + collection.size());
+    }
 }

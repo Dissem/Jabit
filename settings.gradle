@@ -8,3 +8,4 @@ include 'repositories'
 
 include 'demo'
 
+include 'wif'

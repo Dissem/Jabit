@@ -2,6 +2,18 @@ plugins {
     id "us.kirchmeier.capsule" version "1.0-rc1"
 }
 
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            pom.project {
+                name 'Jabit Demo'
+                artifactId = 'jabit-demo'
+                description 'An example Bitmessage client using Jabit.'
+            }
+        }
+    }
+}
+
 task fatCapsule(type: FatCapsule) {
     applicationClass 'ch.dissem.bitmessage.demo.Main'
 }
@@ -10,6 +22,7 @@ dependencies {
     compile project(':domain')
     compile project(':networking')
     compile project(':repositories')
+    compile project(':wif')
     compile 'org.slf4j:slf4j-simple:1.7.12'
     compile 'args4j:args4j:2.32'
     testCompile 'junit:junit:4.11'

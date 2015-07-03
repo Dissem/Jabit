@@ -32,10 +32,7 @@ import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.TreeSet;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST;
@@ -43,8 +40,7 @@ import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
 import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 
 /**
- * Use this class if you want to create a Bitmessage client.
- * <p>
+ * <p>Use this class if you want to create a Bitmessage client.</p>
  * You'll need the Builder to create a BitmessageContext, and set the following properties:
  * <ul>
  * <li>addressRepo</li>
@@ -54,9 +50,8 @@ import static ch.dissem.bitmessage.utils.UnixTime.DAY;
  * <li>messageRepo</li>
  * <li>streams</li>
  * </ul>
- * The default implementations in the different module builds can be used.
- * <p>
- * The port defaults to 8444 (the default Bitmessage port)
+ * <p>The default implementations in the different module builds can be used.</p>
+ * <p>The port defaults to 8444 (the default Bitmessage port)</p>
  */
 public class BitmessageContext {
     public static final int CURRENT_VERSION = 3;
@@ -167,21 +162,17 @@ public class BitmessageContext {
     }
 
     private void send(long stream, ObjectPayload payload, long timeToLive) {
-        try {
-            long expires = UnixTime.now(+timeToLive);
-            LOG.info("Expires at " + expires);
-            ObjectMessage object = new ObjectMessage.Builder()
-                    .stream(stream)
-                    .expiresTime(expires)
-                    .payload(payload)
-                    .build();
-            Security.doProofOfWork(object, ctx.getProofOfWorkEngine(),
-                    ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
-            ctx.getInventory().storeObject(object);
-            ctx.getNetworkHandler().offer(object.getInventoryVector());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        long expires = UnixTime.now(+timeToLive);
+        LOG.info("Expires at " + expires);
+        ObjectMessage object = new ObjectMessage.Builder()
+                .stream(stream)
+                .expiresTime(expires)
+                .payload(payload)
+                .build();
+        Security.doProofOfWork(object, ctx.getProofOfWorkEngine(),
+                ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
+        ctx.getInventory().storeObject(object);
+        ctx.getNetworkHandler().offer(object.getInventoryVector());
     }
 
     public void startup(Listener listener) {
@@ -267,7 +258,6 @@ public class BitmessageContext {
         AddressRepository addressRepo;
         MessageRepository messageRepo;
         ProofOfWorkEngine proofOfWorkEngine;
-        TreeSet<Long> streams;
 
         public Builder() {
         }
@@ -307,28 +297,12 @@ public class BitmessageContext {
             return this;
         }
 
-        public Builder streams(Collection<Long> streams) {
-            this.streams = new TreeSet<>(streams);
-            return this;
-        }
-
-        public Builder streams(long... streams) {
-            this.streams = new TreeSet<>();
-            for (long stream : streams) {
-                this.streams.add(stream);
-            }
-            return this;
-        }
-
         public BitmessageContext build() {
             nonNull("inventory", inventory);
             nonNull("nodeRegistry", nodeRegistry);
             nonNull("networkHandler", networkHandler);
             nonNull("addressRepo", addressRepo);
             nonNull("messageRepo", messageRepo);
-            if (streams == null) {
-                streams(1);
-            }
             if (proofOfWorkEngine == null) {
                 proofOfWorkEngine = new MultiThreadedPOWEngine();
             }

@@ -39,7 +39,7 @@ public class ProofOfWorkEngineTest {
     private void testPOW(ProofOfWorkEngine engine) {
         long time = System.currentTimeMillis();
         byte[] initialHash = Security.sha512(new byte[]{1, 3, 6, 4});
-        byte[] target = {0, 0, 0, -1, -1, -1, -1, -1};
+        byte[] target = {0, 0, -1, -1, -1, -1, -1, -1};
 
         byte[] nonce = engine.calculateNonce(initialHash, target);
         System.out.println("Calculating nonce took " + (System.currentTimeMillis() - time) + "ms");

@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity.payload;
 
 import ch.dissem.bitmessage.entity.Streamable;
+import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.utils.*;
 import org.bouncycastle.crypto.BufferedBlockCipher;
@@ -36,6 +37,8 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.math.BigInteger;
 import java.util.Arrays;
+
+import static ch.dissem.bitmessage.entity.valueobject.PrivateKey.PRIVATE_KEY_SIZE;
 
 
 public class CryptoBox implements Streamable {
@@ -59,7 +62,7 @@ public class CryptoBox implements Streamable {
         initializationVector = Security.randomBytes(16);
 
         // 3. Generate a new random EC key pair with private key called r and public key called R.
-        byte[] r = Security.randomBytes(64);
+        byte[] r = Security.randomBytes(PRIVATE_KEY_SIZE);
         R = Security.createPublicKey(r);
         // 4. Do an EC point multiply with public key K and private key r. This gives you public key P.
         ECPoint P = K.multiply(Security.keyToBigInt(r)).normalize();

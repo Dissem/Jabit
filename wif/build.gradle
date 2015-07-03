@@ -1,0 +1,18 @@
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            pom.project {
+                name 'Jabit WIF Import/Export'
+                artifactId = 'jabit-wif'
+                description 'A Java implementation of the Bitmessage protocol. This contains methods to import from and export to Wallet Import Format.'
+            }
+        }
+    }
+}
+
+dependencies {
+    compile project(':domain')
+    compile 'org.ini4j:ini4j:0.5.4'
+    testCompile 'junit:junit:4.11'
+    testCompile 'org.mockito:mockito-core:1.+'
+}

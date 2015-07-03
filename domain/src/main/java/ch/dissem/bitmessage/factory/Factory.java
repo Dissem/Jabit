@@ -23,6 +23,7 @@ import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.NodeException;
+import ch.dissem.bitmessage.utils.Security;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,6 +106,24 @@ public class Factory {
             default:
                 throw new IllegalArgumentException("Unexpected pubkey version " + version);
         }
+    }
+
+    public static BitmessageAddress createIdentityFromPrivateKey(String address,
+                                                                 byte[] privateSigningKey, byte[] privateEncryptionKey,
+                                                                 long nonceTrialsPerByte, long extraBytes,
+                                                                 int behaviourBitfield) {
+        BitmessageAddress temp = new BitmessageAddress(address);
+        PrivateKey privateKey = new PrivateKey(privateSigningKey, privateEncryptionKey,
+                createPubkey(temp.getVersion(), temp.getStream(),
+                        Security.createPublicKey(privateSigningKey).getEncoded(false),
+                        Security.createPublicKey(privateEncryptionKey).getEncoded(false),
+                        nonceTrialsPerByte, extraBytes, behaviourBitfield));
+        BitmessageAddress result = new BitmessageAddress(privateKey);
+        if (!result.getAddress().equals(address)) {
+            throw new IllegalArgumentException("Address not matching private key. Address: " + address
+                    + "; Address derived from private key: " + result.getAddress());
+        }
+        return result;
     }
 
     public static BitmessageAddress generatePrivateAddress(boolean shorter, long stream, Pubkey.Feature... features) {

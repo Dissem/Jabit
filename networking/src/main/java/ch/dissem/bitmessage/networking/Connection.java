@@ -37,57 +37,60 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Queue;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentMap;
 
 import static ch.dissem.bitmessage.networking.Connection.Mode.CLIENT;
 import static ch.dissem.bitmessage.networking.Connection.State.*;
+import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
 
 /**
  * A connection to a specific node
  */
 public class Connection implements Runnable {
+    public static final int READ_TIMEOUT = 2000;
     private final static Logger LOG = LoggerFactory.getLogger(Connection.class);
-    private static final int CONNECT_TIMEOUT = 10000;
-
+    private static final int CONNECT_TIMEOUT = 5000;
+    private final ConcurrentMap<InventoryVector, Long> ivCache;
     private InternalContext ctx;
-
     private Mode mode;
     private State state;
     private Socket socket;
     private InputStream in;
     private OutputStream out;
     private MessageListener listener;
-
     private int version;
     private long[] streams;
-
     private NetworkAddress host;
     private NetworkAddress node;
-
     private Queue<MessagePayload> sendingQueue = new ConcurrentLinkedDeque<>();
+    private ConcurrentMap<InventoryVector, Long> requestedObjects;
 
-    public Connection(InternalContext context, Mode mode, Socket socket, MessageListener listener) throws IOException {
-        this.ctx = context;
-        this.mode = mode;
-        this.state = CONNECTING;
+    public Connection(InternalContext context, Mode mode, Socket socket, MessageListener listener,
+                      ConcurrentMap<InventoryVector, Long> requestedObjectsMap) throws IOException {
+        this(context, mode, listener, requestedObjectsMap);
         this.socket = socket;
-        this.listener = listener;
-        this.host = new NetworkAddress.Builder().ipv6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0).port(0).build();
         this.node = new NetworkAddress.Builder().ip(socket.getInetAddress()).port(socket.getPort()).stream(1).build();
     }
 
-    public Connection(InternalContext context, Mode mode, NetworkAddress node, MessageListener listener) {
+    public Connection(InternalContext context, Mode mode, NetworkAddress node, MessageListener listener,
+                      ConcurrentMap<InventoryVector, Long> requestedObjectsMap) {
+        this(context, mode, listener, requestedObjectsMap);
+        this.socket = new Socket();
+        this.node = node;
+    }
+
+    private Connection(InternalContext context, Mode mode, MessageListener listener,
+                       ConcurrentMap<InventoryVector, Long> requestedObjectsMap) {
         this.ctx = context;
         this.mode = mode;
         this.state = CONNECTING;
-        this.socket = new Socket();
-        this.node = node;
         this.listener = listener;
+        this.requestedObjects = requestedObjectsMap;
         this.host = new NetworkAddress.Builder().ipv6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0).port(0).build();
+        ivCache = new ConcurrentHashMap<>();
     }
 
     public Mode getMode() {
@@ -106,8 +109,10 @@ public class Connection implements Runnable {
     public void run() {
         try (Socket socket = this.socket) {
             if (!socket.isConnected()) {
+                LOG.debug("Trying to connect to node " + node);
                 socket.connect(new InetSocketAddress(node.toInetAddress(), node.getPort()), CONNECT_TIMEOUT);
             }
+            socket.setSoTimeout(READ_TIMEOUT);
             this.in = socket.getInputStream();
             this.out = socket.getOutputStream();
             if (mode == CLIENT) {
@@ -171,8 +176,8 @@ public class Connection implements Runnable {
                 }
             }
         } catch (IOException | NodeException e) {
-            LOG.debug("disconnection from node " + node + ": " + e.getMessage(), e);
             disconnect();
+            LOG.debug("Disconnected from node " + node + ": " + e.getMessage());
         } catch (RuntimeException e) {
             disconnect();
             throw e;
@@ -180,6 +185,7 @@ public class Connection implements Runnable {
     }
 
     private void activateConnection() {
+        LOG.info("Successfully established connection with node " + node);
         state = ACTIVE;
         sendAddresses();
         sendInventory();
@@ -188,9 +194,61 @@ public class Connection implements Runnable {
     }
 
     private void sendQueue() {
-        LOG.debug("Sending " + sendingQueue.size() + " messages to node " + node);
+        if (sendingQueue.size() > 0) {
+            LOG.debug("Sending " + sendingQueue.size() + " messages to node " + node);
+        }
         for (MessagePayload msg = sendingQueue.poll(); msg != null; msg = sendingQueue.poll()) {
             send(msg);
+        }
+    }
+
+    private void cleanupIvCache() {
+        Long fiveMinutesAgo = UnixTime.now(-5 * MINUTE);
+        for (Map.Entry<InventoryVector, Long> entry : ivCache.entrySet()) {
+            if (entry.getValue() < fiveMinutesAgo) {
+                ivCache.remove(entry.getKey());
+            }
+        }
+    }
+
+    private void updateIvCache(InventoryVector... inventory) {
+        cleanupIvCache();
+        Long now = UnixTime.now();
+        for (InventoryVector iv : inventory) {
+            ivCache.put(iv, now);
+        }
+    }
+
+    private void updateIvCache(List<InventoryVector> inventory) {
+        cleanupIvCache();
+        Long now = UnixTime.now();
+        for (InventoryVector iv : inventory) {
+            ivCache.put(iv, now);
+        }
+    }
+
+    private void updateRequestedObjects(List<InventoryVector> missing) {
+        Long now = UnixTime.now();
+        Long fiveMinutesAgo = now - 5 * MINUTE;
+        Long tenMinutesAgo = now - 10 * MINUTE;
+        List<InventoryVector> stillMissing = new LinkedList<>();
+        for (Map.Entry<InventoryVector, Long> entry : requestedObjects.entrySet()) {
+            if (entry.getValue() < fiveMinutesAgo) {
+                stillMissing.add(entry.getKey());
+                // If it's still not available after 10 minutes, we won't look for it
+                // any longer (except it's announced again)
+                if (entry.getValue() < tenMinutesAgo) {
+                    requestedObjects.remove(entry.getKey());
+                }
+            }
+        }
+
+        for (InventoryVector iv : missing) {
+            requestedObjects.put(iv, now);
+        }
+        if (!stillMissing.isEmpty()) {
+            LOG.debug(stillMissing.size() + " items are still missing.");
+            missing.addAll(stillMissing);
         }
     }
 
@@ -198,9 +256,12 @@ public class Connection implements Runnable {
         switch (messagePayload.getCommand()) {
             case INV:
                 Inv inv = (Inv) messagePayload;
+                updateIvCache(inv.getInventory());
                 List<InventoryVector> missing = ctx.getInventory().getMissing(inv.getInventory(), streams);
+                missing.removeAll(requestedObjects.keySet());
                 LOG.debug("Received inventory with " + inv.getInventory().size() + " elements, of which are "
                         + missing.size() + " missing.");
+                updateRequestedObjects(missing);
                 send(new GetData.Builder().inventory(missing).build());
                 break;
             case GETDATA:
@@ -226,6 +287,8 @@ public class Connection implements Runnable {
                 } catch (IOException e) {
                     LOG.error("Stream " + objectMessage.getStream() + ", object type " + objectMessage.getType() + ": " + e.getMessage(), e);
                     DebugUtils.saveToFile(objectMessage);
+                } finally {
+                    requestedObjects.remove(objectMessage.getInventoryVector());
                 }
                 break;
             case ADDR:
@@ -271,6 +334,11 @@ public class Connection implements Runnable {
         sendingQueue.offer(new Inv.Builder()
                 .addInventoryVector(iv)
                 .build());
+        updateIvCache(iv);
+    }
+
+    public boolean knowsOf(InventoryVector iv) {
+        return ivCache.containsKey(iv);
     }
 
     @Override
@@ -284,6 +352,13 @@ public class Connection implements Runnable {
     @Override
     public int hashCode() {
         return Objects.hash(node);
+    }
+
+    public void request(InventoryVector key) {
+        sendingQueue.offer(new GetData.Builder()
+                        .addInventoryVector(key)
+                        .build()
+        );
     }
 
     public enum Mode {SERVER, CLIENT}

@@ -21,9 +21,13 @@ package ch.dissem.bitmessage.utils;
  */
 public class UnixTime {
     /**
+     * Length of a minute in seconds, intended for use with {@link #now(long)}.
+     */
+    public static final int MINUTE = 60;
+    /**
      * Length of an hour in seconds, intended for use with {@link #now(long)}.
      */
-    public static final long HOUR = 60 * 60;
+    public static final long HOUR = 60 * MINUTE;
     /**
      * Length of a day in seconds, intended for use with {@link #now(long)}.
      */

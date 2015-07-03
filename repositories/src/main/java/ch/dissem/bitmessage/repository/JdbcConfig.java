@@ -45,11 +45,7 @@ public class JdbcConfig {
         this("jdbc:h2:~/jabit;AUTO_SERVER=TRUE", "sa", null);
     }
 
-    public Connection getConnection() {
-        try {
-            return DriverManager.getConnection(dbUrl, dbUser, dbPassword);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+    public Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(dbUrl, dbUser, dbPassword);
     }
 }

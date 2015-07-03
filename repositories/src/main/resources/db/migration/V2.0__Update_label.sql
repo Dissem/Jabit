@@ -1,1 +1,0 @@
-UPDATE Label SET type = 'DRAFT' WHERE type = 'DRAFTS';

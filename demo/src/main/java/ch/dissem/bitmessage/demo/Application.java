@@ -43,11 +43,10 @@ public class Application {
         ctx = new BitmessageContext.Builder()
                 .addressRepo(new JdbcAddressRepository(jdbcConfig))
                 .inventory(new JdbcInventory(jdbcConfig))
-                .nodeRegistry(new JdbcNodeRegistry(jdbcConfig))
+                .nodeRegistry(new MemoryNodeRegistry())
                 .messageRepo(new JdbcMessageRepository(jdbcConfig))
                 .networkHandler(new NetworkNode())
                 .port(48444)
-                .streams(1)
                 .build();
 
         ctx.startup(new BitmessageContext.Listener() {

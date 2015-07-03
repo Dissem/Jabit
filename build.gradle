@@ -1,11 +1,13 @@
-allprojects {
+subprojects {
     apply plugin: 'java'
     apply plugin: 'maven'
     apply plugin: 'signing'
 
     sourceCompatibility = 1.7
     group = 'ch.dissem.jabit'
-    version = '0.1.2'
+    version = '0.2.0'
+
+    ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
     repositories {
         mavenCentral()
@@ -25,7 +27,55 @@ allprojects {
         archives javadocJar, sourcesJar
     }
 
-//    signing {
-//        sign configurations.archives
-//    }
+    signing {
+        required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
+        sign configurations.archives
+    }
+
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+                if (!hasProperty('ossrhUsername')) {
+                    ext.ossrhUsername = 'dummy'
+                    ext.ossrhPassword = 'dummy'
+                }
+
+                repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+
+                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+
+                pom.project {
+                    name 'Jabit'
+                    packaging 'jar'
+                    url 'https://github.com/Dissem/Jabit'
+
+                    scm {
+                        connection 'scm:git:https://github.com/Dissem/Jabit.git'
+                        developerConnection 'scm:git:git@github.com:Dissem/Jabit.git'
+                        url 'https://github.com/Dissem/Jabit.git'
+                    }
+
+                    licenses {
+                        license {
+                            name 'The Apache License, Version 2.0'
+                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            name 'Christian Basler'
+                            email 'chrigu.meyer@gmail.com'
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
