@@ -34,7 +34,7 @@ CREATE TABLE Message_Label (
 );
 
 INSERT INTO Label(label, type, color, ord) VALUES ('Inbox', 'INBOX', X'FF0000FF', 0);
-INSERT INTO Label(label, type, color, ord) VALUES ('Drafts', 'DRAFTS', X'FFFF9900', 10);
+INSERT INTO Label(label, type, color, ord) VALUES ('Drafts', 'DRAFT', X'FFFF9900', 10);
 INSERT INTO Label(label, type, color, ord) VALUES ('Sent', 'SENT', X'FFFFFF00', 20);
 INSERT INTO Label(label, type, ord) VALUES ('Unread', 'UNREAD', 90);
 INSERT INTO Label(label, type, ord) VALUES ('Trash', 'TRASH', 100);

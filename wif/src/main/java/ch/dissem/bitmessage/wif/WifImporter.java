@@ -95,19 +95,22 @@ public class WifImporter {
         return identities;
     }
 
-    public void importAll() {
+    public WifImporter importAll() {
         for (BitmessageAddress identity : identities) {
             ctx.addresses().save(identity);
         }
+        return this;
     }
 
-    public void importAll(Collection<BitmessageAddress> identities) {
+    public WifImporter importAll(Collection<BitmessageAddress> identities) {
         for (BitmessageAddress identity : identities) {
             ctx.addresses().save(identity);
         }
+        return this;
     }
 
-    public void importIdentity(BitmessageAddress identity) {
+    public WifImporter importIdentity(BitmessageAddress identity) {
         ctx.addresses().save(identity);
+        return this;
     }
 }

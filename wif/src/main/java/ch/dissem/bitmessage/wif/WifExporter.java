@@ -26,6 +26,8 @@ import org.ini4j.Profile;
 import java.io.*;
 import java.util.Collection;
 
+import static ch.dissem.bitmessage.entity.valueobject.PrivateKey.PRIVATE_KEY_SIZE;
+
 /**
  * @author Christian Basler
  */
@@ -38,19 +40,21 @@ public class WifExporter {
         this.ini = new Ini();
     }
 
-    public void addAll() {
+    public WifExporter addAll() {
         for (BitmessageAddress identity : ctx.addresses().getIdentities()) {
             addIdentity(identity);
         }
+        return this;
     }
 
-    public void addAll(Collection<BitmessageAddress> identities) {
+    public WifExporter addAll(Collection<BitmessageAddress> identities) {
         for (BitmessageAddress identity : identities) {
             addIdentity(identity);
         }
+        return this;
     }
 
-    public void addIdentity(BitmessageAddress identity) {
+    public WifExporter addIdentity(BitmessageAddress identity) {
         Profile.Section section = ini.add(identity.getAddress());
         section.add("label", identity.getAlias());
         section.add("enabled", true);
@@ -59,22 +63,26 @@ public class WifExporter {
         section.add("payloadlengthextrabytes", identity.getPubkey().getExtraBytes());
         section.add("privsigningkey", exportSecret(identity.getPrivateKey().getPrivateSigningKey()));
         section.add("privencryptionkey", exportSecret(identity.getPrivateKey().getPrivateEncryptionKey()));
+        return this;
     }
 
     private String exportSecret(byte[] privateKey) {
-        if (privateKey.length != 32) {
+        if (privateKey.length != PRIVATE_KEY_SIZE) {
             throw new IllegalArgumentException("Private key of length 32 expected, but was " + privateKey.length);
         }
         byte[] result = new byte[37];
         result[0] = (byte) 0x80;
-        System.arraycopy(privateKey, 0, result, 1, 32);
-        byte[] hash = Security.doubleSha256(result, 33);
-        System.arraycopy(hash, 0, result, 33, 4);
+        System.arraycopy(privateKey, 0, result, 1, PRIVATE_KEY_SIZE);
+        byte[] hash = Security.doubleSha256(result, PRIVATE_KEY_SIZE + 1);
+        System.arraycopy(hash, 0, result, PRIVATE_KEY_SIZE + 1, 4);
         return Base58.encode(result);
     }
 
     public void write(File file) throws IOException {
-        write(new FileOutputStream(file));
+        file.createNewFile();
+        try (FileOutputStream out = new FileOutputStream(file)) {
+            write(out);
+        }
     }
 
     public void write(OutputStream out) throws IOException {

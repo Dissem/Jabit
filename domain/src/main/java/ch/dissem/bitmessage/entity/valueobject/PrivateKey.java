@@ -32,8 +32,9 @@ import java.io.*;
  * Created by chris on 18.04.15.
  */
 public class PrivateKey implements Streamable {
-    private final byte[] privateSigningKey; // 32 bytes
-    private final byte[] privateEncryptionKey; // 32 bytes
+    public static final int PRIVATE_KEY_SIZE = 32;
+    private final byte[] privateSigningKey;
+    private final byte[] privateEncryptionKey;
 
     private final Pubkey pubkey;
 
@@ -44,8 +45,8 @@ public class PrivateKey implements Streamable {
         byte[] pubEK;
         byte[] ripe;
         do {
-            privSK = Security.randomBytes(64);
-            privEK = Security.randomBytes(64);
+            privSK = Security.randomBytes(PRIVATE_KEY_SIZE);
+            privEK = Security.randomBytes(PRIVATE_KEY_SIZE);
             pubSK = Security.createPublicKey(privSK).getEncoded(false);
             pubEK = Security.createPublicKey(privEK).getEncoded(false);
             ripe = Pubkey.getRipe(pubSK, pubEK);
