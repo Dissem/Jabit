@@ -287,6 +287,8 @@ public class Connection implements Runnable {
                 } catch (IOException e) {
                     LOG.error("Stream " + objectMessage.getStream() + ", object type " + objectMessage.getType() + ": " + e.getMessage(), e);
                     DebugUtils.saveToFile(objectMessage);
+                } finally {
+                    requestedObjects.remove(objectMessage.getInventoryVector());
                 }
                 break;
             case ADDR:

@@ -199,20 +199,16 @@ public class InternalContext {
     }
 
     public void requestPubkey(BitmessageAddress contact) {
-        try {
-            long expires = UnixTime.now(+2 * DAY);
-            LOG.info("Expires at " + expires);
-            ObjectMessage response = new ObjectMessage.Builder()
-                    .stream(contact.getStream())
-                    .expiresTime(expires)
-                    .payload(new GetPubkey(contact))
-                    .build();
-            Security.doProofOfWork(response, proofOfWorkEngine, networkNonceTrialsPerByte, networkExtraBytes);
-            inventory.storeObject(response);
-            networkHandler.offer(response.getInventoryVector());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        long expires = UnixTime.now(+2 * DAY);
+        LOG.info("Expires at " + expires);
+        ObjectMessage response = new ObjectMessage.Builder()
+                .stream(contact.getStream())
+                .expiresTime(expires)
+                .payload(new GetPubkey(contact))
+                .build();
+        Security.doProofOfWork(response, proofOfWorkEngine, networkNonceTrialsPerByte, networkExtraBytes);
+        inventory.storeObject(response);
+        networkHandler.offer(response.getInventoryVector());
     }
 
     public long getClientNonce() {

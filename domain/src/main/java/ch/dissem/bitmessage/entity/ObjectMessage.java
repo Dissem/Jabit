@@ -88,7 +88,7 @@ public class ObjectMessage implements MessagePayload {
         return stream;
     }
 
-    public InventoryVector getInventoryVector() throws IOException {
+    public InventoryVector getInventoryVector() {
         return new InventoryVector(Bytes.truncate(Security.doubleSha512(nonce, getPayloadBytesWithoutNonce()), 32));
     }
 
@@ -163,14 +163,18 @@ public class ObjectMessage implements MessagePayload {
         Encode.varInt(stream, out);
     }
 
-    public byte[] getPayloadBytesWithoutNonce() throws IOException {
-        if (payloadBytes == null) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            writeHeaderWithoutNonce(out);
-            payload.write(out);
-            payloadBytes = out.toByteArray();
+    public byte[] getPayloadBytesWithoutNonce() {
+        try {
+            if (payloadBytes == null) {
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                writeHeaderWithoutNonce(out);
+                payload.write(out);
+                payloadBytes = out.toByteArray();
+            }
+            return payloadBytes;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        return payloadBytes;
     }
 
     public static final class Builder {
