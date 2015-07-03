@@ -64,6 +64,8 @@ public class WifImporterTest {
         assertEquals(320, identity.getPubkey().getNonceTrialsPerByte());
         assertEquals(14000, identity.getPubkey().getExtraBytes());
         assertNotNull("Private key", identity.getPrivateKey());
+        assertEquals(32, identity.getPrivateKey().getPrivateEncryptionKey().length);
+        assertEquals(32, identity.getPrivateKey().getPrivateSigningKey().length);
     }
 
     @Test

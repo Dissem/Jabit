@@ -16,6 +16,16 @@
 
 package ch.dissem.bitmessage.demo;
 
+import ch.dissem.bitmessage.BitmessageContext;
+import ch.dissem.bitmessage.networking.NetworkNode;
+import ch.dissem.bitmessage.repository.*;
+import ch.dissem.bitmessage.wif.WifExporter;
+import ch.dissem.bitmessage.wif.WifImporter;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
+
+import java.io.File;
 import java.io.IOException;
 
 public class Main {
@@ -25,6 +35,40 @@ public class Main {
         if (System.getProperty("org.slf4j.simpleLogger.logFile") == null)
             System.setProperty("org.slf4j.simpleLogger.logFile", "./jabit.log");
 
-        new Application();
+        CmdLineOptions options = new CmdLineOptions();
+        CmdLineParser parser = new CmdLineParser(options);
+        try {
+            parser.parseArgument(args);
+        } catch (CmdLineException e) {
+            parser.printUsage(System.err);
+        }
+        if (options.exportWIF != null || options.importWIF != null) {
+            JdbcConfig jdbcConfig = new JdbcConfig();
+            BitmessageContext ctx = new BitmessageContext.Builder()
+                    .addressRepo(new JdbcAddressRepository(jdbcConfig))
+                    .inventory(new JdbcInventory(jdbcConfig))
+                    .nodeRegistry(new MemoryNodeRegistry())
+                    .messageRepo(new JdbcMessageRepository(jdbcConfig))
+                    .networkHandler(new NetworkNode())
+                    .port(48444)
+                    .build();
+
+            if (options.exportWIF != null) {
+                new WifExporter(ctx).addAll().write(options.exportWIF);
+            }
+            if (options.importWIF != null) {
+                new WifImporter(ctx, options.importWIF).importAll();
+            }
+        } else {
+            new Application();
+        }
+    }
+
+    private static class CmdLineOptions {
+        @Option(name = "-import", usage = "Import from keys.dat or other WIF file.")
+        private File importWIF;
+
+        @Option(name = "-export", usage = "Export to WIF file.")
+        private File exportWIF;
     }
 }

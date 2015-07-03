@@ -131,7 +131,7 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
             ps.setLong(6, object.getVersion());
             ps.executeUpdate();
         } catch (SQLException e) {
-            LOG.error("Error storing object of type " + object.getPayload().getClass().getSimpleName(), e);
+            LOG.debug("Error storing object of type " + object.getPayload().getClass().getSimpleName(), e);
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
         }
