@@ -17,7 +17,7 @@
 package ch.dissem.bitmessage.demo;
 
 import ch.dissem.bitmessage.BitmessageContext;
-import ch.dissem.bitmessage.networking.NetworkNode;
+import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
 import ch.dissem.bitmessage.repository.*;
 import ch.dissem.bitmessage.wif.WifExporter;
 import ch.dissem.bitmessage.wif.WifImporter;
@@ -49,7 +49,7 @@ public class Main {
                     .inventory(new JdbcInventory(jdbcConfig))
                     .nodeRegistry(new MemoryNodeRegistry())
                     .messageRepo(new JdbcMessageRepository(jdbcConfig))
-                    .networkHandler(new NetworkNode())
+                    .networkHandler(new DefaultNetworkHandler())
                     .port(48444)
                     .build();
 

@@ -18,18 +18,18 @@ package ch.dissem.bitmessage.entity.valueobject;
 
 import ch.dissem.bitmessage.entity.Streamable;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
-import ch.dissem.bitmessage.entity.payload.V3Pubkey;
-import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.Bytes;
 import ch.dissem.bitmessage.utils.Decode;
 import ch.dissem.bitmessage.utils.Encode;
-import ch.dissem.bitmessage.utils.Security;
 
 import java.io.*;
 
+import static ch.dissem.bitmessage.utils.Singleton.security;
+
 /**
- * Created by chris on 18.04.15.
+ * Represents a private key. Additional information (stream, version, features, ...) is stored in the accompanying
+ * {@link Pubkey} object.
  */
 public class PrivateKey implements Streamable {
     public static final int PRIVATE_KEY_SIZE = 32;
@@ -45,15 +45,15 @@ public class PrivateKey implements Streamable {
         byte[] pubEK;
         byte[] ripe;
         do {
-            privSK = Security.randomBytes(PRIVATE_KEY_SIZE);
-            privEK = Security.randomBytes(PRIVATE_KEY_SIZE);
-            pubSK = Security.createPublicKey(privSK).getEncoded(false);
-            pubEK = Security.createPublicKey(privEK).getEncoded(false);
+            privSK = security().randomBytes(PRIVATE_KEY_SIZE);
+            privEK = security().randomBytes(PRIVATE_KEY_SIZE);
+            pubSK = security().createPublicKey(privSK);
+            pubEK = security().createPublicKey(privEK);
             ripe = Pubkey.getRipe(pubSK, pubEK);
         } while (ripe[0] != 0 || (shorter && ripe[1] != 0));
         this.privateSigningKey = privSK;
         this.privateEncryptionKey = privEK;
-        this.pubkey = Security.createPubkey(Pubkey.LATEST_VERSION, stream, privateSigningKey, privateEncryptionKey,
+        this.pubkey = security().createPubkey(Pubkey.LATEST_VERSION, stream, privateSigningKey, privateEncryptionKey,
                 nonceTrialsPerByte, extraBytes, features);
     }
 
@@ -66,9 +66,9 @@ public class PrivateKey implements Streamable {
     public PrivateKey(long version, long stream, String passphrase, long nonceTrialsPerByte, long extraBytes, Pubkey.Feature... features) {
         try {
             // FIXME: this is most definitely wrong
-            this.privateSigningKey = Bytes.truncate(Security.sha512(passphrase.getBytes("UTF-8"), new byte[]{0}), 32);
-            this.privateEncryptionKey = Bytes.truncate(Security.sha512(passphrase.getBytes("UTF-8"), new byte[]{1}), 32);
-            this.pubkey = Security.createPubkey(version, stream, privateSigningKey, privateEncryptionKey,
+            this.privateSigningKey = Bytes.truncate(security().sha512(passphrase.getBytes("UTF-8"), new byte[]{0}), 32);
+            this.privateEncryptionKey = Bytes.truncate(security().sha512(passphrase.getBytes("UTF-8"), new byte[]{1}), 32);
+            this.pubkey = security().createPubkey(version, stream, privateSigningKey, privateEncryptionKey,
                     nonceTrialsPerByte, extraBytes, features);
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);

@@ -17,14 +17,11 @@
 package ch.dissem.bitmessage.ports;
 
 import ch.dissem.bitmessage.utils.Bytes;
-import ch.dissem.bitmessage.utils.Security;
 import org.junit.Test;
 
+import static ch.dissem.bitmessage.utils.Singleton.security;
 import static org.junit.Assert.assertTrue;
 
-/**
- * Created by chris on 17.04.15.
- */
 public class ProofOfWorkEngineTest {
     @Test
     public void testSimplePOWEngine() {
@@ -38,11 +35,11 @@ public class ProofOfWorkEngineTest {
 
     private void testPOW(ProofOfWorkEngine engine) {
         long time = System.currentTimeMillis();
-        byte[] initialHash = Security.sha512(new byte[]{1, 3, 6, 4});
+        byte[] initialHash = security().sha512(new byte[]{1, 3, 6, 4});
         byte[] target = {0, 0, -1, -1, -1, -1, -1, -1};
 
         byte[] nonce = engine.calculateNonce(initialHash, target);
         System.out.println("Calculating nonce took " + (System.currentTimeMillis() - time) + "ms");
-        assertTrue(Bytes.lt(Security.doubleSha512(nonce, initialHash), target, 8));
+        assertTrue(Bytes.lt(security().doubleSha512(nonce, initialHash), target, 8));
     }
 }

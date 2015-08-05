@@ -26,7 +26,6 @@ import ch.dissem.bitmessage.exception.NodeException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.NetworkHandler.MessageListener;
 import ch.dissem.bitmessage.utils.DebugUtils;
-import ch.dissem.bitmessage.utils.Security;
 import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +43,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import static ch.dissem.bitmessage.networking.Connection.Mode.CLIENT;
 import static ch.dissem.bitmessage.networking.Connection.State.*;
+import static ch.dissem.bitmessage.utils.Singleton.security;
 import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
 
 /**
@@ -275,7 +275,7 @@ public class Connection implements Runnable {
                 ObjectMessage objectMessage = (ObjectMessage) messagePayload;
                 try {
                     LOG.debug("Received object " + objectMessage.getInventoryVector());
-                    Security.checkProofOfWork(objectMessage, ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
+                    security().checkProofOfWork(objectMessage, ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
                     listener.receive(objectMessage);
                     ctx.getInventory().storeObject(objectMessage);
                     // offer object to some random nodes so it gets distributed throughout the network:

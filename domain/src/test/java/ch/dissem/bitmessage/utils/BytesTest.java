@@ -25,9 +25,6 @@ import java.util.Random;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
-/**
- * Created by chris on 10.04.15.
- */
 public class BytesTest {
     public static final Random rnd = new Random();
 

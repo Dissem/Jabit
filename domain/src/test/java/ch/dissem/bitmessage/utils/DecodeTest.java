@@ -22,9 +22,6 @@ import java.io.*;
 
 import static org.junit.Assert.assertEquals;
 
-/**
- * Created by chris on 20.03.15.
- */
 public class DecodeTest {
     @Test
     public void ensureDecodingWorks() throws Exception {

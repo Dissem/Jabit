@@ -26,7 +26,7 @@ import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 
-import static ch.dissem.bitmessage.utils.Security.sha512;
+import static ch.dissem.bitmessage.utils.Singleton.security;
 
 /**
  * A network message is exchanged between two nodes.
@@ -48,7 +48,7 @@ public class NetworkMessage implements Streamable {
      * First 4 bytes of sha512(payload)
      */
     private byte[] getChecksum(byte[] bytes) throws NoSuchProviderException, NoSuchAlgorithmException {
-        byte[] d = sha512(bytes);
+        byte[] d = security().sha512(bytes);
         return new byte[]{d[0], d[1], d[2], d[3]};
     }
 

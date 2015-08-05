@@ -21,7 +21,7 @@ import ch.dissem.bitmessage.entity.payload.Broadcast;
 import ch.dissem.bitmessage.entity.payload.GetPubkey;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.ports.*;
-import ch.dissem.bitmessage.utils.Security;
+import ch.dissem.bitmessage.utils.Singleton;
 import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +42,7 @@ import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 public class InternalContext {
     private final static Logger LOG = LoggerFactory.getLogger(InternalContext.class);
 
+    private final Security security;
     private final Inventory inventory;
     private final NodeRegistry nodeRegistry;
     private final NetworkHandler networkHandler;
@@ -56,16 +57,29 @@ public class InternalContext {
     private long clientNonce;
 
     public InternalContext(BitmessageContext.Builder builder) {
+        this.security = builder.security;
         this.inventory = builder.inventory;
         this.nodeRegistry = builder.nodeRegistry;
         this.networkHandler = builder.networkHandler;
         this.addressRepository = builder.addressRepo;
         this.messageRepository = builder.messageRepo;
         this.proofOfWorkEngine = builder.proofOfWorkEngine;
-        this.clientNonce = Security.randomNonce();
+        this.clientNonce = security.randomNonce();
+
+        Singleton.initialize(security);
 
         port = builder.port;
-        streams.add(1L); // FIXME
+
+        // TODO: streams of new identities and subscriptions should also be added. This works only after a restart.
+        for (BitmessageAddress address : addressRepository.getIdentities()) {
+            streams.add(address.getStream());
+        }
+        for (BitmessageAddress address : addressRepository.getSubscriptions()) {
+            streams.add(address.getStream());
+        }
+        if (streams.isEmpty()) {
+            streams.add(1L);
+        }
 
         init(inventory, nodeRegistry, networkHandler, addressRepository, messageRepository, proofOfWorkEngine);
     }
@@ -76,6 +90,10 @@ public class InternalContext {
                 ((ContextHolder) o).setContext(this);
             }
         }
+    }
+
+    public Security getSecurity() {
+        return security;
     }
 
     public Inventory getInventory() {
@@ -111,14 +129,6 @@ public class InternalContext {
         return result;
     }
 
-    public void addStream(long stream) {
-        streams.add(stream);
-    }
-
-    public void removeStream(long stream) {
-        streams.remove(stream);
-    }
-
     public int getPort() {
         return port;
     }
@@ -152,14 +162,14 @@ public class InternalContext {
                     .payload(payload)
                     .build();
             if (object.isSigned()) {
-                object.sign(from.getPrivateKey());
+                object.sign( from.getPrivateKey());
             }
             if (payload instanceof Broadcast) {
                 ((Broadcast) payload).encrypt();
             } else if (payload instanceof Encrypted) {
                 object.encrypt(to.getPubkey());
             }
-            Security.doProofOfWork(object, proofOfWorkEngine, nonceTrialsPerByte, extraBytes);
+            security.doProofOfWork(object, nonceTrialsPerByte, extraBytes);
             if (payload instanceof PlaintextHolder) {
                 Plaintext plaintext = ((PlaintextHolder) payload).getPlaintext();
                 plaintext.setInventoryVector(object.getInventoryVector());
@@ -182,13 +192,13 @@ public class InternalContext {
                     .payload(identity.getPubkey())
                     .build();
             response.sign(identity.getPrivateKey());
-            response.encrypt(Security.createPublicKey(identity.getPublicDecryptionKey()).getEncoded(false));
-            Security.doProofOfWork(response, proofOfWorkEngine, networkNonceTrialsPerByte, networkExtraBytes);
+            response.encrypt(security.createPublicKey(identity.getPublicDecryptionKey()));
+            security.doProofOfWork(response, networkNonceTrialsPerByte, networkExtraBytes);
             if (response.isSigned()) {
                 response.sign(identity.getPrivateKey());
             }
             if (response instanceof Encrypted) {
-                response.encrypt(Security.createPublicKey(identity.getPublicDecryptionKey()).getEncoded(false));
+                response.encrypt(security.createPublicKey(identity.getPublicDecryptionKey()));
             }
             inventory.storeObject(response);
             networkHandler.offer(response.getInventoryVector());
@@ -206,17 +216,13 @@ public class InternalContext {
                 .expiresTime(expires)
                 .payload(new GetPubkey(contact))
                 .build();
-        Security.doProofOfWork(response, proofOfWorkEngine, networkNonceTrialsPerByte, networkExtraBytes);
+        security.doProofOfWork(response, networkNonceTrialsPerByte, networkExtraBytes);
         inventory.storeObject(response);
         networkHandler.offer(response.getInventoryVector());
     }
 
     public long getClientNonce() {
         return clientNonce;
-    }
-
-    public void setClientNonce(long clientNonce) {
-        this.clientNonce = clientNonce;
     }
 
     public interface ContextHolder {

@@ -44,9 +44,9 @@ import static ch.dissem.bitmessage.utils.DebugUtils.inc;
 /**
  * Handles all the networky stuff.
  */
-public class NetworkNode implements NetworkHandler, ContextHolder {
+public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
     public final static int NETWORK_MAGIC_NUMBER = 8;
-    private final static Logger LOG = LoggerFactory.getLogger(NetworkNode.class);
+    private final static Logger LOG = LoggerFactory.getLogger(DefaultNetworkHandler.class);
     private final ExecutorService pool;
     private final List<Connection> connections = new LinkedList<>();
     private InternalContext ctx;
@@ -56,7 +56,7 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
 
     private ConcurrentMap<InventoryVector, Long> requestedObjects = new ConcurrentHashMap<>();
 
-    public NetworkNode() {
+    public DefaultNetworkHandler() {
         pool = Executors.newCachedThreadPool();
     }
 
@@ -126,6 +126,11 @@ public class NetworkNode implements NetworkHandler, ContextHolder {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public boolean isRunning() {
+        return connectionManager != null && connectionManager.isAlive();
     }
 
     @Override

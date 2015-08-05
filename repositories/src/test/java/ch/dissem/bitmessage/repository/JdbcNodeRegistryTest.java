@@ -27,7 +27,7 @@ import java.util.List;
 import static ch.dissem.bitmessage.utils.UnixTime.now;
 import static org.junit.Assert.assertEquals;
 
-public class JdbcNodeRegistryTest {
+public class JdbcNodeRegistryTest extends TestBase {
     private TestJdbcConfig config;
     private NodeRegistry registry;
 

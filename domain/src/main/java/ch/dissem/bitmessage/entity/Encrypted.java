@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
+import ch.dissem.bitmessage.ports.Security;
 
 import java.io.IOException;
 

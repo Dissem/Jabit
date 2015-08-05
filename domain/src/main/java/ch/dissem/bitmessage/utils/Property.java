@@ -17,7 +17,12 @@
 package ch.dissem.bitmessage.utils;
 
 /**
- * Created by chris on 14.06.15.
+ * Some property that has a name, a value and/or other properties. This can be used for any purpose, but is for now
+ * used to contain different status information. It is by default displayed in some JSON inspired human readable
+ * notation, but you might only want to rely on the 'human readable' part.
+ * <p>
+ * If you need a real JSON representation, please add a method <code>toJson()</code>.
+ * </p>
  */
 public class Property {
     private String name;

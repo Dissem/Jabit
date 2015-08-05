@@ -21,9 +21,10 @@ import ch.dissem.bitmessage.utils.Strings;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.util.Arrays;
 
-public class InventoryVector implements Streamable {
+public class InventoryVector implements Streamable, Serializable {
     /**
      * Hash of the object
      */

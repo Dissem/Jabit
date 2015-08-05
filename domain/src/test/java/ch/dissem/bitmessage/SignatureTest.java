@@ -25,6 +25,7 @@ import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
+import ch.dissem.bitmessage.utils.TestBase;
 import ch.dissem.bitmessage.utils.TestUtils;
 import org.junit.Test;
 
@@ -33,7 +34,7 @@ import java.util.Date;
 
 import static org.junit.Assert.*;
 
-public class SignatureTest {
+public class SignatureTest extends TestBase {
     @Test
     public void ensureValidationWorks() throws IOException {
         ObjectMessage object = TestUtils.loadObjectMessage(3, "V3Pubkey.payload");

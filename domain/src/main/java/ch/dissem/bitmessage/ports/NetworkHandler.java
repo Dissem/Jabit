@@ -34,6 +34,8 @@ public interface NetworkHandler {
 
     Property getNetworkStatus();
 
+    boolean isRunning();
+
     interface MessageListener {
         void receive(ObjectMessage object) throws IOException;
     }

@@ -23,7 +23,7 @@ import java.security.MessageDigest;
 import static ch.dissem.bitmessage.utils.Bytes.inc;
 
 /**
- * Created by chris on 14.04.15.
+ * You should really use the MultiThreadedPOWEngine, but this one might help you grok the other one.
  */
 public class SimplePOWEngine implements ProofOfWorkEngine {
     @Override

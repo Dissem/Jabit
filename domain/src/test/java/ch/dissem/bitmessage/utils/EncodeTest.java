@@ -23,9 +23,6 @@ import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
 
-/**
- * Created by chris on 13.03.15.
- */
 public class EncodeTest {
     @Test
     public void testUint8() throws IOException {

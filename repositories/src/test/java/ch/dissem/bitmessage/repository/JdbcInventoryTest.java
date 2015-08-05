@@ -34,7 +34,7 @@ import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 import static ch.dissem.bitmessage.utils.UnixTime.now;
 import static org.junit.Assert.*;
 
-public class JdbcInventoryTest {
+public class JdbcInventoryTest extends TestBase {
     private TestJdbcConfig config;
     private Inventory inventory;
 

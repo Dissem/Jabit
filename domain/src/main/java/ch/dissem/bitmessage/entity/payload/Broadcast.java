@@ -21,11 +21,12 @@ import ch.dissem.bitmessage.entity.Encrypted;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.PlaintextHolder;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
-import ch.dissem.bitmessage.utils.Security;
+import ch.dissem.bitmessage.ports.Security;
 
 import java.io.IOException;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST;
+import static ch.dissem.bitmessage.utils.Singleton.security;
 
 /**
  * Users who are subscribed to the sending address will see the message appear in their inbox.
@@ -78,7 +79,7 @@ public abstract class Broadcast extends ObjectPayload implements Encrypted, Plai
     }
 
     public void encrypt() throws IOException {
-        encrypt(Security.createPublicKey(plaintext.getFrom().getPublicDecryptionKey()).getEncoded(false));
+        encrypt(security().createPublicKey(plaintext.getFrom().getPublicDecryptionKey()));
     }
 
     @Override

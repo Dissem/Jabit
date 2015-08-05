@@ -24,16 +24,21 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * Created by chris on 20.03.15.
+ * FIXME: there really should be sensible tests for the network handler
  */
-public class NetworkNodeTest {
+public class DefaultNetworkHandlerTest {
     private NetworkAddress localhost = new NetworkAddress.Builder().ipv4(127, 0, 0, 1).port(8444).build();
+
+    // void start(MessageListener listener);
+    // void stop();
+    // void offer(InventoryVector iv);
+    // Property getNetworkStatus();
 
     @Ignore
     @Test(expected = InterruptedException.class)
     public void testSendMessage() throws Exception {
         final Thread baseThread = Thread.currentThread();
-        NetworkNode net = new NetworkNode();
+        DefaultNetworkHandler net = new DefaultNetworkHandler();
 //        net.setListener(localhost, new NetworkHandler.MessageListener() {
 //            @Override
 //            public void receive(ObjectPayload payload) {

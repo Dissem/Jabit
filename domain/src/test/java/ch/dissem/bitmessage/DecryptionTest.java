@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.V4Broadcast;
 import ch.dissem.bitmessage.entity.payload.V5Broadcast;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
+import ch.dissem.bitmessage.utils.TestBase;
 import ch.dissem.bitmessage.utils.TestUtils;
 import org.junit.Test;
 
@@ -29,7 +30,7 @@ import java.io.IOException;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class DecryptionTest {
+public class DecryptionTest extends TestBase {
     @Test
     public void ensureV4BroadcastIsDecryptedCorrectly() throws IOException, DecryptionFailedException {
         BitmessageAddress address = new BitmessageAddress("BM-2D9Vc5rFxxR5vTi53T9gkLfemViHRMVLQZ");

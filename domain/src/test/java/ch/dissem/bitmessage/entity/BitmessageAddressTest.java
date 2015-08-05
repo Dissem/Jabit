@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import static ch.dissem.bitmessage.entity.payload.Pubkey.Feature.DOES_ACK;
+import static ch.dissem.bitmessage.utils.Singleton.security;
 import static org.junit.Assert.*;
 
 public class BitmessageAddressTest {
@@ -102,7 +103,7 @@ public class BitmessageAddressTest {
         System.out.println("\n\n" + Strings.hex(privsigningkey) + "\n\n");
 
         BitmessageAddress address = new BitmessageAddress(new PrivateKey(privsigningkey, privencryptionkey,
-                Security.createPubkey(3, 1, privsigningkey, privencryptionkey, 320, 14000)));
+                security().createPubkey(3, 1, privsigningkey, privencryptionkey, 320, 14000)));
         assertEquals(address_string, address.getAddress());
     }
 
@@ -119,7 +120,7 @@ public class BitmessageAddressTest {
         if (bytes.length != 37)
             throw new IOException("Unknown format: 37 bytes expected, but secret " + walletImportFormat + " was " + bytes.length + " long");
 
-        byte[] hash = Security.doubleSha256(bytes, 33);
+        byte[] hash = security().doubleSha256(bytes, 33);
         for (int i = 0; i < 4; i++) {
             if (hash[i] != bytes[33 + i]) throw new IOException("Hash check failed for secret " + walletImportFormat);
         }
@@ -132,7 +133,7 @@ public class BitmessageAddressTest {
         byte[] privsigningkey = getSecret("5KMWqfCyJZGFgW6QrnPJ6L9Gatz25B51y7ErgqNr1nXUVbtZbdU");
         byte[] privencryptionkey = getSecret("5JXXWEuhHQEPk414SzEZk1PHDRi8kCuZd895J7EnKeQSahJPxGz");
         BitmessageAddress address = new BitmessageAddress(new PrivateKey(privsigningkey, privencryptionkey,
-                Security.createPubkey(4, 1, privsigningkey, privencryptionkey, 320, 14000)));
+                security().createPubkey(4, 1, privsigningkey, privencryptionkey, 320, 14000)));
         assertEquals("BM-2cV5f9EpzaYARxtoruSpa6pDoucSf9ZNke", address.getAddress());
     }
 

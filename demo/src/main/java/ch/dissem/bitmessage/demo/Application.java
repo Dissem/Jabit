@@ -20,7 +20,7 @@ import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
-import ch.dissem.bitmessage.networking.NetworkNode;
+import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
 import ch.dissem.bitmessage.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +45,7 @@ public class Application {
                 .inventory(new JdbcInventory(jdbcConfig))
                 .nodeRegistry(new MemoryNodeRegistry())
                 .messageRepo(new JdbcMessageRepository(jdbcConfig))
-                .networkHandler(new NetworkNode())
+                .networkHandler(new DefaultNetworkHandler())
                 .port(48444)
                 .build();
 

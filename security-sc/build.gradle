@@ -1,0 +1,17 @@
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            pom.project {
+                name 'Jabit Spongy Security'
+                artifactId = 'jabit-security-spongy'
+                description 'The Security implementation using spongy castle (needed for Android)'
+            }
+        }
+    }
+}
+
+dependencies {
+    compile project(':domain')
+    compile 'com.madgag.spongycastle:prov:1.52.0.0'
+    testCompile 'junit:junit:4.11'
+}

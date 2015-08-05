@@ -22,9 +22,9 @@ import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.exception.NodeException;
+import ch.dissem.bitmessage.ports.Security;
 import ch.dissem.bitmessage.utils.AccessCounter;
 import ch.dissem.bitmessage.utils.Decode;
-import ch.dissem.bitmessage.utils.Security;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import static ch.dissem.bitmessage.entity.NetworkMessage.MAGIC_BYTES;
+import static ch.dissem.bitmessage.utils.Singleton.security;
 
 /**
  * Creates protocol v3 network messages from {@link InputStream InputStreams}
@@ -174,7 +175,7 @@ class V3MessageFactory {
     }
 
     private static boolean testChecksum(byte[] checksum, byte[] payload) {
-        byte[] payloadChecksum = Security.sha512(payload);
+        byte[] payloadChecksum = security().sha512(payload);
         for (int i = 0; i < checksum.length; i++) {
             if (checksum[i] != payloadChecksum[i]) {
                 return false;

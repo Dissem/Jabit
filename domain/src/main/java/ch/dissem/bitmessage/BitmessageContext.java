@@ -27,12 +27,13 @@ import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Property;
-import ch.dissem.bitmessage.utils.Security;
 import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST;
@@ -57,12 +58,17 @@ public class BitmessageContext {
     public static final int CURRENT_VERSION = 3;
     private final static Logger LOG = LoggerFactory.getLogger(BitmessageContext.class);
 
+    private final ExecutorService pool;
+
     private final InternalContext ctx;
 
     private Listener listener;
 
     private BitmessageContext(Builder builder) {
         ctx = new InternalContext(builder);
+        // As this thread is used for parts that do POW, which itself uses parallel threads, only
+        // one should be executed at any time.
+        pool = Executors.newFixedThreadPool(1);
     }
 
     public AddressRepository addresses() {
@@ -74,7 +80,7 @@ public class BitmessageContext {
     }
 
     public BitmessageAddress createIdentity(boolean shorter, Feature... features) {
-        BitmessageAddress identity = new BitmessageAddress(new PrivateKey(
+        final BitmessageAddress identity = new BitmessageAddress(new PrivateKey(
                 shorter,
                 ctx.getStreams()[0],
                 ctx.getNetworkNonceTrialsPerByte(),
@@ -82,8 +88,12 @@ public class BitmessageContext {
                 features
         ));
         ctx.getAddressRepo().save(identity);
-        // TODO: this should happen in a separate thread
-        ctx.sendPubkey(identity, identity.getStream());
+        pool.submit(new Runnable() {
+            @Override
+            public void run() {
+                ctx.sendPubkey(identity, identity.getStream());
+            }
+        });
         return identity;
     }
 
@@ -91,63 +101,71 @@ public class BitmessageContext {
         // TODO
     }
 
-    public void broadcast(BitmessageAddress from, String subject, String message) {
-        // TODO: all this should happen in a separate thread
-        Plaintext msg = new Plaintext.Builder(BROADCAST)
-                .from(from)
-                .message(subject, message)
-                .build();
+    public void broadcast(final BitmessageAddress from, final String subject, final String message) {
+        pool.submit(new Runnable() {
+            @Override
+            public void run() {
+                Plaintext msg = new Plaintext.Builder(BROADCAST)
+                        .from(from)
+                        .message(subject, message)
+                        .build();
 
-        LOG.info("Sending message.");
-        msg.setStatus(DOING_PROOF_OF_WORK);
-        ctx.getMessageRepository().save(msg);
-        ctx.send(
-                from,
-                from,
-                Factory.getBroadcast(from, msg),
-                +2 * DAY,
-                0,
-                0
-        );
-        msg.setStatus(SENT);
-        msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.BROADCAST, Label.Type.SENT));
-        ctx.getMessageRepository().save(msg);
+                LOG.info("Sending message.");
+                msg.setStatus(DOING_PROOF_OF_WORK);
+                ctx.getMessageRepository().save(msg);
+                ctx.send(
+                        from,
+                        from,
+                        Factory.getBroadcast(from, msg),
+                        +2 * DAY,
+                        0,
+                        0
+                );
+                msg.setStatus(SENT);
+                msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.BROADCAST, Label.Type.SENT));
+                ctx.getMessageRepository().save(msg);
+            }
+        });
     }
 
-    public void send(BitmessageAddress from, BitmessageAddress to, String subject, String message) {
+    public void send(final BitmessageAddress from, final BitmessageAddress to, final String subject, final String message) {
         if (from.getPrivateKey() == null) {
             throw new IllegalArgumentException("'From' must be an identity, i.e. have a private key.");
         }
-        // TODO: all this should happen in a separate thread
-        Plaintext msg = new Plaintext.Builder(MSG)
-                .from(from)
-                .to(to)
-                .message(subject, message)
-                .build();
-        if (to.getPubkey() == null) {
-            tryToFindMatchingPubkey(to);
-        }
-        if (to.getPubkey() == null) {
-            LOG.info("Public key is missing from recipient. Requesting.");
-            requestPubkey(from, to);
-            msg.setStatus(PUBKEY_REQUESTED);
-            ctx.getMessageRepository().save(msg);
-        } else {
-            LOG.info("Sending message.");
-            msg.setStatus(DOING_PROOF_OF_WORK);
-            ctx.getMessageRepository().save(msg);
-            ctx.send(
-                    from,
-                    to,
-                    new Msg(msg),
-                    +2 * DAY,
-                    ctx.getNonceTrialsPerByte(to),
-                    ctx.getExtraBytes(to)
-            );
-            msg.setStatus(SENT);
-            msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.SENT));
-            ctx.getMessageRepository().save(msg);
-        }
+        pool.submit(new Runnable() {
+            @Override
+            public void run() {
+                Plaintext msg = new Plaintext.Builder(MSG)
+                        .from(from)
+                        .to(to)
+                        .message(subject, message)
+                        .build();
+                if (to.getPubkey() == null) {
+                    tryToFindMatchingPubkey(to);
+                }
+                if (to.getPubkey() == null) {
+                    LOG.info("Public key is missing from recipient. Requesting.");
+                    requestPubkey(from, to);
+                    msg.setStatus(PUBKEY_REQUESTED);
+                    ctx.getMessageRepository().save(msg);
+                } else {
+                    LOG.info("Sending message.");
+                    msg.setStatus(DOING_PROOF_OF_WORK);
+                    ctx.getMessageRepository().save(msg);
+                    ctx.send(
+                            from,
+                            to,
+                            new Msg(msg),
+                            +2 * DAY,
+                            ctx.getNonceTrialsPerByte(to),
+                            ctx.getExtraBytes(to)
+                    );
+                    msg.setStatus(SENT);
+                    msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.SENT));
+                    ctx.getMessageRepository().save(msg);
+                }
+            }
+        });
     }
 
     private void requestPubkey(BitmessageAddress requestingIdentity, BitmessageAddress address) {
@@ -169,8 +187,7 @@ public class BitmessageContext {
                 .expiresTime(expires)
                 .payload(payload)
                 .build();
-        Security.doProofOfWork(object, ctx.getProofOfWorkEngine(),
-                ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
+        ctx.getSecurity().doProofOfWork(object, ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
         ctx.getInventory().storeObject(object);
         ctx.getNetworkHandler().offer(object.getInventoryVector());
     }
@@ -182,6 +199,10 @@ public class BitmessageContext {
 
     public void shutdown() {
         ctx.getNetworkHandler().stop();
+    }
+
+    public boolean isRunning() {
+        return ctx.getNetworkHandler().isRunning();
     }
 
     public void addContact(BitmessageAddress contact) {
@@ -258,6 +279,7 @@ public class BitmessageContext {
         AddressRepository addressRepo;
         MessageRepository messageRepo;
         ProofOfWorkEngine proofOfWorkEngine;
+        Security security;
 
         public Builder() {
         }
@@ -289,6 +311,11 @@ public class BitmessageContext {
 
         public Builder messageRepo(MessageRepository messageRepo) {
             this.messageRepo = messageRepo;
+            return this;
+        }
+
+        public Builder security(Security security) {
+            this.security = security;
             return this;
         }
 

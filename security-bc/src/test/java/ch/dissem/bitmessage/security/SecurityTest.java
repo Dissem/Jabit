@@ -1,36 +1,25 @@
-/*
- * Copyright 2015 Christian Basler
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+package ch.dissem.bitmessage.security;
 
-package ch.dissem.bitmessage.utils;
-
+import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.GenericPayload;
 import ch.dissem.bitmessage.ports.MultiThreadedPOWEngine;
+import ch.dissem.bitmessage.security.bc.BouncySecurity;
+import ch.dissem.bitmessage.utils.Singleton;
+import ch.dissem.bitmessage.utils.UnixTime;
 import org.junit.Test;
 
 import javax.xml.bind.DatatypeConverter;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.security.KeyPairGenerator;
 
 import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 import static org.junit.Assert.assertArrayEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
- * Created by chris on 10.04.15.
+ * Created by chris on 19.07.15.
  */
 public class SecurityTest {
     public static final byte[] TEST_VALUE = "teststring".getBytes();
@@ -42,29 +31,39 @@ public class SecurityTest {
     public static final byte[] TEST_RIPEMD160 = DatatypeConverter.parseHexBinary(""
             + "cd566972b5e50104011a92b59fa8e0b1234851ae");
 
+    private static BouncySecurity security;
+
+    public SecurityTest() {
+        security = new BouncySecurity();
+        Singleton.initialize(security);
+        InternalContext ctx = mock(InternalContext.class);
+        when(ctx.getProofOfWorkEngine()).thenReturn(new MultiThreadedPOWEngine());
+        security.setContext(ctx);
+    }
+
     @Test
     public void testRipemd160() {
-        assertArrayEquals(TEST_RIPEMD160, Security.ripemd160(TEST_VALUE));
+        assertArrayEquals(TEST_RIPEMD160, security.ripemd160(TEST_VALUE));
     }
 
     @Test
     public void testSha1() {
-        assertArrayEquals(TEST_SHA1, Security.sha1(TEST_VALUE));
+        assertArrayEquals(TEST_SHA1, security.sha1(TEST_VALUE));
     }
 
     @Test
     public void testSha512() {
-        assertArrayEquals(TEST_SHA512, Security.sha512(TEST_VALUE));
+        assertArrayEquals(TEST_SHA512, security.sha512(TEST_VALUE));
     }
 
     @Test
     public void testChaining() {
-        assertArrayEquals(TEST_SHA512, Security.sha512("test".getBytes(), "string".getBytes()));
+        assertArrayEquals(TEST_SHA512, security.sha512("test".getBytes(), "string".getBytes()));
     }
 
     @Test
     public void testDoubleHash() {
-        assertArrayEquals(Security.sha512(TEST_SHA512), Security.doubleSha512(TEST_VALUE));
+        assertArrayEquals(security.sha512(TEST_SHA512), security.doubleSha512(TEST_VALUE));
     }
 
     @Test(expected = IOException.class)
@@ -75,7 +74,7 @@ public class SecurityTest {
                 .objectType(0)
                 .payload(GenericPayload.read(0, new ByteArrayInputStream(new byte[0]), 1, 0))
                 .build();
-        Security.checkProofOfWork(objectMessage, 1000, 1000);
+        security.checkProofOfWork(objectMessage, 1000, 1000);
     }
 
     @Test
@@ -86,14 +85,7 @@ public class SecurityTest {
                 .objectType(0)
                 .payload(GenericPayload.read(0, new ByteArrayInputStream(new byte[0]), 1, 0))
                 .build();
-        Security.doProofOfWork(objectMessage, new MultiThreadedPOWEngine(), 1000, 1000);
-        Security.checkProofOfWork(objectMessage, 1000, 1000);
-    }
-
-    @Test
-    public void testECIES() throws Exception {
-        KeyPairGenerator kpg = KeyPairGenerator.getInstance("ECIES", "BC");
-//        kpg.initialize();
-        kpg.generateKeyPair();
+        security.doProofOfWork(objectMessage, 1000, 1000);
+        security.checkProofOfWork(objectMessage, 1000, 1000);
     }
 }

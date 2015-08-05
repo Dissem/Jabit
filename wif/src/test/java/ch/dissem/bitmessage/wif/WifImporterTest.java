@@ -19,6 +19,7 @@ package ch.dissem.bitmessage.wif;
 import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.ports.*;
+import ch.dissem.bitmessage.security.bc.BouncySecurity;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,6 +38,7 @@ public class WifImporterTest {
     @Before
     public void setUp() throws Exception {
         ctx = new BitmessageContext.Builder()
+                .security(new BouncySecurity())
                 .networkHandler(mock(NetworkHandler.class))
                 .inventory(mock(Inventory.class))
                 .messageRepo(mock(MessageRepository.class))

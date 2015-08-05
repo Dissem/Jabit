@@ -24,20 +24,20 @@ import ch.dissem.bitmessage.entity.payload.GenericPayload;
 import ch.dissem.bitmessage.entity.payload.Msg;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
-import ch.dissem.bitmessage.utils.Security;
+import ch.dissem.bitmessage.utils.TestBase;
 import ch.dissem.bitmessage.utils.TestUtils;
 import org.junit.Test;
 
 import java.io.IOException;
 
+import static ch.dissem.bitmessage.utils.Singleton.security;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
-public class EncryptionTest {
+public class EncryptionTest extends TestBase {
     @Test
     public void ensureDecryptedDataIsSameAsBeforeEncryption() throws IOException, DecryptionFailedException {
-        GenericPayload before = new GenericPayload(0, 1, Security.randomBytes(100));
+        GenericPayload before = new GenericPayload(0, 1, security().randomBytes(100));
 
         PrivateKey privateKey = new PrivateKey(false, 1, 1000, 1000);
         CryptoBox cryptoBox = new CryptoBox(before, privateKey.getPubkey().getEncryptionKey());

@@ -22,13 +22,15 @@ import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
+import ch.dissem.bitmessage.ports.Security;
 import ch.dissem.bitmessage.utils.Bytes;
 import ch.dissem.bitmessage.utils.Encode;
-import ch.dissem.bitmessage.utils.Security;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+
+import static ch.dissem.bitmessage.utils.Singleton.security;
 
 /**
  * The 'object' command sends an object that is shared throughout the network.
@@ -89,7 +91,9 @@ public class ObjectMessage implements MessagePayload {
     }
 
     public InventoryVector getInventoryVector() {
-        return new InventoryVector(Bytes.truncate(Security.doubleSha512(nonce, getPayloadBytesWithoutNonce()), 32));
+        return new InventoryVector(
+                Bytes.truncate(security().doubleSha512(nonce, getPayloadBytesWithoutNonce()), 32)
+        );
     }
 
     private boolean isEncrypted() {
@@ -113,7 +117,7 @@ public class ObjectMessage implements MessagePayload {
 
     public void sign(PrivateKey key) {
         if (payload.isSigned()) {
-            payload.setSignature(Security.getSignature(getBytesToSign(), key));
+            payload.setSignature(security().getSignature(getBytesToSign(), key));
         }
     }
 
@@ -147,7 +151,7 @@ public class ObjectMessage implements MessagePayload {
 
     public boolean isSignatureValid(Pubkey pubkey) throws IOException {
         if (isEncrypted()) throw new IllegalStateException("Payload must be decrypted first");
-        return Security.isSignatureValid(getBytesToSign(), payload.getSignature(), pubkey);
+        return security().isSignatureValid(getBytesToSign(), payload.getSignature(), pubkey);
     }
 
     @Override

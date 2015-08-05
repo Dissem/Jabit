@@ -21,7 +21,6 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.Base58;
-import ch.dissem.bitmessage.utils.Security;
 import org.ini4j.Ini;
 import org.ini4j.Profile;
 import org.slf4j.Logger;
@@ -33,6 +32,8 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
+
+import static ch.dissem.bitmessage.utils.Singleton.security;
 
 /**
  * @author Christian Basler
@@ -84,7 +85,7 @@ public class WifImporter {
         if (bytes.length != 37)
             throw new IOException("Unknown format: 37 bytes expected, but secret " + walletImportFormat + " was " + bytes.length + " long");
 
-        byte[] hash = Security.doubleSha256(bytes, 33);
+        byte[] hash = security().doubleSha256(bytes, 33);
         for (int i = 0; i < 4; i++) {
             if (hash[i] != bytes[33 + i]) throw new IOException("Hash check failed for secret " + walletImportFormat);
         }

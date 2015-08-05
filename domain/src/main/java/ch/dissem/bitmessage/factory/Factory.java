@@ -23,7 +23,7 @@ import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.NodeException;
-import ch.dissem.bitmessage.utils.Security;
+import ch.dissem.bitmessage.ports.Security;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +31,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+
+import static ch.dissem.bitmessage.utils.Singleton.security;
 
 /**
  * Creates {@link NetworkMessage} objects from {@link InputStream InputStreams}
@@ -115,8 +117,8 @@ public class Factory {
         BitmessageAddress temp = new BitmessageAddress(address);
         PrivateKey privateKey = new PrivateKey(privateSigningKey, privateEncryptionKey,
                 createPubkey(temp.getVersion(), temp.getStream(),
-                        Security.createPublicKey(privateSigningKey).getEncoded(false),
-                        Security.createPublicKey(privateEncryptionKey).getEncoded(false),
+                        security().createPublicKey(privateSigningKey),
+                        security().createPublicKey(privateEncryptionKey),
                         nonceTrialsPerByte, extraBytes, behaviourBitfield));
         BitmessageAddress result = new BitmessageAddress(privateKey);
         if (!result.getAddress().equals(address)) {
@@ -126,11 +128,17 @@ public class Factory {
         return result;
     }
 
-    public static BitmessageAddress generatePrivateAddress(boolean shorter, long stream, Pubkey.Feature... features) {
+    public static BitmessageAddress generatePrivateAddress(boolean shorter,
+                                                           long stream,
+                                                           Pubkey.Feature... features) {
         return new BitmessageAddress(new PrivateKey(shorter, stream, 1000, 1000, features));
     }
 
-    static ObjectPayload getObjectPayload(long objectType, long version, long streamNumber, InputStream stream, int length) throws IOException {
+    static ObjectPayload getObjectPayload(long objectType,
+                                          long version,
+                                          long streamNumber,
+                                          InputStream stream,
+                                          int length) throws IOException {
         ObjectType type = ObjectType.fromNumber(objectType);
         if (type != null) {
             switch (type) {
