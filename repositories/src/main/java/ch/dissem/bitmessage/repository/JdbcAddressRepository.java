@@ -96,16 +96,17 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
             ResultSet rs = stmt.executeQuery("SELECT address, alias, public_key, private_key, subscribed FROM Address WHERE " + where);
             while (rs.next()) {
                 BitmessageAddress address;
-                Blob privateKeyBlob = rs.getBlob("private_key");
-                if (privateKeyBlob != null) {
-                    PrivateKey privateKey = PrivateKey.read(privateKeyBlob.getBinaryStream());
+
+                byte[] privateKeyBytes = rs.getBytes("private_key");
+                if (privateKeyBytes != null) {
+                    PrivateKey privateKey = PrivateKey.read(new ByteArrayInputStream(privateKeyBytes));
                     address = new BitmessageAddress(privateKey);
                 } else {
                     address = new BitmessageAddress(rs.getString("address"));
-                    Blob publicKeyBlob = rs.getBlob("public_key");
-                    if (publicKeyBlob != null) {
+                    byte[] publicKeyBytes = rs.getBytes("public_key");
+                    if (publicKeyBytes != null) {
                         Pubkey pubkey = Factory.readPubkey(address.getVersion(), address.getStream(),
-                                publicKeyBlob.getBinaryStream(), (int) publicKeyBlob.length(), false);
+                                new ByteArrayInputStream(publicKeyBytes), publicKeyBytes.length, false);
                         if (address.getVersion() == 4 && pubkey instanceof V3Pubkey) {
                             pubkey = new V4Pubkey((V3Pubkey) pubkey);
                         }
@@ -179,8 +180,7 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
         if (data != null) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             data.writeUnencrypted(out);
-            ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-            ps.setBlob(parameterIndex, in);
+            ps.setBytes(parameterIndex, out.toByteArray());
         } else {
             ps.setBlob(parameterIndex, (Blob) null);
         }

@@ -25,6 +25,7 @@ import ch.dissem.bitmessage.ports.MessageRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
@@ -106,9 +107,9 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
             ResultSet rs = stmt.executeQuery("SELECT id, iv, type, sender, recipient, data, sent, received, status FROM Message WHERE " + where);
             while (rs.next()) {
                 byte[] iv = rs.getBytes("iv");
-                Blob data = rs.getBlob("data");
+                byte[] data = rs.getBytes("data");
                 Plaintext.Type type = Plaintext.Type.valueOf(rs.getString("type"));
-                Plaintext.Builder builder = Plaintext.readWithoutSignature(type, data.getBinaryStream());
+                Plaintext.Builder builder = Plaintext.readWithoutSignature(type, new ByteArrayInputStream(data));
                 long id = rs.getLong("id");
                 builder.id(id);
                 builder.IV(new InventoryVector(iv));

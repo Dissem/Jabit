@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage.utils;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -31,7 +32,7 @@ public class BytesTest {
     @Test
     public void ensureExpandsCorrectly() {
         byte[] source = {1};
-        byte[] expected = {0,1};
+        byte[] expected = {0, 1};
         assertArrayEquals(expected, Bytes.expand(source, 2));
     }
 
@@ -49,6 +50,24 @@ public class BytesTest {
                 byte[] bytes = {0, (byte) v};
                 Bytes.inc(bytes, (byte) i);
                 assertArrayEquals("value = " + v + "; inc = " + i + "; expected = " + (v + i), TestUtils.int16(v + i), bytes);
+            }
+        }
+    }
+
+    /**
+     * This test is used to compare different implementations of the single byte lt comparison. It an safely be ignored.
+     */
+    @Test
+    @Ignore
+    public void testLowerThanSingleByte() {
+        byte[] a = new byte[1];
+        byte[] b = new byte[1];
+        for (int i = 0; i < 255; i++) {
+            for (int j = 0; j < 255; j++) {
+                System.out.println("a = " + i + "\tb = " + j);
+                a[0] = (byte) i;
+                b[0] = (byte) j;
+                assertEquals(i < j, Bytes.lt(a, b));
             }
         }
     }

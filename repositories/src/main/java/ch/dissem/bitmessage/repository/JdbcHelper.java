@@ -82,8 +82,7 @@ abstract class JdbcHelper {
         if (data != null) {
             ByteArrayOutputStream os = new ByteArrayOutputStream();
             data.write(os);
-            byte[] bytes = os.toByteArray();
-            ps.setBinaryStream(parameterIndex, new ByteArrayInputStream(bytes), bytes.length);
+            ps.setBytes(parameterIndex, os.toByteArray());
         } else {
             ps.setBlob(parameterIndex, (Blob) null);
         }
