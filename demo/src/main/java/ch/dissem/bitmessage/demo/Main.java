@@ -18,7 +18,9 @@ package ch.dissem.bitmessage.demo;
 
 import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
+import ch.dissem.bitmessage.ports.MemoryNodeRegistry;
 import ch.dissem.bitmessage.repository.*;
+import ch.dissem.bitmessage.security.bc.BouncySecurity;
 import ch.dissem.bitmessage.wif.WifExporter;
 import ch.dissem.bitmessage.wif.WifImporter;
 import org.kohsuke.args4j.CmdLineException;
@@ -50,6 +52,7 @@ public class Main {
                     .nodeRegistry(new MemoryNodeRegistry())
                     .messageRepo(new JdbcMessageRepository(jdbcConfig))
                     .networkHandler(new DefaultNetworkHandler())
+                    .security(new BouncySecurity())
                     .port(48444)
                     .build();
 

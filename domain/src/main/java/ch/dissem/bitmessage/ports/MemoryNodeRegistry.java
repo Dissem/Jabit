@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.repository;
+package ch.dissem.bitmessage.ports;
 
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
-import ch.dissem.bitmessage.ports.NodeRegistry;
 import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -81,7 +81,7 @@ public class InternalContext {
             streams.add(1L);
         }
 
-        init(inventory, nodeRegistry, networkHandler, addressRepository, messageRepository, proofOfWorkEngine);
+        init(inventory, nodeRegistry, networkHandler, addressRepository, messageRepository, proofOfWorkEngine, security);
     }
 
     private void init(Object... objects) {

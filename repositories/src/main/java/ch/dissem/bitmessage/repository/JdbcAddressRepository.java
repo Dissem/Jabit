@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -97,16 +98,16 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
             while (rs.next()) {
                 BitmessageAddress address;
 
-                byte[] privateKeyBytes = rs.getBytes("private_key");
-                if (privateKeyBytes != null) {
-                    PrivateKey privateKey = PrivateKey.read(new ByteArrayInputStream(privateKeyBytes));
+                InputStream privateKeyStream = rs.getBinaryStream("private_key");
+                if (privateKeyStream != null) {
+                    PrivateKey privateKey = PrivateKey.read(privateKeyStream);
                     address = new BitmessageAddress(privateKey);
                 } else {
                     address = new BitmessageAddress(rs.getString("address"));
-                    byte[] publicKeyBytes = rs.getBytes("public_key");
-                    if (publicKeyBytes != null) {
+                    Blob publicKeyBlob = rs.getBlob("public_key");
+                    if (publicKeyBlob != null) {
                         Pubkey pubkey = Factory.readPubkey(address.getVersion(), address.getStream(),
-                                new ByteArrayInputStream(publicKeyBytes), publicKeyBytes.length, false);
+                                publicKeyBlob.getBinaryStream(), (int) publicKeyBlob.length(), false);
                         if (address.getVersion() == 4 && pubkey instanceof V3Pubkey) {
                             pubkey = new V4Pubkey((V3Pubkey) pubkey);
                         }
@@ -182,7 +183,7 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
             data.writeUnencrypted(out);
             ps.setBytes(parameterIndex, out.toByteArray());
         } else {
-            ps.setBlob(parameterIndex, (Blob) null);
+            ps.setBytes(parameterIndex, null);
         }
     }
 

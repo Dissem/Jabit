@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
@@ -147,6 +148,11 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
                 c.disconnect();
             }
         }
+    }
+
+    @Override
+    public void synchronize(InetAddress trustedHost, int port, MessageListener listener) throws IOException {
+        startConnection(new Connection(ctx, CLIENT, new Socket(trustedHost, port), listener, requestedObjects));
     }
 
     private void startConnection(Connection c) {

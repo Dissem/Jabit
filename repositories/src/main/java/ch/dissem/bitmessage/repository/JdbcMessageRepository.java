@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -107,9 +108,9 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
             ResultSet rs = stmt.executeQuery("SELECT id, iv, type, sender, recipient, data, sent, received, status FROM Message WHERE " + where);
             while (rs.next()) {
                 byte[] iv = rs.getBytes("iv");
-                byte[] data = rs.getBytes("data");
+                InputStream data = rs.getBinaryStream("data");
                 Plaintext.Type type = Plaintext.Type.valueOf(rs.getString("type"));
-                Plaintext.Builder builder = Plaintext.readWithoutSignature(type, new ByteArrayInputStream(data));
+                Plaintext.Builder builder = Plaintext.readWithoutSignature(type, data);
                 long id = rs.getLong("id");
                 builder.id(id);
                 builder.IV(new InventoryVector(iv));
@@ -191,7 +192,8 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     private void insert(Connection connection, Plaintext message) throws SQLException, IOException {
         PreparedStatement ps = connection.prepareStatement(
-                "INSERT INTO Message (iv, type, sender, recipient, data, sent, received, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+                "INSERT INTO Message (iv, type, sender, recipient, data, sent, received, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                Statement.RETURN_GENERATED_KEYS);
         ps.setBytes(1, message.getInventoryVector() != null ? message.getInventoryVector().getHash() : null);
         ps.setString(2, message.getType().name());
         ps.setString(3, message.getFrom().getAddress());

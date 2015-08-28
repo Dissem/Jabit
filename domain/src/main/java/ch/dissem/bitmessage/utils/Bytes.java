@@ -16,12 +16,6 @@
 
 package ch.dissem.bitmessage.utils;
 
-import ch.dissem.bitmessage.entity.Streamable;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.Arrays;
-
 /**
  * A helper class for working with byte arrays interpreted as unsigned big endian integers.
  * This is one part due to the fact that Java doesn't support unsigned numbers, and another
@@ -91,6 +85,8 @@ public class Bytes {
         if (a < 0) return b < 0 && a < b;
         if (b < 0) return a >= 0 || a < b;
         return a < b;
+        // This would be easier to understand, but is (slightly) slower:
+        // return (a & 0xff) < (b & 0xff);
     }
 
     /**

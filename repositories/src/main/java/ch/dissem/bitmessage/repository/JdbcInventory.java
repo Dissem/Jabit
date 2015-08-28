@@ -53,6 +53,7 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
         }
         return result;
     }
+
     private List<InventoryVector> getFullInventory(long... streams) {
         List<InventoryVector> result = new LinkedList<>();
         try (Connection connection = config.getConnection()) {
@@ -79,8 +80,8 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
             Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT data, version FROM Inventory WHERE hash = X'" + vector + "'");
             if (rs.next()) {
-                byte[] data = rs.getBytes("data");
-                return Factory.getObjectMessage(rs.getInt("version"), new ByteArrayInputStream(data), data.length);
+                Blob data = rs.getBlob("data");
+                return Factory.getObjectMessage(rs.getInt("version"), data.getBinaryStream(), (int) data.length());
             } else {
                 LOG.info("Object requested that we don't have. IV: " + vector);
                 return null;
@@ -108,8 +109,8 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
             ResultSet rs = stmt.executeQuery(query.toString());
             List<ObjectMessage> result = new LinkedList<>();
             while (rs.next()) {
-                byte[] data = rs.getBytes("data");
-                result.add(Factory.getObjectMessage(rs.getInt("version"), new ByteArrayInputStream(data), data.length));
+                Blob data = rs.getBlob("data");
+                result.add(Factory.getObjectMessage(rs.getInt("version"), data.getBinaryStream(), (int) data.length()));
             }
             return result;
         } catch (Exception e) {

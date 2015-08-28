@@ -17,21 +17,21 @@
 package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.*;
+import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.factory.Factory;
+import ch.dissem.bitmessage.utils.TestBase;
 import ch.dissem.bitmessage.utils.TestUtils;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
+import java.util.Arrays;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
-public class SerializationTest {
+public class SerializationTest extends TestBase {
     @Test
     public void ensureGetPubkeyIsDeserializedAndSerializedCorrectly() throws IOException {
         doTest("V2GetPubkey.payload", 2, GetPubkey.class);
@@ -75,7 +75,7 @@ public class SerializationTest {
     }
 
     @Test
-    public void ensurePlaintextIsSerializedAndDeserializedCorrectly() throws IOException, DecryptionFailedException {
+    public void ensurePlaintextIsSerializedAndDeserializedCorrectly() throws Exception {
         Plaintext p1 = new Plaintext.Builder(MSG)
                 .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
                 .to(TestUtils.loadContact())
@@ -98,5 +98,22 @@ public class SerializationTest {
         object.write(out);
         assertArrayEquals(data, out.toByteArray());
         assertEquals(expectedPayloadType.getCanonicalName(), object.getPayload().getClass().getCanonicalName());
+    }
+
+    @Test
+    public void ensureSystemSerializationWorks() throws Exception {
+        Plaintext plaintext = new Plaintext.Builder(MSG)
+                .from(TestUtils.loadContact())
+                .to(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
+                .labels(Arrays.asList(new Label("Test", Label.Type.INBOX, 0)))
+                .message("Test", "Test Test.\nTest")
+                .build();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(out);
+        oos.writeObject(plaintext);
+
+        ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+        ObjectInputStream ois = new ObjectInputStream(in);
+        assertEquals(plaintext, ois.readObject());
     }
 }

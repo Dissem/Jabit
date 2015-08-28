@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.entity.Streamable;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.Serializable;
 
 /**
  * The payload of an 'object' command. This is shared by the network.

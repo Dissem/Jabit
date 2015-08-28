@@ -16,14 +16,13 @@
 
 package ch.dissem.bitmessage.entity;
 
-import ch.dissem.bitmessage.ports.Security;
-
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.Serializable;
 
 /**
  * An object that can be written to an {@link OutputStream}
  */
-public interface Streamable {
+public interface Streamable extends Serializable {
     void write(OutputStream stream) throws IOException;
 }

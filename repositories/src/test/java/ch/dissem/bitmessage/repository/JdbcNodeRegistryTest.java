@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.repository;
 
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
+import ch.dissem.bitmessage.ports.MemoryNodeRegistry;
 import ch.dissem.bitmessage.ports.NodeRegistry;
 import org.junit.Before;
 import org.junit.Test;

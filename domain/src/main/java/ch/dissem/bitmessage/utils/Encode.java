@@ -117,6 +117,8 @@ public class Encode {
      * @throws IOException if an I/O error occurs.
      */
     public static byte[] bytes(Streamable streamable) throws IOException {
+        if (streamable == null) return null;
+
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         streamable.write(stream);
         return stream.toByteArray();

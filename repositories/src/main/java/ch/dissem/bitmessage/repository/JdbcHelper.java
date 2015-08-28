@@ -21,10 +21,8 @@ import ch.dissem.bitmessage.entity.payload.ObjectType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.sql.Blob;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
@@ -84,7 +82,7 @@ abstract class JdbcHelper {
             data.write(os);
             ps.setBytes(parameterIndex, os.toByteArray());
         } else {
-            ps.setBlob(parameterIndex, (Blob) null);
+            ps.setBytes(parameterIndex, null);
         }
     }
 }

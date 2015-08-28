@@ -19,9 +19,9 @@ package ch.dissem.bitmessage.entity;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.factory.Factory;
-import ch.dissem.bitmessage.ports.Security;
 import ch.dissem.bitmessage.utils.Decode;
 import ch.dissem.bitmessage.utils.Encode;
+import ch.dissem.bitmessage.utils.UnixTime;
 
 import java.io.*;
 import java.util.*;
@@ -29,7 +29,7 @@ import java.util.*;
 /**
  * The unencrypted message to be sent by 'msg' or 'broadcast'.
  */
-public class Plaintext implements Streamable, Serializable {
+public class Plaintext implements Streamable {
     private final Type type;
     private final BitmessageAddress from;
     private final long encoding;
@@ -64,6 +64,7 @@ public class Plaintext implements Streamable, Serializable {
     public static Plaintext read(Type type, InputStream in) throws IOException {
         return readWithoutSignature(type, in)
                 .signature(Decode.varBytes(in))
+                .received(UnixTime.now())
                 .build();
     }
 
@@ -130,6 +131,15 @@ public class Plaintext implements Streamable, Serializable {
 
     public void setSignature(byte[] signature) {
         this.signature = signature;
+    }
+
+    public boolean isUnread() {
+        for (Label label : labels) {
+            if (label.getType() == Label.Type.UNREAD) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void write(OutputStream out, boolean includeSignature) throws IOException {

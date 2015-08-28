@@ -16,9 +16,10 @@
 
 package ch.dissem.bitmessage.entity.valueobject;
 
+import java.io.Serializable;
 import java.util.Objects;
 
-public class Label {
+public class Label implements Serializable {
     private Object id;
     private String label;
     private Type type;

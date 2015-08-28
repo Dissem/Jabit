@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.utils.Property;
 
 import java.io.IOException;
+import java.net.InetAddress;
 
 /**
  * Handles incoming messages
@@ -29,6 +30,8 @@ public interface NetworkHandler {
     void start(MessageListener listener);
 
     void stop();
+
+    void synchronize(InetAddress trustedHost, int port, MessageListener listener) throws IOException;
 
     void offer(InventoryVector iv);
 
