@@ -49,12 +49,13 @@ public class InternalContext {
     private final AddressRepository addressRepository;
     private final MessageRepository messageRepository;
     private final ProofOfWorkEngine proofOfWorkEngine;
+    private final MessageCallback messageCallback;
 
     private final TreeSet<Long> streams = new TreeSet<>();
     private final int port;
-    private long networkNonceTrialsPerByte = 1000;
-    private long networkExtraBytes = 1000;
-    private long clientNonce;
+    private final long clientNonce;
+    private final long networkNonceTrialsPerByte = 1000;
+    private final long networkExtraBytes = 1000;
 
     public InternalContext(BitmessageContext.Builder builder) {
         this.security = builder.security;
@@ -65,10 +66,10 @@ public class InternalContext {
         this.messageRepository = builder.messageRepo;
         this.proofOfWorkEngine = builder.proofOfWorkEngine;
         this.clientNonce = security.randomNonce();
+        this.messageCallback = builder.messageCallback;
+        this.port = builder.port;
 
         Singleton.initialize(security);
-
-        port = builder.port;
 
         // TODO: streams of new identities and subscriptions should also be added. This works only after a restart.
         for (BitmessageAddress address : addressRepository.getIdentities()) {
@@ -81,7 +82,10 @@ public class InternalContext {
             streams.add(1L);
         }
 
-        init(inventory, nodeRegistry, networkHandler, addressRepository, messageRepository, proofOfWorkEngine, security);
+        init(inventory, nodeRegistry, networkHandler, addressRepository, messageRepository, proofOfWorkEngine);
+        for (BitmessageAddress identity : addressRepository.getIdentities()) {
+            streams.add(identity.getStream());
+        }
     }
 
     private void init(Object... objects) {
@@ -169,7 +173,9 @@ public class InternalContext {
             } else if (payload instanceof Encrypted) {
                 object.encrypt(to.getPubkey());
             }
+            messageCallback.proofOfWorkStarted(payload);
             security.doProofOfWork(object, nonceTrialsPerByte, extraBytes);
+            messageCallback.proofOfWorkCompleted(payload);
             if (payload instanceof PlaintextHolder) {
                 Plaintext plaintext = ((PlaintextHolder) payload).getPlaintext();
                 plaintext.setInventoryVector(object.getInventoryVector());
@@ -177,6 +183,7 @@ public class InternalContext {
             }
             inventory.storeObject(object);
             networkHandler.offer(object.getInventoryVector());
+            messageCallback.messageOffered(payload, object.getInventoryVector());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -193,16 +200,13 @@ public class InternalContext {
                     .build();
             response.sign(identity.getPrivateKey());
             response.encrypt(security.createPublicKey(identity.getPublicDecryptionKey()));
+            messageCallback.proofOfWorkStarted(identity.getPubkey());
             security.doProofOfWork(response, networkNonceTrialsPerByte, networkExtraBytes);
-            if (response.isSigned()) {
-                response.sign(identity.getPrivateKey());
-            }
-            if (response instanceof Encrypted) {
-                response.encrypt(security.createPublicKey(identity.getPublicDecryptionKey()));
-            }
+            messageCallback.proofOfWorkCompleted(identity.getPubkey());
             inventory.storeObject(response);
             networkHandler.offer(response.getInventoryVector());
             // TODO: save that the pubkey was just sent, and on which stream!
+            messageCallback.messageOffered(identity.getPubkey(), response.getInventoryVector());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -216,9 +220,12 @@ public class InternalContext {
                 .expiresTime(expires)
                 .payload(new GetPubkey(contact))
                 .build();
+        messageCallback.proofOfWorkStarted(response.getPayload());
         security.doProofOfWork(response, networkNonceTrialsPerByte, networkExtraBytes);
+        messageCallback.proofOfWorkCompleted(response.getPayload());
         inventory.storeObject(response);
         networkHandler.offer(response.getInventoryVector());
+        messageCallback.messageOffered(response.getPayload(), response.getInventoryVector());
     }
 
     public long getClientNonce() {

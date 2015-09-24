@@ -35,6 +35,25 @@ public class Property {
         this.properties = properties;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public Object getValue() {
+        return value;
+    }
+
+    public Property getProperty(String name) {
+        for (Property p : properties) {
+            if (name == null) {
+                if (p.name == null) return p;
+            } else {
+                if (name.equals(p.name)) return p;
+            }
+        }
+        return null;
+    }
+
     @Override
     public String toString() {
         return toString("");

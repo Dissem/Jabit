@@ -21,13 +21,13 @@ import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
+import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Property;
-import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -179,19 +179,6 @@ public class BitmessageContext {
         );
     }
 
-    private void send(long stream, ObjectPayload payload, long timeToLive) {
-        long expires = UnixTime.now(+timeToLive);
-        LOG.info("Expires at " + expires);
-        ObjectMessage object = new ObjectMessage.Builder()
-                .stream(stream)
-                .expiresTime(expires)
-                .payload(payload)
-                .build();
-        ctx.getSecurity().doProofOfWork(object, ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
-        ctx.getInventory().storeObject(object);
-        ctx.getNetworkHandler().offer(object.getInventoryVector());
-    }
-
     public void startup(Listener listener) {
         this.listener = listener;
         ctx.getNetworkHandler().start(new DefaultMessageListener(ctx, listener));
@@ -280,6 +267,7 @@ public class BitmessageContext {
         MessageRepository messageRepo;
         ProofOfWorkEngine proofOfWorkEngine;
         Security security;
+        MessageCallback messageCallback;
 
         public Builder() {
         }
@@ -319,6 +307,11 @@ public class BitmessageContext {
             return this;
         }
 
+        public Builder messageCallback(MessageCallback callback) {
+            this.messageCallback = callback;
+            return this;
+        }
+
         public Builder proofOfWorkEngine(ProofOfWorkEngine proofOfWorkEngine) {
             this.proofOfWorkEngine = proofOfWorkEngine;
             return this;
@@ -332,6 +325,25 @@ public class BitmessageContext {
             nonNull("messageRepo", messageRepo);
             if (proofOfWorkEngine == null) {
                 proofOfWorkEngine = new MultiThreadedPOWEngine();
+            }
+            if (messageCallback == null) {
+                messageCallback = new MessageCallback() {
+                    @Override
+                    public void proofOfWorkStarted(ObjectPayload message) {
+                    }
+
+                    @Override
+                    public void proofOfWorkCompleted(ObjectPayload message) {
+                    }
+
+                    @Override
+                    public void messageOffered(ObjectPayload message, InventoryVector iv) {
+                    }
+
+                    @Override
+                    public void messageAcknowledged(InventoryVector iv) {
+                    }
+                };
             }
             return new BitmessageContext(this);
         }

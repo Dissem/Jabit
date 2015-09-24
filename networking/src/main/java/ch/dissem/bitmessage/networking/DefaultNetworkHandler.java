@@ -67,6 +67,17 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
     }
 
     @Override
+    public Thread synchronize(InetAddress trustedHost, int port, MessageListener listener, long timeoutInSeconds) {
+        try {
+            Thread t = new Thread(Connection.sync(ctx, trustedHost, port, listener, timeoutInSeconds));
+            t.start();
+            return t;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public void start(final MessageListener listener) {
         if (listener == null) {
             throw new IllegalStateException("Listener must be set at start");
@@ -148,11 +159,6 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
                 c.disconnect();
             }
         }
-    }
-
-    @Override
-    public void synchronize(InetAddress trustedHost, int port, MessageListener listener) throws IOException {
-        startConnection(new Connection(ctx, CLIENT, new Socket(trustedHost, port), listener, requestedObjects));
     }
 
     private void startConnection(Connection c) {

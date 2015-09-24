@@ -27,12 +27,24 @@ import java.net.InetAddress;
  * Handles incoming messages
  */
 public interface NetworkHandler {
+    /**
+     * Connects to the trusted host, fetches and offers new messages and disconnects afterwards.
+     */
+    Thread synchronize(InetAddress trustedHost, int port, MessageListener listener, long timeoutInSeconds);
+
+    /**
+     * Start a full network node, accepting incoming connections and relaying objects.
+     */
     void start(MessageListener listener);
 
+    /**
+     * Stop the full network node.
+     */
     void stop();
 
-    void synchronize(InetAddress trustedHost, int port, MessageListener listener) throws IOException;
-
+    /**
+     * Offer new objects to up to 8 random nodes.
+     */
     void offer(InventoryVector iv);
 
     Property getNetworkStatus();

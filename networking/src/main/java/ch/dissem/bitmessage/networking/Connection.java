@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
@@ -54,43 +55,55 @@ public class Connection implements Runnable {
     private final static Logger LOG = LoggerFactory.getLogger(Connection.class);
     private static final int CONNECT_TIMEOUT = 5000;
     private final ConcurrentMap<InventoryVector, Long> ivCache;
-    private InternalContext ctx;
-    private Mode mode;
+    private final InternalContext ctx;
+    private final Mode mode;
+    private final Socket socket;
+    private final MessageListener listener;
+    private final NetworkAddress host;
+    private final NetworkAddress node;
+    private final Queue<MessagePayload> sendingQueue = new ConcurrentLinkedDeque<>();
+    private final Map<InventoryVector, Long> requestedObjects;
+    private final long syncTimeout;
+
     private State state;
-    private Socket socket;
     private InputStream in;
     private OutputStream out;
-    private MessageListener listener;
     private int version;
     private long[] streams;
-    private NetworkAddress host;
-    private NetworkAddress node;
-    private Queue<MessagePayload> sendingQueue = new ConcurrentLinkedDeque<>();
-    private ConcurrentMap<InventoryVector, Long> requestedObjects;
 
     public Connection(InternalContext context, Mode mode, Socket socket, MessageListener listener,
                       ConcurrentMap<InventoryVector, Long> requestedObjectsMap) throws IOException {
-        this(context, mode, listener, requestedObjectsMap);
-        this.socket = socket;
-        this.node = new NetworkAddress.Builder().ip(socket.getInetAddress()).port(socket.getPort()).stream(1).build();
+        this(context, mode, listener, socket, requestedObjectsMap,
+                new NetworkAddress.Builder().ip(socket.getInetAddress()).port(socket.getPort()).stream(1).build(),
+                0);
     }
 
     public Connection(InternalContext context, Mode mode, NetworkAddress node, MessageListener listener,
                       ConcurrentMap<InventoryVector, Long> requestedObjectsMap) {
-        this(context, mode, listener, requestedObjectsMap);
-        this.socket = new Socket();
-        this.node = node;
+        this(context, mode, listener, new Socket(), requestedObjectsMap,
+                node, 0);
     }
 
-    private Connection(InternalContext context, Mode mode, MessageListener listener,
-                       ConcurrentMap<InventoryVector, Long> requestedObjectsMap) {
+    private Connection(InternalContext context, Mode mode, MessageListener listener, Socket socket,
+                       Map<InventoryVector, Long> requestedObjectsMap, NetworkAddress node, long syncTimeout) {
         this.ctx = context;
         this.mode = mode;
         this.state = CONNECTING;
         this.listener = listener;
+        this.socket = socket;
         this.requestedObjects = requestedObjectsMap;
         this.host = new NetworkAddress.Builder().ipv6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0).port(0).build();
-        ivCache = new ConcurrentHashMap<>();
+        this.node = node;
+        this.syncTimeout = (syncTimeout > 0 ? UnixTime.now(+syncTimeout) : 0);
+        this.ivCache = new ConcurrentHashMap<>();
+    }
+
+    public static Connection sync(InternalContext ctx, InetAddress address, int port, MessageListener listener,
+                                  long timeoutInSeconds) throws IOException {
+        return new Connection(ctx, Mode.CLIENT, listener, new Socket(address, port),
+                new HashMap<InventoryVector, Long>(),
+                new NetworkAddress.Builder().ip(address).port(port).stream(1).build(),
+                timeoutInSeconds);
     }
 
     public Mode getMode() {
@@ -168,7 +181,7 @@ public class Connection implements Runnable {
                                             + msg.getPayload().getCommand() + "'");
                             }
                     }
-                    if (socket.isClosed()) state = DISCONNECTED;
+                    if (socket.isClosed() || syncFinished(msg)) disconnect();
                 } catch (SocketTimeoutException ignore) {
                     if (state == ACTIVE) {
                         sendQueue();
@@ -184,13 +197,27 @@ public class Connection implements Runnable {
         }
     }
 
+    @SuppressWarnings("RedundantIfStatement")
+    private boolean syncFinished(NetworkMessage msg) {
+        if (syncTimeout == 0 || state != ACTIVE) {
+            return false;
+        }
+        if (syncTimeout < UnixTime.now()) {
+            return true;
+        }
+        if (!(msg.getPayload() instanceof Addr) && requestedObjects.isEmpty() && sendingQueue.isEmpty()) {
+            return true;
+        }
+        return false;
+    }
+
     private void activateConnection() {
         LOG.info("Successfully established connection with node " + node);
         state = ACTIVE;
         sendAddresses();
         sendInventory();
         node.setTime(UnixTime.now());
-        ctx.getNodeRegistry().offerAddresses(Arrays.asList(node));
+        ctx.getNodeRegistry().offerAddresses(Collections.singletonList(node));
     }
 
     private void sendQueue() {
