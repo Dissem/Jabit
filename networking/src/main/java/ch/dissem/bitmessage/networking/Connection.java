@@ -25,7 +25,6 @@ import ch.dissem.bitmessage.exception.InsufficientProofOfWorkException;
 import ch.dissem.bitmessage.exception.NodeException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.NetworkHandler.MessageListener;
-import ch.dissem.bitmessage.utils.DebugUtils;
 import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,6 +69,7 @@ public class Connection implements Runnable {
     private OutputStream out;
     private int version;
     private long[] streams;
+    private int readTimeoutCounter;
 
     public Connection(InternalContext context, Mode mode, Socket socket, MessageListener listener,
                       ConcurrentMap<InventoryVector, Long> requestedObjectsMap) throws IOException {
@@ -185,6 +185,7 @@ public class Connection implements Runnable {
                 } catch (SocketTimeoutException ignore) {
                     if (state == ACTIVE) {
                         sendQueue();
+                        if (syncFinished(null)) disconnect();
                     }
                 }
             }
@@ -205,7 +206,13 @@ public class Connection implements Runnable {
         if (syncTimeout < UnixTime.now()) {
             return true;
         }
-        if (!(msg.getPayload() instanceof Addr) && requestedObjects.isEmpty() && sendingQueue.isEmpty()) {
+        if (msg == null) {
+            readTimeoutCounter++;
+            return readTimeoutCounter > 1;
+        }
+        readTimeoutCounter = 0;
+        if (!(msg.getPayload() instanceof Addr) && !(msg.getPayload() instanceof GetData)
+                && requestedObjects.isEmpty() && sendingQueue.isEmpty()) {
             return true;
         }
         return false;
@@ -311,9 +318,9 @@ public class Connection implements Runnable {
                     ctx.getNetworkHandler().offer(objectMessage.getInventoryVector());
                 } catch (InsufficientProofOfWorkException e) {
                     LOG.warn(e.getMessage());
+                    // DebugUtils.saveToFile(objectMessage); // this line must not be committed active
                 } catch (IOException e) {
                     LOG.error("Stream " + objectMessage.getStream() + ", object type " + objectMessage.getType() + ": " + e.getMessage(), e);
-                    DebugUtils.saveToFile(objectMessage);
                 } finally {
                     requestedObjects.remove(objectMessage.getInventoryVector());
                 }

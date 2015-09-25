@@ -122,7 +122,7 @@ public class NetworkHandlerTest {
         assertEquals(2, peerInventory.getInventory().size());
     }
 
-    @Test(timeout = 5_000)
+    @Test(timeout = 10_000)
     public void ensureObjectsAreSynchronizedIfOnlyNodeHasObjects() throws Exception {
         peerInventory.init();
 

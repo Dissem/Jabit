@@ -18,18 +18,17 @@ package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.entity.valueobject.Label;
-import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.TestBase;
 import ch.dissem.bitmessage.utils.TestUtils;
 import org.junit.Test;
 
 import java.io.*;
-import java.util.Arrays;
+import java.lang.reflect.Field;
+import java.util.Collections;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 public class SerializationTest extends TestBase {
     @Test
@@ -87,6 +86,12 @@ public class SerializationTest extends TestBase {
         p1.write(out);
         ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
         Plaintext p2 = Plaintext.read(MSG, in);
+
+        // Received is automatically set on deserialization, so we'll need to set it to 0
+        Field received = Plaintext.class.getDeclaredField("received");
+        received.setAccessible(true);
+        received.set(p2, 0L);
+
         assertEquals(p1, p2);
     }
 
@@ -95,6 +100,7 @@ public class SerializationTest extends TestBase {
         InputStream in = new ByteArrayInputStream(data);
         ObjectMessage object = Factory.getObjectMessage(version, in, data.length);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
+        assertNotNull(object);
         object.write(out);
         assertArrayEquals(data, out.toByteArray());
         assertEquals(expectedPayloadType.getCanonicalName(), object.getPayload().getClass().getCanonicalName());
@@ -105,7 +111,7 @@ public class SerializationTest extends TestBase {
         Plaintext plaintext = new Plaintext.Builder(MSG)
                 .from(TestUtils.loadContact())
                 .to(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
-                .labels(Arrays.asList(new Label("Test", Label.Type.INBOX, 0)))
+                .labels(Collections.singletonList(new Label("Test", Label.Type.INBOX, 0)))
                 .message("Test", "Test Test.\nTest")
                 .build();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
