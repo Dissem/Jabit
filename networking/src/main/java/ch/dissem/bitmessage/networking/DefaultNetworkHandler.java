@@ -221,7 +221,8 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
             i++;
         }
         return new Property("network", null,
-                new Property("connectionManager", connectionManager.isAlive() ? "running" : "stopped"),
+                new Property("connectionManager",
+                        connectionManager != null && connectionManager.isAlive() ? "running" : "stopped"),
                 new Property("connections", null, streamProperties)
         );
     }

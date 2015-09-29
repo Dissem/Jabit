@@ -101,6 +101,11 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         return find("status='" + status.name() + "'");
     }
 
+    @Override
+    public List<Plaintext> findMessages(BitmessageAddress sender) {
+        return find("sender='" + sender.getAddress() + "'");
+    }
+
     private List<Plaintext> find(String where) {
         List<Plaintext> result = new LinkedList<>();
         try (Connection connection = config.getConnection()) {

@@ -34,6 +34,8 @@ public interface MessageRepository {
 
     List<Plaintext> findMessages(Status status, BitmessageAddress recipient);
 
+    List<Plaintext> findMessages(BitmessageAddress sender);
+
     void save(Plaintext message);
 
     void remove(Plaintext message);
