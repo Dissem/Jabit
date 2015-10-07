@@ -25,7 +25,6 @@ import ch.dissem.bitmessage.ports.MessageRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.*;
@@ -84,6 +83,29 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
             LOG.error(e.getMessage(), e);
         }
         return result;
+    }
+
+    @Override
+    public int countUnread(Label label) {
+        String where;
+        if (label != null) {
+            where = "id IN (SELECT message_id FROM Message_Label WHERE label_id=" + label.getId() + ") AND ";
+        } else {
+            where = "";
+        }
+        where += "id IN (SELECT message_id FROM Message_Label WHERE label_id IN (" +
+                "SELECT id FROM Label WHERE type = '" + Label.Type.UNREAD.name() + "'))";
+
+        try (Connection connection = config.getConnection()) {
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT count(*) FROM Message WHERE " + where);
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            LOG.error(e.getMessage(), e);
+        }
+        return 0;
     }
 
     @Override
@@ -230,8 +252,20 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
     @Override
     public void remove(Plaintext message) {
         try (Connection connection = config.getConnection()) {
-            Statement stmt = connection.createStatement();
-            stmt.executeUpdate("DELETE FROM Message WHERE id = " + message.getId());
+            try {
+                connection.setAutoCommit(false);
+                Statement stmt = connection.createStatement();
+                stmt.executeUpdate("DELETE FROM Message_Label WHERE message_id = " + message.getId());
+                stmt.executeUpdate("DELETE FROM Message WHERE id = " + message.getId());
+                connection.commit();
+            } catch (SQLException e) {
+                try {
+                    connection.rollback();
+                } catch (SQLException e1) {
+                    LOG.debug(e1.getMessage(), e);
+                }
+                LOG.error(e.getMessage(), e);
+            }
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);
         }

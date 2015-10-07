@@ -24,7 +24,6 @@ import ch.dissem.bitmessage.ports.Inventory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
@@ -136,6 +135,23 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
             LOG.debug("Error storing object of type " + object.getPayload().getClass().getSimpleName(), e);
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public boolean contains(ObjectMessage object) {
+        try (Connection connection = config.getConnection()) {
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT count(1) FROM Inventory WHERE hash = X'"
+                    + object.getInventoryVector() + "'");
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            } else {
+                throw new RuntimeException("Couldn't query if inventory contains " + object.getInventoryVector());
+            }
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+            throw new RuntimeException(e);
         }
     }
 

@@ -31,6 +31,7 @@ import ch.dissem.bitmessage.utils.Property;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -62,10 +63,14 @@ public class BitmessageContext {
 
     private final InternalContext ctx;
 
-    private Listener listener;
+    private final Listener listener;
+    private final NetworkHandler.MessageListener networkListener;
 
     private BitmessageContext(Builder builder) {
         ctx = new InternalContext(builder);
+        listener = builder.listener;
+        networkListener = new DefaultMessageListener(ctx, listener);
+
         // As this thread is used for parts that do POW, which itself uses parallel threads, only
         // one should be executed at any time.
         pool = Executors.newFixedThreadPool(1);
@@ -179,13 +184,20 @@ public class BitmessageContext {
         );
     }
 
-    public void startup(Listener listener) {
-        this.listener = listener;
-        ctx.getNetworkHandler().start(new DefaultMessageListener(ctx, listener));
+    public void startup() {
+        ctx.getNetworkHandler().start(networkListener);
     }
 
     public void shutdown() {
         ctx.getNetworkHandler().stop();
+    }
+
+    public void synchronize(InetAddress host, int port, long timeoutInSeconds) {
+        ctx.getNetworkHandler().synchronize(host, port, networkListener, timeoutInSeconds);
+    }
+
+    public void cleanup() {
+        ctx.getInventory().cleanup();
     }
 
     public boolean isRunning() {
@@ -268,6 +280,7 @@ public class BitmessageContext {
         ProofOfWorkEngine proofOfWorkEngine;
         Security security;
         MessageCallback messageCallback;
+        Listener listener;
 
         public Builder() {
         }
@@ -314,6 +327,11 @@ public class BitmessageContext {
 
         public Builder proofOfWorkEngine(ProofOfWorkEngine proofOfWorkEngine) {
             this.proofOfWorkEngine = proofOfWorkEngine;
+            return this;
+        }
+
+        public Builder listener(Listener listener) {
+            this.listener = listener;
             return this;
         }
 

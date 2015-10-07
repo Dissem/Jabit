@@ -28,6 +28,8 @@ public interface MessageRepository {
 
     List<Label> getLabels(Label.Type... types);
 
+    int countUnread(Label label);
+
     List<Plaintext> findMessages(Label label);
 
     List<Plaintext> findMessages(Status status);

@@ -61,6 +61,11 @@ public class TestInventory implements Inventory {
     }
 
     @Override
+    public boolean contains(ObjectMessage object) {
+        return inventory.containsKey(object.getInventoryVector());
+    }
+
+    @Override
     public void cleanup() {
 
     }

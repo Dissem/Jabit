@@ -82,7 +82,7 @@ public class InternalContext {
             streams.add(1L);
         }
 
-        init(inventory, nodeRegistry, networkHandler, addressRepository, messageRepository, proofOfWorkEngine);
+        init(security, inventory, nodeRegistry, networkHandler, addressRepository, messageRepository, proofOfWorkEngine);
         for (BitmessageAddress identity : addressRepository.getIdentities()) {
             streams.add(identity.getStream());
         }

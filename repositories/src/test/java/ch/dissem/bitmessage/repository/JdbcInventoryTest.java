@@ -111,6 +111,17 @@ public class JdbcInventoryTest extends TestBase {
     }
 
     @Test
+    public void testContains() {
+        ObjectMessage object = getObjectMessage(5, 0, getGetPubkey());
+
+        assertFalse(inventory.contains(object));
+
+        inventory.storeObject(object);
+
+        assertTrue(inventory.contains(object));
+    }
+
+    @Test
     public void testCleanup() throws Exception {
         assertNotNull(inventory.getObject(inventoryVectorIgnore));
         inventory.cleanup();

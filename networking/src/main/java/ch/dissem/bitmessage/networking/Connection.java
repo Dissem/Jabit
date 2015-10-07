@@ -310,6 +310,8 @@ public class Connection implements Runnable {
                 try {
                     LOG.debug("Received object " + objectMessage.getInventoryVector());
                     security().checkProofOfWork(objectMessage, ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
+                    if (ctx.getInventory().contains(objectMessage))
+                        break;
                     listener.receive(objectMessage);
                     ctx.getInventory().storeObject(objectMessage);
                     // offer object to some random nodes so it gets distributed throughout the network:

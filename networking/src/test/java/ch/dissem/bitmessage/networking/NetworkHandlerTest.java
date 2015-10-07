@@ -55,8 +55,9 @@ public class NetworkHandlerTest {
                 .nodeRegistry(new TestNodeRegistry())
                 .networkHandler(new DefaultNetworkHandler())
                 .security(new BouncySecurity())
+                .listener(Mockito.mock(BitmessageContext.Listener.class))
                 .build();
-        peer.startup(Mockito.mock(BitmessageContext.Listener.class));
+        peer.startup();
 
         nodeInventory = new TestInventory();
         networkHandler = new DefaultNetworkHandler();
@@ -68,13 +69,14 @@ public class NetworkHandlerTest {
                 .nodeRegistry(new TestNodeRegistry(localhost))
                 .networkHandler(networkHandler)
                 .security(new BouncySecurity())
+                .listener(Mockito.mock(BitmessageContext.Listener.class))
                 .build();
     }
 
     @Test(timeout = 20_000)
     public void ensureNodesAreConnecting() {
         try {
-            node.startup(Mockito.mock(BitmessageContext.Listener.class));
+            node.startup();
             Property status;
             do {
                 Thread.yield();

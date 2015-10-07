@@ -34,38 +34,43 @@ import static java.util.Collections.newSetFromMap;
 public class MemoryNodeRegistry implements NodeRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(MemoryNodeRegistry.class);
 
-    private final Map<Long, Set<NetworkAddress>> stableNodes = new HashMap<>();
+    private final Map<Long, Set<NetworkAddress>> stableNodes = new ConcurrentHashMap<>();
     private final Map<Long, Set<NetworkAddress>> knownNodes = new ConcurrentHashMap<>();
 
     public MemoryNodeRegistry() {
-        try (InputStream in = getClass().getClassLoader().getResourceAsStream("nodes.txt")) {
-            Scanner scanner = new Scanner(in);
-            long stream = 0;
-            Set<NetworkAddress> streamSet = null;
-            while (scanner.hasNext()) {
-                try {
-                    String line = scanner.nextLine().trim();
-                    if (line.startsWith("#") || line.isEmpty()) {
-                        // Ignore
-                        continue;
-                    }
-                    if (line.startsWith("[stream")) {
-                        stream = Long.parseLong(line.substring(8, line.lastIndexOf(']')));
-                        streamSet = new HashSet<>();
-                        stableNodes.put(stream, streamSet);
-                    } else if (streamSet != null) {
-                        int portIndex = line.lastIndexOf(':');
-                        InetAddress inetAddress = InetAddress.getByName(line.substring(0, portIndex));
-                        int port = Integer.valueOf(line.substring(portIndex + 1));
-                        streamSet.add(new NetworkAddress.Builder().ip(inetAddress).port(port).stream(stream).build());
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try (InputStream in = getClass().getClassLoader().getResourceAsStream("nodes.txt")) {
+                    Scanner scanner = new Scanner(in);
+                    long stream = 0;
+                    Set<NetworkAddress> streamSet = null;
+                    while (scanner.hasNext()) {
+                        try {
+                            String line = scanner.nextLine().trim();
+                            if (line.startsWith("#") || line.isEmpty()) {
+                                // Ignore
+                                continue;
+                            }
+                            if (line.startsWith("[stream")) {
+                                stream = Long.parseLong(line.substring(8, line.lastIndexOf(']')));
+                                streamSet = new HashSet<>();
+                                stableNodes.put(stream, streamSet);
+                            } else if (streamSet != null) {
+                                int portIndex = line.lastIndexOf(':');
+                                InetAddress inetAddress = InetAddress.getByName(line.substring(0, portIndex));
+                                int port = Integer.valueOf(line.substring(portIndex + 1));
+                                streamSet.add(new NetworkAddress.Builder().ip(inetAddress).port(port).stream(stream).build());
+                            }
+                        } catch (IOException e) {
+                            LOG.warn(e.getMessage(), e);
+                        }
                     }
                 } catch (IOException e) {
-                    LOG.warn(e.getMessage(), e);
+                    throw new RuntimeException(e);
                 }
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        }, "node registry initializer").start();
     }
 
     @Override

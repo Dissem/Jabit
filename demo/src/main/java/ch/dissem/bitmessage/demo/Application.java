@@ -22,7 +22,10 @@ import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
 import ch.dissem.bitmessage.ports.MemoryNodeRegistry;
-import ch.dissem.bitmessage.repository.*;
+import ch.dissem.bitmessage.repository.JdbcAddressRepository;
+import ch.dissem.bitmessage.repository.JdbcConfig;
+import ch.dissem.bitmessage.repository.JdbcInventory;
+import ch.dissem.bitmessage.repository.JdbcMessageRepository;
 import ch.dissem.bitmessage.security.bc.BouncySecurity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,18 +53,19 @@ public class Application {
                 .networkHandler(new DefaultNetworkHandler())
                 .security(new BouncySecurity())
                 .port(48444)
+                .listener(new BitmessageContext.Listener() {
+                    @Override
+                    public void receive(Plaintext plaintext) {
+                        try {
+                            System.out.println(new String(plaintext.getMessage(), "UTF-8"));
+                        } catch (UnsupportedEncodingException e) {
+                            LOG.error(e.getMessage(), e);
+                        }
+                    }
+                })
                 .build();
 
-        ctx.startup(new BitmessageContext.Listener() {
-            @Override
-            public void receive(Plaintext plaintext) {
-                try {
-                    System.out.println(new String(plaintext.getMessage(), "UTF-8"));
-                } catch (UnsupportedEncodingException e) {
-                    LOG.error(e.getMessage(), e);
-                }
-            }
-        });
+        ctx.startup();
 
         scanner = new Scanner(System.in);
 

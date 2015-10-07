@@ -36,5 +36,7 @@ public interface Inventory {
 
     void storeObject(ObjectMessage object);
 
+    boolean contains(ObjectMessage object);
+
     void cleanup();
 }
