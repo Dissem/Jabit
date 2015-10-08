@@ -204,6 +204,7 @@ public class Connection implements Runnable {
             return false;
         }
         if (syncTimeout < UnixTime.now()) {
+            LOG.info("Synchronization timed out");
             return true;
         }
         if (msg == null) {
@@ -213,6 +214,7 @@ public class Connection implements Runnable {
         readTimeoutCounter = 0;
         if (!(msg.getPayload() instanceof Addr) && !(msg.getPayload() instanceof GetData)
                 && requestedObjects.isEmpty() && sendingQueue.isEmpty()) {
+            LOG.info("Synchronisation completed");
             return true;
         }
         return false;

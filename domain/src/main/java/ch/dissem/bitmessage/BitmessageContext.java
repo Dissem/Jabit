@@ -192,8 +192,22 @@ public class BitmessageContext {
         ctx.getNetworkHandler().stop();
     }
 
-    public void synchronize(InetAddress host, int port, long timeoutInSeconds) {
-        ctx.getNetworkHandler().synchronize(host, port, networkListener, timeoutInSeconds);
+    /**
+     * @param host             a trusted node that must be reliable (it's used for every synchronization)
+     * @param port             of the trusted host, default is 8444
+     * @param timeoutInSeconds synchronization should end no later than about 5 seconds after the timeout elapsed, even
+     *                         if not all objects were fetched
+     * @param wait             waits for the synchronization thread to finish
+     */
+    public void synchronize(InetAddress host, int port, long timeoutInSeconds, boolean wait) {
+        Thread t = ctx.getNetworkHandler().synchronize(host, port, networkListener, timeoutInSeconds);
+        if (wait) {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e.getMessage(), e);
+            }
+        }
     }
 
     public void cleanup() {
