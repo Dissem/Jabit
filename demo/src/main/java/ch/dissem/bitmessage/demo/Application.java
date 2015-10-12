@@ -52,7 +52,7 @@ public class Application {
                 .messageRepo(new JdbcMessageRepository(jdbcConfig))
                 .networkHandler(new DefaultNetworkHandler())
                 .security(new BouncySecurity())
-                .port(48444)
+//                .port(48444)
                 .listener(new BitmessageContext.Listener() {
                     @Override
                     public void receive(Plaintext plaintext) {
@@ -109,6 +109,7 @@ public class Application {
             }
         } while (!"e".equals(command));
         LOG.info("Shutting down client");
+        ctx.cleanup();
         ctx.shutdown();
     }
 

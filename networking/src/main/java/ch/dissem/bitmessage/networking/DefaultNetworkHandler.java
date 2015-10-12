@@ -48,18 +48,14 @@ import static ch.dissem.bitmessage.utils.DebugUtils.inc;
 public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
     public final static int NETWORK_MAGIC_NUMBER = 8;
     private final static Logger LOG = LoggerFactory.getLogger(DefaultNetworkHandler.class);
-    private final ExecutorService pool;
     private final List<Connection> connections = new LinkedList<>();
     private InternalContext ctx;
     private ServerSocket serverSocket;
+    private ExecutorService pool;
     private Thread serverThread;
     private Thread connectionManager;
 
     private ConcurrentMap<InventoryVector, Long> requestedObjects = new ConcurrentHashMap<>();
-
-    public DefaultNetworkHandler() {
-        pool = Executors.newCachedThreadPool();
-    }
 
     @Override
     public void setContext(InternalContext context) {
@@ -82,7 +78,12 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
         if (listener == null) {
             throw new IllegalStateException("Listener must be set at start");
         }
+        if (pool != null && !pool.isShutdown()) {
+            throw new IllegalStateException("Network already running - you need to stop first.");
+        }
         try {
+            pool = Executors.newCachedThreadPool();
+            connections.clear();
             serverSocket = new ServerSocket(ctx.getPort());
             serverThread = new Thread(new Runnable() {
                 @Override
