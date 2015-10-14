@@ -22,7 +22,6 @@ import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.exception.NodeException;
-import ch.dissem.bitmessage.ports.Security;
 import ch.dissem.bitmessage.utils.AccessCounter;
 import ch.dissem.bitmessage.utils.Decode;
 import org.slf4j.Logger;
@@ -93,7 +92,7 @@ class V3MessageFactory {
         try {
             ByteArrayInputStream dataStream = new ByteArrayInputStream(data);
             payload = Factory.getObjectPayload(objectType, version, stream, dataStream, data.length);
-        } catch (IOException e) {
+        } catch (Exception e) {
             LOG.trace("Could not parse object payload - using generic payload instead", e);
             payload = new GenericPayload(version, stream, data);
         }
