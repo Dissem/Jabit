@@ -12,7 +12,6 @@
 109.147.204.113:1195
 178.11.46.221:8444
 
-# Add named nodes at the end, as resolving them might take time
 dissem.ch:8444
 
 [stream 2]

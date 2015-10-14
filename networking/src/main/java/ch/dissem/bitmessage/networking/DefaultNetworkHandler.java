@@ -49,13 +49,16 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
     public final static int NETWORK_MAGIC_NUMBER = 8;
     private final static Logger LOG = LoggerFactory.getLogger(DefaultNetworkHandler.class);
     private final List<Connection> connections = new LinkedList<>();
+    private final ExecutorService pool;
     private InternalContext ctx;
     private ServerSocket serverSocket;
-    private ExecutorService pool;
-    private Thread serverThread;
-    private Thread connectionManager;
+    private volatile boolean running;
 
     private ConcurrentMap<InventoryVector, Long> requestedObjects = new ConcurrentHashMap<>();
+
+    public DefaultNetworkHandler() {
+        pool = Executors.newCachedThreadPool();
+    }
 
     @Override
     public void setContext(InternalContext context) {
@@ -65,9 +68,12 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
     @Override
     public Thread synchronize(InetAddress trustedHost, int port, MessageListener listener, long timeoutInSeconds) {
         try {
-            Thread t = new Thread(Connection.sync(ctx, trustedHost, port, listener, timeoutInSeconds));
-            t.start();
-            return t;
+            Connection connection = Connection.sync(ctx, trustedHost, port, listener, timeoutInSeconds);
+            Thread tr = new Thread(connection.getReader());
+            Thread tw = new Thread(connection.getWriter());
+            tr.start();
+            tw.start();
+            return tr;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -78,14 +84,14 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
         if (listener == null) {
             throw new IllegalStateException("Listener must be set at start");
         }
-        if (pool != null && !pool.isShutdown()) {
+        if (running) {
             throw new IllegalStateException("Network already running - you need to stop first.");
         }
         try {
-            pool = Executors.newCachedThreadPool();
+            running = true;
             connections.clear();
             serverSocket = new ServerSocket(ctx.getPort());
-            serverThread = new Thread(new Runnable() {
+            pool.execute(new Runnable() {
                 @Override
                 public void run() {
                     while (!serverSocket.isClosed()) {
@@ -98,44 +104,46 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
                         }
                     }
                 }
-            }, "server");
-            serverThread.start();
-            connectionManager = new Thread(new Runnable() {
+            });
+            pool.execute(new Runnable() {
                 @Override
                 public void run() {
-                    while (!Thread.interrupted()) {
-                        try {
-                            int active = 0;
-                            synchronized (connections) {
-                                for (Iterator<Connection> iterator = connections.iterator(); iterator.hasNext(); ) {
-                                    Connection c = iterator.next();
-                                    if (c.getState() == DISCONNECTED) {
-                                        // Remove the current element from the iterator and the list.
-                                        iterator.remove();
-                                    }
-                                    if (c.getState() == ACTIVE) {
-                                        active++;
+                    try {
+                        while (running) {
+                            try {
+                                int active = 0;
+                                synchronized (connections) {
+                                    for (Iterator<Connection> iterator = connections.iterator(); iterator.hasNext(); ) {
+                                        Connection c = iterator.next();
+                                        if (c.getState() == DISCONNECTED) {
+                                            // Remove the current element from the iterator and the list.
+                                            iterator.remove();
+                                        }
+                                        if (c.getState() == ACTIVE) {
+                                            active++;
+                                        }
                                     }
                                 }
-                            }
-                            if (active < NETWORK_MAGIC_NUMBER) {
-                                List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(
-                                        NETWORK_MAGIC_NUMBER - active, ctx.getStreams());
-                                for (NetworkAddress address : addresses) {
-                                    startConnection(new Connection(ctx, CLIENT, address, listener, requestedObjects));
+                                if (active < NETWORK_MAGIC_NUMBER) {
+                                    List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(
+                                            NETWORK_MAGIC_NUMBER - active, ctx.getStreams());
+                                    for (NetworkAddress address : addresses) {
+                                        startConnection(new Connection(ctx, CLIENT, address, listener, requestedObjects));
+                                    }
                                 }
+                                Thread.sleep(30000);
+                            } catch (InterruptedException e) {
+                                running = false;
+                            } catch (Exception e) {
+                                LOG.error("Error in connection manager. Ignored.", e);
                             }
-                            Thread.sleep(30000);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                        } catch (Exception e) {
-                            LOG.error("Error in connection manager. Ignored.", e);
                         }
+                    } finally {
+                        LOG.debug("Connection manager shutting down.");
+                        running = false;
                     }
-                    LOG.debug("Connection manager shutting down.");
                 }
-            }, "connection-manager");
-            connectionManager.start();
+            });
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -143,18 +151,17 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
 
     @Override
     public boolean isRunning() {
-        return connectionManager != null && connectionManager.isAlive();
+        return running;
     }
 
     @Override
     public void stop() {
-        connectionManager.interrupt();
+        running = false;
         try {
             serverSocket.close();
         } catch (IOException e) {
             LOG.debug(e.getMessage(), e);
         }
-        pool.shutdown();
         synchronized (connections) {
             for (Connection c : connections) {
                 c.disconnect();
@@ -170,7 +177,8 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
             }
             connections.add(c);
         }
-        pool.execute(c);
+        pool.execute(c.getReader());
+        pool.execute(c.getWriter());
     }
 
     @Override
@@ -222,8 +230,7 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
             i++;
         }
         return new Property("network", null,
-                new Property("connectionManager",
-                        connectionManager != null && connectionManager.isAlive() ? "running" : "stopped"),
+                new Property("connectionManager", running ? "running" : "stopped"),
                 new Property("connections", null, streamProperties)
         );
     }

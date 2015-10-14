@@ -10,6 +10,8 @@ uploadArchives {
     }
 }
 
+sourceCompatibility = 1.8
+
 dependencies {
     compile project(':domain')
     compile 'org.flywaydb:flyway-core:3.2.1'
