@@ -14,6 +14,8 @@ uploadArchives {
     }
 }
 
+sourceCompatibility = 1.8
+
 task fatCapsule(type: FatCapsule) {
     applicationClass 'ch.dissem.bitmessage.demo.Main'
 }
@@ -26,6 +28,6 @@ dependencies {
     compile project(':wif')
     compile 'org.slf4j:slf4j-simple:1.7.12'
     compile 'args4j:args4j:2.32'
-    compile 'com.h2database:h2:1.4.187'
+    compile 'com.h2database:h2:1.4.190'
     testCompile 'junit:junit:4.11'
 }

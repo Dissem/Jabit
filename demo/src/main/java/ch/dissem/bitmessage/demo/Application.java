@@ -109,6 +109,7 @@ public class Application {
             }
         } while (!"e".equals(command));
         LOG.info("Shutting down client");
+        ctx.cleanup();
         ctx.shutdown();
     }
 

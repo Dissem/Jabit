@@ -23,7 +23,6 @@ import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.NodeException;
-import ch.dissem.bitmessage.ports.Security;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -155,7 +154,7 @@ public class Factory {
             }
         }
         // fallback: just store the message - we don't really care what it is
-//        LOG.info("Unexpected object type: " + objectType);
+        LOG.trace("Unexpected object type: " + objectType);
         return GenericPayload.read(version, stream, streamNumber, length);
     }
 

@@ -43,8 +43,6 @@ public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
         for (int i = 0; i < cores; i++) {
             Worker w = new Worker(workers, (byte) cores, i, initialHash, target);
             workers.add(w);
-        }
-        for (Worker w : workers) {
             w.start();
         }
         for (Worker w : workers) {
