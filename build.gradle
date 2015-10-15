@@ -13,6 +13,12 @@ subprojects {
         mavenCentral()
     }
 
+    test {
+        testLogging {
+            exceptionFormat = 'full'
+        }
+    }
+
     task javadocJar(type: Jar) {
         classifier = 'javadoc'
         from javadoc

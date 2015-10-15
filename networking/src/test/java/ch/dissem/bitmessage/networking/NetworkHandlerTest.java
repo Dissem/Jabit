@@ -104,7 +104,7 @@ public class NetworkHandlerTest {
                 10);
         t.join();
         assertEquals(3, nodeInventory.getInventory().size());
-        assertEquals(3, peerInventory.getInventory().size());
+        assertInventorySize(3, peerInventory);
     }
 
     @Test(timeout = 5_000)
@@ -121,7 +121,7 @@ public class NetworkHandlerTest {
                 10);
         t.join();
         assertEquals(2, nodeInventory.getInventory().size());
-        assertEquals(2, peerInventory.getInventory().size());
+        assertInventorySize(2, peerInventory);
     }
 
     @Test(timeout = 10_000)
@@ -137,7 +137,7 @@ public class NetworkHandlerTest {
                 10);
         t.join();
         assertEquals(1, nodeInventory.getInventory().size());
-        assertEquals(1, peerInventory.getInventory().size());
+        assertInventorySize(1, peerInventory);
     }
 
     private void shutdown(BitmessageContext node) {
@@ -145,5 +145,13 @@ public class NetworkHandlerTest {
         do {
             Thread.yield();
         } while (node.isRunning());
+    }
+
+    private void assertInventorySize(int expected, TestInventory inventory) throws InterruptedException {
+        long timeout = System.currentTimeMillis() + 1000;
+        while (expected != inventory.getInventory().size() && System.currentTimeMillis() < timeout) {
+            Thread.sleep(10);
+        }
+        assertEquals(expected, inventory.getInventory().size());
     }
 }
