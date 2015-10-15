@@ -23,6 +23,7 @@ import ch.dissem.bitmessage.ports.MessageRepository;
 import ch.dissem.bitmessage.ports.NetworkHandler;
 import ch.dissem.bitmessage.security.bc.BouncySecurity;
 import ch.dissem.bitmessage.utils.Property;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -41,13 +42,14 @@ public class NetworkHandlerTest {
     private static TestInventory peerInventory;
     private static TestInventory nodeInventory;
 
+    private static BitmessageContext peer;
     private static BitmessageContext node;
     private static NetworkHandler networkHandler;
 
     @BeforeClass
     public static void setUp() {
         peerInventory = new TestInventory();
-        BitmessageContext peer = new BitmessageContext.Builder()
+        peer = new BitmessageContext.Builder()
                 .addressRepo(Mockito.mock(AddressRepository.class))
                 .inventory(peerInventory)
                 .messageRepo(Mockito.mock(MessageRepository.class))
@@ -71,6 +73,21 @@ public class NetworkHandlerTest {
                 .security(new BouncySecurity())
                 .listener(Mockito.mock(BitmessageContext.Listener.class))
                 .build();
+    }
+
+    @AfterClass
+    public static void cleanUp() {
+        shutdown(peer);
+    }
+
+    private static void shutdown(BitmessageContext node) {
+        node.shutdown();
+        do {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ignore) {
+            }
+        } while (node.isRunning());
     }
 
     @Test(timeout = 20_000)
@@ -138,13 +155,6 @@ public class NetworkHandlerTest {
         t.join();
         assertEquals(1, nodeInventory.getInventory().size());
         assertInventorySize(1, peerInventory);
-    }
-
-    private void shutdown(BitmessageContext node) {
-        node.shutdown();
-        do {
-            Thread.yield();
-        } while (node.isRunning());
     }
 
     private void assertInventorySize(int expected, TestInventory inventory) throws InterruptedException {
