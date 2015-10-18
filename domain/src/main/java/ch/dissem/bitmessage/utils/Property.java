@@ -54,6 +54,10 @@ public class Property {
         return null;
     }
 
+    public Property[] getProperties() {
+        return properties;
+    }
+
     @Override
     public String toString() {
         return toString("");
