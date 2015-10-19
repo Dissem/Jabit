@@ -43,6 +43,10 @@ public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
         for (int i = 0; i < cores; i++) {
             Worker w = new Worker(workers, (byte) cores, i, initialHash, target);
             workers.add(w);
+        }
+        for (Worker w : workers) {
+            // Doing this in the previous loop might cause a ConcurrentModificationException in the worker
+            // if a worker finds a nonce while new ones are still being added.
             w.start();
         }
         for (Worker w : workers) {
