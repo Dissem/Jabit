@@ -120,7 +120,7 @@ public class NetworkHandlerTest {
                 mock(NetworkHandler.MessageListener.class),
                 10);
         t.join();
-        assertEquals(3, nodeInventory.getInventory().size());
+        assertInventorySize(3, nodeInventory);
         assertInventorySize(3, peerInventory);
     }
 
@@ -137,7 +137,7 @@ public class NetworkHandlerTest {
                 mock(NetworkHandler.MessageListener.class),
                 10);
         t.join();
-        assertEquals(2, nodeInventory.getInventory().size());
+        assertInventorySize(2, nodeInventory);
         assertInventorySize(2, peerInventory);
     }
 
@@ -153,7 +153,7 @@ public class NetworkHandlerTest {
                 mock(NetworkHandler.MessageListener.class),
                 10);
         t.join();
-        assertEquals(1, nodeInventory.getInventory().size());
+        assertInventorySize(1, nodeInventory);
         assertInventorySize(1, peerInventory);
     }
 
