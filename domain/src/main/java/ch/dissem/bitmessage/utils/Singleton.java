@@ -25,7 +25,11 @@ public class Singleton {
     private static Security security;
 
     public static void initialize(Security security) {
-        Singleton.security = security;
+        synchronized (Singleton.class) {
+            if (Singleton.security == null) {
+                Singleton.security = security;
+            }
+        }
     }
 
     public static Security security() {

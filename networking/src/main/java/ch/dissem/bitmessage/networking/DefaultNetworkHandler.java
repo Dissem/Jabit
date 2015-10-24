@@ -23,6 +23,7 @@ import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.ports.NetworkHandler;
 import ch.dissem.bitmessage.utils.Collections;
 import ch.dissem.bitmessage.utils.Property;
+import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,9 +113,21 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
                         while (running) {
                             try {
                                 int active = 0;
+                                long now = UnixTime.now();
                                 synchronized (connections) {
+                                    int diff = connections.size() - ctx.getConnectionLimit();
+                                    if (diff > 0) {
+                                        for (Connection c : connections) {
+                                            c.disconnect();
+                                            diff--;
+                                            if (diff == 0) break;
+                                        }
+                                    }
                                     for (Iterator<Connection> iterator = connections.iterator(); iterator.hasNext(); ) {
                                         Connection c = iterator.next();
+                                        if (now - c.getStartTime() > ctx.getConnectionTTL()) {
+                                            c.disconnect();
+                                        }
                                         if (c.getState() == DISCONNECTED) {
                                             // Remove the current element from the iterator and the list.
                                             iterator.remove();

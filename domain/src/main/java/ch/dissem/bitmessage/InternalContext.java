@@ -56,6 +56,8 @@ public class InternalContext {
     private final long clientNonce;
     private final long networkNonceTrialsPerByte = 1000;
     private final long networkExtraBytes = 1000;
+    private long connectionTTL;
+    private int connectionLimit;
 
     public InternalContext(BitmessageContext.Builder builder) {
         this.security = builder.security;
@@ -68,6 +70,8 @@ public class InternalContext {
         this.clientNonce = security.randomNonce();
         this.messageCallback = builder.messageCallback;
         this.port = builder.port;
+        this.connectionLimit = builder.connectionLimit;
+        this.connectionTTL = builder.connectionTTL;
 
         Singleton.initialize(security);
 
@@ -166,7 +170,7 @@ public class InternalContext {
                     .payload(payload)
                     .build();
             if (object.isSigned()) {
-                object.sign( from.getPrivateKey());
+                object.sign(from.getPrivateKey());
             }
             if (payload instanceof Broadcast) {
                 ((Broadcast) payload).encrypt();
@@ -230,6 +234,14 @@ public class InternalContext {
 
     public long getClientNonce() {
         return clientNonce;
+    }
+
+    public long getConnectionTTL() {
+        return connectionTTL;
+    }
+
+    public int getConnectionLimit() {
+        return connectionLimit;
     }
 
     public interface ContextHolder {

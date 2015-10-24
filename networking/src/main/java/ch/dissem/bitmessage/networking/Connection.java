@@ -51,8 +51,10 @@ import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
  */
 public class Connection {
     public static final int READ_TIMEOUT = 2000;
-    private final static Logger LOG = LoggerFactory.getLogger(Connection.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Connection.class);
     private static final int CONNECT_TIMEOUT = 5000;
+
+    private final long startTime;
     private final ConcurrentMap<InventoryVector, Long> ivCache;
     private final InternalContext ctx;
     private final Mode mode;
@@ -89,6 +91,7 @@ public class Connection {
 
     private Connection(InternalContext context, Mode mode, MessageListener listener, Socket socket,
                        Map<InventoryVector, Long> requestedObjectsMap, NetworkAddress node, long syncTimeout) {
+        this.startTime = UnixTime.now();
         this.ctx = context;
         this.mode = mode;
         this.state = CONNECTING;
@@ -107,6 +110,10 @@ public class Connection {
                 new HashMap<InventoryVector, Long>(),
                 new NetworkAddress.Builder().ip(address).port(port).stream(1).build(),
                 timeoutInSeconds);
+    }
+
+    public long getStartTime() {
+        return startTime;
     }
 
     public Mode getMode() {

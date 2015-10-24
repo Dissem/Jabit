@@ -40,6 +40,7 @@ import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
 import static ch.dissem.bitmessage.utils.UnixTime.DAY;
+import static ch.dissem.bitmessage.utils.UnixTime.HOUR;
 
 /**
  * <p>Use this class if you want to create a Bitmessage client.</p>
@@ -295,6 +296,8 @@ public class BitmessageContext {
         Security security;
         MessageCallback messageCallback;
         Listener listener;
+        int connectionLimit = 150;
+        long connectionTTL = 12 * HOUR;
 
         public Builder() {
         }
@@ -346,6 +349,16 @@ public class BitmessageContext {
 
         public Builder listener(Listener listener) {
             this.listener = listener;
+            return this;
+        }
+
+        public Builder connectionLimit(int connectionLimit) {
+            this.connectionLimit = connectionLimit;
+            return this;
+        }
+
+        public Builder connectionTTL(int hours) {
+            this.connectionTTL = hours * HOUR;
             return this;
         }
 
