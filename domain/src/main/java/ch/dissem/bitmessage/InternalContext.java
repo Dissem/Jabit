@@ -159,12 +159,13 @@ public class InternalContext {
         return networkExtraBytes > extraBytes ? networkExtraBytes : extraBytes;
     }
 
-    public void send(BitmessageAddress from, BitmessageAddress to, ObjectPayload payload, long timeToLive, long nonceTrialsPerByte, long extraBytes) {
+    public void send(final BitmessageAddress from, BitmessageAddress to, final ObjectPayload payload,
+                     final long timeToLive, final long nonceTrialsPerByte, final long extraBytes) {
         try {
             if (to == null) to = from;
             long expires = UnixTime.now(+timeToLive);
             LOG.info("Expires at " + expires);
-            ObjectMessage object = new ObjectMessage.Builder()
+            final ObjectMessage object = new ObjectMessage.Builder()
                     .stream(to.getStream())
                     .expiresTime(expires)
                     .payload(payload)
@@ -178,26 +179,32 @@ public class InternalContext {
                 object.encrypt(to.getPubkey());
             }
             messageCallback.proofOfWorkStarted(payload);
-            security.doProofOfWork(object, nonceTrialsPerByte, extraBytes);
-            messageCallback.proofOfWorkCompleted(payload);
-            if (payload instanceof PlaintextHolder) {
-                Plaintext plaintext = ((PlaintextHolder) payload).getPlaintext();
-                plaintext.setInventoryVector(object.getInventoryVector());
-                messageRepository.save(plaintext);
-            }
-            inventory.storeObject(object);
-            networkHandler.offer(object.getInventoryVector());
-            messageCallback.messageOffered(payload, object.getInventoryVector());
+            security.doProofOfWork(object, nonceTrialsPerByte, extraBytes,
+                    new ProofOfWorkEngine.Callback() {
+                        @Override
+                        public void onNonceCalculated(byte[] nonce) {
+                            object.setNonce(nonce);
+                            messageCallback.proofOfWorkCompleted(payload);
+                            if (payload instanceof PlaintextHolder) {
+                                Plaintext plaintext = ((PlaintextHolder) payload).getPlaintext();
+                                plaintext.setInventoryVector(object.getInventoryVector());
+                                messageRepository.save(plaintext);
+                            }
+                            inventory.storeObject(object);
+                            networkHandler.offer(object.getInventoryVector());
+                            messageCallback.messageOffered(payload, object.getInventoryVector());
+                        }
+                    });
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void sendPubkey(BitmessageAddress identity, long targetStream) {
+    public void sendPubkey(final BitmessageAddress identity, final long targetStream) {
         try {
             long expires = UnixTime.now(+28 * DAY);
             LOG.info("Expires at " + expires);
-            ObjectMessage response = new ObjectMessage.Builder()
+            final ObjectMessage response = new ObjectMessage.Builder()
                     .stream(targetStream)
                     .expiresTime(expires)
                     .payload(identity.getPubkey())
@@ -205,31 +212,43 @@ public class InternalContext {
             response.sign(identity.getPrivateKey());
             response.encrypt(security.createPublicKey(identity.getPublicDecryptionKey()));
             messageCallback.proofOfWorkStarted(identity.getPubkey());
-            security.doProofOfWork(response, networkNonceTrialsPerByte, networkExtraBytes);
-            messageCallback.proofOfWorkCompleted(identity.getPubkey());
-            inventory.storeObject(response);
-            networkHandler.offer(response.getInventoryVector());
-            // TODO: save that the pubkey was just sent, and on which stream!
-            messageCallback.messageOffered(identity.getPubkey(), response.getInventoryVector());
+            security.doProofOfWork(response, networkNonceTrialsPerByte, networkExtraBytes,
+                    new ProofOfWorkEngine.Callback() {
+                        @Override
+                        public void onNonceCalculated(byte[] nonce) {
+                            response.setNonce(nonce);
+                            messageCallback.proofOfWorkCompleted(identity.getPubkey());
+                            inventory.storeObject(response);
+                            networkHandler.offer(response.getInventoryVector());
+                            // TODO: save that the pubkey was just sent, and on which stream!
+                            messageCallback.messageOffered(identity.getPubkey(), response.getInventoryVector());
+                        }
+                    });
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void requestPubkey(BitmessageAddress contact) {
+    public void requestPubkey(final BitmessageAddress contact) {
         long expires = UnixTime.now(+2 * DAY);
         LOG.info("Expires at " + expires);
-        ObjectMessage response = new ObjectMessage.Builder()
+        final ObjectMessage response = new ObjectMessage.Builder()
                 .stream(contact.getStream())
                 .expiresTime(expires)
                 .payload(new GetPubkey(contact))
                 .build();
         messageCallback.proofOfWorkStarted(response.getPayload());
-        security.doProofOfWork(response, networkNonceTrialsPerByte, networkExtraBytes);
-        messageCallback.proofOfWorkCompleted(response.getPayload());
-        inventory.storeObject(response);
-        networkHandler.offer(response.getInventoryVector());
-        messageCallback.messageOffered(response.getPayload(), response.getInventoryVector());
+        security.doProofOfWork(response, networkNonceTrialsPerByte, networkExtraBytes,
+                new ProofOfWorkEngine.Callback() {
+                    @Override
+                    public void onNonceCalculated(byte[] nonce) {
+                        response.setNonce(nonce);
+                        messageCallback.proofOfWorkCompleted(response.getPayload());
+                        inventory.storeObject(response);
+                        networkHandler.offer(response.getInventoryVector());
+                        messageCallback.messageOffered(response.getPayload(), response.getInventoryVector());
+                    }
+                });
     }
 
     public long getClientNonce() {

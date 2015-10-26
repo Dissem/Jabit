@@ -4,7 +4,9 @@ import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.GenericPayload;
 import ch.dissem.bitmessage.ports.MultiThreadedPOWEngine;
+import ch.dissem.bitmessage.ports.ProofOfWorkEngine;
 import ch.dissem.bitmessage.security.bc.BouncySecurity;
+import ch.dissem.bitmessage.utils.CallbackWaiter;
 import ch.dissem.bitmessage.utils.Singleton;
 import ch.dissem.bitmessage.utils.UnixTime;
 import org.junit.Test;
@@ -78,14 +80,22 @@ public class SecurityTest {
     }
 
     @Test
-    public void testDoProofOfWork() throws IOException {
+    public void testDoProofOfWork() throws Exception {
         ObjectMessage objectMessage = new ObjectMessage.Builder()
                 .nonce(new byte[8])
                 .expiresTime(UnixTime.now(+2 * DAY))
                 .objectType(0)
                 .payload(GenericPayload.read(0, new ByteArrayInputStream(new byte[0]), 1, 0))
                 .build();
-        security.doProofOfWork(objectMessage, 1000, 1000);
+        final CallbackWaiter<byte[]> waiter = new CallbackWaiter<>();
+        security.doProofOfWork(objectMessage, 1000, 1000,
+                new ProofOfWorkEngine.Callback() {
+                    @Override
+                    public void onNonceCalculated(byte[] nonce) {
+                        waiter.setValue(nonce);
+                    }
+                });
+        objectMessage.setNonce(waiter.waitForValue());
         security.checkProofOfWork(objectMessage, 1000, 1000);
     }
 }

@@ -24,9 +24,17 @@ public interface ProofOfWorkEngine {
      * Returns a nonce, such that the first 8 bytes from sha512(sha512(nonce||initialHash)) represent a unsigned long
      * smaller than target.
      *
-     * @param initialHash        the SHA-512 hash of the object to send, sans nonce
-     * @param target             the target, representing an unsigned long
-     * @return 8 bytes nonce
+     * @param initialHash the SHA-512 hash of the object to send, sans nonce
+     * @param target      the target, representing an unsigned long
+     * @param callback    called with the calculated nonce as argument. The ProofOfWorkEngine implementation must make
+     *                    sure this is only called once.
      */
-    byte[] calculateNonce(byte[] initialHash, byte[] target);
+    void calculateNonce(byte[] initialHash, byte[] target, Callback callback);
+
+    interface Callback {
+        /**
+         * @param nonce 8 bytes nonce
+         */
+        void onNonceCalculated(byte[] nonce);
+    }
 }

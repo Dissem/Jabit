@@ -120,9 +120,10 @@ public interface Security {
      * @param object             to do the proof of work for
      * @param nonceTrialsPerByte difficulty
      * @param extraBytes         bytes to add to the object size (makes it more difficult to send small messages)
+     * @param callback           to handle nonce once it's calculated
      */
     void doProofOfWork(ObjectMessage object, long nonceTrialsPerByte,
-                       long extraBytes);
+                       long extraBytes, ProofOfWorkEngine.Callback callback);
 
     /**
      * @param object             to be checked
@@ -143,7 +144,6 @@ public interface Security {
     byte[] mac(byte[] key_m, byte[] data);
 
     /**
-     *
      * @param encrypt if true, encrypts data, otherwise tries to decrypt it.
      * @param data
      * @param key_e

@@ -34,14 +34,15 @@ public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
     private static Logger LOG = LoggerFactory.getLogger(MultiThreadedPOWEngine.class);
 
     @Override
-    public byte[] calculateNonce(byte[] initialHash, byte[] target) {
+    public void calculateNonce(byte[] initialHash, byte[] target, Callback callback) {
+        callback = new CallbackWrapper(callback);
         int cores = Runtime.getRuntime().availableProcessors();
         if (cores > 255) cores = 255;
         LOG.info("Doing POW using " + cores + " cores");
         long time = System.currentTimeMillis();
         List<Worker> workers = new ArrayList<>(cores);
         for (int i = 0; i < cores; i++) {
-            Worker w = new Worker(workers, (byte) cores, i, initialHash, target);
+            Worker w = new Worker(workers, (byte) cores, i, initialHash, target, callback);
             workers.add(w);
         }
         for (Worker w : workers) {
@@ -49,30 +50,20 @@ public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
             // if a worker finds a nonce while new ones are still being added.
             w.start();
         }
-        for (Worker w : workers) {
-            try {
-                w.join();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            if (w.isSuccessful()) {
-                LOG.info("Nonce calculated in " + ((System.currentTimeMillis() - time) / 1000) + " seconds");
-                return w.getNonce();
-            }
-        }
-        throw new RuntimeException("All workers ended without yielding a nonce - something is seriously broken!");
     }
 
     private static class Worker extends Thread {
+        private final Callback callback;
         private final byte numberOfCores;
         private final List<Worker> workers;
         private final byte[] initialHash;
         private final byte[] target;
         private final MessageDigest mda;
         private final byte[] nonce = new byte[8];
-        private boolean successful = false;
 
-        public Worker(List<Worker> workers, byte numberOfCores, int core, byte[] initialHash, byte[] target) {
+        public Worker(List<Worker> workers, byte numberOfCores, int core, byte[] initialHash, byte[] target,
+                      Callback callback) {
+            this.callback = callback;
             this.numberOfCores = numberOfCores;
             this.workers = workers;
             this.initialHash = initialHash;
@@ -86,14 +77,6 @@ public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
             }
         }
 
-        public boolean isSuccessful() {
-            return successful;
-        }
-
-        public byte[] getNonce() {
-            return nonce;
-        }
-
         @Override
         public void run() {
             do {
@@ -101,13 +84,42 @@ public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
                 mda.update(nonce);
                 mda.update(initialHash);
                 if (!Bytes.lt(target, mda.digest(mda.digest()), 8)) {
-                    successful = true;
-                    for (Worker w : workers) {
-                        w.interrupt();
+                    synchronized (callback) {
+                        if (!Thread.interrupted()) {
+                            try {
+                                callback.onNonceCalculated(nonce);
+                            } finally {
+                                for (Worker w : workers) {
+                                    w.interrupt();
+                                }
+                            }
+                        }
                     }
                     return;
                 }
             } while (!Thread.interrupted());
+        }
+    }
+
+    public static class CallbackWrapper implements Callback {
+        private final Callback callback;
+        private final long startTime;
+        private boolean waiting = true;
+
+        public CallbackWrapper(Callback callback) {
+            this.startTime = System.currentTimeMillis();
+            this.callback = callback;
+        }
+
+        @Override
+        public void onNonceCalculated(byte[] nonce) {
+            synchronized (this) {
+                if (waiting) {
+                    LOG.info("Nonce calculated in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds");
+                    waiting = false;
+                    callback.onNonceCalculated(nonce);
+                }
+            }
         }
     }
 }

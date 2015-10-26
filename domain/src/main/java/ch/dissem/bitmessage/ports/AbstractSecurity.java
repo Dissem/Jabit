@@ -93,7 +93,7 @@ public abstract class AbstractSecurity implements Security, InternalContext.Cont
     }
 
     public void doProofOfWork(ObjectMessage object, long nonceTrialsPerByte,
-                              long extraBytes) {
+                              long extraBytes, ProofOfWorkEngine.Callback callback) {
         try {
             if (nonceTrialsPerByte < 1000) nonceTrialsPerByte = 1000;
             if (extraBytes < 1000) extraBytes = 1000;
@@ -102,8 +102,7 @@ public abstract class AbstractSecurity implements Security, InternalContext.Cont
 
             byte[] target = getProofOfWorkTarget(object, nonceTrialsPerByte, extraBytes);
 
-            byte[] nonce = context.getProofOfWorkEngine().calculateNonce(initialHash, target);
-            object.setNonce(nonce);
+            context.getProofOfWorkEngine().calculateNonce(initialHash, target, callback);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

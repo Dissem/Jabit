@@ -27,7 +27,7 @@ import static ch.dissem.bitmessage.utils.Bytes.inc;
  */
 public class SimplePOWEngine implements ProofOfWorkEngine {
     @Override
-    public byte[] calculateNonce(byte[] initialHash, byte[] target) {
+    public void calculateNonce(byte[] initialHash, byte[] target, Callback callback) {
         byte[] nonce = new byte[8];
         MessageDigest mda;
         try {
@@ -40,6 +40,6 @@ public class SimplePOWEngine implements ProofOfWorkEngine {
             mda.update(nonce);
             mda.update(initialHash);
         } while (Bytes.lt(target, mda.digest(mda.digest()), 8));
-        return nonce;
+        callback.onNonceCalculated(nonce);
     }
 }

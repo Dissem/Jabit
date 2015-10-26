@@ -17,29 +17,40 @@
 package ch.dissem.bitmessage.ports;
 
 import ch.dissem.bitmessage.utils.Bytes;
+import ch.dissem.bitmessage.utils.CallbackWaiter;
+import ch.dissem.bitmessage.utils.TestBase;
 import org.junit.Test;
 
 import static ch.dissem.bitmessage.utils.Singleton.security;
 import static org.junit.Assert.assertTrue;
 
-public class ProofOfWorkEngineTest {
+public class ProofOfWorkEngineTest extends TestBase {
     @Test
-    public void testSimplePOWEngine() {
+    public void testSimplePOWEngine() throws InterruptedException {
         testPOW(new SimplePOWEngine());
     }
 
     @Test
-    public void testThreadedPOWEngine() {
+    public void testThreadedPOWEngine() throws InterruptedException {
         testPOW(new MultiThreadedPOWEngine());
     }
 
-    private void testPOW(ProofOfWorkEngine engine) {
+    private void testPOW(ProofOfWorkEngine engine) throws InterruptedException {
         long time = System.currentTimeMillis();
         byte[] initialHash = security().sha512(new byte[]{1, 3, 6, 4});
         byte[] target = {0, 0, -1, -1, -1, -1, -1, -1};
 
-        byte[] nonce = engine.calculateNonce(initialHash, target);
+        final CallbackWaiter<byte[]> waiter = new CallbackWaiter<>();
+        engine.calculateNonce(initialHash, target,
+                new ProofOfWorkEngine.Callback() {
+                    @Override
+                    public void onNonceCalculated(byte[] nonce) {
+                        waiter.setValue(nonce);
+                    }
+                });
+        byte[] nonce = waiter.waitForValue();
         System.out.println("Calculating nonce took " + (System.currentTimeMillis() - time) + "ms");
         assertTrue(Bytes.lt(security().doubleSha512(nonce, initialHash), target, 8));
     }
+
 }
