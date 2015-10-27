@@ -25,12 +25,12 @@ import static ch.dissem.bitmessage.utils.Singleton.security;
 import static org.junit.Assert.assertTrue;
 
 public class ProofOfWorkEngineTest extends TestBase {
-    @Test
+    @Test(timeout = 90_000)
     public void testSimplePOWEngine() throws InterruptedException {
         testPOW(new SimplePOWEngine());
     }
 
-    @Test
+    @Test(timeout = 90_000)
     public void testThreadedPOWEngine() throws InterruptedException {
         testPOW(new MultiThreadedPOWEngine());
     }
@@ -49,8 +49,28 @@ public class ProofOfWorkEngineTest extends TestBase {
                     }
                 });
         byte[] nonce = waiter.waitForValue();
-        System.out.println("Calculating nonce took " + (System.currentTimeMillis() - time) + "ms");
+        time = System.currentTimeMillis() - time;
+        System.out.println("Calculating nonce took " + time + "ms");
         assertTrue(Bytes.lt(security().doubleSha512(nonce, initialHash), target, 8));
+
+        // Let's add a second (shorter) run to find possible multi threading issues
+        long time2 = System.currentTimeMillis();
+        byte[] initialHash2 = security().sha512(new byte[]{1, 3, 6, 5});
+        byte[] target2 = {0, -1, -1, -1, -1, -1, -1, -1};
+
+        final CallbackWaiter<byte[]> waiter2 = new CallbackWaiter<>();
+        engine.calculateNonce(initialHash2, target2,
+                new ProofOfWorkEngine.Callback() {
+                    @Override
+                    public void onNonceCalculated(byte[] nonce) {
+                        waiter2.setValue(nonce);
+                    }
+                });
+        byte[] nonce2 = waiter2.waitForValue();
+        time2 = System.currentTimeMillis() - time2;
+        System.out.println("Calculating nonce took " + time2 + "ms");
+        assertTrue(Bytes.lt(security().doubleSha512(nonce2, initialHash2), target2, 8));
+        assertTrue("Second nonce must be quicker to find", time > time2);
     }
 
 }

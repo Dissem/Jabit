@@ -24,6 +24,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 
 import static ch.dissem.bitmessage.utils.Bytes.inc;
 
@@ -31,15 +32,28 @@ import static ch.dissem.bitmessage.utils.Bytes.inc;
  * A POW engine using all available CPU cores.
  */
 public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
-    private static Logger LOG = LoggerFactory.getLogger(MultiThreadedPOWEngine.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MultiThreadedPOWEngine.class);
+    private static final Semaphore semaphore = new Semaphore(1, true);
 
+    /**
+     * Although it has a callback, this method will block until all pending nonce calculations are done. (It gets very
+     * inefficient if multiple nonce are calculated at the same time.
+     *
+     * @param initialHash the SHA-512 hash of the object to send, sans nonce
+     * @param target      the target, representing an unsigned long
+     * @param callback    called with the calculated nonce as argument. The ProofOfWorkEngine implementation must make
+     */
     @Override
     public void calculateNonce(byte[] initialHash, byte[] target, Callback callback) {
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         callback = new CallbackWrapper(callback);
         int cores = Runtime.getRuntime().availableProcessors();
         if (cores > 255) cores = 255;
         LOG.info("Doing POW using " + cores + " cores");
-        long time = System.currentTimeMillis();
         List<Worker> workers = new ArrayList<>(cores);
         for (int i = 0; i < cores; i++) {
             Worker w = new Worker(workers, (byte) cores, i, initialHash, target, callback);
@@ -89,6 +103,7 @@ public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
                             try {
                                 callback.onNonceCalculated(nonce);
                             } finally {
+                                semaphore.release();
                                 for (Worker w : workers) {
                                     w.interrupt();
                                 }
