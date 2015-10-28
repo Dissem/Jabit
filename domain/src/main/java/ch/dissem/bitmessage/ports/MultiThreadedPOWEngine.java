@@ -36,8 +36,9 @@ public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
     private static final Semaphore semaphore = new Semaphore(1, true);
 
     /**
-     * Although it has a callback, this method will block until all pending nonce calculations are done. (It gets very
-     * inefficient if multiple nonce are calculated at the same time.
+     * This method will block until all pending nonce calculations are done, but not wait for its own calculation
+     * to finish.
+     * (This implementation becomes very inefficient if multiple nonce are calculated at the same time.)
      *
      * @param initialHash the SHA-512 hash of the object to send, sans nonce
      * @param target      the target, representing an unsigned long

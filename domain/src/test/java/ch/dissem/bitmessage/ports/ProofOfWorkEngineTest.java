@@ -36,27 +36,24 @@ public class ProofOfWorkEngineTest extends TestBase {
     }
 
     private void testPOW(ProofOfWorkEngine engine) throws InterruptedException {
-        long time = System.currentTimeMillis();
         byte[] initialHash = security().sha512(new byte[]{1, 3, 6, 4});
-        byte[] target = {0, 0, -1, -1, -1, -1, -1, -1};
+        byte[] target = {0, 0, 0, -1, -1, -1, -1, -1};
 
-        final CallbackWaiter<byte[]> waiter = new CallbackWaiter<>();
+        final CallbackWaiter<byte[]> waiter1 = new CallbackWaiter<>();
         engine.calculateNonce(initialHash, target,
                 new ProofOfWorkEngine.Callback() {
                     @Override
                     public void onNonceCalculated(byte[] nonce) {
-                        waiter.setValue(nonce);
+                        waiter1.setValue(nonce);
                     }
                 });
-        byte[] nonce = waiter.waitForValue();
-        time = System.currentTimeMillis() - time;
-        System.out.println("Calculating nonce took " + time + "ms");
+        byte[] nonce = waiter1.waitForValue();
+        System.out.println("Calculating nonce took " + waiter1.getTime() + "ms");
         assertTrue(Bytes.lt(security().doubleSha512(nonce, initialHash), target, 8));
 
         // Let's add a second (shorter) run to find possible multi threading issues
-        long time2 = System.currentTimeMillis();
         byte[] initialHash2 = security().sha512(new byte[]{1, 3, 6, 5});
-        byte[] target2 = {0, -1, -1, -1, -1, -1, -1, -1};
+        byte[] target2 = {0, 0, -1, -1, -1, -1, -1, -1};
 
         final CallbackWaiter<byte[]> waiter2 = new CallbackWaiter<>();
         engine.calculateNonce(initialHash2, target2,
@@ -67,10 +64,9 @@ public class ProofOfWorkEngineTest extends TestBase {
                     }
                 });
         byte[] nonce2 = waiter2.waitForValue();
-        time2 = System.currentTimeMillis() - time2;
-        System.out.println("Calculating nonce took " + time2 + "ms");
+        System.out.println("Calculating nonce took " + waiter2.getTime() + "ms");
         assertTrue(Bytes.lt(security().doubleSha512(nonce2, initialHash2), target2, 8));
-        assertTrue("Second nonce must be quicker to find", time > time2);
+        assertTrue("Second nonce must be quicker to find", waiter1.getTime() > waiter2.getTime());
     }
 
 }

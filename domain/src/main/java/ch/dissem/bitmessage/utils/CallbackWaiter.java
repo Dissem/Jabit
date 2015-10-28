@@ -20,13 +20,16 @@ package ch.dissem.bitmessage.utils;
  * Waits for a value within a callback method to be set.
  */
 public class CallbackWaiter<T> {
+    private final long startTime = System.currentTimeMillis();
     private volatile boolean isSet;
-    private volatile T value;
+    private T value;
+    private long time;
 
     public void setValue(T value) {
         synchronized (this) {
-            this.isSet = true;
+            this.time = System.currentTimeMillis() - startTime;
             this.value = value;
+            this.isSet = true;
         }
     }
 
@@ -37,5 +40,9 @@ public class CallbackWaiter<T> {
         synchronized (this) {
             return value;
         }
+    }
+
+    public long getTime() {
+        return time;
     }
 }
