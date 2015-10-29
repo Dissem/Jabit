@@ -206,7 +206,8 @@ public class BitmessageContext {
             try {
                 t.join();
             } catch (InterruptedException e) {
-                throw new RuntimeException(e.getMessage(), e);
+                LOG.info("Thread was interrupted. Trying to shut down synchronization and returning.");
+                t.interrupt();
             }
         }
     }

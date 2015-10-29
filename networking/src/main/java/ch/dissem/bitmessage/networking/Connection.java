@@ -130,6 +130,9 @@ public class Connection {
 
     @SuppressWarnings("RedundantIfStatement")
     private boolean syncFinished(NetworkMessage msg) {
+        if (Thread.interrupted()) {
+            return true;
+        }
         if (syncTimeout == 0 || state != ACTIVE) {
             return false;
         }

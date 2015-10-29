@@ -29,6 +29,9 @@ import java.net.InetAddress;
 public interface NetworkHandler {
     /**
      * Connects to the trusted host, fetches and offers new messages and disconnects afterwards.
+     * <p>
+     * An implementation should disconnect if either the timeout is reached or the returned thread is interrupted.
+     * </p>
      */
     Thread synchronize(InetAddress trustedHost, int port, MessageListener listener, long timeoutInSeconds);
 
