@@ -124,7 +124,7 @@ public class NetworkHandlerTest {
         assertInventorySize(3, peerInventory);
     }
 
-    @Test(timeout = 5_000)
+    @Test(timeout = 10_000)
     public void ensureObjectsAreSynchronizedIfOnlyPeerHasObjects() throws Exception {
         peerInventory.init(
                 "V4Pubkey.payload",
