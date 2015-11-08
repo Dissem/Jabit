@@ -17,9 +17,8 @@
 package ch.dissem.bitmessage;
 
 import ch.dissem.bitmessage.entity.*;
-import ch.dissem.bitmessage.entity.payload.Broadcast;
-import ch.dissem.bitmessage.entity.payload.GetPubkey;
-import ch.dissem.bitmessage.entity.payload.ObjectPayload;
+import ch.dissem.bitmessage.entity.payload.*;
+import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Singleton;
 import ch.dissem.bitmessage.utils.UnixTime;
@@ -29,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.TreeSet;
 
+import static ch.dissem.bitmessage.entity.Plaintext.Status.SENT;
 import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 
 /**
@@ -162,39 +162,35 @@ public class InternalContext {
     public void send(final BitmessageAddress from, BitmessageAddress to, final ObjectPayload payload,
                      final long timeToLive, final long nonceTrialsPerByte, final long extraBytes) {
         try {
-            if (to == null) to = from;
+            final BitmessageAddress recipient = (to != null ? to : from);
             long expires = UnixTime.now(+timeToLive);
             LOG.info("Expires at " + expires);
             final ObjectMessage object = new ObjectMessage.Builder()
-                    .stream(to.getStream())
+                    .stream(recipient.getStream())
                     .expiresTime(expires)
                     .payload(payload)
                     .build();
             if (object.isSigned()) {
                 object.sign(from.getPrivateKey());
             }
-            if (payload instanceof Broadcast) {
-                ((Broadcast) payload).encrypt();
-            } else if (payload instanceof Encrypted) {
-                object.encrypt(to.getPubkey());
+            if (payload instanceof Msg && recipient.has(Pubkey.Feature.DOES_ACK)) {
+                ObjectMessage ackMessage = ((Msg) payload).getPlaintext().getAckMessage();
+                messageCallback.proofOfWorkStarted(payload);
+                security.doProofOfWork(ackMessage, networkNonceTrialsPerByte, networkExtraBytes, new ProofOfWorkEngine.Callback() {
+                    @Override
+                    public void onNonceCalculated(byte[] nonce) {
+                        object.encrypt(recipient.getPubkey());
+                        security.doProofOfWork(object, nonceTrialsPerByte, extraBytes, new ProofOfWorkCallback(object, payload));
+                    }
+                });
+            } else {
+                if (payload instanceof Broadcast) {
+                    ((Broadcast) payload).encrypt();
+                } else if (payload instanceof Encrypted) {
+                    object.encrypt(recipient.getPubkey());
+                }
+                security.doProofOfWork(object, nonceTrialsPerByte, extraBytes, new ProofOfWorkCallback(object, payload));
             }
-            messageCallback.proofOfWorkStarted(payload);
-            security.doProofOfWork(object, nonceTrialsPerByte, extraBytes,
-                    new ProofOfWorkEngine.Callback() {
-                        @Override
-                        public void onNonceCalculated(byte[] nonce) {
-                            object.setNonce(nonce);
-                            messageCallback.proofOfWorkCompleted(payload);
-                            if (payload instanceof PlaintextHolder) {
-                                Plaintext plaintext = ((PlaintextHolder) payload).getPlaintext();
-                                plaintext.setInventoryVector(object.getInventoryVector());
-                                messageRepository.save(plaintext);
-                            }
-                            inventory.storeObject(object);
-                            networkHandler.offer(object.getInventoryVector());
-                            messageCallback.messageOffered(payload, object.getInventoryVector());
-                        }
-                    });
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -265,5 +261,32 @@ public class InternalContext {
 
     public interface ContextHolder {
         void setContext(InternalContext context);
+    }
+
+    private class ProofOfWorkCallback implements ProofOfWorkEngine.Callback {
+        private final ObjectMessage object;
+        private final ObjectPayload payload;
+
+        private ProofOfWorkCallback(ObjectMessage object, ObjectPayload payload) {
+            this.object = object;
+            this.payload = payload;
+        }
+
+        @Override
+        public void onNonceCalculated(byte[] nonce) {
+            object.setNonce(nonce);
+            messageCallback.proofOfWorkCompleted(payload);
+            if (payload instanceof PlaintextHolder) {
+                Plaintext plaintext = ((PlaintextHolder) payload).getPlaintext();
+                plaintext.setInventoryVector(object.getInventoryVector());
+                plaintext.setStatus(SENT);
+                plaintext.removeLabel(Label.Type.OUTBOX);
+                plaintext.addLabels(messageRepository.getLabels(Label.Type.SENT));
+                messageRepository.save(plaintext);
+            }
+            inventory.storeObject(object);
+            networkHandler.offer(object.getInventoryVector());
+            messageCallback.messageOffered(payload, object.getInventoryVector());
+        }
     }
 }

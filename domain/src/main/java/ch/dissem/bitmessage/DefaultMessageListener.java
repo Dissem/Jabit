@@ -118,15 +118,24 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
         for (BitmessageAddress identity : ctx.getAddressRepo().getIdentities()) {
             try {
                 msg.decrypt(identity.getPrivateKey().getPrivateEncryptionKey());
-                msg.getPlaintext().setTo(identity);
-                if (!object.isSignatureValid(msg.getPlaintext().getFrom().getPubkey())) {
+                Plaintext plaintext = msg.getPlaintext();
+                plaintext.setTo(identity);
+                if (!object.isSignatureValid(plaintext.getFrom().getPubkey())) {
                     LOG.warn("Msg with IV " + object.getInventoryVector() + " was successfully decrypted, but signature check failed. Ignoring.");
                 } else {
-                    msg.getPlaintext().setStatus(RECEIVED);
-                    msg.getPlaintext().addLabels(ctx.getMessageRepository().getLabels(Label.Type.INBOX, Label.Type.UNREAD));
-                    msg.getPlaintext().setInventoryVector(object.getInventoryVector());
-                    ctx.getMessageRepository().save(msg.getPlaintext());
-                    listener.receive(msg.getPlaintext());
+                    plaintext.setStatus(RECEIVED);
+                    plaintext.addLabels(ctx.getMessageRepository().getLabels(Label.Type.INBOX, Label.Type.UNREAD));
+                    plaintext.setInventoryVector(object.getInventoryVector());
+                    ctx.getMessageRepository().save(plaintext);
+                    listener.receive(plaintext);
+
+                    if (identity.has(Pubkey.Feature.DOES_ACK)) {
+                        ObjectMessage ack = plaintext.getAckMessage();
+                        if (ack != null) {
+                            ctx.getInventory().storeObject(ack);
+                            ctx.getNetworkHandler().offer(ack.getInventoryVector());
+                        }
+                    }
                 }
                 break;
             } catch (DecryptionFailedException ignore) {

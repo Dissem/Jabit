@@ -103,5 +103,9 @@ public abstract class Pubkey extends ObjectPayload {
             }
             return features.toArray(new Feature[features.size()]);
         }
+
+        public boolean isActive(int bitfield) {
+            return (bitfield & bit) != 0;
+        }
     }
 }

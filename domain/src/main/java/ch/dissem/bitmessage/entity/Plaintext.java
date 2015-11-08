@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage.entity;
 
+import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.factory.Factory;
@@ -26,6 +27,8 @@ import ch.dissem.bitmessage.utils.UnixTime;
 import java.io.*;
 import java.util.*;
 
+import static ch.dissem.bitmessage.utils.Singleton.security;
+
 /**
  * The unencrypted message to be sent by 'msg' or 'broadcast'.
  */
@@ -34,7 +37,8 @@ public class Plaintext implements Streamable {
     private final BitmessageAddress from;
     private final long encoding;
     private final byte[] message;
-    private final byte[] ack;
+    private final byte[] ackData;
+    private ObjectMessage ackMessage;
     private Object id;
     private InventoryVector inventoryVector;
     private BitmessageAddress to;
@@ -53,7 +57,13 @@ public class Plaintext implements Streamable {
         to = builder.to;
         encoding = builder.encoding;
         message = builder.message;
-        ack = builder.ack;
+        ackData = builder.ackData;
+        if (builder.ackMessage != null) {
+            ackMessage = Factory.getObjectMessage(
+                    3,
+                    new ByteArrayInputStream(builder.ackMessage),
+                    builder.ackMessage.length);
+        }
         signature = builder.signature;
         status = builder.status;
         sent = builder.sent;
@@ -159,8 +169,15 @@ public class Plaintext implements Streamable {
         Encode.varInt(message.length, out);
         out.write(message);
         if (type == Type.MSG) {
-            Encode.varInt(ack.length, out);
-            out.write(ack);
+            if (to.has(Pubkey.Feature.DOES_ACK)) {
+                ByteArrayOutputStream ack = new ByteArrayOutputStream();
+                ackMessage.write(ack);
+                byte[] data = ack.toByteArray();
+                Encode.varInt(data.length, out);
+                out.write(data);
+            } else {
+                Encode.varInt(0, out);
+            }
         }
         if (includeSignature) {
             if (signature == null) {
@@ -234,7 +251,7 @@ public class Plaintext implements Streamable {
         return Objects.equals(encoding, plaintext.encoding) &&
                 Objects.equals(from, plaintext.from) &&
                 Arrays.equals(message, plaintext.message) &&
-                Arrays.equals(ack, plaintext.ack) &&
+                Arrays.equals(ackData, plaintext.ackData) &&
                 Arrays.equals(to.getRipe(), plaintext.to.getRipe()) &&
                 Arrays.equals(signature, plaintext.signature) &&
                 Objects.equals(status, plaintext.status) &&
@@ -245,19 +262,44 @@ public class Plaintext implements Streamable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(from, encoding, message, ack, to, signature, status, sent, received, labels);
+        return Objects.hash(from, encoding, message, ackData, to, signature, status, sent, received, labels);
     }
 
     public void addLabels(Label... labels) {
         if (labels != null) {
-            Collections.addAll(this.labels, labels);
+            for (Label label : labels) {
+                this.labels.add(label);
+            }
         }
     }
 
     public void addLabels(Collection<Label> labels) {
         if (labels != null) {
-            this.labels.addAll(labels);
+            for (Label label : labels) {
+                this.labels.add(label);
+            }
         }
+    }
+
+    public void removeLabel(Label.Type type) {
+        Iterator<Label> iterator = labels.iterator();
+        while (iterator.hasNext()) {
+            Label label = iterator.next();
+            if (label.getType() == type) {
+                iterator.remove();
+            }
+        }
+    }
+
+    public byte[] getAckData() {
+        return ackData;
+    }
+
+    public ObjectMessage getAckMessage() {
+        if (ackMessage == null) {
+            ackMessage = Factory.createAck(this);
+        }
+        return ackMessage;
     }
 
     public enum Encoding {
@@ -304,7 +346,8 @@ public class Plaintext implements Streamable {
         private byte[] destinationRipe;
         private long encoding;
         private byte[] message = new byte[0];
-        private byte[] ack = new byte[0];
+        private byte[] ackData;
+        private byte[] ackMessage;
         private byte[] signature;
         private long sent;
         private long received;
@@ -405,7 +448,13 @@ public class Plaintext implements Streamable {
 
         public Builder ack(byte[] ack) {
             if (type != Type.MSG && ack != null) throw new IllegalArgumentException("ack only allowed for msg");
-            this.ack = ack;
+            this.ackMessage = ack;
+            return this;
+        }
+
+        public Builder ackData(byte[] ackData) {
+            if (type != Type.MSG && ackData != null) throw new IllegalArgumentException("ack only allowed for msg");
+            this.ackData = ackData;
             return this;
         }
 
@@ -448,6 +497,9 @@ public class Plaintext implements Streamable {
             }
             if (to == null && type != Type.BROADCAST) {
                 to = new BitmessageAddress(0, 0, destinationRipe);
+            }
+            if (type == Type.MSG && ackMessage == null && ackData == null) {
+                ackData = security().randomBytes(32);
             }
             return new Plaintext(this);
         }

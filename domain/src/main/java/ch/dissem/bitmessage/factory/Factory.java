@@ -203,4 +203,11 @@ public class Factory {
             return new V5Broadcast(sendingAddress, plaintext);
         }
     }
+
+    public static ObjectMessage createAck(Plaintext plaintext) {
+        if (plaintext == null || plaintext.getAckData() == null)
+            return null;
+        Ack ack = new Ack(3, plaintext.getFrom().getStream(), plaintext.getAckData());
+        return new ObjectMessage.Builder().payload(ack).build();
+    }
 }

@@ -156,6 +156,7 @@ public class BitmessageContext {
                 } else {
                     LOG.info("Sending message.");
                     msg.setStatus(DOING_PROOF_OF_WORK);
+                    msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.OUTBOX));
                     ctx.getMessageRepository().save(msg);
                     ctx.send(
                             from,
@@ -165,9 +166,6 @@ public class BitmessageContext {
                             ctx.getNonceTrialsPerByte(to),
                             ctx.getExtraBytes(to)
                     );
-                    msg.setStatus(SENT);
-                    msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.SENT));
-                    ctx.getMessageRepository().save(msg);
                 }
             }
         });

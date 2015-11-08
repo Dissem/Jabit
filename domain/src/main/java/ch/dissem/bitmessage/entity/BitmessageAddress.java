@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.Pubkey;
+import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
 import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.utils.AccessCounter;
@@ -219,5 +220,12 @@ public class BitmessageAddress implements Serializable {
 
     public void setSubscribed(boolean subscribed) {
         this.subscribed = subscribed;
+    }
+
+    public boolean has(Feature feature) {
+        if (pubkey == null || feature == null) {
+            return false;
+        }
+        return feature.isActive(pubkey.getBehaviorBitfield());
     }
 }
