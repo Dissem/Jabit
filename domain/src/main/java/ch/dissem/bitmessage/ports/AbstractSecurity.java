@@ -123,7 +123,6 @@ public abstract class AbstractSecurity implements Security, InternalContext.Cont
 
     private byte[] getProofOfWorkTarget(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) throws IOException {
         BigInteger TTL = BigInteger.valueOf(object.getExpiresTime() - UnixTime.now());
-        LOG.debug("TTL: " + TTL + "s");
         BigInteger numerator = TWO.pow(64);
         BigInteger powLength = BigInteger.valueOf(object.getPayloadBytesWithoutNonce().length + extraBytes);
         BigInteger denominator = BigInteger.valueOf(nonceTrialsPerByte).multiply(powLength.add(powLength.multiply(TTL).divide(BigInteger.valueOf(2).pow(16))));

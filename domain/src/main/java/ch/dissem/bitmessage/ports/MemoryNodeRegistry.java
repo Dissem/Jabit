@@ -37,40 +37,42 @@ public class MemoryNodeRegistry implements NodeRegistry {
     private final Map<Long, Set<NetworkAddress>> stableNodes = new ConcurrentHashMap<>();
     private final Map<Long, Set<NetworkAddress>> knownNodes = new ConcurrentHashMap<>();
 
-    public MemoryNodeRegistry() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try (InputStream in = getClass().getClassLoader().getResourceAsStream("nodes.txt")) {
-                    Scanner scanner = new Scanner(in);
-                    long stream = 0;
-                    Set<NetworkAddress> streamSet = null;
-                    while (scanner.hasNext()) {
-                        try {
-                            String line = scanner.nextLine().trim();
-                            if (line.startsWith("#") || line.isEmpty()) {
-                                // Ignore
-                                continue;
-                            }
-                            if (line.startsWith("[stream")) {
-                                stream = Long.parseLong(line.substring(8, line.lastIndexOf(']')));
-                                streamSet = new HashSet<>();
-                                stableNodes.put(stream, streamSet);
-                            } else if (streamSet != null) {
-                                int portIndex = line.lastIndexOf(':');
-                                InetAddress inetAddress = InetAddress.getByName(line.substring(0, portIndex));
-                                int port = Integer.valueOf(line.substring(portIndex + 1));
-                                streamSet.add(new NetworkAddress.Builder().ip(inetAddress).port(port).stream(stream).build());
-                            }
-                        } catch (IOException e) {
-                            LOG.warn(e.getMessage(), e);
+    private void loadStableNodes() {
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream("nodes.txt")) {
+            Scanner scanner = new Scanner(in);
+            long stream = 0;
+            Set<NetworkAddress> streamSet = null;
+            while (scanner.hasNext()) {
+                try {
+                    String line = scanner.nextLine().trim();
+                    if (line.startsWith("#") || line.isEmpty()) {
+                        // Ignore
+                        continue;
+                    }
+                    if (line.startsWith("[stream")) {
+                        stream = Long.parseLong(line.substring(8, line.lastIndexOf(']')));
+                        streamSet = new HashSet<>();
+                        stableNodes.put(stream, streamSet);
+                    } else if (streamSet != null) {
+                        int portIndex = line.lastIndexOf(':');
+                        InetAddress[] inetAddresses = InetAddress.getAllByName(line.substring(0, portIndex));
+                        int port = Integer.valueOf(line.substring(portIndex + 1));
+                        for (InetAddress inetAddress : inetAddresses) {
+                            streamSet.add(new NetworkAddress.Builder().ip(inetAddress).port(port).stream(stream).build());
                         }
                     }
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    LOG.warn(e.getMessage(), e);
                 }
             }
-        }, "node registry initializer").start();
+            if (LOG.isDebugEnabled()) {
+                for (Map.Entry<Long, Set<NetworkAddress>> e : stableNodes.entrySet()) {
+                    LOG.debug("Stream " + e.getKey() + ": loaded " + e.getValue().size() + " bootstrap nodes.");
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -86,9 +88,16 @@ public class MemoryNodeRegistry implements NodeRegistry {
                         known.remove(node);
                     }
                 }
-            } else if (stableNodes.containsKey(stream)) {
-                // To reduce load on stable nodes, only return one
-                result.add(selectRandom(stableNodes.get(stream)));
+            } else {
+                Set<NetworkAddress> nodes = stableNodes.get(stream);
+                if (nodes == null || nodes.isEmpty()) {
+                    loadStableNodes();
+                    nodes = stableNodes.get(stream);
+                }
+                if (nodes != null && !nodes.isEmpty()) {
+                    // To reduce load on stable nodes, only return one
+                    result.add(selectRandom(nodes));
+                }
             }
         }
         return selectRandom(limit, result);

@@ -157,7 +157,7 @@ public class CryptoBox implements Streamable {
         }
 
         public Builder curveType(int curveType) {
-            if (curveType != 0x2CA) LOG.debug("Unexpected curve type " + curveType);
+            if (curveType != 0x2CA) LOG.trace("Unexpected curve type " + curveType);
             this.curveType = curveType;
             return this;
         }

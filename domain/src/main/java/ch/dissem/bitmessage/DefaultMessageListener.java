@@ -71,7 +71,8 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
     protected void receive(ObjectMessage object, GetPubkey getPubkey) {
         BitmessageAddress identity = ctx.getAddressRepo().findIdentity(getPubkey.getRipeTag());
         if (identity != null && identity.getPrivateKey() != null) {
-            LOG.debug("Got pubkey request for identity " + identity);
+            LOG.info("Got pubkey request for identity " + identity);
+            // FIXME: only send pubkey if it wasn't sent in the last 28 days
             ctx.sendPubkey(identity, object.getStream());
         }
     }
@@ -90,10 +91,10 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
             }
             if (address != null) {
                 address.setPubkey(pubkey);
-                LOG.debug("Got pubkey for contact " + address);
+                LOG.info("Got pubkey for contact " + address);
                 ctx.getAddressRepo().save(address);
                 List<Plaintext> messages = ctx.getMessageRepository().findMessages(Plaintext.Status.PUBKEY_REQUESTED, address);
-                LOG.debug("Sending " + messages.size() + " messages for contact " + address);
+                LOG.info("Sending " + messages.size() + " messages for contact " + address);
                 for (Plaintext msg : messages) {
                     msg.setStatus(DOING_PROOF_OF_WORK);
                     ctx.getMessageRepository().save(msg);

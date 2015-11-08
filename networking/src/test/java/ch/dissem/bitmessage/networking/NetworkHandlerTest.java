@@ -29,6 +29,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.net.InetAddress;
+import java.util.concurrent.Future;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -116,10 +117,10 @@ public class NetworkHandlerTest {
                 "V1Msg.payload"
         );
 
-        Thread t = networkHandler.synchronize(InetAddress.getLocalHost(), 6001,
+        Future<?> future = networkHandler.synchronize(InetAddress.getLocalHost(), 6001,
                 mock(NetworkHandler.MessageListener.class),
                 10);
-        t.join();
+        future.get();
         assertInventorySize(3, nodeInventory);
         assertInventorySize(3, peerInventory);
     }
@@ -133,10 +134,10 @@ public class NetworkHandlerTest {
 
         nodeInventory.init();
 
-        Thread t = networkHandler.synchronize(InetAddress.getLocalHost(), 6001,
+        Future<?> future = networkHandler.synchronize(InetAddress.getLocalHost(), 6001,
                 mock(NetworkHandler.MessageListener.class),
                 10);
-        t.join();
+        future.get();
         assertInventorySize(2, nodeInventory);
         assertInventorySize(2, peerInventory);
     }
@@ -149,10 +150,10 @@ public class NetworkHandlerTest {
                 "V1Msg.payload"
         );
 
-        Thread t = networkHandler.synchronize(InetAddress.getLocalHost(), 6001,
+        Future<?> future = networkHandler.synchronize(InetAddress.getLocalHost(), 6001,
                 mock(NetworkHandler.MessageListener.class),
                 10);
-        t.join();
+        future.get();
         assertInventorySize(1, nodeInventory);
         assertInventorySize(1, peerInventory);
     }

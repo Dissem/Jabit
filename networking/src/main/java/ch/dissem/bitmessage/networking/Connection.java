@@ -235,10 +235,9 @@ public class Connection {
                 ObjectMessage objectMessage = (ObjectMessage) messagePayload;
                 try {
                     if (ctx.getInventory().contains(objectMessage)) {
-                        LOG.debug("Received object " + objectMessage.getInventoryVector() + " - already in inventory");
+                        LOG.trace("Received object " + objectMessage.getInventoryVector() + " - already in inventory");
                         break;
                     }
-                    LOG.debug("Received object " + objectMessage.getInventoryVector());
                     security().checkProofOfWork(objectMessage, ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
                     listener.receive(objectMessage);
                     ctx.getInventory().storeObject(objectMessage);
@@ -294,7 +293,6 @@ public class Connection {
     }
 
     public void offer(InventoryVector iv) {
-        LOG.debug("Offering " + iv + " to node " + node.toString());
         sendingQueue.offer(new Inv.Builder()
                 .addInventoryVector(iv)
                 .build());
@@ -321,14 +319,7 @@ public class Connection {
     private synchronized void initSocket(Socket socket) throws IOException {
         if (!socketInitialized) {
             if (!socket.isConnected()) {
-                LOG.debug("Trying to connect to node " + node);
-                socket.connect(new InetSocketAddress(node.toInetAddress(), node.getPort()), CONNECT_TIMEOUT);
-            }
-            socket.setSoTimeout(READ_TIMEOUT);
-            in = socket.getInputStream();
-            out = socket.getOutputStream();
-            if (!socket.isConnected()) {
-                LOG.debug("Trying to connect to node " + node);
+                LOG.trace("Trying to connect to node " + node);
                 socket.connect(new InetSocketAddress(node.toInetAddress(), node.getPort()), CONNECT_TIMEOUT);
             }
             socket.setSoTimeout(READ_TIMEOUT);
@@ -359,6 +350,7 @@ public class Connection {
                     send(new Version.Builder().defaults().addrFrom(host).addrRecv(node).build());
                 }
                 while (state != DISCONNECTED) {
+                    Thread.sleep(100);
                     try {
                         NetworkMessage msg = Factory.getNetworkMessage(version, in);
                         if (msg == null)
@@ -413,15 +405,13 @@ public class Connection {
                             if (syncFinished(null)) disconnect();
                         }
                     }
-                    Thread.yield();
                 }
-            } catch (IOException | NodeException e) {
-                disconnect();
-                LOG.debug("Reader disconnected from node " + node + ": " + e.getMessage());
+            } catch (InterruptedException | IOException | NodeException e) {
+                LOG.trace("Reader disconnected from node " + node + ": " + e.getMessage());
             } catch (RuntimeException e) {
-                LOG.debug("Reader disconnecting from node " + node + " due to error: " + e.getMessage(), e);
-                disconnect();
+                LOG.trace("Reader disconnecting from node " + node + " due to error: " + e.getMessage(), e);
             } finally {
+                disconnect();
                 try {
                     socket.close();
                 } catch (Exception e) {
@@ -438,14 +428,13 @@ public class Connection {
                 initSocket(socket);
                 while (state != DISCONNECTED) {
                     if (sendingQueue.size() > 0) {
-                        LOG.debug("Sending " + sendingQueue.size() + " messages to node " + node);
                         send(sendingQueue.poll());
                     } else {
                         Thread.sleep(100);
                     }
                 }
             } catch (IOException | InterruptedException e) {
-                LOG.debug("Writer disconnected from node " + node + ": " + e.getMessage());
+                LOG.trace("Writer disconnected from node " + node + ": " + e.getMessage());
                 disconnect();
             }
         }

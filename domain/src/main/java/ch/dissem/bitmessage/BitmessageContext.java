@@ -33,8 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.util.Arrays;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST;
@@ -201,13 +200,15 @@ public class BitmessageContext {
      * @param wait             waits for the synchronization thread to finish
      */
     public void synchronize(InetAddress host, int port, long timeoutInSeconds, boolean wait) {
-        Thread t = ctx.getNetworkHandler().synchronize(host, port, networkListener, timeoutInSeconds);
+        Future<?> future = ctx.getNetworkHandler().synchronize(host, port, networkListener, timeoutInSeconds);
         if (wait) {
             try {
-                t.join();
+                future.get();
             } catch (InterruptedException e) {
                 LOG.info("Thread was interrupted. Trying to shut down synchronization and returning.");
-                t.interrupt();
+                future.cancel(true);
+            } catch (CancellationException | ExecutionException e) {
+                LOG.debug(e.getMessage(), e);
             }
         }
     }
@@ -241,7 +242,7 @@ public class BitmessageContext {
                             ctx.getAddressRepo().save(address);
                             break;
                         } else {
-                            LOG.debug("Found pubkey for " + address + " but signature is invalid");
+                            LOG.info("Found pubkey for " + address + " but signature is invalid");
                         }
                     }
                 } else {

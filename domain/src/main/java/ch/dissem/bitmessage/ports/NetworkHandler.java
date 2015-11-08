@@ -22,6 +22,7 @@ import ch.dissem.bitmessage.utils.Property;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.concurrent.Future;
 
 /**
  * Handles incoming messages
@@ -33,7 +34,7 @@ public interface NetworkHandler {
      * An implementation should disconnect if either the timeout is reached or the returned thread is interrupted.
      * </p>
      */
-    Thread synchronize(InetAddress trustedHost, int port, MessageListener listener, long timeoutInSeconds);
+    Future<?> synchronize(InetAddress trustedHost, int port, MessageListener listener, long timeoutInSeconds);
 
     /**
      * Start a full network node, accepting incoming connections and relaying objects.

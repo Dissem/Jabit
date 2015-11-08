@@ -32,10 +32,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 import static ch.dissem.bitmessage.networking.Connection.Mode.CLIENT;
 import static ch.dissem.bitmessage.networking.Connection.Mode.SERVER;
@@ -58,7 +55,14 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
     private ConcurrentMap<InventoryVector, Long> requestedObjects = new ConcurrentHashMap<>();
 
     public DefaultNetworkHandler() {
-        pool = Executors.newCachedThreadPool();
+        pool = Executors.newCachedThreadPool(new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread thread = Executors.defaultThreadFactory().newThread(r);
+                thread.setPriority(Thread.MIN_PRIORITY);
+                return thread;
+            }
+        });
     }
 
     @Override
@@ -67,14 +71,12 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
     }
 
     @Override
-    public Thread synchronize(InetAddress trustedHost, int port, MessageListener listener, long timeoutInSeconds) {
+    public Future<?> synchronize(InetAddress trustedHost, int port, MessageListener listener, long timeoutInSeconds) {
         try {
             Connection connection = Connection.sync(ctx, trustedHost, port, listener, timeoutInSeconds);
-            Thread tr = new Thread(connection.getReader());
-            Thread tw = new Thread(connection.getWriter());
-            tr.start();
-            tw.start();
-            return tr;
+            Future<?> reader = pool.submit(connection.getReader());
+            pool.execute(connection.getWriter());
+            return reader;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -143,8 +145,10 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
                                     for (NetworkAddress address : addresses) {
                                         startConnection(new Connection(ctx, CLIENT, address, listener, requestedObjects));
                                     }
+                                    Thread.sleep(10000);
+                                } else {
+                                    Thread.sleep(30000);
                                 }
-                                Thread.sleep(30000);
                             } catch (InterruptedException e) {
                                 running = false;
                             } catch (Exception e) {
@@ -204,7 +208,6 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
                 }
             }
         }
-        LOG.debug(target.size() + " connections available to offer " + iv);
         List<Connection> randomSubset = Collections.selectRandom(NETWORK_MAGIC_NUMBER, target);
         for (Connection connection : randomSubset) {
             connection.offer(iv);
