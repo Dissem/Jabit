@@ -50,6 +50,7 @@ public class InternalContext {
     private final MessageRepository messageRepository;
     private final ProofOfWorkEngine proofOfWorkEngine;
     private final MessageCallback messageCallback;
+    private final CustomCommandHandler customCommandHandler;
 
     private final TreeSet<Long> streams = new TreeSet<>();
     private final int port;
@@ -69,6 +70,7 @@ public class InternalContext {
         this.proofOfWorkEngine = builder.proofOfWorkEngine;
         this.clientNonce = security.randomNonce();
         this.messageCallback = builder.messageCallback;
+        this.customCommandHandler = builder.customCommandHandler;
         this.port = builder.port;
         this.connectionLimit = builder.connectionLimit;
         this.connectionTTL = builder.connectionTTL;
@@ -261,6 +263,10 @@ public class InternalContext {
 
     public int getConnectionLimit() {
         return connectionLimit;
+    }
+
+    public CustomCommandHandler getCustomCommandHandler() {
+        return customCommandHandler;
     }
 
     public interface ContextHolder {

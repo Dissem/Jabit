@@ -259,6 +259,12 @@ public class Connection {
                 LOG.debug("Received " + addr.getAddresses().size() + " addresses.");
                 ctx.getNodeRegistry().offerAddresses(addr.getAddresses());
                 break;
+            case CUSTOM:
+                MessagePayload response = ctx.getCustomCommandHandler().handle((CustomMessage) messagePayload);
+                if (response != null) {
+                    send(response);
+                }
+                break;
             case VERACK:
             case VERSION:
                 throw new RuntimeException("Unexpectedly received '" + messagePayload.getCommand() + "' command");

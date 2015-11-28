@@ -13,3 +13,5 @@ include 'wif'
 include 'security-sc'
 
 include 'security-bc'
+
+include 'extensions'

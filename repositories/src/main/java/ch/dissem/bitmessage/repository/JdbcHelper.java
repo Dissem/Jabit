@@ -31,7 +31,7 @@ import static ch.dissem.bitmessage.utils.Strings.hex;
 /**
  * Helper class that does Flyway migration, provides JDBC connections and some helper methods.
  */
-abstract class JdbcHelper {
+public abstract class JdbcHelper {
     private static final Logger LOG = LoggerFactory.getLogger(JdbcHelper.class);
 
     protected final JdbcConfig config;

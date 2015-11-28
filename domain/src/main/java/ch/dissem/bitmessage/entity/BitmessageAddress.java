@@ -87,7 +87,7 @@ public class BitmessageAddress implements Serializable {
         }
     }
 
-    BitmessageAddress(Pubkey publicKey) {
+    public BitmessageAddress(Pubkey publicKey) {
         this(publicKey.getVersion(), publicKey.getStream(), publicKey.getRipe());
         this.pubkey = publicKey;
     }

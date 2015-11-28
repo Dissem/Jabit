@@ -16,9 +16,7 @@
 
 package ch.dissem.bitmessage;
 
-import ch.dissem.bitmessage.entity.BitmessageAddress;
-import ch.dissem.bitmessage.entity.ObjectMessage;
-import ch.dissem.bitmessage.entity.Plaintext;
+import ch.dissem.bitmessage.entity.*;
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
@@ -297,6 +295,7 @@ public class BitmessageContext {
         ProofOfWorkEngine proofOfWorkEngine;
         Security security;
         MessageCallback messageCallback;
+        CustomCommandHandler customCommandHandler;
         Listener listener;
         int connectionLimit = 150;
         long connectionTTL = 12 * HOUR;
@@ -341,6 +340,11 @@ public class BitmessageContext {
 
         public Builder messageCallback(MessageCallback callback) {
             this.messageCallback = callback;
+            return this;
+        }
+
+        public Builder customCommandHandler(CustomCommandHandler handler) {
+            this.customCommandHandler = handler;
             return this;
         }
 
@@ -389,6 +393,14 @@ public class BitmessageContext {
 
                     @Override
                     public void messageAcknowledged(InventoryVector iv) {
+                    }
+                };
+            }
+            if (customCommandHandler == null) {
+                customCommandHandler = new CustomCommandHandler() {
+                    @Override
+                    public MessagePayload handle(CustomMessage request) {
+                        throw new RuntimeException("Received custom request, but no custom command handler configured.");
                     }
                 };
             }

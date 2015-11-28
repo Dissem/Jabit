@@ -103,15 +103,23 @@ public class Encode {
         inc(counter, 8);
     }
 
-    public static void varString(String value, OutputStream stream) throws IOException {
+    public static void varString(String value, OutputStream out) throws IOException {
         byte[] bytes = value.getBytes("utf-8");
-        // FIXME: technically, it says the length in characters, but I think this one might be correct
+        // Technically, it says the length in characters, but I think this one might be correct.
+        // It doesn't really matter, as only ASCII characters are being used.
         // see also Decode#varString()
-        varInt(bytes.length, stream);
-        stream.write(bytes);
+        varInt(bytes.length, out);
+        out.write(bytes);
+    }
+
+    public static void varBytes(byte[] data, OutputStream out) throws IOException {
+        varInt(data.length, out);
+        out.write(data);
     }
 
     /**
+     * Serializes a {@link Streamable} object and returns the byte array.
+     *
      * @param streamable the object to be serialized
      * @return an array of bytes representing the given streamable object.
      * @throws IOException if an I/O error occurs.

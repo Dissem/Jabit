@@ -38,7 +38,14 @@ public class CryptoBox implements Streamable {
     private final byte[] mac;
     private byte[] encrypted;
 
+    private long addressVersion;
+
+
     public CryptoBox(Streamable data, byte[] K) throws IOException {
+        this(Encode.bytes(data), K);
+    }
+
+    public CryptoBox(byte[] data, byte[] K) throws IOException {
         curveType = 0x02CA;
 
         // 1. The destination public key is called K.
@@ -58,7 +65,7 @@ public class CryptoBox implements Streamable {
         byte[] key_m = Arrays.copyOfRange(H, 32, 64);
         // 7. Pad the input text to a multiple of 16 bytes, in accordance to PKCS7.
         // 8. Encrypt the data with AES-256-CBC, using IV as initialization vector, key_e as encryption key and the padded input text as payload. Call the output cipher text.
-        encrypted = security().crypt(true, Encode.bytes(data), key_e, initializationVector);
+        encrypted = security().crypt(true, data, key_e, initializationVector);
         // 9. Calculate a 32 byte MAC with HMACSHA256, using key_m as salt and IV + R + cipher text as data. Call the output MAC.
         mac = calculateMac(key_m);
 
