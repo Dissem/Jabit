@@ -18,8 +18,12 @@ package ch.dissem.bitmessage.networking;
 
 import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.InternalContext.ContextHolder;
+import ch.dissem.bitmessage.entity.CustomMessage;
+import ch.dissem.bitmessage.entity.NetworkMessage;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
+import ch.dissem.bitmessage.exception.NodeException;
+import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.NetworkHandler;
 import ch.dissem.bitmessage.utils.Collections;
 import ch.dissem.bitmessage.utils.Property;
@@ -71,12 +75,33 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
     }
 
     @Override
-    public Future<?> synchronize(InetAddress trustedHost, int port, MessageListener listener, long timeoutInSeconds) {
+    public Future<?> synchronize(InetAddress server, int port, MessageListener listener, long timeoutInSeconds) {
         try {
-            Connection connection = Connection.sync(ctx, trustedHost, port, listener, timeoutInSeconds);
+            Connection connection = Connection.sync(ctx, server, port, listener, timeoutInSeconds);
             Future<?> reader = pool.submit(connection.getReader());
             pool.execute(connection.getWriter());
             return reader;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public CustomMessage send(InetAddress server, int port, CustomMessage request) {
+        try (Socket socket = new Socket(server, port)) {
+            socket.setSoTimeout(Connection.READ_TIMEOUT);
+            new NetworkMessage(request).write(socket.getOutputStream());
+            NetworkMessage networkMessage = Factory.getNetworkMessage(3, socket.getInputStream());
+            if (networkMessage != null && networkMessage.getPayload() instanceof CustomMessage) {
+                return (CustomMessage) networkMessage.getPayload();
+            } else {
+                if (networkMessage == null) {
+                    throw new NodeException("No response from node " + server);
+                } else {
+                    throw new NodeException("Unexpected response from node " +
+                            server + ": " + networkMessage.getPayload().getCommand());
+                }
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import static ch.dissem.bitmessage.extensions.pow.ProofOfWorkRequest.Request.CALCULATE;
 import static ch.dissem.bitmessage.utils.Decode.*;
 
 /**
@@ -35,7 +36,11 @@ public class ProofOfWorkRequest implements Streamable {
     private final Request request;
     private final byte[] data;
 
-    private ProofOfWorkRequest(BitmessageAddress sender, byte[] initialHash, Request request, byte[] data) {
+    public ProofOfWorkRequest(BitmessageAddress sender, byte[] initialHash, Request request) {
+        this(sender, initialHash, request, new byte[0]);
+    }
+
+    public ProofOfWorkRequest(BitmessageAddress sender, byte[] initialHash, Request request, byte[] data) {
         this.sender = sender;
         this.initialHash = initialHash;
         this.request = request;
@@ -76,11 +81,8 @@ public class ProofOfWorkRequest implements Streamable {
 
     public enum Request {
         CALCULATE,
-        QUERY,
-        ERROR,
-        OK,
-        QUEUED,
         CALCULATING,
+        QUERY,
         COMPLETE
     }
 }

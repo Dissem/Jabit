@@ -16,10 +16,7 @@
 
 package ch.dissem.bitmessage.entity;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 
 import static ch.dissem.bitmessage.utils.Decode.bytes;
 
@@ -63,6 +60,14 @@ public class CustomMessage implements MessagePayload {
         } else {
             throw new RuntimeException("Tried to write custom message without data. " +
                     "Programmer: did you forget to override #write()?");
+        }
+    }
+
+    public static CustomMessage error(String message) {
+        try {
+            return new CustomMessage(("ERROR\n" + message).getBytes("UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
         }
     }
 }
