@@ -130,9 +130,13 @@ public class Decode {
     }
 
     public static String varString(InputStream stream) throws IOException {
-        int length = (int) varInt(stream);
+        return varString(stream, null);
+    }
+
+    public static String varString(InputStream stream, AccessCounter counter) throws IOException {
+        int length = (int) varInt(stream, counter);
         // FIXME: technically, it says the length in characters, but I think this one might be correct
         // otherwise it will get complicated, as we'll need to read UTF-8 char by char...
-        return new String(bytes(stream, length), "utf-8");
+        return new String(bytes(stream, length, counter), "utf-8");
     }
 }

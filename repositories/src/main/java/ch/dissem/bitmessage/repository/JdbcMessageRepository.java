@@ -22,6 +22,7 @@ import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.ports.MessageRepository;
+import ch.dissem.bitmessage.utils.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,6 +110,20 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
     }
 
     @Override
+    public Plaintext getMessage(byte[] initialHash) {
+        List<Plaintext> plaintexts = find("initial_hash=X'" + Strings.hex(initialHash) + "'");
+        switch (plaintexts.size()) {
+            case 0:
+                return null;
+            case 1:
+                return plaintexts.get(0);
+            default:
+                throw new RuntimeException("This shouldn't happen, found " + plaintexts.size() +
+                        " messages, one or none was expected");
+        }
+    }
+
+    @Override
     public List<Plaintext> findMessages(Label label) {
         return find("id IN (SELECT message_id FROM Message_Label WHERE label_id=" + label.getId() + ")");
     }
@@ -141,8 +156,8 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
                 long id = rs.getLong("id");
                 builder.id(id);
                 builder.IV(new InventoryVector(iv));
-                builder.from(ctx.getAddressRepo().getAddress(rs.getString("sender")));
-                builder.to(ctx.getAddressRepo().getAddress(rs.getString("recipient")));
+                builder.from(ctx.getAddressRepository().getAddress(rs.getString("sender")));
+                builder.to(ctx.getAddressRepository().getAddress(rs.getString("recipient")));
                 builder.sent(rs.getLong("sent"));
                 builder.received(rs.getLong("received"));
                 builder.status(Plaintext.Status.valueOf(rs.getString("status")));
@@ -173,12 +188,12 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
     public void save(Plaintext message) {
         // save from address if necessary
         if (message.getId() == null) {
-            BitmessageAddress savedAddress = ctx.getAddressRepo().getAddress(message.getFrom().getAddress());
+            BitmessageAddress savedAddress = ctx.getAddressRepository().getAddress(message.getFrom().getAddress());
             if (savedAddress == null || savedAddress.getPrivateKey() == null) {
                 if (savedAddress != null && savedAddress.getAlias() != null) {
                     message.getFrom().setAlias(savedAddress.getAlias());
                 }
-                ctx.getAddressRepo().save(message.getFrom());
+                ctx.getAddressRepository().save(message.getFrom());
             }
         }
 
@@ -219,7 +234,7 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     private void insert(Connection connection, Plaintext message) throws SQLException, IOException {
         PreparedStatement ps = connection.prepareStatement(
-                "INSERT INTO Message (iv, type, sender, recipient, data, sent, received, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO Message (iv, type, sender, recipient, data, sent, received, status, initial_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 Statement.RETURN_GENERATED_KEYS);
         ps.setBytes(1, message.getInventoryVector() != null ? message.getInventoryVector().getHash() : null);
         ps.setString(2, message.getType().name());
@@ -229,6 +244,7 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         ps.setLong(6, message.getSent());
         ps.setLong(7, message.getReceived());
         ps.setString(8, message.getStatus() != null ? message.getStatus().name() : null);
+        ps.setBytes(9, message.getInitialHash());
 
         ps.executeUpdate();
 

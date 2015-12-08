@@ -16,26 +16,36 @@
 
 package ch.dissem.bitmessage.entity;
 
+import ch.dissem.bitmessage.utils.AccessCounter;
+import ch.dissem.bitmessage.utils.Encode;
+
 import java.io.*;
 
 import static ch.dissem.bitmessage.utils.Decode.bytes;
+import static ch.dissem.bitmessage.utils.Decode.varString;
 
 /**
  * @author Christian Basler
  */
 public class CustomMessage implements MessagePayload {
+    public static final String COMMAND_ERROR = "ERROR";
+
+    private final String command;
     private final byte[] data;
 
-    public CustomMessage() {
+    public CustomMessage(String command) {
+        this.command = command;
         this.data = null;
     }
 
-    public CustomMessage(byte[] data) {
+    public CustomMessage(String command, byte[] data) {
+        this.command = command;
         this.data = data;
     }
 
     public static MessagePayload read(InputStream in, int length) throws IOException {
-        return new CustomMessage(bytes(in, length));
+        AccessCounter counter = new AccessCounter();
+        return new CustomMessage(varString(in, counter), bytes(in, length - counter.length()));
     }
 
     @Override
@@ -56,6 +66,7 @@ public class CustomMessage implements MessagePayload {
     @Override
     public void write(OutputStream out) throws IOException {
         if (data != null) {
+            Encode.varString(command, out);
             out.write(data);
         } else {
             throw new RuntimeException("Tried to write custom message without data. " +
@@ -63,9 +74,13 @@ public class CustomMessage implements MessagePayload {
         }
     }
 
+    public boolean isError() {
+        return COMMAND_ERROR.equals(command);
+    }
+
     public static CustomMessage error(String message) {
         try {
-            return new CustomMessage(("ERROR\n" + message).getBytes("UTF-8"));
+            return new CustomMessage(COMMAND_ERROR, message.getBytes("UTF-8"));
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }

@@ -43,7 +43,7 @@ public class ProofOfWorkEngineTest extends TestBase {
         engine.calculateNonce(initialHash, target,
                 new ProofOfWorkEngine.Callback() {
                     @Override
-                    public void onNonceCalculated(byte[] nonce) {
+                    public void onNonceCalculated(byte[] initialHash, byte[] nonce) {
                         waiter1.setValue(nonce);
                     }
                 });
@@ -59,7 +59,7 @@ public class ProofOfWorkEngineTest extends TestBase {
         engine.calculateNonce(initialHash2, target2,
                 new ProofOfWorkEngine.Callback() {
                     @Override
-                    public void onNonceCalculated(byte[] nonce) {
+                    public void onNonceCalculated(byte[] initialHash, byte[] nonce) {
                         waiter2.setValue(nonce);
                     }
                 });

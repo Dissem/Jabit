@@ -102,7 +102,7 @@ public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
                     synchronized (callback) {
                         if (!Thread.interrupted()) {
                             try {
-                                callback.onNonceCalculated(nonce);
+                                callback.onNonceCalculated(initialHash, nonce);
                             } finally {
                                 semaphore.release();
                                 for (Worker w : workers) {
@@ -128,12 +128,12 @@ public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
         }
 
         @Override
-        public void onNonceCalculated(byte[] nonce) {
+        public void onNonceCalculated(byte[] initialHash, byte[] nonce) {
             synchronized (this) {
                 if (waiting) {
                     LOG.info("Nonce calculated in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds");
                     waiting = false;
-                    callback.onNonceCalculated(nonce);
+                    callback.onNonceCalculated(initialHash, nonce);
                 }
             }
         }

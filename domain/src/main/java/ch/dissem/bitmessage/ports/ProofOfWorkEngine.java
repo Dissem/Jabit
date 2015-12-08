@@ -35,6 +35,6 @@ public interface ProofOfWorkEngine {
         /**
          * @param nonce 8 bytes nonce
          */
-        void onNonceCalculated(byte[] nonce);
+        void onNonceCalculated(byte[] initialHash, byte[] nonce);
     }
 }

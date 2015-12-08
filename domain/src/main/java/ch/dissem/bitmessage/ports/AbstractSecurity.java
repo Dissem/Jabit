@@ -34,6 +34,8 @@ import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 
+import static ch.dissem.bitmessage.utils.Numbers.max;
+
 /**
  * Implements everything that isn't directly dependent on either Spongy- or Bouncycastle.
  */
@@ -95,8 +97,8 @@ public abstract class AbstractSecurity implements Security, InternalContext.Cont
     public void doProofOfWork(ObjectMessage object, long nonceTrialsPerByte,
                               long extraBytes, ProofOfWorkEngine.Callback callback) {
         try {
-            if (nonceTrialsPerByte < 1000) nonceTrialsPerByte = 1000;
-            if (extraBytes < 1000) extraBytes = 1000;
+            nonceTrialsPerByte = max(nonceTrialsPerByte, context.getNetworkNonceTrialsPerByte());
+            extraBytes = max(extraBytes, context.getNetworkExtraBytes());
 
             byte[] initialHash = getInitialHash(object);
 
@@ -117,7 +119,8 @@ public abstract class AbstractSecurity implements Security, InternalContext.Cont
         }
     }
 
-    private byte[] getInitialHash(ObjectMessage object) throws IOException {
+    @Override
+    public byte[] getInitialHash(ObjectMessage object) {
         return sha512(object.getPayloadBytesWithoutNonce());
     }
 

@@ -36,17 +36,20 @@ import static ch.dissem.bitmessage.utils.Singleton.security;
  * @author Christian Basler
  */
 public class CryptoCustomMessage<T extends Streamable> extends CustomMessage {
+    public static final String COMMAND = "ENCRYPTED";
     private final Reader<T> dataReader;
     private CryptoBox container;
     private BitmessageAddress sender;
     private T data;
 
     public CryptoCustomMessage(T data) throws IOException {
+        super(COMMAND);
         this.data = data;
         this.dataReader = null;
     }
 
     private CryptoCustomMessage(CryptoBox container, Reader<T> dataReader) {
+        super(COMMAND);
         this.container = container;
         this.dataReader = dataReader;
     }

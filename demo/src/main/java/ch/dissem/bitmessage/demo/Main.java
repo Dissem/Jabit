@@ -51,6 +51,7 @@ public class Main {
                     .inventory(new JdbcInventory(jdbcConfig))
                     .nodeRegistry(new MemoryNodeRegistry())
                     .messageRepo(new JdbcMessageRepository(jdbcConfig))
+                    .powRepo(new JdbcProofOfWorkRepository(jdbcConfig))
                     .networkHandler(new DefaultNetworkHandler())
                     .security(new BouncySecurity())
                     .port(48444)

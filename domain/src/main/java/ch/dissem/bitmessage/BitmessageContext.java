@@ -75,7 +75,7 @@ public class BitmessageContext {
     }
 
     public AddressRepository addresses() {
-        return ctx.getAddressRepo();
+        return ctx.getAddressRepository();
     }
 
     public MessageRepository messages() {
@@ -90,7 +90,7 @@ public class BitmessageContext {
                 ctx.getNetworkExtraBytes(),
                 features
         ));
-        ctx.getAddressRepo().save(identity);
+        ctx.getAddressRepository().save(identity);
         pool.submit(new Runnable() {
             @Override
             public void run() {
@@ -102,6 +102,7 @@ public class BitmessageContext {
 
     public void addDistributedMailingList(String address, String alias) {
         // TODO
+        throw new RuntimeException("not implemented");
     }
 
     public void broadcast(final BitmessageAddress from, final String subject, final String message) {
@@ -120,9 +121,7 @@ public class BitmessageContext {
                         from,
                         from,
                         Factory.getBroadcast(from, msg),
-                        +2 * DAY,
-                        0,
-                        0
+                        +2 * DAY
                 );
                 msg.setStatus(SENT);
                 msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.BROADCAST, Label.Type.SENT));
@@ -159,9 +158,7 @@ public class BitmessageContext {
                             from,
                             to,
                             new Msg(msg),
-                            +2 * DAY,
-                            ctx.getNonceTrialsPerByte(to),
-                            ctx.getExtraBytes(to)
+                            +2 * DAY
                     );
                     msg.setStatus(SENT);
                     msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.SENT));
@@ -176,9 +173,7 @@ public class BitmessageContext {
                 requestingIdentity,
                 address,
                 new GetPubkey(address),
-                +28 * DAY,
-                ctx.getNetworkNonceTrialsPerByte(),
-                ctx.getNetworkExtraBytes()
+                +28 * DAY
         );
     }
 
@@ -220,7 +215,7 @@ public class BitmessageContext {
     }
 
     public void addContact(BitmessageAddress contact) {
-        ctx.getAddressRepo().save(contact);
+        ctx.getAddressRepository().save(contact);
         tryToFindMatchingPubkey(contact);
         if (contact.getPubkey() == null) {
             ctx.requestPubkey(contact);
@@ -237,7 +232,7 @@ public class BitmessageContext {
                         v4Pubkey.decrypt(address.getPublicDecryptionKey());
                         if (object.isSignatureValid(v4Pubkey)) {
                             address.setPubkey(v4Pubkey);
-                            ctx.getAddressRepo().save(address);
+                            ctx.getAddressRepository().save(address);
                             break;
                         } else {
                             LOG.info("Found pubkey for " + address + " but signature is invalid");
@@ -246,7 +241,7 @@ public class BitmessageContext {
                 } else {
                     if (Arrays.equals(pubkey.getRipe(), address.getRipe())) {
                         address.setPubkey(pubkey);
-                        ctx.getAddressRepo().save(address);
+                        ctx.getAddressRepository().save(address);
                         break;
                     }
                 }
@@ -258,7 +253,7 @@ public class BitmessageContext {
 
     public void addSubscribtion(BitmessageAddress address) {
         address.setSubscribed(true);
-        ctx.getAddressRepo().save(address);
+        ctx.getAddressRepository().save(address);
         tryToFindBroadcastsForAddress(address);
     }
 
@@ -292,6 +287,7 @@ public class BitmessageContext {
         NetworkHandler networkHandler;
         AddressRepository addressRepo;
         MessageRepository messageRepo;
+        ProofOfWorkRepository proofOfWorkRepository;
         ProofOfWorkEngine proofOfWorkEngine;
         Security security;
         MessageCallback messageCallback;
@@ -330,6 +326,11 @@ public class BitmessageContext {
 
         public Builder messageRepo(MessageRepository messageRepo) {
             this.messageRepo = messageRepo;
+            return this;
+        }
+
+        public Builder powRepo(ProofOfWorkRepository proofOfWorkRepository) {
+            this.proofOfWorkRepository = proofOfWorkRepository;
             return this;
         }
 
@@ -374,6 +375,7 @@ public class BitmessageContext {
             nonNull("networkHandler", networkHandler);
             nonNull("addressRepo", addressRepo);
             nonNull("messageRepo", messageRepo);
+            nonNull("proofOfWorkRepo", proofOfWorkRepository);
             if (proofOfWorkEngine == null) {
                 proofOfWorkEngine = new MultiThreadedPOWEngine();
             }

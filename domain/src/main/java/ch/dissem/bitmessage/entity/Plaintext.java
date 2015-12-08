@@ -44,6 +44,7 @@ public class Plaintext implements Streamable {
     private Long received;
 
     private Set<Label> labels;
+    private byte[] initialHash;
 
     private Plaintext(Builder builder) {
         id = builder.id;
@@ -258,6 +259,14 @@ public class Plaintext implements Streamable {
         if (labels != null) {
             this.labels.addAll(labels);
         }
+    }
+
+    public void setInitialHash(byte[] initialHash) {
+        this.initialHash = initialHash;
+    }
+
+    public byte[] getInitialHash() {
+        return initialHash;
     }
 
     public enum Encoding {

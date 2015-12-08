@@ -134,6 +134,8 @@ public interface Security {
     void checkProofOfWork(ObjectMessage object, long nonceTrialsPerByte, long extraBytes)
             throws IOException;
 
+    byte[] getInitialHash(ObjectMessage object);
+
     /**
      * Calculates the MAC for a message (data)
      *

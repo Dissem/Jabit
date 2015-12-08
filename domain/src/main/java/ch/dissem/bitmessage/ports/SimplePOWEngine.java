@@ -40,6 +40,6 @@ public class SimplePOWEngine implements ProofOfWorkEngine {
             mda.update(nonce);
             mda.update(initialHash);
         } while (Bytes.lt(target, mda.digest(mda.digest()), 8));
-        callback.onNonceCalculated(nonce);
+        callback.onNonceCalculated(initialHash, nonce);
     }
 }
