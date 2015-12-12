@@ -39,6 +39,7 @@ public class WifExporterTest {
                 .networkHandler(mock(NetworkHandler.class))
                 .inventory(mock(Inventory.class))
                 .messageRepo(mock(MessageRepository.class))
+                .powRepo(mock(ProofOfWorkRepository.class))
                 .nodeRegistry(mock(NodeRegistry.class))
                 .addressRepo(repo)
                 .build();
