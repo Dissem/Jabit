@@ -20,6 +20,13 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
     private ProofOfWorkRepository powRepo;
     private MessageRepository messageRepo;
 
+    public void doMissingProofOfWork() {
+        for (byte[] initialHash : powRepo.getItems()) {
+            ProofOfWorkRepository.Item item = powRepo.getItem(initialHash);
+            security.doProofOfWork(item.object, item.nonceTrialsPerByte, item.extraBytes, this);
+        }
+    }
+
     public void doProofOfWork(ObjectMessage object) {
         doProofOfWork(null, object);
     }
@@ -29,7 +36,7 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
         long extraBytes = recipient == null ? 0 : recipient.getPubkey().getExtraBytes();
 
         powRepo.putObject(object, nonceTrialsPerByte, extraBytes);
-        if (object.getPayload() instanceof PlaintextHolder){
+        if (object.getPayload() instanceof PlaintextHolder) {
             Plaintext plaintext = ((PlaintextHolder) object.getPayload()).getPlaintext();
             plaintext.setInitialHash(security.getInitialHash(object));
             messageRepo.save(plaintext);
@@ -39,7 +46,7 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
 
     @Override
     public void onNonceCalculated(byte[] initialHash, byte[] nonce) {
-        ObjectMessage object = powRepo.getObject(initialHash);
+        ObjectMessage object = powRepo.getItem(initialHash).object;
         object.setNonce(nonce);
 //        messageCallback.proofOfWorkCompleted(payload);
         Plaintext plaintext = messageRepo.getMessage(initialHash);
@@ -48,6 +55,7 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
             messageRepo.save(plaintext);
         }
         ctx.getInventory().storeObject(object);
+        ctx.getProofOfWorkRepository().removeObject(initialHash);
         ctx.getNetworkHandler().offer(object.getInventoryVector());
 //        messageCallback.messageOffered(payload, object.getInventoryVector());
     }

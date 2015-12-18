@@ -31,6 +31,8 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.util.Arrays;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.*;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
@@ -72,6 +74,13 @@ public class BitmessageContext {
         // As this thread is used for parts that do POW, which itself uses parallel threads, only
         // one should be executed at any time.
         pool = Executors.newFixedThreadPool(1);
+
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                ctx.getProofOfWorkService().doMissingProofOfWork();
+            }
+        }, 30_000); // After 30 seconds
     }
 
     public AddressRepository addresses() {
@@ -206,6 +215,19 @@ public class BitmessageContext {
         }
     }
 
+    /**
+     * Send a custom message to a specific node (that should implement handling for this message type) and returns
+     * the response, which in turn is expected to be a {@link CustomMessage}.
+     *
+     * @param server  the node's address
+     * @param port    the node's port
+     * @param request the request
+     * @return the response
+     */
+    public CustomMessage send(InetAddress server, int port, CustomMessage request) {
+        return ctx.getNetworkHandler().send(server, port, request);
+    }
+
     public void cleanup() {
         ctx.getInventory().cleanup();
     }
@@ -274,6 +296,14 @@ public class BitmessageContext {
         return new Property("status", null,
                 ctx.getNetworkHandler().getNetworkStatus()
         );
+    }
+
+    /**
+     * Returns the {@link InternalContext} - normally you wouldn't need it,
+     * unless you are doing something crazy with the protocol.
+     */
+    public InternalContext internals() {
+        return ctx;
     }
 
     public interface Listener {

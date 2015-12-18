@@ -140,6 +140,10 @@ public class InternalContext {
         return proofOfWorkEngine;
     }
 
+    public ProofOfWorkService getProofOfWorkService() {
+        return proofOfWorkService;
+    }
+
     public long[] getStreams() {
         long[] result = new long[streams.size()];
         int i = 0;

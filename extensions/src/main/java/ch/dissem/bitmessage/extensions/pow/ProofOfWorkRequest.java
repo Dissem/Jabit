@@ -18,13 +18,13 @@ package ch.dissem.bitmessage.extensions.pow;
 
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Streamable;
+import ch.dissem.bitmessage.extensions.CryptoCustomMessage;
 import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import static ch.dissem.bitmessage.extensions.pow.ProofOfWorkRequest.Request.CALCULATE;
 import static ch.dissem.bitmessage.utils.Decode.*;
 
 /**
@@ -34,6 +34,7 @@ public class ProofOfWorkRequest implements Streamable {
     private final BitmessageAddress sender;
     private final byte[] initialHash;
     private final Request request;
+
     private final byte[] data;
 
     public ProofOfWorkRequest(BitmessageAddress sender, byte[] initialHash, Request request) {
@@ -79,10 +80,23 @@ public class ProofOfWorkRequest implements Streamable {
         Encode.varBytes(data, out);
     }
 
+    public static class Reader implements CryptoCustomMessage.Reader<ProofOfWorkRequest> {
+        private final BitmessageAddress identity;
+
+        public Reader(BitmessageAddress identity) {
+            this.identity = identity;
+        }
+
+        @Override
+        public ProofOfWorkRequest read(BitmessageAddress sender, InputStream in) throws IOException {
+            return ProofOfWorkRequest.read(identity, in);
+        }
+    }
+
+
     public enum Request {
         CALCULATE,
         CALCULATING,
-        QUERY,
         COMPLETE
     }
 }

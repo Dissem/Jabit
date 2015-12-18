@@ -53,13 +53,21 @@ public class CustomMessage implements MessagePayload {
         return Command.CUSTOM;
     }
 
-    public byte[] getData() throws IOException {
+    public String getCustomCommand() {
+        return command;
+    }
+
+    public byte[] getData() {
         if (data != null) {
             return data;
         } else {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            write(out);
-            return out.toByteArray();
+            try {
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                write(out);
+                return out.toByteArray();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
