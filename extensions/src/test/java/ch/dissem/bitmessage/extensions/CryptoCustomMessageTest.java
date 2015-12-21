@@ -17,8 +17,10 @@
 package ch.dissem.bitmessage.extensions;
 
 import ch.dissem.bitmessage.entity.BitmessageAddress;
+import ch.dissem.bitmessage.entity.CustomMessage;
 import ch.dissem.bitmessage.entity.payload.GenericPayload;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.extensions.pow.ProofOfWorkRequest;
 import ch.dissem.bitmessage.utils.TestBase;
 import ch.dissem.bitmessage.utils.TestUtils;
 import org.junit.Test;
@@ -33,7 +35,7 @@ import static org.junit.Assert.assertEquals;
 
 public class CryptoCustomMessageTest extends TestBase {
     @Test
-    public void testEncryptThenDecrypt() throws Exception {
+    public void ensureEncryptThenDecryptYieldsSameObject() throws Exception {
         PrivateKey privateKey = PrivateKey.read(TestUtils.getResource("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8.privkey"));
         BitmessageAddress sendingIdentity = new BitmessageAddress(privateKey);
 
@@ -45,14 +47,40 @@ public class CryptoCustomMessageTest extends TestBase {
         messageBefore.write(out);
         ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
 
-        CryptoCustomMessage<GenericPayload> messageAfter = CryptoCustomMessage.read(out.toByteArray(), new CryptoCustomMessage.Reader<GenericPayload>() {
-            @Override
-            public GenericPayload read(BitmessageAddress ignore, InputStream in) throws IOException {
-                return GenericPayload.read(0, in, 1, 100);
-            }
-        });
+        CustomMessage customMessage = CustomMessage.read(in, out.size());
+        CryptoCustomMessage<GenericPayload> messageAfter = CryptoCustomMessage.read(customMessage,
+                new CryptoCustomMessage.Reader<GenericPayload>() {
+                    @Override
+                    public GenericPayload read(BitmessageAddress ignore, InputStream in) throws IOException {
+                        return GenericPayload.read(0, in, 1, 100);
+                    }
+                });
         GenericPayload payloadAfter = messageAfter.decrypt(sendingIdentity.getPublicDecryptionKey());
 
         assertEquals(payloadBefore, payloadAfter);
+    }
+
+    @Test
+    public void testWithActualRequest() throws Exception {
+        PrivateKey privateKey = PrivateKey.read(TestUtils.getResource("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8.privkey"));
+        final BitmessageAddress sendingIdentity = new BitmessageAddress(privateKey);
+
+        ProofOfWorkRequest requestBefore = new ProofOfWorkRequest(sendingIdentity, security().randomBytes(64),
+                ProofOfWorkRequest.Request.CALCULATE);
+
+        CryptoCustomMessage<ProofOfWorkRequest> messageBefore = new CryptoCustomMessage<>(requestBefore);
+        messageBefore.signAndEncrypt(sendingIdentity, security().createPublicKey(sendingIdentity.getPublicDecryptionKey()));
+
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        messageBefore.write(out);
+        ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+
+        CustomMessage customMessage = CustomMessage.read(in, out.size());
+        CryptoCustomMessage<ProofOfWorkRequest> messageAfter = CryptoCustomMessage.read(customMessage,
+                new ProofOfWorkRequest.Reader(sendingIdentity));
+        ProofOfWorkRequest requestAfter = messageAfter.decrypt(sendingIdentity.getPublicDecryptionKey());
+
+        assertEquals(requestBefore, requestAfter);
     }
 }

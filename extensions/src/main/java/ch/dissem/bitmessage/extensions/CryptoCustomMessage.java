@@ -54,8 +54,8 @@ public class CryptoCustomMessage<T extends Streamable> extends CustomMessage {
         this.dataReader = dataReader;
     }
 
-    public static <T extends Streamable> CryptoCustomMessage<T> read(byte[] data, Reader<T> dataReader) throws IOException {
-        CryptoBox cryptoBox = CryptoBox.read(new ByteArrayInputStream(data), data.length);
+    public static <T extends Streamable> CryptoCustomMessage<T> read(CustomMessage data, Reader<T> dataReader) throws IOException {
+        CryptoBox cryptoBox = CryptoBox.read(new ByteArrayInputStream(data.getData()), data.getData().length);
         return new CryptoCustomMessage<>(cryptoBox, dataReader);
     }
 
@@ -111,6 +111,7 @@ public class CryptoCustomMessage<T extends Streamable> extends CustomMessage {
 
     @Override
     public void write(OutputStream out) throws IOException {
+        Encode.varString(COMMAND, out);
         container.write(out);
     }
 

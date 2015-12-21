@@ -16,7 +16,9 @@
 
 package ch.dissem.bitmessage;
 
-import ch.dissem.bitmessage.entity.*;
+import ch.dissem.bitmessage.entity.BitmessageAddress;
+import ch.dissem.bitmessage.entity.Encrypted;
+import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.Broadcast;
 import ch.dissem.bitmessage.entity.payload.GetPubkey;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
@@ -28,8 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.TreeSet;
-
-import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 
 /**
  * The internal context should normally only be used for port implementations. If you need it in your client
@@ -59,6 +59,7 @@ public class InternalContext {
     private final long clientNonce;
     private final long networkNonceTrialsPerByte = 1000;
     private final long networkExtraBytes = 1000;
+    private final long pubkeyTTL;
     private long connectionTTL;
     private int connectionLimit;
 
@@ -78,6 +79,7 @@ public class InternalContext {
         this.port = builder.port;
         this.connectionLimit = builder.connectionLimit;
         this.connectionTTL = builder.connectionTTL;
+        this.pubkeyTTL = builder.pubkeyTTL;
 
         Singleton.initialize(security);
 
@@ -193,7 +195,7 @@ public class InternalContext {
 
     public void sendPubkey(final BitmessageAddress identity, final long targetStream) {
         try {
-            long expires = UnixTime.now(+28 * DAY);
+            long expires = UnixTime.now(pubkeyTTL);
             LOG.info("Expires at " + expires);
             final ObjectMessage response = new ObjectMessage.Builder()
                     .stream(targetStream)
@@ -211,7 +213,7 @@ public class InternalContext {
     }
 
     public void requestPubkey(final BitmessageAddress contact) {
-        long expires = UnixTime.now(+2 * DAY);
+        long expires = UnixTime.now(+pubkeyTTL);
         LOG.info("Expires at " + expires);
         final ObjectMessage response = new ObjectMessage.Builder()
                 .stream(contact.getStream())

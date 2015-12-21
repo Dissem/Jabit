@@ -8,6 +8,10 @@ import ch.dissem.bitmessage.ports.MessageRepository;
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine;
 import ch.dissem.bitmessage.ports.ProofOfWorkRepository;
 import ch.dissem.bitmessage.ports.Security;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 import static ch.dissem.bitmessage.utils.Singleton.security;
 
@@ -15,13 +19,19 @@ import static ch.dissem.bitmessage.utils.Singleton.security;
  * @author Christian Basler
  */
 public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalContext.ContextHolder {
+    private final static Logger LOG = LoggerFactory.getLogger(ProofOfWorkService.class);
+
     private Security security;
     private InternalContext ctx;
     private ProofOfWorkRepository powRepo;
     private MessageRepository messageRepo;
 
     public void doMissingProofOfWork() {
-        for (byte[] initialHash : powRepo.getItems()) {
+        List<byte[]> items = powRepo.getItems();
+        if (items.isEmpty()) return;
+
+        LOG.info("Doing POW for " + items.size() + " tasks.");
+        for (byte[] initialHash : items) {
             ProofOfWorkRepository.Item item = powRepo.getItem(initialHash);
             security.doProofOfWork(item.object, item.nonceTrialsPerByte, item.extraBytes, this);
         }
@@ -32,8 +42,10 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
     }
 
     public void doProofOfWork(BitmessageAddress recipient, ObjectMessage object) {
-        long nonceTrialsPerByte = recipient == null ? 0 : recipient.getPubkey().getNonceTrialsPerByte();
-        long extraBytes = recipient == null ? 0 : recipient.getPubkey().getExtraBytes();
+        long nonceTrialsPerByte = recipient == null ?
+                ctx.getNetworkNonceTrialsPerByte() : recipient.getPubkey().getNonceTrialsPerByte();
+        long extraBytes = recipient == null ?
+                ctx.getNetworkExtraBytes() : recipient.getPubkey().getExtraBytes();
 
         powRepo.putObject(object, nonceTrialsPerByte, extraBytes);
         if (object.getPayload() instanceof PlaintextHolder) {

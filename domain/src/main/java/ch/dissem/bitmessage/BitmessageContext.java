@@ -66,6 +66,8 @@ public class BitmessageContext {
     private final Listener listener;
     private final NetworkHandler.MessageListener networkListener;
 
+    private final boolean sendPubkeyOnIdentityCreation;
+
     private BitmessageContext(Builder builder) {
         ctx = new InternalContext(builder);
         listener = builder.listener;
@@ -74,6 +76,8 @@ public class BitmessageContext {
         // As this thread is used for parts that do POW, which itself uses parallel threads, only
         // one should be executed at any time.
         pool = Executors.newFixedThreadPool(1);
+
+        sendPubkeyOnIdentityCreation = builder.sendPubkeyOnIdentityCreation;
 
         new Timer().schedule(new TimerTask() {
             @Override
@@ -100,12 +104,14 @@ public class BitmessageContext {
                 features
         ));
         ctx.getAddressRepository().save(identity);
-        pool.submit(new Runnable() {
-            @Override
-            public void run() {
-                ctx.sendPubkey(identity, identity.getStream());
-            }
-        });
+        if (sendPubkeyOnIdentityCreation) {
+            pool.submit(new Runnable() {
+                @Override
+                public void run() {
+                    ctx.sendPubkey(identity, identity.getStream());
+                }
+            });
+        }
         return identity;
     }
 
@@ -325,6 +331,8 @@ public class BitmessageContext {
         Listener listener;
         int connectionLimit = 150;
         long connectionTTL = 12 * HOUR;
+        boolean sendPubkeyOnIdentityCreation = true;
+        long pubkeyTTL = 28;
 
         public Builder() {
         }
@@ -396,6 +404,30 @@ public class BitmessageContext {
 
         public Builder connectionTTL(int hours) {
             this.connectionTTL = hours * HOUR;
+            return this;
+        }
+
+        /**
+         * By default a client will send the public key when an identity is being created. On weaker devices
+         * this behaviour might not be desirable.
+         */
+        public Builder doNotSendPubkeyOnIdentityCreation() {
+            this.sendPubkeyOnIdentityCreation = false;
+            return this;
+        }
+
+        /**
+         * Time to live in seconds for public keys the client sends. Defaults to the maximum of 28 days,
+         * but on weak devices smaller values might be desirable.
+         * <p>
+         *     Please be aware that this might cause some problems where you can't receive a message (the
+         *     sender can't receive your public key) in some special situations. Also note that it's probably
+         *     not a good idea to set it too low.
+         * </p>
+         */
+        public Builder pubkeyTTL(long days) {
+            if (days < 0 || days > 28 * DAY) throw new IllegalArgumentException("TTL must be between 1 and 28 days");
+            this.pubkeyTTL = days;
             return this;
         }
 

@@ -43,7 +43,7 @@ public class CustomMessage implements MessagePayload {
         this.data = data;
     }
 
-    public static MessagePayload read(InputStream in, int length) throws IOException {
+    public static CustomMessage read(InputStream in, int length) throws IOException {
         AccessCounter counter = new AccessCounter();
         return new CustomMessage(varString(in, counter), bytes(in, length - counter.length()));
     }

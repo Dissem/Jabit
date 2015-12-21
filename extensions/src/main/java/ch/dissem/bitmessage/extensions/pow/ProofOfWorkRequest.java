@@ -24,6 +24,7 @@ import ch.dissem.bitmessage.utils.Encode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 
 import static ch.dissem.bitmessage.utils.Decode.*;
 
@@ -80,6 +81,28 @@ public class ProofOfWorkRequest implements Streamable {
         Encode.varBytes(data, out);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ProofOfWorkRequest other = (ProofOfWorkRequest) o;
+
+        if (!sender.equals(other.sender)) return false;
+        if (!Arrays.equals(initialHash, other.initialHash)) return false;
+        if (request != other.request) return false;
+        return Arrays.equals(data, other.data);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = sender.hashCode();
+        result = 31 * result + Arrays.hashCode(initialHash);
+        result = 31 * result + request.hashCode();
+        result = 31 * result + Arrays.hashCode(data);
+        return result;
+    }
+
     public static class Reader implements CryptoCustomMessage.Reader<ProofOfWorkRequest> {
         private final BitmessageAddress identity;
 
@@ -92,7 +115,6 @@ public class ProofOfWorkRequest implements Streamable {
             return ProofOfWorkRequest.read(identity, in);
         }
     }
-
 
     public enum Request {
         CALCULATE,
