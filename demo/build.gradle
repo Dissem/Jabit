@@ -24,7 +24,7 @@ dependencies {
     compile project(':domain')
     compile project(':networking')
     compile project(':repositories')
-    compile project(':security-bc')
+    compile project(':cryptography-bc')
     compile project(':wif')
     compile 'org.slf4j:slf4j-simple:1.7.12'
     compile 'args4j:args4j:2.32'

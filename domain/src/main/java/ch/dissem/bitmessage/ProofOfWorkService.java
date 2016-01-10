@@ -7,7 +7,7 @@ import ch.dissem.bitmessage.entity.PlaintextHolder;
 import ch.dissem.bitmessage.ports.MessageRepository;
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine;
 import ch.dissem.bitmessage.ports.ProofOfWorkRepository;
-import ch.dissem.bitmessage.ports.Security;
+import ch.dissem.bitmessage.ports.Cryptography;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +21,7 @@ import static ch.dissem.bitmessage.utils.Singleton.security;
 public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalContext.ContextHolder {
     private final static Logger LOG = LoggerFactory.getLogger(ProofOfWorkService.class);
 
-    private Security security;
+    private Cryptography cryptography;
     private InternalContext ctx;
     private ProofOfWorkRepository powRepo;
     private MessageRepository messageRepo;
@@ -33,7 +33,7 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
         LOG.info("Doing POW for " + items.size() + " tasks.");
         for (byte[] initialHash : items) {
             ProofOfWorkRepository.Item item = powRepo.getItem(initialHash);
-            security.doProofOfWork(item.object, item.nonceTrialsPerByte, item.extraBytes, this);
+            cryptography.doProofOfWork(item.object, item.nonceTrialsPerByte, item.extraBytes, this);
         }
     }
 
@@ -50,10 +50,10 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
         powRepo.putObject(object, nonceTrialsPerByte, extraBytes);
         if (object.getPayload() instanceof PlaintextHolder) {
             Plaintext plaintext = ((PlaintextHolder) object.getPayload()).getPlaintext();
-            plaintext.setInitialHash(security.getInitialHash(object));
+            plaintext.setInitialHash(cryptography.getInitialHash(object));
             messageRepo.save(plaintext);
         }
-        security.doProofOfWork(object, nonceTrialsPerByte, extraBytes, this);
+        cryptography.doProofOfWork(object, nonceTrialsPerByte, extraBytes, this);
     }
 
     @Override
@@ -75,7 +75,7 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
     @Override
     public void setContext(InternalContext ctx) {
         this.ctx = ctx;
-        this.security = security();
+        this.cryptography = security();
         this.powRepo = ctx.getProofOfWorkRepository();
         this.messageRepo = ctx.getMessageRepository();
     }

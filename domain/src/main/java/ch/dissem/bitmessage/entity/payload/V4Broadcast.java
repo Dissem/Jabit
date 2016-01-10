@@ -18,7 +18,6 @@ package ch.dissem.bitmessage.entity.payload;
 
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
-import ch.dissem.bitmessage.ports.Security;
 
 import java.io.IOException;
 import java.io.InputStream;

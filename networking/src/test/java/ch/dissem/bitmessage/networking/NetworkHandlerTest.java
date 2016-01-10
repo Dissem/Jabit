@@ -22,7 +22,7 @@ import ch.dissem.bitmessage.ports.AddressRepository;
 import ch.dissem.bitmessage.ports.MessageRepository;
 import ch.dissem.bitmessage.ports.NetworkHandler;
 import ch.dissem.bitmessage.ports.ProofOfWorkRepository;
-import ch.dissem.bitmessage.security.bc.BouncySecurity;
+import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import ch.dissem.bitmessage.utils.Property;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -59,7 +59,7 @@ public class NetworkHandlerTest {
                 .port(6001)
                 .nodeRegistry(new TestNodeRegistry())
                 .networkHandler(new DefaultNetworkHandler())
-                .security(new BouncySecurity())
+                .cryptography(new BouncyCryptography())
                 .listener(Mockito.mock(BitmessageContext.Listener.class))
                 .build();
         peer.startup();
@@ -74,7 +74,7 @@ public class NetworkHandlerTest {
                 .port(6002)
                 .nodeRegistry(new TestNodeRegistry(localhost))
                 .networkHandler(networkHandler)
-                .security(new BouncySecurity())
+                .cryptography(new BouncyCryptography())
                 .listener(Mockito.mock(BitmessageContext.Listener.class))
                 .build();
     }

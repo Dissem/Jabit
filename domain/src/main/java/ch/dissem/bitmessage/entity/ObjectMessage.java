@@ -22,7 +22,6 @@ import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
-import ch.dissem.bitmessage.ports.Security;
 import ch.dissem.bitmessage.utils.Bytes;
 import ch.dissem.bitmessage.utils.Encode;
 

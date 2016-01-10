@@ -2,9 +2,9 @@ uploadArchives {
     repositories {
         mavenDeployer {
             pom.project {
-                name 'Jabit Bouncy Security'
-                artifactId = 'jabit-security-bouncy'
-                description 'The Security implementation using bouncy castle'
+                name 'Jabit Bouncy Cryptography'
+                artifactId = 'jabit-cryptography-bouncy'
+                description 'The Cryptography implementation using bouncy castle'
             }
         }
     }

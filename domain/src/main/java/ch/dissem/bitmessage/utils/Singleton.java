@@ -16,23 +16,23 @@
 
 package ch.dissem.bitmessage.utils;
 
-import ch.dissem.bitmessage.ports.Security;
+import ch.dissem.bitmessage.ports.Cryptography;
 
 /**
  * Created by chris on 20.07.15.
  */
 public class Singleton {
-    private static Security security;
+    private static Cryptography cryptography;
 
-    public static void initialize(Security security) {
+    public static void initialize(Cryptography cryptography) {
         synchronized (Singleton.class) {
-            if (Singleton.security == null) {
-                Singleton.security = security;
+            if (Singleton.cryptography == null) {
+                Singleton.cryptography = cryptography;
             }
         }
     }
 
-    public static Security security() {
-        return security;
+    public static Cryptography security() {
+        return cryptography;
     }
 }

@@ -325,7 +325,7 @@ public class BitmessageContext {
         MessageRepository messageRepo;
         ProofOfWorkRepository proofOfWorkRepository;
         ProofOfWorkEngine proofOfWorkEngine;
-        Security security;
+        Cryptography cryptography;
         MessageCallback messageCallback;
         CustomCommandHandler customCommandHandler;
         Listener listener;
@@ -372,8 +372,8 @@ public class BitmessageContext {
             return this;
         }
 
-        public Builder security(Security security) {
-            this.security = security;
+        public Builder cryptography(Cryptography cryptography) {
+            this.cryptography = cryptography;
             return this;
         }
 

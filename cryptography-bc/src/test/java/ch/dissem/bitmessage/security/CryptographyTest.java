@@ -5,7 +5,7 @@ import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.GenericPayload;
 import ch.dissem.bitmessage.ports.MultiThreadedPOWEngine;
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine;
-import ch.dissem.bitmessage.security.bc.BouncySecurity;
+import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import ch.dissem.bitmessage.utils.CallbackWaiter;
 import ch.dissem.bitmessage.utils.Singleton;
 import ch.dissem.bitmessage.utils.UnixTime;
@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 /**
  * Created by chris on 19.07.15.
  */
-public class SecurityTest {
+public class CryptographyTest {
     public static final byte[] TEST_VALUE = "teststring".getBytes();
     public static final byte[] TEST_SHA1 = DatatypeConverter.parseHexBinary(""
             + "b8473b86d4c2072ca9b08bd28e373e8253e865c4");
@@ -33,10 +33,10 @@ public class SecurityTest {
     public static final byte[] TEST_RIPEMD160 = DatatypeConverter.parseHexBinary(""
             + "cd566972b5e50104011a92b59fa8e0b1234851ae");
 
-    private static BouncySecurity security;
+    private static BouncyCryptography security;
 
-    public SecurityTest() {
-        security = new BouncySecurity();
+    public CryptographyTest() {
+        security = new BouncyCryptography();
         Singleton.initialize(security);
         InternalContext ctx = mock(InternalContext.class);
         when(ctx.getProofOfWorkEngine()).thenReturn(new MultiThreadedPOWEngine());

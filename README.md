@@ -53,6 +53,7 @@ BitmessageContext ctx = new BitmessageContext.Builder()
         .messageRepo(new JdbcMessageRepository(jdbcConfig))
         .nodeRegistry(new MemoryNodeRegistry())
         .networkHandler(new NetworkNode())
+        .cryptography(new BouncyCryptography())
         .build();
 ```
 This creates a simple context using a H2 database that will be created in the user's home directory. Next you'll need to

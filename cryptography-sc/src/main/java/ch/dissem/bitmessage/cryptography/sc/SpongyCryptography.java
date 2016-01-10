@@ -14,27 +14,27 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.security.bc;
+package ch.dissem.bitmessage.cryptography.sc;
 
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
-import ch.dissem.bitmessage.ports.AbstractSecurity;
-import org.bouncycastle.asn1.x9.X9ECParameters;
-import org.bouncycastle.crypto.BufferedBlockCipher;
-import org.bouncycastle.crypto.CipherParameters;
-import org.bouncycastle.crypto.InvalidCipherTextException;
-import org.bouncycastle.crypto.ec.CustomNamedCurves;
-import org.bouncycastle.crypto.engines.AESEngine;
-import org.bouncycastle.crypto.modes.CBCBlockCipher;
-import org.bouncycastle.crypto.paddings.PKCS7Padding;
-import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
-import org.bouncycastle.crypto.params.KeyParameter;
-import org.bouncycastle.crypto.params.ParametersWithIV;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.jce.spec.ECParameterSpec;
-import org.bouncycastle.jce.spec.ECPrivateKeySpec;
-import org.bouncycastle.jce.spec.ECPublicKeySpec;
-import org.bouncycastle.math.ec.ECPoint;
+import ch.dissem.bitmessage.ports.AbstractCryptography;
+import org.spongycastle.asn1.x9.X9ECParameters;
+import org.spongycastle.crypto.BufferedBlockCipher;
+import org.spongycastle.crypto.CipherParameters;
+import org.spongycastle.crypto.InvalidCipherTextException;
+import org.spongycastle.crypto.ec.CustomNamedCurves;
+import org.spongycastle.crypto.engines.AESEngine;
+import org.spongycastle.crypto.modes.CBCBlockCipher;
+import org.spongycastle.crypto.paddings.PKCS7Padding;
+import org.spongycastle.crypto.paddings.PaddedBufferedBlockCipher;
+import org.spongycastle.crypto.params.KeyParameter;
+import org.spongycastle.crypto.params.ParametersWithIV;
+import org.spongycastle.jce.provider.BouncyCastleProvider;
+import org.spongycastle.jce.spec.ECParameterSpec;
+import org.spongycastle.jce.spec.ECPrivateKeySpec;
+import org.spongycastle.jce.spec.ECPublicKeySpec;
+import org.spongycastle.math.ec.ECPoint;
 
 import java.math.BigInteger;
 import java.security.KeyFactory;
@@ -45,17 +45,17 @@ import java.util.Arrays;
 
 /**
  * As Spongycastle can't be used on the Oracle JVM, and Bouncycastle doesn't work properly on Android (thanks, Google),
- * this is the Bouncycastle implementation.
+ * this is the Spongycastle implementation.
  */
-public class BouncySecurity extends AbstractSecurity {
+public class SpongyCryptography extends AbstractCryptography {
     private static final X9ECParameters EC_CURVE_PARAMETERS = CustomNamedCurves.getByName("secp256k1");
 
     static {
         java.security.Security.addProvider(new BouncyCastleProvider());
     }
 
-    public BouncySecurity() {
-        super("BC");
+    public SpongyCryptography() {
+        super("SC");
     }
 
     @Override
@@ -103,9 +103,9 @@ public class BouncySecurity extends AbstractSecurity {
 
             ECPoint Q = keyToPoint(pubkey.getSigningKey());
             KeySpec keySpec = new ECPublicKeySpec(Q, spec);
-            PublicKey publicKey = KeyFactory.getInstance("ECDSA", "BC").generatePublic(keySpec);
+            PublicKey publicKey = KeyFactory.getInstance("ECDSA", "SC").generatePublic(keySpec);
 
-            Signature sig = Signature.getInstance("ECDSA", "BC");
+            Signature sig = Signature.getInstance("ECDSA", "SC");
             sig.initVerify(publicKey);
             sig.update(data);
             return sig.verify(signature);
@@ -127,9 +127,9 @@ public class BouncySecurity extends AbstractSecurity {
 
             BigInteger d = keyToBigInt(privateKey.getPrivateSigningKey());
             KeySpec keySpec = new ECPrivateKeySpec(d, spec);
-            java.security.PrivateKey privKey = KeyFactory.getInstance("ECDSA", "BC").generatePrivate(keySpec);
+            java.security.PrivateKey privKey = KeyFactory.getInstance("ECDSA", "SC").generatePrivate(keySpec);
 
-            Signature sig = Signature.getInstance("ECDSA", "BC");
+            Signature sig = Signature.getInstance("ECDSA", "SC");
             sig.initSign(privKey);
             sig.update(data);
             return sig.sign();

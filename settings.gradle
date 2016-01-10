@@ -10,8 +10,8 @@ include 'demo'
 
 include 'wif'
 
-include 'security-sc'
+include 'cryptography-sc'
 
-include 'security-bc'
+include 'cryptography-bc'
 
 include 'extensions'

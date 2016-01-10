@@ -39,8 +39,8 @@ import static ch.dissem.bitmessage.utils.Numbers.max;
 /**
  * Implements everything that isn't directly dependent on either Spongy- or Bouncycastle.
  */
-public abstract class AbstractSecurity implements Security, InternalContext.ContextHolder {
-    public static final Logger LOG = LoggerFactory.getLogger(Security.class);
+public abstract class AbstractCryptography implements Cryptography, InternalContext.ContextHolder {
+    public static final Logger LOG = LoggerFactory.getLogger(Cryptography.class);
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final BigInteger TWO = BigInteger.valueOf(2);
     private static final BigInteger TWO_POW_64 = TWO.pow(64);
@@ -49,7 +49,7 @@ public abstract class AbstractSecurity implements Security, InternalContext.Cont
     private final String provider;
     private InternalContext context;
 
-    protected AbstractSecurity(String provider) {
+    protected AbstractCryptography(String provider) {
         this.provider = provider;
     }
 

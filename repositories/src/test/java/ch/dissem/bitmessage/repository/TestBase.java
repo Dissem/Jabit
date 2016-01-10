@@ -18,7 +18,7 @@ package ch.dissem.bitmessage.repository;
 
 import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.ports.MultiThreadedPOWEngine;
-import ch.dissem.bitmessage.security.bc.BouncySecurity;
+import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import ch.dissem.bitmessage.utils.Singleton;
 
 import static org.mockito.Mockito.mock;
@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
  */
 public class TestBase {
     static {
-        BouncySecurity security = new BouncySecurity();
+        BouncyCryptography security = new BouncyCryptography();
         Singleton.initialize(security);
         InternalContext ctx = mock(InternalContext.class);
         when(ctx.getProofOfWorkEngine()).thenReturn(new MultiThreadedPOWEngine());

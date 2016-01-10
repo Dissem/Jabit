@@ -42,7 +42,7 @@ import java.util.TreeSet;
 public class InternalContext {
     private final static Logger LOG = LoggerFactory.getLogger(InternalContext.class);
 
-    private final Security security;
+    private final Cryptography cryptography;
     private final Inventory inventory;
     private final NodeRegistry nodeRegistry;
     private final NetworkHandler networkHandler;
@@ -64,7 +64,7 @@ public class InternalContext {
     private int connectionLimit;
 
     public InternalContext(BitmessageContext.Builder builder) {
-        this.security = builder.security;
+        this.cryptography = builder.cryptography;
         this.inventory = builder.inventory;
         this.nodeRegistry = builder.nodeRegistry;
         this.networkHandler = builder.networkHandler;
@@ -73,7 +73,7 @@ public class InternalContext {
         this.proofOfWorkRepository = builder.proofOfWorkRepository;
         this.proofOfWorkService = new ProofOfWorkService();
         this.proofOfWorkEngine = builder.proofOfWorkEngine;
-        this.clientNonce = security.randomNonce();
+        this.clientNonce = cryptography.randomNonce();
         this.messageCallback = builder.messageCallback;
         this.customCommandHandler = builder.customCommandHandler;
         this.port = builder.port;
@@ -81,7 +81,7 @@ public class InternalContext {
         this.connectionTTL = builder.connectionTTL;
         this.pubkeyTTL = builder.pubkeyTTL;
 
-        Singleton.initialize(security);
+        Singleton.initialize(cryptography);
 
         // TODO: streams of new identities and subscriptions should also be added. This works only after a restart.
         for (BitmessageAddress address : addressRepository.getIdentities()) {
@@ -94,7 +94,7 @@ public class InternalContext {
             streams.add(1L);
         }
 
-        init(security, inventory, nodeRegistry, networkHandler, addressRepository, messageRepository,
+        init(cryptography, inventory, nodeRegistry, networkHandler, addressRepository, messageRepository,
                 proofOfWorkRepository, proofOfWorkService, proofOfWorkEngine,
                 messageCallback, customCommandHandler);
         for (BitmessageAddress identity : addressRepository.getIdentities()) {
@@ -110,8 +110,8 @@ public class InternalContext {
         }
     }
 
-    public Security getSecurity() {
-        return security;
+    public Cryptography getCryptography() {
+        return cryptography;
     }
 
     public Inventory getInventory() {
@@ -203,7 +203,7 @@ public class InternalContext {
                     .payload(identity.getPubkey())
                     .build();
             response.sign(identity.getPrivateKey());
-            response.encrypt(security.createPublicKey(identity.getPublicDecryptionKey()));
+            response.encrypt(cryptography.createPublicKey(identity.getPublicDecryptionKey()));
             messageCallback.proofOfWorkStarted(identity.getPubkey());
             // TODO: remember that the pubkey is just about to be sent, and on which stream!
             proofOfWorkService.doProofOfWork(response);

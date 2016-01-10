@@ -55,7 +55,7 @@ public class JdbcMessageRepositoryTest extends TestBase {
         addressRepo = new JdbcAddressRepository(config);
         repo = new JdbcMessageRepository(config);
         new InternalContext(new BitmessageContext.Builder()
-                .security(security())
+                .cryptography(security())
                 .addressRepo(addressRepo)
                 .messageRepo(repo)
         );

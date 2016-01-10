@@ -2,9 +2,9 @@ uploadArchives {
     repositories {
         mavenDeployer {
             pom.project {
-                name 'Jabit Spongy Security'
-                artifactId = 'jabit-security-spongy'
-                description 'The Security implementation using spongy castle (needed for Android)'
+                name 'Jabit Spongy Cryptography'
+                artifactId = 'jabit-cryptography-spongy'
+                description 'The Cryptography implementation using spongy castle (needed for Android)'
             }
         }
     }

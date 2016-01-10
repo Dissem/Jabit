@@ -16,13 +16,13 @@
 
 package ch.dissem.bitmessage.utils;
 
-import ch.dissem.bitmessage.security.bc.BouncySecurity;
+import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 
 /**
  * Created by chris on 20.07.15.
  */
 public class TestBase {
     static {
-        Singleton.initialize(new BouncySecurity());
+        Singleton.initialize(new BouncyCryptography());
     }
 }

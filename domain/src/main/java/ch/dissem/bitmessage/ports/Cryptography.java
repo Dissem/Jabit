@@ -29,7 +29,7 @@ import java.security.SecureRandom;
  * Provides some methods to help with hashing and encryption. All randoms are created using {@link SecureRandom},
  * which should be secure enough.
  */
-public interface Security {
+public interface Cryptography {
     /**
      * A helper method to calculate SHA-512 hashes. Please note that a new {@link MessageDigest} object is created at
      * each call (to ensure thread safety), so you shouldn't use this if you need to do many hash calculations in

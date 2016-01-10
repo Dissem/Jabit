@@ -23,7 +23,7 @@ import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
 import ch.dissem.bitmessage.ports.MemoryNodeRegistry;
 import ch.dissem.bitmessage.repository.*;
-import ch.dissem.bitmessage.security.bc.BouncySecurity;
+import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +49,7 @@ public class Application {
                 .messageRepo(new JdbcMessageRepository(jdbcConfig))
                 .powRepo(new JdbcProofOfWorkRepository(jdbcConfig))
                 .networkHandler(new DefaultNetworkHandler())
-                .security(new BouncySecurity())
+                .cryptography(new BouncyCryptography())
                 .port(48444)
                 .listener(new BitmessageContext.Listener() {
                     @Override
