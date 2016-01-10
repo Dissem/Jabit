@@ -16,7 +16,9 @@
 
 package ch.dissem.bitmessage;
 
-import ch.dissem.bitmessage.entity.*;
+import ch.dissem.bitmessage.entity.BitmessageAddress;
+import ch.dissem.bitmessage.entity.Encrypted;
+import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.Broadcast;
 import ch.dissem.bitmessage.entity.payload.GetPubkey;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
@@ -28,8 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.TreeSet;
-
-import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 
 /**
  * The internal context should normally only be used for port implementations. If you need it in your client
@@ -48,14 +48,18 @@ public class InternalContext {
     private final NetworkHandler networkHandler;
     private final AddressRepository addressRepository;
     private final MessageRepository messageRepository;
+    private final ProofOfWorkRepository proofOfWorkRepository;
     private final ProofOfWorkEngine proofOfWorkEngine;
     private final MessageCallback messageCallback;
+    private final CustomCommandHandler customCommandHandler;
+    private final ProofOfWorkService proofOfWorkService;
 
     private final TreeSet<Long> streams = new TreeSet<>();
     private final int port;
     private final long clientNonce;
     private final long networkNonceTrialsPerByte = 1000;
     private final long networkExtraBytes = 1000;
+    private final long pubkeyTTL;
     private long connectionTTL;
     private int connectionLimit;
 
@@ -66,12 +70,16 @@ public class InternalContext {
         this.networkHandler = builder.networkHandler;
         this.addressRepository = builder.addressRepo;
         this.messageRepository = builder.messageRepo;
+        this.proofOfWorkRepository = builder.proofOfWorkRepository;
+        this.proofOfWorkService = new ProofOfWorkService();
         this.proofOfWorkEngine = builder.proofOfWorkEngine;
         this.clientNonce = security.randomNonce();
         this.messageCallback = builder.messageCallback;
+        this.customCommandHandler = builder.customCommandHandler;
         this.port = builder.port;
         this.connectionLimit = builder.connectionLimit;
         this.connectionTTL = builder.connectionTTL;
+        this.pubkeyTTL = builder.pubkeyTTL;
 
         Singleton.initialize(security);
 
@@ -86,7 +94,9 @@ public class InternalContext {
             streams.add(1L);
         }
 
-        init(security, inventory, nodeRegistry, networkHandler, addressRepository, messageRepository, proofOfWorkEngine);
+        init(security, inventory, nodeRegistry, networkHandler, addressRepository, messageRepository,
+                proofOfWorkRepository, proofOfWorkService, proofOfWorkEngine,
+                messageCallback, customCommandHandler);
         for (BitmessageAddress identity : addressRepository.getIdentities()) {
             streams.add(identity.getStream());
         }
@@ -116,7 +126,7 @@ public class InternalContext {
         return networkHandler;
     }
 
-    public AddressRepository getAddressRepo() {
+    public AddressRepository getAddressRepository() {
         return addressRepository;
     }
 
@@ -124,8 +134,16 @@ public class InternalContext {
         return messageRepository;
     }
 
+    public ProofOfWorkRepository getProofOfWorkRepository() {
+        return proofOfWorkRepository;
+    }
+
     public ProofOfWorkEngine getProofOfWorkEngine() {
         return proofOfWorkEngine;
+    }
+
+    public ProofOfWorkService getProofOfWorkService() {
+        return proofOfWorkService;
     }
 
     public long[] getStreams() {
@@ -145,22 +163,12 @@ public class InternalContext {
         return networkNonceTrialsPerByte;
     }
 
-    public long getNonceTrialsPerByte(BitmessageAddress address) {
-        long nonceTrialsPerByte = address.getPubkey().getNonceTrialsPerByte();
-        return networkNonceTrialsPerByte > nonceTrialsPerByte ? networkNonceTrialsPerByte : nonceTrialsPerByte;
-    }
-
     public long getNetworkExtraBytes() {
         return networkExtraBytes;
     }
 
-    public long getExtraBytes(BitmessageAddress address) {
-        long extraBytes = address.getPubkey().getExtraBytes();
-        return networkExtraBytes > extraBytes ? networkExtraBytes : extraBytes;
-    }
-
     public void send(final BitmessageAddress from, BitmessageAddress to, final ObjectPayload payload,
-                     final long timeToLive, final long nonceTrialsPerByte, final long extraBytes) {
+                     final long timeToLive) {
         try {
             if (to == null) to = from;
             long expires = UnixTime.now(+timeToLive);
@@ -179,22 +187,7 @@ public class InternalContext {
                 object.encrypt(to.getPubkey());
             }
             messageCallback.proofOfWorkStarted(payload);
-            security.doProofOfWork(object, nonceTrialsPerByte, extraBytes,
-                    new ProofOfWorkEngine.Callback() {
-                        @Override
-                        public void onNonceCalculated(byte[] nonce) {
-                            object.setNonce(nonce);
-                            messageCallback.proofOfWorkCompleted(payload);
-                            if (payload instanceof PlaintextHolder) {
-                                Plaintext plaintext = ((PlaintextHolder) payload).getPlaintext();
-                                plaintext.setInventoryVector(object.getInventoryVector());
-                                messageRepository.save(plaintext);
-                            }
-                            inventory.storeObject(object);
-                            networkHandler.offer(object.getInventoryVector());
-                            messageCallback.messageOffered(payload, object.getInventoryVector());
-                        }
-                    });
+            proofOfWorkService.doProofOfWork(to, object);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -202,7 +195,7 @@ public class InternalContext {
 
     public void sendPubkey(final BitmessageAddress identity, final long targetStream) {
         try {
-            long expires = UnixTime.now(+28 * DAY);
+            long expires = UnixTime.now(pubkeyTTL);
             LOG.info("Expires at " + expires);
             final ObjectMessage response = new ObjectMessage.Builder()
                     .stream(targetStream)
@@ -212,25 +205,15 @@ public class InternalContext {
             response.sign(identity.getPrivateKey());
             response.encrypt(security.createPublicKey(identity.getPublicDecryptionKey()));
             messageCallback.proofOfWorkStarted(identity.getPubkey());
-            security.doProofOfWork(response, networkNonceTrialsPerByte, networkExtraBytes,
-                    new ProofOfWorkEngine.Callback() {
-                        @Override
-                        public void onNonceCalculated(byte[] nonce) {
-                            response.setNonce(nonce);
-                            messageCallback.proofOfWorkCompleted(identity.getPubkey());
-                            inventory.storeObject(response);
-                            networkHandler.offer(response.getInventoryVector());
-                            // TODO: save that the pubkey was just sent, and on which stream!
-                            messageCallback.messageOffered(identity.getPubkey(), response.getInventoryVector());
-                        }
-                    });
+            // TODO: remember that the pubkey is just about to be sent, and on which stream!
+            proofOfWorkService.doProofOfWork(response);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     public void requestPubkey(final BitmessageAddress contact) {
-        long expires = UnixTime.now(+2 * DAY);
+        long expires = UnixTime.now(+pubkeyTTL);
         LOG.info("Expires at " + expires);
         final ObjectMessage response = new ObjectMessage.Builder()
                 .stream(contact.getStream())
@@ -238,17 +221,7 @@ public class InternalContext {
                 .payload(new GetPubkey(contact))
                 .build();
         messageCallback.proofOfWorkStarted(response.getPayload());
-        security.doProofOfWork(response, networkNonceTrialsPerByte, networkExtraBytes,
-                new ProofOfWorkEngine.Callback() {
-                    @Override
-                    public void onNonceCalculated(byte[] nonce) {
-                        response.setNonce(nonce);
-                        messageCallback.proofOfWorkCompleted(response.getPayload());
-                        inventory.storeObject(response);
-                        networkHandler.offer(response.getInventoryVector());
-                        messageCallback.messageOffered(response.getPayload(), response.getInventoryVector());
-                    }
-                });
+        proofOfWorkService.doProofOfWork(response);
     }
 
     public long getClientNonce() {
@@ -261,6 +234,10 @@ public class InternalContext {
 
     public int getConnectionLimit() {
         return connectionLimit;
+    }
+
+    public CustomCommandHandler getCustomCommandHandler() {
+        return customCommandHandler;
     }
 
     public interface ContextHolder {

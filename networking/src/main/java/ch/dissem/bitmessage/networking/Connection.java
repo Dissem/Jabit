@@ -259,6 +259,7 @@ public class Connection {
                 LOG.debug("Received " + addr.getAddresses().size() + " addresses.");
                 ctx.getNodeRegistry().offerAddresses(addr.getAddresses());
                 break;
+            case CUSTOM:
             case VERACK:
             case VERSION:
                 throw new RuntimeException("Unexpectedly received '" + messagePayload.getCommand() + "' command");
@@ -393,6 +394,13 @@ public class Connection {
                                                 // NO OP
                                                 break;
                                         }
+                                        break;
+                                    case CUSTOM:
+                                        MessagePayload response = ctx.getCustomCommandHandler().handle((CustomMessage) msg.getPayload());
+                                        if (response != null) {
+                                            send(response);
+                                        }
+                                        disconnect();
                                         break;
                                     default:
                                         throw new NodeException("Command 'version' or 'verack' expected, but was '"

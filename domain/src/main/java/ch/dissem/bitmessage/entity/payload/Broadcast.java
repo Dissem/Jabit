@@ -21,7 +21,6 @@ import ch.dissem.bitmessage.entity.Encrypted;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.PlaintextHolder;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
-import ch.dissem.bitmessage.ports.Security;
 
 import java.io.IOException;
 

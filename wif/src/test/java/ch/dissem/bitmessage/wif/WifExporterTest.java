@@ -39,6 +39,7 @@ public class WifExporterTest {
                 .networkHandler(mock(NetworkHandler.class))
                 .inventory(mock(Inventory.class))
                 .messageRepo(mock(MessageRepository.class))
+                .powRepo(mock(ProofOfWorkRepository.class))
                 .nodeRegistry(mock(NodeRegistry.class))
                 .addressRepo(repo)
                 .build();
@@ -72,14 +73,14 @@ public class WifExporterTest {
 
     @Test
     public void testAddIdentity() throws Exception {
-        String expected = "[BM-2DAjcCFrqFrp88FUxExhJ9kPqHdunQmiyn]\n" +
-                "label = Nuked Address\n" +
-                "enabled = true\n" +
-                "decoy = false\n" +
-                "noncetrialsperbyte = 320\n" +
-                "payloadlengthextrabytes = 14000\n" +
-                "privsigningkey = 5KU2gbe9u4rKJ8PHYb1rvwMnZnAJj4gtV5GLwoYckeYzygWUzB9\n" +
-                "privencryptionkey = 5KHd4c6cavd8xv4kzo3PwnVaYuBgEfg7voPQ5V97aZKgpYBXGck\n\n";
+        String expected = "[BM-2DAjcCFrqFrp88FUxExhJ9kPqHdunQmiyn]" + System.lineSeparator() +
+                "label = Nuked Address" + System.lineSeparator() +
+                "enabled = true" + System.lineSeparator() +
+                "decoy = false" + System.lineSeparator() +
+                "noncetrialsperbyte = 320" + System.lineSeparator() +
+                "payloadlengthextrabytes = 14000" + System.lineSeparator() +
+                "privsigningkey = 5KU2gbe9u4rKJ8PHYb1rvwMnZnAJj4gtV5GLwoYckeYzygWUzB9" + System.lineSeparator() +
+                "privencryptionkey = 5KHd4c6cavd8xv4kzo3PwnVaYuBgEfg7voPQ5V97aZKgpYBXGck" + System.lineSeparator() + System.lineSeparator();
         importer = new WifImporter(ctx, expected);
         exporter.addIdentity(importer.getIdentities().get(0));
         assertEquals(expected, exporter.toString());

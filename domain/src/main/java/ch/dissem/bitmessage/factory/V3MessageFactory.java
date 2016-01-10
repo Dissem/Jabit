@@ -73,10 +73,16 @@ class V3MessageFactory {
                 return parseGetData(stream);
             case "object":
                 return readObject(stream, length);
+            case "custom":
+                return readCustom(stream, length);
             default:
                 LOG.debug("Unknown command: " + command);
                 return null;
         }
+    }
+
+    private static MessagePayload readCustom(InputStream in, int length) throws IOException {
+        return CustomMessage.read(in, length);
     }
 
     public static ObjectMessage readObject(InputStream in, int length) throws IOException {

@@ -69,7 +69,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
     }
 
     protected void receive(ObjectMessage object, GetPubkey getPubkey) {
-        BitmessageAddress identity = ctx.getAddressRepo().findIdentity(getPubkey.getRipeTag());
+        BitmessageAddress identity = ctx.getAddressRepository().findIdentity(getPubkey.getRipeTag());
         if (identity != null && identity.getPrivateKey() != null) {
             LOG.info("Got pubkey request for identity " + identity);
             // FIXME: only send pubkey if it wasn't sent in the last 28 days
@@ -82,17 +82,17 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
         try {
             if (pubkey instanceof V4Pubkey) {
                 V4Pubkey v4Pubkey = (V4Pubkey) pubkey;
-                address = ctx.getAddressRepo().findContact(v4Pubkey.getTag());
+                address = ctx.getAddressRepository().findContact(v4Pubkey.getTag());
                 if (address != null) {
                     v4Pubkey.decrypt(address.getPublicDecryptionKey());
                 }
             } else {
-                address = ctx.getAddressRepo().findContact(pubkey.getRipe());
+                address = ctx.getAddressRepository().findContact(pubkey.getRipe());
             }
             if (address != null) {
                 address.setPubkey(pubkey);
                 LOG.info("Got pubkey for contact " + address);
-                ctx.getAddressRepo().save(address);
+                ctx.getAddressRepository().save(address);
                 List<Plaintext> messages = ctx.getMessageRepository().findMessages(Plaintext.Status.PUBKEY_REQUESTED, address);
                 LOG.info("Sending " + messages.size() + " messages for contact " + address);
                 for (Plaintext msg : messages) {
@@ -102,9 +102,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
                             msg.getFrom(),
                             msg.getTo(),
                             new Msg(msg),
-                            +2 * DAY,
-                            ctx.getNonceTrialsPerByte(msg.getTo()),
-                            ctx.getExtraBytes(msg.getTo())
+                            +2 * DAY
                     );
                     msg.setStatus(SENT);
                     ctx.getMessageRepository().save(msg);
@@ -115,7 +113,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
     }
 
     protected void receive(ObjectMessage object, Msg msg) throws IOException {
-        for (BitmessageAddress identity : ctx.getAddressRepo().getIdentities()) {
+        for (BitmessageAddress identity : ctx.getAddressRepository().getIdentities()) {
             try {
                 msg.decrypt(identity.getPrivateKey().getPrivateEncryptionKey());
                 msg.getPlaintext().setTo(identity);
@@ -136,7 +134,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
 
     protected void receive(ObjectMessage object, Broadcast broadcast) throws IOException {
         byte[] tag = broadcast instanceof V5Broadcast ? ((V5Broadcast) broadcast).getTag() : null;
-        for (BitmessageAddress subscription : ctx.getAddressRepo().getSubscriptions(broadcast.getVersion())) {
+        for (BitmessageAddress subscription : ctx.getAddressRepository().getSubscriptions(broadcast.getVersion())) {
             if (tag != null && !Arrays.equals(tag, subscription.getTag())) {
                 continue;
             }

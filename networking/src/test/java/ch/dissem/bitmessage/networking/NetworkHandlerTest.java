@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.ports.AddressRepository;
 import ch.dissem.bitmessage.ports.MessageRepository;
 import ch.dissem.bitmessage.ports.NetworkHandler;
+import ch.dissem.bitmessage.ports.ProofOfWorkRepository;
 import ch.dissem.bitmessage.security.bc.BouncySecurity;
 import ch.dissem.bitmessage.utils.Property;
 import org.junit.AfterClass;
@@ -54,6 +55,7 @@ public class NetworkHandlerTest {
                 .addressRepo(Mockito.mock(AddressRepository.class))
                 .inventory(peerInventory)
                 .messageRepo(Mockito.mock(MessageRepository.class))
+                .powRepo(Mockito.mock(ProofOfWorkRepository.class))
                 .port(6001)
                 .nodeRegistry(new TestNodeRegistry())
                 .networkHandler(new DefaultNetworkHandler())
@@ -68,6 +70,7 @@ public class NetworkHandlerTest {
                 .addressRepo(Mockito.mock(AddressRepository.class))
                 .inventory(nodeInventory)
                 .messageRepo(Mockito.mock(MessageRepository.class))
+                .powRepo(Mockito.mock(ProofOfWorkRepository.class))
                 .port(6002)
                 .nodeRegistry(new TestNodeRegistry(localhost))
                 .networkHandler(networkHandler)

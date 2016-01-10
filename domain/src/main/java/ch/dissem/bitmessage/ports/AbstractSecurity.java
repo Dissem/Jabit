@@ -34,6 +34,8 @@ import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 
+import static ch.dissem.bitmessage.utils.Numbers.max;
+
 /**
  * Implements everything that isn't directly dependent on either Spongy- or Bouncycastle.
  */
@@ -41,6 +43,8 @@ public abstract class AbstractSecurity implements Security, InternalContext.Cont
     public static final Logger LOG = LoggerFactory.getLogger(Security.class);
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final BigInteger TWO = BigInteger.valueOf(2);
+    private static final BigInteger TWO_POW_64 = TWO.pow(64);
+    private static final BigInteger TWO_POW_16 = TWO.pow(16);
 
     private final String provider;
     private InternalContext context;
@@ -94,18 +98,14 @@ public abstract class AbstractSecurity implements Security, InternalContext.Cont
 
     public void doProofOfWork(ObjectMessage object, long nonceTrialsPerByte,
                               long extraBytes, ProofOfWorkEngine.Callback callback) {
-        try {
-            if (nonceTrialsPerByte < 1000) nonceTrialsPerByte = 1000;
-            if (extraBytes < 1000) extraBytes = 1000;
+        nonceTrialsPerByte = max(nonceTrialsPerByte, context.getNetworkNonceTrialsPerByte());
+        extraBytes = max(extraBytes, context.getNetworkExtraBytes());
 
-            byte[] initialHash = getInitialHash(object);
+        byte[] initialHash = getInitialHash(object);
 
-            byte[] target = getProofOfWorkTarget(object, nonceTrialsPerByte, extraBytes);
+        byte[] target = getProofOfWorkTarget(object, nonceTrialsPerByte, extraBytes);
 
-            context.getProofOfWorkEngine().calculateNonce(initialHash, target, callback);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        context.getProofOfWorkEngine().calculateNonce(initialHash, target, callback);
     }
 
     public void checkProofOfWork(ObjectMessage object, long nonceTrialsPerByte, long extraBytes)
@@ -117,15 +117,25 @@ public abstract class AbstractSecurity implements Security, InternalContext.Cont
         }
     }
 
-    private byte[] getInitialHash(ObjectMessage object) throws IOException {
+    @Override
+    public byte[] getInitialHash(ObjectMessage object) {
         return sha512(object.getPayloadBytesWithoutNonce());
     }
 
-    private byte[] getProofOfWorkTarget(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) throws IOException {
+    @Override
+    public byte[] getProofOfWorkTarget(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) {
+        if (nonceTrialsPerByte == 0) nonceTrialsPerByte = context.getNetworkNonceTrialsPerByte();
+        if (extraBytes == 0) extraBytes = context.getNetworkExtraBytes();
+
         BigInteger TTL = BigInteger.valueOf(object.getExpiresTime() - UnixTime.now());
-        BigInteger numerator = TWO.pow(64);
+        BigInteger numerator = TWO_POW_64;
         BigInteger powLength = BigInteger.valueOf(object.getPayloadBytesWithoutNonce().length + extraBytes);
-        BigInteger denominator = BigInteger.valueOf(nonceTrialsPerByte).multiply(powLength.add(powLength.multiply(TTL).divide(BigInteger.valueOf(2).pow(16))));
+        BigInteger denominator = BigInteger.valueOf(nonceTrialsPerByte)
+                .multiply(
+                        powLength.add(
+                                powLength.multiply(TTL).divide(TWO_POW_16)
+                        )
+                );
         return Bytes.expand(numerator.divide(denominator).toByteArray(), 8);
     }
 

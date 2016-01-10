@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.entity;
+package ch.dissem.bitmessage.ports;
+
+import ch.dissem.bitmessage.entity.CustomMessage;
+import ch.dissem.bitmessage.entity.MessagePayload;
 
 /**
- * A command can hold a network message payload
+ * @author Christian Basler
  */
-public interface MessagePayload extends Streamable {
-    Command getCommand();
-
-    enum Command {
-        VERSION, VERACK, ADDR, INV, GETDATA, OBJECT, CUSTOM
-    }
+public interface CustomCommandHandler {
+    MessagePayload handle(CustomMessage request);
 }

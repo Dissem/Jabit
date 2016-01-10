@@ -16,9 +16,7 @@
 
 package ch.dissem.bitmessage;
 
-import ch.dissem.bitmessage.entity.BitmessageAddress;
-import ch.dissem.bitmessage.entity.ObjectMessage;
-import ch.dissem.bitmessage.entity.Plaintext;
+import ch.dissem.bitmessage.entity.*;
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
@@ -33,6 +31,8 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.util.Arrays;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.*;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
@@ -66,6 +66,8 @@ public class BitmessageContext {
     private final Listener listener;
     private final NetworkHandler.MessageListener networkListener;
 
+    private final boolean sendPubkeyOnIdentityCreation;
+
     private BitmessageContext(Builder builder) {
         ctx = new InternalContext(builder);
         listener = builder.listener;
@@ -74,10 +76,19 @@ public class BitmessageContext {
         // As this thread is used for parts that do POW, which itself uses parallel threads, only
         // one should be executed at any time.
         pool = Executors.newFixedThreadPool(1);
+
+        sendPubkeyOnIdentityCreation = builder.sendPubkeyOnIdentityCreation;
+
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                ctx.getProofOfWorkService().doMissingProofOfWork();
+            }
+        }, 30_000); // After 30 seconds
     }
 
     public AddressRepository addresses() {
-        return ctx.getAddressRepo();
+        return ctx.getAddressRepository();
     }
 
     public MessageRepository messages() {
@@ -92,18 +103,21 @@ public class BitmessageContext {
                 ctx.getNetworkExtraBytes(),
                 features
         ));
-        ctx.getAddressRepo().save(identity);
-        pool.submit(new Runnable() {
-            @Override
-            public void run() {
-                ctx.sendPubkey(identity, identity.getStream());
-            }
-        });
+        ctx.getAddressRepository().save(identity);
+        if (sendPubkeyOnIdentityCreation) {
+            pool.submit(new Runnable() {
+                @Override
+                public void run() {
+                    ctx.sendPubkey(identity, identity.getStream());
+                }
+            });
+        }
         return identity;
     }
 
     public void addDistributedMailingList(String address, String alias) {
         // TODO
+        throw new RuntimeException("not implemented");
     }
 
     public void broadcast(final BitmessageAddress from, final String subject, final String message) {
@@ -122,9 +136,7 @@ public class BitmessageContext {
                         from,
                         from,
                         Factory.getBroadcast(from, msg),
-                        +2 * DAY,
-                        0,
-                        0
+                        +2 * DAY
                 );
                 msg.setStatus(SENT);
                 msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.BROADCAST, Label.Type.SENT));
@@ -161,9 +173,7 @@ public class BitmessageContext {
                             from,
                             to,
                             new Msg(msg),
-                            +2 * DAY,
-                            ctx.getNonceTrialsPerByte(to),
-                            ctx.getExtraBytes(to)
+                            +2 * DAY
                     );
                     msg.setStatus(SENT);
                     msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.SENT));
@@ -178,9 +188,7 @@ public class BitmessageContext {
                 requestingIdentity,
                 address,
                 new GetPubkey(address),
-                +28 * DAY,
-                ctx.getNetworkNonceTrialsPerByte(),
-                ctx.getNetworkExtraBytes()
+                +28 * DAY
         );
     }
 
@@ -213,6 +221,19 @@ public class BitmessageContext {
         }
     }
 
+    /**
+     * Send a custom message to a specific node (that should implement handling for this message type) and returns
+     * the response, which in turn is expected to be a {@link CustomMessage}.
+     *
+     * @param server  the node's address
+     * @param port    the node's port
+     * @param request the request
+     * @return the response
+     */
+    public CustomMessage send(InetAddress server, int port, CustomMessage request) {
+        return ctx.getNetworkHandler().send(server, port, request);
+    }
+
     public void cleanup() {
         ctx.getInventory().cleanup();
     }
@@ -222,7 +243,7 @@ public class BitmessageContext {
     }
 
     public void addContact(BitmessageAddress contact) {
-        ctx.getAddressRepo().save(contact);
+        ctx.getAddressRepository().save(contact);
         tryToFindMatchingPubkey(contact);
         if (contact.getPubkey() == null) {
             ctx.requestPubkey(contact);
@@ -239,7 +260,7 @@ public class BitmessageContext {
                         v4Pubkey.decrypt(address.getPublicDecryptionKey());
                         if (object.isSignatureValid(v4Pubkey)) {
                             address.setPubkey(v4Pubkey);
-                            ctx.getAddressRepo().save(address);
+                            ctx.getAddressRepository().save(address);
                             break;
                         } else {
                             LOG.info("Found pubkey for " + address + " but signature is invalid");
@@ -248,7 +269,7 @@ public class BitmessageContext {
                 } else {
                     if (Arrays.equals(pubkey.getRipe(), address.getRipe())) {
                         address.setPubkey(pubkey);
-                        ctx.getAddressRepo().save(address);
+                        ctx.getAddressRepository().save(address);
                         break;
                     }
                 }
@@ -260,7 +281,7 @@ public class BitmessageContext {
 
     public void addSubscribtion(BitmessageAddress address) {
         address.setSubscribed(true);
-        ctx.getAddressRepo().save(address);
+        ctx.getAddressRepository().save(address);
         tryToFindBroadcastsForAddress(address);
     }
 
@@ -283,6 +304,14 @@ public class BitmessageContext {
         );
     }
 
+    /**
+     * Returns the {@link InternalContext} - normally you wouldn't need it,
+     * unless you are doing something crazy with the protocol.
+     */
+    public InternalContext internals() {
+        return ctx;
+    }
+
     public interface Listener {
         void receive(Plaintext plaintext);
     }
@@ -294,12 +323,16 @@ public class BitmessageContext {
         NetworkHandler networkHandler;
         AddressRepository addressRepo;
         MessageRepository messageRepo;
+        ProofOfWorkRepository proofOfWorkRepository;
         ProofOfWorkEngine proofOfWorkEngine;
         Security security;
         MessageCallback messageCallback;
+        CustomCommandHandler customCommandHandler;
         Listener listener;
         int connectionLimit = 150;
         long connectionTTL = 12 * HOUR;
+        boolean sendPubkeyOnIdentityCreation = true;
+        long pubkeyTTL = 28;
 
         public Builder() {
         }
@@ -334,6 +367,11 @@ public class BitmessageContext {
             return this;
         }
 
+        public Builder powRepo(ProofOfWorkRepository proofOfWorkRepository) {
+            this.proofOfWorkRepository = proofOfWorkRepository;
+            return this;
+        }
+
         public Builder security(Security security) {
             this.security = security;
             return this;
@@ -341,6 +379,11 @@ public class BitmessageContext {
 
         public Builder messageCallback(MessageCallback callback) {
             this.messageCallback = callback;
+            return this;
+        }
+
+        public Builder customCommandHandler(CustomCommandHandler handler) {
+            this.customCommandHandler = handler;
             return this;
         }
 
@@ -364,12 +407,37 @@ public class BitmessageContext {
             return this;
         }
 
+        /**
+         * By default a client will send the public key when an identity is being created. On weaker devices
+         * this behaviour might not be desirable.
+         */
+        public Builder doNotSendPubkeyOnIdentityCreation() {
+            this.sendPubkeyOnIdentityCreation = false;
+            return this;
+        }
+
+        /**
+         * Time to live in seconds for public keys the client sends. Defaults to the maximum of 28 days,
+         * but on weak devices smaller values might be desirable.
+         * <p>
+         *     Please be aware that this might cause some problems where you can't receive a message (the
+         *     sender can't receive your public key) in some special situations. Also note that it's probably
+         *     not a good idea to set it too low.
+         * </p>
+         */
+        public Builder pubkeyTTL(long days) {
+            if (days < 0 || days > 28 * DAY) throw new IllegalArgumentException("TTL must be between 1 and 28 days");
+            this.pubkeyTTL = days;
+            return this;
+        }
+
         public BitmessageContext build() {
             nonNull("inventory", inventory);
             nonNull("nodeRegistry", nodeRegistry);
             nonNull("networkHandler", networkHandler);
             nonNull("addressRepo", addressRepo);
             nonNull("messageRepo", messageRepo);
+            nonNull("proofOfWorkRepo", proofOfWorkRepository);
             if (proofOfWorkEngine == null) {
                 proofOfWorkEngine = new MultiThreadedPOWEngine();
             }
@@ -389,6 +457,14 @@ public class BitmessageContext {
 
                     @Override
                     public void messageAcknowledged(InventoryVector iv) {
+                    }
+                };
+            }
+            if (customCommandHandler == null) {
+                customCommandHandler = new CustomCommandHandler() {
+                    @Override
+                    public MessagePayload handle(CustomMessage request) {
+                        throw new RuntimeException("Received custom request, but no custom command handler configured.");
                     }
                 };
             }

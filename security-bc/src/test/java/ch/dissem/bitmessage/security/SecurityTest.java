@@ -91,7 +91,7 @@ public class SecurityTest {
         security.doProofOfWork(objectMessage, 1000, 1000,
                 new ProofOfWorkEngine.Callback() {
                     @Override
-                    public void onNonceCalculated(byte[] nonce) {
+                    public void onNonceCalculated(byte[] initialHash, byte[] nonce) {
                         waiter.setValue(nonce);
                     }
                 });
