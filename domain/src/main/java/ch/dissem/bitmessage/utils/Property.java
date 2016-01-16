@@ -16,6 +16,9 @@
 
 package ch.dissem.bitmessage.utils;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 /**
  * Some property that has a name, a value and/or other properties. This can be used for any purpose, but is for now
  * used to contain different status information. It is by default displayed in some JSON inspired human readable
@@ -43,12 +46,19 @@ public class Property {
         return value;
     }
 
-    public Property getProperty(String name) {
+    /**
+     * Returns the property if available or <code>null</code> otherwise.
+     * Subproperties can be requested by submitting the sequence of properties.
+     */
+    public Property getProperty(String... name) {
+        if (name == null || name.length == 0) return null;
+
         for (Property p : properties) {
-            if (name == null) {
-                if (p.name == null) return p;
-            } else {
-                if (name.equals(p.name)) return p;
+            if (Objects.equals(name[0], p.name)) {
+                if (name.length == 1)
+                    return p;
+                else
+                    return p.getProperty(Arrays.copyOfRange(name, 1, name.length));
             }
         }
         return null;

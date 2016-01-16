@@ -101,7 +101,7 @@ public class NetworkHandlerTest {
             Property status;
             do {
                 Thread.yield();
-                status = node.status().getProperty("network").getProperty("connections").getProperty("stream 0");
+                status = node.status().getProperty("network", "connections", "stream 0");
             } while (status == null);
             assertEquals(1, status.getProperty("outgoing").getValue());
         } finally {
@@ -109,7 +109,7 @@ public class NetworkHandlerTest {
         }
     }
 
-    @Test(timeout = 5_000)
+    @Test(timeout = 10_000)
     public void ensureObjectsAreSynchronizedIfBothHaveObjects() throws Exception {
         peerInventory.init(
                 "V4Pubkey.payload",

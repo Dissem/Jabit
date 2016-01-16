@@ -40,6 +40,7 @@ import static ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
 import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 import static ch.dissem.bitmessage.utils.UnixTime.HOUR;
+import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
 
 /**
  * <p>Use this class if you want to create a Bitmessage client.</p>
@@ -171,6 +172,40 @@ public class BitmessageContext {
                     ctx.getMessageRepository().save(msg);
                     ctx.send(
                             from,
+                            to,
+                            new Msg(msg),
+                            +2 * DAY
+                    );
+                    msg.setStatus(SENT);
+                    msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.SENT));
+                    ctx.getMessageRepository().save(msg);
+                }
+            }
+        });
+    }
+
+    public void send(final Plaintext msg) {
+        if (msg.getFrom() == null || msg.getFrom().getPrivateKey() == null) {
+            throw new IllegalArgumentException("'From' must be an identity, i.e. have a private key.");
+        }
+        pool.submit(new Runnable() {
+            @Override
+            public void run() {
+                BitmessageAddress to = msg.getTo();
+                if (to.getPubkey() == null) {
+                    tryToFindMatchingPubkey(to);
+                }
+                if (to.getPubkey() == null) {
+                    LOG.info("Public key is missing from recipient. Requesting.");
+                    requestPubkey(msg.getFrom(), to);
+                    msg.setStatus(PUBKEY_REQUESTED);
+                    ctx.getMessageRepository().save(msg);
+                } else {
+                    LOG.info("Sending message.");
+                    msg.setStatus(DOING_PROOF_OF_WORK);
+                    ctx.getMessageRepository().save(msg);
+                    ctx.send(
+                            msg.getFrom(),
                             to,
                             new Msg(msg),
                             +2 * DAY
@@ -330,7 +365,7 @@ public class BitmessageContext {
         CustomCommandHandler customCommandHandler;
         Listener listener;
         int connectionLimit = 150;
-        long connectionTTL = 12 * HOUR;
+        long connectionTTL = 30 * MINUTE;
         boolean sendPubkeyOnIdentityCreation = true;
         long pubkeyTTL = 28;
 
@@ -420,9 +455,9 @@ public class BitmessageContext {
          * Time to live in seconds for public keys the client sends. Defaults to the maximum of 28 days,
          * but on weak devices smaller values might be desirable.
          * <p>
-         *     Please be aware that this might cause some problems where you can't receive a message (the
-         *     sender can't receive your public key) in some special situations. Also note that it's probably
-         *     not a good idea to set it too low.
+         * Please be aware that this might cause some problems where you can't receive a message (the
+         * sender can't receive your public key) in some special situations. Also note that it's probably
+         * not a good idea to set it too low.
          * </p>
          */
         public Builder pubkeyTTL(long days) {

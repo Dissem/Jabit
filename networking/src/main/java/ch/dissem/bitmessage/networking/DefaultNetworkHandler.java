@@ -19,6 +19,7 @@ package ch.dissem.bitmessage.networking;
 import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.InternalContext.ContextHolder;
 import ch.dissem.bitmessage.entity.CustomMessage;
+import ch.dissem.bitmessage.entity.GetData;
 import ch.dissem.bitmessage.entity.NetworkMessage;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
@@ -41,8 +42,9 @@ import java.util.concurrent.*;
 import static ch.dissem.bitmessage.networking.Connection.Mode.CLIENT;
 import static ch.dissem.bitmessage.networking.Connection.Mode.SERVER;
 import static ch.dissem.bitmessage.networking.Connection.State.ACTIVE;
-import static ch.dissem.bitmessage.networking.Connection.State.DISCONNECTED;
 import static ch.dissem.bitmessage.utils.DebugUtils.inc;
+import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
+import static java.util.Collections.newSetFromMap;
 
 /**
  * Handles all the networky stuff.
@@ -50,13 +52,14 @@ import static ch.dissem.bitmessage.utils.DebugUtils.inc;
 public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
     public final static int NETWORK_MAGIC_NUMBER = 8;
     private final static Logger LOG = LoggerFactory.getLogger(DefaultNetworkHandler.class);
-    private final List<Connection> connections = new LinkedList<>();
+    private static final Random RANDOM = new Random();
+    private final Collection<Connection> connections = new ConcurrentLinkedQueue<>();
     private final ExecutorService pool;
     private InternalContext ctx;
     private ServerSocket serverSocket;
     private volatile boolean running;
 
-    private ConcurrentMap<InventoryVector, Long> requestedObjects = new ConcurrentHashMap<>();
+    private Set<InventoryVector> requestedObjects = newSetFromMap(new ConcurrentHashMap<InventoryVector, Boolean>(50_000));
 
     public DefaultNetworkHandler() {
         pool = Executors.newCachedThreadPool(new ThreadFactory() {
@@ -134,6 +137,8 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
                 }
             });
             pool.execute(new Runnable() {
+                public Connection initialConnection;
+
                 @Override
                 public void run() {
                     try {
@@ -152,24 +157,37 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
                                     }
                                     for (Iterator<Connection> iterator = connections.iterator(); iterator.hasNext(); ) {
                                         Connection c = iterator.next();
-                                        if (now - c.getStartTime() > ctx.getConnectionTTL()) {
+                                        // Just in case they were all created at the same time, don't disconnect
+                                        // all at once.
+                                        if (now - c.getStartTime() + RANDOM.nextInt(5 * MINUTE) > ctx.getConnectionTTL()) {
                                             c.disconnect();
                                         }
-                                        if (c.getState() == DISCONNECTED) {
-                                            // Remove the current element from the iterator and the list.
-                                            iterator.remove();
-                                        }
-                                        if (c.getState() == ACTIVE) {
-                                            active++;
+                                        switch (c.getState()) {
+                                            case DISCONNECTED:
+                                                iterator.remove();
+                                                break;
+                                            case ACTIVE:
+                                                active++;
+                                                break;
                                         }
                                     }
                                 }
                                 if (active < NETWORK_MAGIC_NUMBER) {
                                     List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(
                                             NETWORK_MAGIC_NUMBER - active, ctx.getStreams());
+                                    boolean first = active == 0 && initialConnection == null;
                                     for (NetworkAddress address : addresses) {
-                                        startConnection(new Connection(ctx, CLIENT, address, listener, requestedObjects));
+                                        Connection c = new Connection(ctx, CLIENT, address, listener, requestedObjects);
+                                        if (first) {
+                                            initialConnection = c;
+                                            first = false;
+                                        }
+                                        startConnection(c);
                                     }
+                                    Thread.sleep(10000);
+                                } else if (initialConnection != null) {
+                                    initialConnection.disconnect();
+                                    initialConnection = null;
                                     Thread.sleep(10000);
                                 } else {
                                     Thread.sleep(30000);
@@ -209,6 +227,7 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
                 c.disconnect();
             }
         }
+        requestedObjects.clear();
     }
 
     private void startConnection(Connection c) {
@@ -272,7 +291,56 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
         }
         return new Property("network", null,
                 new Property("connectionManager", running ? "running" : "stopped"),
-                new Property("connections", null, streamProperties)
+                new Property("connections", null, streamProperties),
+                new Property("requestedObjects", requestedObjects.size())
         );
+    }
+
+    void request(Set<InventoryVector> inventoryVectors) {
+        if (!running || inventoryVectors.isEmpty()) return;
+        synchronized (connections) {
+            Map<Connection, List<InventoryVector>> distribution = new HashMap<>();
+            for (Connection connection : connections) {
+                if (connection.getState() == ACTIVE) {
+                    distribution.put(connection, new LinkedList<InventoryVector>());
+                }
+            }
+            Iterator<InventoryVector> iterator = inventoryVectors.iterator();
+            boolean firstRound = true;
+            InventoryVector next = iterator.next();
+            while (firstRound || iterator.hasNext()) {
+                if (!firstRound) {
+                    next = iterator.next();
+                    firstRound = true;
+                } else {
+                    firstRound = false;
+                }
+                for (Connection connection : distribution.keySet()) {
+                    if (connection.knowsOf(next)) {
+                        List<InventoryVector> ivs = distribution.get(connection);
+                        if (ivs.size() == 50_000) {
+                            connection.send(new GetData.Builder().inventory(ivs).build());
+                            ivs.clear();
+                        }
+                        ivs.add(next);
+                        iterator.remove();
+
+                        if (iterator.hasNext()) {
+                            next = iterator.next();
+                            firstRound = true;
+                        } else {
+                            firstRound = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            for (Connection connection : distribution.keySet()) {
+                List<InventoryVector> ivs = distribution.get(connection);
+                if (!ivs.isEmpty()) {
+                    connection.send(new GetData.Builder().inventory(ivs).build());
+                }
+            }
+        }
     }
 }
