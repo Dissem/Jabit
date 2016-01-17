@@ -2,8 +2,8 @@ uploadArchives {
     repositories {
         mavenDeployer {
             pom.project {
-                name 'Jabit Domain'
-                artifactId = 'jabit-domain'
+                name 'Jabit Core'
+                artifactId = 'jabit-core'
                 description 'A Java implementation of the Bitmessage protocol. This is the core part. You\'ll either need the networking and repositories modules, too, or implement your own.'
             }
         }

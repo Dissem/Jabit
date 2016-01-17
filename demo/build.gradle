@@ -21,7 +21,7 @@ task fatCapsule(type: FatCapsule) {
 }
 
 dependencies {
-    compile project(':domain')
+    compile project(':core')
     compile project(':networking')
     compile project(':repositories')
     compile project(':cryptography-bc')
