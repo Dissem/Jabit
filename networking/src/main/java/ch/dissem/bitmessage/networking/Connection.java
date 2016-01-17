@@ -350,7 +350,7 @@ class Connection {
                     send(new Version.Builder().defaults().addrFrom(host).addrRecv(node).build());
                 }
                 while (state != DISCONNECTED) {
-                    if (requestedObjects.isEmpty()) {
+                    if (mode != SYNC && state == ACTIVE && requestedObjects.isEmpty()) {
                         Thread.sleep(1000);
                     } else {
                         Thread.sleep(100);

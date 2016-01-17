@@ -94,7 +94,7 @@ public class NetworkHandlerTest {
         } while (node.isRunning());
     }
 
-    @Test(timeout = 20_000)
+    @Test(timeout = 5_000)
     public void ensureNodesAreConnecting() {
         try {
             node.startup();
@@ -109,7 +109,7 @@ public class NetworkHandlerTest {
         }
     }
 
-    @Test(timeout = 10_000)
+    @Test(timeout = 5_000)
     public void ensureObjectsAreSynchronizedIfBothHaveObjects() throws Exception {
         peerInventory.init(
                 "V4Pubkey.payload",
@@ -128,7 +128,7 @@ public class NetworkHandlerTest {
         assertInventorySize(3, peerInventory);
     }
 
-    @Test(timeout = 10_000)
+    @Test(timeout = 5_000)
     public void ensureObjectsAreSynchronizedIfOnlyPeerHasObjects() throws Exception {
         peerInventory.init(
                 "V4Pubkey.payload",
@@ -145,7 +145,7 @@ public class NetworkHandlerTest {
         assertInventorySize(2, peerInventory);
     }
 
-    @Test(timeout = 10_000)
+    @Test(timeout = 5_000)
     public void ensureObjectsAreSynchronizedIfOnlyNodeHasObjects() throws Exception {
         peerInventory.init();
 
