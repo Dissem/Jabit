@@ -43,16 +43,16 @@ import static ch.dissem.bitmessage.networking.Connection.Mode.CLIENT;
 import static ch.dissem.bitmessage.networking.Connection.Mode.SERVER;
 import static ch.dissem.bitmessage.networking.Connection.State.ACTIVE;
 import static ch.dissem.bitmessage.utils.DebugUtils.inc;
-import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
 import static java.util.Collections.newSetFromMap;
 
 /**
  * Handles all the networky stuff.
  */
 public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
-    public final static int NETWORK_MAGIC_NUMBER = 8;
     private final static Logger LOG = LoggerFactory.getLogger(DefaultNetworkHandler.class);
-    private static final Random RANDOM = new Random();
+
+    public final static int NETWORK_MAGIC_NUMBER = 8;
+
     private final Collection<Connection> connections = new ConcurrentLinkedQueue<>();
     private final ExecutorService pool;
     private InternalContext ctx;
@@ -155,12 +155,14 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
                                             if (diff == 0) break;
                                         }
                                     }
+                                    boolean forcedDisconnect = false;
                                     for (Iterator<Connection> iterator = connections.iterator(); iterator.hasNext(); ) {
                                         Connection c = iterator.next();
                                         // Just in case they were all created at the same time, don't disconnect
                                         // all at once.
-                                        if (now - c.getStartTime() + RANDOM.nextInt(5 * MINUTE) > ctx.getConnectionTTL()) {
+                                        if (!forcedDisconnect && now - c.getStartTime() > ctx.getConnectionTTL()) {
                                             c.disconnect();
+                                            forcedDisconnect = true;
                                         }
                                         switch (c.getState()) {
                                             case DISCONNECTED:
@@ -306,8 +308,13 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
                 }
             }
             Iterator<InventoryVector> iterator = inventoryVectors.iterator();
+            InventoryVector next;
+            if (iterator.hasNext()) {
+                next = iterator.next();
+            } else {
+                return;
+            }
             boolean firstRound = true;
-            InventoryVector next = iterator.next();
             while (firstRound || iterator.hasNext()) {
                 if (!firstRound) {
                     next = iterator.next();

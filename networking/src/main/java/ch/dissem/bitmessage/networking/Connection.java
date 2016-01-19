@@ -139,6 +139,9 @@ class Connection {
 
     @SuppressWarnings("RedundantIfStatement")
     private boolean syncFinished(NetworkMessage msg) {
+        if (mode != SYNC){
+            return false;
+        }
         if (Thread.interrupted()) {
             return true;
         }
@@ -239,11 +242,6 @@ class Connection {
                 } finally {
                     if (commonRequestedObjects.remove(objectMessage.getInventoryVector())) {
                         LOG.debug("Received object that wasn't requested.");
-//                        if (!requestedObjects.isEmpty()) {
-//                            DebugUtils.saveToFile(objectMessage);
-//                            LOG.debug(objectMessage.getInventoryVector() + " was not in "
-//                                    + requestedObjects.toString());
-//                        }
                     }
                 }
                 break;

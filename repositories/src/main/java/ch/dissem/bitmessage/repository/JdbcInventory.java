@@ -80,7 +80,7 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
     @Override
     public List<InventoryVector> getMissing(List<InventoryVector> offer, long... streams) {
         for (long stream : streams) {
-            getCache(stream).forEach((iv, t) -> offer.remove(iv));
+            offer.removeAll(getCache(stream).keySet());
         }
         return offer;
     }
@@ -132,6 +132,9 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
 
     @Override
     public void storeObject(ObjectMessage object) {
+        if (getCache(object.getStream()).containsKey(object.getInventoryVector()))
+            return;
+
         try (Connection connection = config.getConnection()) {
             PreparedStatement ps = connection.prepareStatement("INSERT INTO Inventory (hash, stream, expires, data, type, version) VALUES (?, ?, ?, ?, ?, ?)");
             InventoryVector iv = object.getInventoryVector();
