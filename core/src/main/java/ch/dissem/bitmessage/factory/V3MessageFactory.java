@@ -44,6 +44,9 @@ class V3MessageFactory {
         findMagic(in);
         String command = getCommand(in);
         int length = (int) Decode.uint32(in);
+        if (length > 1600003) {
+            throw new NodeException("Payload of " + length + " bytes received, no more than 1600003 was expected.");
+        }
         byte[] checksum = Decode.bytes(in, 4);
 
         byte[] payloadBytes = Decode.bytes(in, length);
@@ -191,10 +194,10 @@ class V3MessageFactory {
 
     private static String getCommand(InputStream stream) throws IOException {
         byte[] bytes = new byte[12];
-        int end = -1;
+        int end = bytes.length;
         for (int i = 0; i < bytes.length; i++) {
             bytes[i] = (byte) stream.read();
-            if (end == -1) {
+            if (end == bytes.length) {
                 if (bytes[i] == 0) end = i;
             } else {
                 if (bytes[i] != 0) throw new IOException("'\\0' padding expected for command");

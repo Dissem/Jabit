@@ -90,25 +90,29 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
                 address = ctx.getAddressRepository().findContact(pubkey.getRipe());
             }
             if (address != null) {
-                address.setPubkey(pubkey);
-                LOG.info("Got pubkey for contact " + address);
-                ctx.getAddressRepository().save(address);
-                List<Plaintext> messages = ctx.getMessageRepository().findMessages(Plaintext.Status.PUBKEY_REQUESTED, address);
-                LOG.info("Sending " + messages.size() + " messages for contact " + address);
-                for (Plaintext msg : messages) {
-                    msg.setStatus(DOING_PROOF_OF_WORK);
-                    ctx.getMessageRepository().save(msg);
-                    ctx.send(
-                            msg.getFrom(),
-                            msg.getTo(),
-                            new Msg(msg),
-                            +2 * DAY
-                    );
-                    msg.setStatus(SENT);
-                    ctx.getMessageRepository().save(msg);
-                }
+                updatePubkey(address, pubkey);
             }
         } catch (DecryptionFailedException ignore) {
+        }
+    }
+
+    private void updatePubkey(BitmessageAddress address, Pubkey pubkey){
+        address.setPubkey(pubkey);
+        LOG.info("Got pubkey for contact " + address);
+        ctx.getAddressRepository().save(address);
+        List<Plaintext> messages = ctx.getMessageRepository().findMessages(Plaintext.Status.PUBKEY_REQUESTED, address);
+        LOG.info("Sending " + messages.size() + " messages for contact " + address);
+        for (Plaintext msg : messages) {
+            msg.setStatus(DOING_PROOF_OF_WORK);
+            ctx.getMessageRepository().save(msg);
+            ctx.send(
+                    msg.getFrom(),
+                    msg.getTo(),
+                    new Msg(msg),
+                    +2 * DAY
+            );
+            msg.setStatus(SENT);
+            ctx.getMessageRepository().save(msg);
         }
     }
 
@@ -125,6 +129,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
                     msg.getPlaintext().setInventoryVector(object.getInventoryVector());
                     ctx.getMessageRepository().save(msg.getPlaintext());
                     listener.receive(msg.getPlaintext());
+                    updatePubkey(msg.getPlaintext().getFrom(), msg.getPlaintext().getFrom().getPubkey());
                 }
                 break;
             } catch (DecryptionFailedException ignore) {
@@ -148,6 +153,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
                     broadcast.getPlaintext().setInventoryVector(object.getInventoryVector());
                     ctx.getMessageRepository().save(broadcast.getPlaintext());
                     listener.receive(broadcast.getPlaintext());
+                    updatePubkey(broadcast.getPlaintext().getFrom(), broadcast.getPlaintext().getFrom().getPubkey());
                 }
             } catch (DecryptionFailedException ignore) {
             }

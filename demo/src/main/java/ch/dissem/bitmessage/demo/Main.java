@@ -64,7 +64,7 @@ public class Main {
                 new WifImporter(ctx, options.importWIF).importAll();
             }
         } else {
-            new Application();
+            new Application(options.syncServer, options.syncPort);
         }
     }
 
@@ -74,5 +74,11 @@ public class Main {
 
         @Option(name = "-export", usage = "Export to WIF file.")
         private File exportWIF;
+
+        @Option(name = "-syncServer", usage = "Use manual synchronization with the given server instead of starting a full node.")
+        private String syncServer;
+
+        @Option(name = "-syncPort", usage = "Port to use for synchronisation")
+        private int syncPort = 8444;
     }
 }

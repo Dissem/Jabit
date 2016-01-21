@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.*;
+import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.TestBase;
@@ -25,9 +26,11 @@ import org.junit.Test;
 
 import java.io.*;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Collections;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
+import static ch.dissem.bitmessage.utils.Singleton.security;
 import static org.junit.Assert.*;
 
 public class SerializationTest extends TestBase {
@@ -93,6 +96,23 @@ public class SerializationTest extends TestBase {
         received.set(p2, 0L);
 
         assertEquals(p1, p2);
+    }
+
+    @Test
+    public void ensureNetworkMessageIsSerializedAndDeserializedCorrectly() throws Exception {
+        ArrayList<InventoryVector> ivs = new ArrayList<>(50000);
+        for (int i = 0; i < 50000; i++) {
+            ivs.add(new InventoryVector(security().randomBytes(32)));
+        }
+
+        Inv inv = new Inv.Builder().inventory(ivs).build();
+        NetworkMessage before = new NetworkMessage(inv);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        before.write(out);
+
+        NetworkMessage after = Factory.getNetworkMessage(3, new ByteArrayInputStream(out.toByteArray()));
+        Inv invAfter = (Inv) after.getPayload();
+        assertEquals(ivs, invAfter.getInventory());
     }
 
     private void doTest(String resourceName, int version, Class<?> expectedPayloadType) throws IOException {

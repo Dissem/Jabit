@@ -38,7 +38,6 @@ public class InventoryVector implements Streamable, Serializable {
         InventoryVector that = (InventoryVector) o;
 
         return Arrays.equals(hash, that.hash);
-
     }
 
     @Override

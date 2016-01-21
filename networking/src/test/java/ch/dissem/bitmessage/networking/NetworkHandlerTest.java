@@ -117,7 +117,8 @@ public class NetworkHandlerTest {
         );
 
         nodeInventory.init(
-                "V1Msg.payload"
+                "V1Msg.payload",
+                "V4Pubkey.payload"
         );
 
         Future<?> future = networkHandler.synchronize(InetAddress.getLocalHost(), 6001,

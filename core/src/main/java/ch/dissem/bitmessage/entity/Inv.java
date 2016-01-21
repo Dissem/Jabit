@@ -44,10 +44,10 @@ public class Inv implements MessagePayload {
     }
 
     @Override
-    public void write(OutputStream stream) throws IOException {
-        Encode.varInt(inventory.size(), stream);
+    public void write(OutputStream out) throws IOException {
+        Encode.varInt(inventory.size(), out);
         for (InventoryVector iv : inventory) {
-            iv.write(stream);
+            iv.write(out);
         }
     }
 

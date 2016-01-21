@@ -157,6 +157,7 @@ public class BitmessageContext {
                         .from(from)
                         .to(to)
                         .message(subject, message)
+                        .labels(messages().getLabels(Label.Type.SENT))
                         .build();
                 if (to.getPubkey() == null) {
                     tryToFindMatchingPubkey(to);

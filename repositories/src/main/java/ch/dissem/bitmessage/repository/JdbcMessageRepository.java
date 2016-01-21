@@ -256,12 +256,13 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     private void update(Connection connection, Plaintext message) throws SQLException, IOException {
         PreparedStatement ps = connection.prepareStatement(
-                "UPDATE Message SET iv=?, sent=?, received=?, status=? WHERE id=?");
+                "UPDATE Message SET iv=?, sent=?, received=?, status=?, initial_hash=? WHERE id=?");
         ps.setBytes(1, message.getInventoryVector() != null ? message.getInventoryVector().getHash() : null);
         ps.setLong(2, message.getSent());
         ps.setLong(3, message.getReceived());
         ps.setString(4, message.getStatus() != null ? message.getStatus().name() : null);
-        ps.setLong(5, (Long) message.getId());
+        ps.setBytes(5, message.getInitialHash());
+        ps.setLong(6, (Long) message.getId());
         ps.executeUpdate();
     }
 

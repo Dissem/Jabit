@@ -139,13 +139,13 @@ class Connection {
 
     @SuppressWarnings("RedundantIfStatement")
     private boolean syncFinished(NetworkMessage msg) {
-        if (mode != SYNC){
+        if (mode != SYNC) {
             return false;
         }
         if (Thread.interrupted()) {
             return true;
         }
-        if (syncTimeout == 0 || state != ACTIVE) {
+        if (state != ACTIVE) {
             return false;
         }
         if (syncTimeout < UnixTime.now()) {
@@ -204,10 +204,11 @@ class Connection {
         switch (messagePayload.getCommand()) {
             case INV:
                 Inv inv = (Inv) messagePayload;
+                int originalSize = inv.getInventory().size();
                 updateIvCache(inv.getInventory());
                 List<InventoryVector> missing = ctx.getInventory().getMissing(inv.getInventory(), streams);
                 missing.removeAll(commonRequestedObjects);
-                LOG.debug("Received inventory with " + inv.getInventory().size() + " elements, of which are "
+                LOG.debug("Received inventory with " + originalSize + " elements, of which are "
                         + missing.size() + " missing.");
                 send(new GetData.Builder().inventory(missing).build());
                 break;
@@ -230,8 +231,6 @@ class Connection {
                     security().checkProofOfWork(objectMessage, ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
                     ctx.getInventory().storeObject(objectMessage);
                     // offer object to some random nodes so it gets distributed throughout the network:
-                    // FIXME: don't do this while we catch up after initialising our first connection
-                    // (that might be a bit tricky to do)
                     networkHandler.offer(objectMessage.getInventoryVector());
                     lastObjectTime = UnixTime.now();
                 } catch (InsufficientProofOfWorkException e) {
@@ -283,7 +282,9 @@ class Connection {
             if (payload instanceof GetData) {
                 requestedObjects.addAll(((GetData) payload).getInventory());
             }
-            new NetworkMessage(payload).write(out);
+            synchronized (this) {
+                new NetworkMessage(payload).write(out);
+            }
         } catch (IOException e) {
             LOG.error(e.getMessage(), e);
             disconnect();
@@ -342,16 +343,19 @@ class Connection {
     public class ReaderRunnable implements Runnable {
         @Override
         public void run() {
+            lastObjectTime = 0;
             try (Socket socket = Connection.this.socket) {
                 initSocket(socket);
                 if (mode == CLIENT || mode == SYNC) {
                     send(new Version.Builder().defaults().addrFrom(host).addrRecv(node).build());
                 }
                 while (state != DISCONNECTED) {
-                    if (mode != SYNC && state == ACTIVE && requestedObjects.isEmpty()) {
-                        Thread.sleep(1000);
-                    } else {
-                        Thread.sleep(100);
+                    if (mode != SYNC) {
+                        if (state == ACTIVE && requestedObjects.isEmpty() && sendingQueue.isEmpty()) {
+                            Thread.sleep(1000);
+                        } else {
+                            Thread.sleep(100);
+                        }
                     }
                     try {
                         NetworkMessage msg = Factory.getNetworkMessage(version, in);

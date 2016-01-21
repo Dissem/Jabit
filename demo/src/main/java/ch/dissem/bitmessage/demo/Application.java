@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
 import java.util.List;
 import java.util.Scanner;
 
@@ -40,7 +41,7 @@ public class Application {
 
     private BitmessageContext ctx;
 
-    public Application() {
+    public Application(String syncServer, int syncPort) {
         JdbcConfig jdbcConfig = new JdbcConfig();
         ctx = new BitmessageContext.Builder()
                 .addressRepo(new JdbcAddressRepository(jdbcConfig))
@@ -63,7 +64,9 @@ public class Application {
                 })
                 .build();
 
-        ctx.startup();
+        if (syncServer == null) {
+            ctx.startup();
+        }
 
         scanner = new Scanner(System.in);
 
@@ -75,6 +78,9 @@ public class Application {
             System.out.println("c) contacts");
             System.out.println("s) subscriptions");
             System.out.println("m) messages");
+            if (syncServer != null) {
+                System.out.println("y) sync");
+            }
             System.out.println("?) info");
             System.out.println("e) exit");
 
@@ -98,6 +104,9 @@ public class Application {
                         info();
                         break;
                     case "e":
+                        break;
+                    case "y":
+                        ctx.synchronize(InetAddress.getByName(syncServer), syncPort, 120, true);
                         break;
                     default:
                         System.out.println("Unknown command. Please try again.");
