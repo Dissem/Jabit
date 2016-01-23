@@ -18,21 +18,20 @@ package ch.dissem.bitmessage.repository;
 
 import ch.dissem.bitmessage.entity.Streamable;
 import ch.dissem.bitmessage.entity.payload.ObjectType;
-import org.flywaydb.core.Flyway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 import static ch.dissem.bitmessage.utils.Strings.hex;
 
 /**
  * Helper class that does Flyway migration, provides JDBC connections and some helper methods.
  */
-abstract class JdbcHelper {
+public abstract class JdbcHelper {
     private static final Logger LOG = LoggerFactory.getLogger(JdbcHelper.class);
 
     protected final JdbcConfig config;
@@ -81,10 +80,9 @@ abstract class JdbcHelper {
         if (data != null) {
             ByteArrayOutputStream os = new ByteArrayOutputStream();
             data.write(os);
-            ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
-            ps.setBlob(parameterIndex, is);
+            ps.setBytes(parameterIndex, os.toByteArray());
         } else {
-            ps.setBlob(parameterIndex, (Blob) null);
+            ps.setBytes(parameterIndex, null);
         }
     }
 }

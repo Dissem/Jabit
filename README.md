@@ -29,17 +29,20 @@ Setup
 
 Add Jabit as Gradle dependency:
 ```Gradle
-compile 'ch.dissem.jabit:jabit-domain:0.2.0'
+compile 'ch.dissem.jabit:jabit-core:0.2.0'
 ```
 Unless you want to implement your own, also add the following:
 ```Gradle
 compile 'ch.dissem.jabit:jabit-networking:0.2.0'
 compile 'ch.dissem.jabit:jabit-repositories:0.2.0'
+compile 'ch.dissem.jabit:jabit-cryptography-bc:0.2.0'
 ```
 And if you want to import from or export to the Wallet Import Format (used by PyBitmessage) you might also want to add:
 ```Gradle
 compile 'ch.dissem.jabit:jabit-wif:0.2.0'
 ```
+
+For Android clients use `jabit-cryptography-sc` instead of `jabit-cryptography-bc`.
 
 Usage
 -----
@@ -53,6 +56,7 @@ BitmessageContext ctx = new BitmessageContext.Builder()
         .messageRepo(new JdbcMessageRepository(jdbcConfig))
         .nodeRegistry(new MemoryNodeRegistry())
         .networkHandler(new NetworkNode())
+        .cryptography(new BouncyCryptography())
         .build();
 ```
 This creates a simple context using a H2 database that will be created in the user's home directory. Next you'll need to

@@ -34,7 +34,7 @@ import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 import static ch.dissem.bitmessage.utils.UnixTime.now;
 import static org.junit.Assert.*;
 
-public class JdbcInventoryTest {
+public class JdbcInventoryTest extends TestBase {
     private TestJdbcConfig config;
     private Inventory inventory;
 
@@ -108,6 +108,17 @@ public class JdbcInventoryTest {
         inventory.storeObject(object);
 
         assertNotNull(inventory.getObject(object.getInventoryVector()));
+    }
+
+    @Test
+    public void testContains() {
+        ObjectMessage object = getObjectMessage(5, 0, getGetPubkey());
+
+        assertFalse(inventory.contains(object));
+
+        inventory.storeObject(object);
+
+        assertTrue(inventory.contains(object));
     }
 
     @Test

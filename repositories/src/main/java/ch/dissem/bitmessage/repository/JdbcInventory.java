@@ -27,11 +27,16 @@ import org.slf4j.LoggerFactory;
 import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
+import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
 import static ch.dissem.bitmessage.utils.UnixTime.now;
 
 public class JdbcInventory extends JdbcHelper implements Inventory {
     private static final Logger LOG = LoggerFactory.getLogger(JdbcInventory.class);
+
+    private final Map<Long, Map<InventoryVector, Long>> cache = new ConcurrentHashMap<>();
 
     public JdbcInventory(JdbcConfig config) {
         super(config);
@@ -40,35 +45,43 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
     @Override
     public List<InventoryVector> getInventory(long... streams) {
         List<InventoryVector> result = new LinkedList<>();
-        try (Connection connection = config.getConnection()) {
-            Statement stmt = connection.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT hash FROM Inventory WHERE expires > " + now() +
-                    " AND stream IN (" + join(streams) + ")");
-            while (rs.next()) {
-                result.add(new InventoryVector(rs.getBytes("hash")));
-            }
-        } catch (SQLException e) {
-            LOG.error(e.getMessage(), e);
+        for (long stream : streams) {
+            getCache(stream).entrySet().stream()
+                    .filter(e -> e.getValue() > now())
+                    .forEach(e -> result.add(e.getKey()));
         }
         return result;
     }
-    private List<InventoryVector> getFullInventory(long... streams) {
-        List<InventoryVector> result = new LinkedList<>();
-        try (Connection connection = config.getConnection()) {
-            Statement stmt = connection.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT hash FROM Inventory WHERE stream IN (" + join(streams) + ")");
-            while (rs.next()) {
-                result.add(new InventoryVector(rs.getBytes("hash")));
+
+    private Map<InventoryVector, Long> getCache(long stream) {
+        Map<InventoryVector, Long> result = cache.get(stream);
+        if (result == null) {
+            synchronized (cache) {
+                if (cache.get(stream) == null) {
+                    result = new ConcurrentHashMap<>();
+                    cache.put(stream, result);
+
+                    try (Connection connection = config.getConnection()) {
+                        Statement stmt = connection.createStatement();
+                        ResultSet rs = stmt.executeQuery("SELECT hash, expires FROM Inventory WHERE expires > "
+                                + now(-5 * MINUTE) + " AND stream = " + stream);
+                        while (rs.next()) {
+                            result.put(new InventoryVector(rs.getBytes("hash")), rs.getLong("expires"));
+                        }
+                    } catch (SQLException e) {
+                        LOG.error(e.getMessage(), e);
+                    }
+                }
             }
-        } catch (SQLException e) {
-            LOG.error(e.getMessage(), e);
         }
         return result;
     }
 
     @Override
     public List<InventoryVector> getMissing(List<InventoryVector> offer, long... streams) {
-        offer.removeAll(getFullInventory(streams));
+        for (long stream : streams) {
+            offer.removeAll(getCache(stream).keySet());
+        }
         return offer;
     }
 
@@ -119,6 +132,9 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
 
     @Override
     public void storeObject(ObjectMessage object) {
+        if (getCache(object.getStream()).containsKey(object.getInventoryVector()))
+            return;
+
         try (Connection connection = config.getConnection()) {
             PreparedStatement ps = connection.prepareStatement("INSERT INTO Inventory (hash, stream, expires, data, type, version) VALUES (?, ?, ?, ?, ?, ?)");
             InventoryVector iv = object.getInventoryVector();
@@ -130,6 +146,7 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
             ps.setLong(5, object.getType());
             ps.setLong(6, object.getVersion());
             ps.executeUpdate();
+            getCache(object.getStream()).put(iv, object.getExpiresTime());
         } catch (SQLException e) {
             LOG.debug("Error storing object of type " + object.getPayload().getClass().getSimpleName(), e);
         } catch (Exception e) {
@@ -138,12 +155,20 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
     }
 
     @Override
+    public boolean contains(ObjectMessage object) {
+        return getCache(object.getStream()).entrySet().stream()
+                .anyMatch(x -> x.getKey().equals(object.getInventoryVector()));
+    }
+
+    @Override
     public void cleanup() {
         try (Connection connection = config.getConnection()) {
-            // We delete only objects that expired 5 minutes ago or earlier, so we don't request objects we just deleted
-            connection.createStatement().executeUpdate("DELETE FROM Inventory WHERE expires < " + (now() - 300));
+            connection.createStatement().executeUpdate("DELETE FROM Inventory WHERE expires < " + now(-5 * MINUTE));
         } catch (SQLException e) {
             LOG.debug(e.getMessage(), e);
+        }
+        for (Map<InventoryVector, Long> c : cache.values()) {
+            c.entrySet().removeIf(e -> e.getValue() < now(-5 * MINUTE));
         }
     }
 }

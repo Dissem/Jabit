@@ -25,7 +25,6 @@ import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.ports.AddressRepository;
 import ch.dissem.bitmessage.ports.MessageRepository;
-import ch.dissem.bitmessage.utils.Security;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -33,10 +32,11 @@ import java.util.Arrays;
 import java.util.List;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
+import static ch.dissem.bitmessage.utils.Singleton.security;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-public class JdbcMessageRepositoryTest {
+public class JdbcMessageRepositoryTest extends TestBase {
     private BitmessageAddress contactA;
     private BitmessageAddress contactB;
     private BitmessageAddress identity;
@@ -54,7 +54,11 @@ public class JdbcMessageRepositoryTest {
         config.reset();
         addressRepo = new JdbcAddressRepository(config);
         repo = new JdbcMessageRepository(config);
-        new InternalContext(new BitmessageContext.Builder().addressRepo(addressRepo).messageRepo(repo));
+        new InternalContext(new BitmessageContext.Builder()
+                .cryptography(security())
+                .addressRepo(addressRepo)
+                .messageRepo(repo)
+        );
 
         BitmessageAddress tmp = new BitmessageAddress(new PrivateKey(false, 1, 1000, 1000));
         contactA = new BitmessageAddress(tmp.getAddress());
@@ -120,7 +124,7 @@ public class JdbcMessageRepositoryTest {
     @Test
     public void testSave() throws Exception {
         Plaintext message = new Plaintext.Builder(MSG)
-                .IV(new InventoryVector(Security.randomBytes(32)))
+                .IV(new InventoryVector(security().randomBytes(32)))
                 .from(identity)
                 .to(contactA)
                 .message("Subject", "Message")
@@ -143,7 +147,7 @@ public class JdbcMessageRepositoryTest {
     public void testUpdate() throws Exception {
         List<Plaintext> messages = repo.findMessages(Plaintext.Status.DRAFT, contactA);
         Plaintext message = messages.get(0);
-        message.setInventoryVector(new InventoryVector(Security.randomBytes(32)));
+        message.setInventoryVector(new InventoryVector(security().randomBytes(32)));
         repo.save(message);
 
         messages = repo.findMessages(Plaintext.Status.DRAFT, contactA);

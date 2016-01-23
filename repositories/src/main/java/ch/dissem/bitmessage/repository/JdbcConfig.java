@@ -28,9 +28,9 @@ import java.sql.SQLException;
  */
 public class JdbcConfig {
     protected final Flyway flyway;
-    private final String dbUrl;
-    private final String dbUser;
-    private final String dbPassword;
+    protected final String dbUrl;
+    protected final String dbUser;
+    protected final String dbPassword;
 
     public JdbcConfig(String dbUrl, String dbUser, String dbPassword) {
         this.dbUrl = dbUrl;

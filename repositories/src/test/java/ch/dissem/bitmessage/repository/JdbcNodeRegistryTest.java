@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.repository;
 
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
+import ch.dissem.bitmessage.ports.MemoryNodeRegistry;
 import ch.dissem.bitmessage.ports.NodeRegistry;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,7 +28,7 @@ import java.util.List;
 import static ch.dissem.bitmessage.utils.UnixTime.now;
 import static org.junit.Assert.assertEquals;
 
-public class JdbcNodeRegistryTest {
+public class JdbcNodeRegistryTest extends TestBase {
     private TestJdbcConfig config;
     private NodeRegistry registry;
 

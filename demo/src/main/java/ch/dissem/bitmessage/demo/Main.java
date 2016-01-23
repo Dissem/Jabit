@@ -17,8 +17,10 @@
 package ch.dissem.bitmessage.demo;
 
 import ch.dissem.bitmessage.BitmessageContext;
-import ch.dissem.bitmessage.networking.NetworkNode;
+import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
+import ch.dissem.bitmessage.ports.MemoryNodeRegistry;
 import ch.dissem.bitmessage.repository.*;
+import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import ch.dissem.bitmessage.wif.WifExporter;
 import ch.dissem.bitmessage.wif.WifImporter;
 import org.kohsuke.args4j.CmdLineException;
@@ -49,7 +51,9 @@ public class Main {
                     .inventory(new JdbcInventory(jdbcConfig))
                     .nodeRegistry(new MemoryNodeRegistry())
                     .messageRepo(new JdbcMessageRepository(jdbcConfig))
-                    .networkHandler(new NetworkNode())
+                    .powRepo(new JdbcProofOfWorkRepository(jdbcConfig))
+                    .networkHandler(new DefaultNetworkHandler())
+                    .cryptography(new BouncyCryptography())
                     .port(48444)
                     .build();
 
@@ -60,7 +64,7 @@ public class Main {
                 new WifImporter(ctx, options.importWIF).importAll();
             }
         } else {
-            new Application();
+            new Application(options.syncServer, options.syncPort);
         }
     }
 
@@ -70,5 +74,11 @@ public class Main {
 
         @Option(name = "-export", usage = "Export to WIF file.")
         private File exportWIF;
+
+        @Option(name = "-syncServer", usage = "Use manual synchronization with the given server instead of starting a full node.")
+        private String syncServer;
+
+        @Option(name = "-syncPort", usage = "Port to use for synchronisation")
+        private int syncPort = 8444;
     }
 }

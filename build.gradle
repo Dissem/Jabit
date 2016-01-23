@@ -5,12 +5,18 @@ subprojects {
 
     sourceCompatibility = 1.7
     group = 'ch.dissem.jabit'
-    version = '0.2.0'
+    version = '1.0.0'
 
     ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
     repositories {
         mavenCentral()
+    }
+
+    test {
+        testLogging {
+            exceptionFormat = 'full'
+        }
     }
 
     task javadocJar(type: Jar) {
@@ -36,11 +42,6 @@ subprojects {
         repositories {
             mavenDeployer {
                 beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-
-                if (!hasProperty('ossrhUsername')) {
-                    ext.ossrhUsername = 'dummy'
-                    ext.ossrhPassword = 'dummy'
-                }
 
                 repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
                     authentication(userName: ossrhUsername, password: ossrhPassword)

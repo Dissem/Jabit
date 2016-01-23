@@ -25,8 +25,6 @@ import ch.dissem.bitmessage.exception.InsufficientProofOfWorkException;
 import ch.dissem.bitmessage.exception.NodeException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.NetworkHandler.MessageListener;
-import ch.dissem.bitmessage.utils.DebugUtils;
-import ch.dissem.bitmessage.utils.Security;
 import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
@@ -43,54 +42,87 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
 
 import static ch.dissem.bitmessage.networking.Connection.Mode.CLIENT;
+import static ch.dissem.bitmessage.networking.Connection.Mode.SYNC;
 import static ch.dissem.bitmessage.networking.Connection.State.*;
+import static ch.dissem.bitmessage.utils.Singleton.security;
 import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
 
 /**
  * A connection to a specific node
  */
-public class Connection implements Runnable {
+class Connection {
     public static final int READ_TIMEOUT = 2000;
-    private final static Logger LOG = LoggerFactory.getLogger(Connection.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Connection.class);
     private static final int CONNECT_TIMEOUT = 5000;
+
+    private final long startTime;
     private final ConcurrentMap<InventoryVector, Long> ivCache;
-    private InternalContext ctx;
-    private Mode mode;
-    private State state;
-    private Socket socket;
+    private final InternalContext ctx;
+    private final Mode mode;
+    private final Socket socket;
+    private final MessageListener listener;
+    private final NetworkAddress host;
+    private final NetworkAddress node;
+    private final Queue<MessagePayload> sendingQueue = new ConcurrentLinkedDeque<>();
+    private final Set<InventoryVector> commonRequestedObjects;
+    private final Set<InventoryVector> requestedObjects;
+    private final long syncTimeout;
+    private final ReaderRunnable reader = new ReaderRunnable();
+    private final WriterRunnable writer = new WriterRunnable();
+    private final DefaultNetworkHandler networkHandler;
+
+    private volatile State state;
     private InputStream in;
     private OutputStream out;
-    private MessageListener listener;
     private int version;
     private long[] streams;
-    private NetworkAddress host;
-    private NetworkAddress node;
-    private Queue<MessagePayload> sendingQueue = new ConcurrentLinkedDeque<>();
-    private ConcurrentMap<InventoryVector, Long> requestedObjects;
+    private int readTimeoutCounter;
+    private boolean socketInitialized;
+    private long lastObjectTime;
 
     public Connection(InternalContext context, Mode mode, Socket socket, MessageListener listener,
-                      ConcurrentMap<InventoryVector, Long> requestedObjectsMap) throws IOException {
-        this(context, mode, listener, requestedObjectsMap);
-        this.socket = socket;
-        this.node = new NetworkAddress.Builder().ip(socket.getInetAddress()).port(socket.getPort()).stream(1).build();
+                      Set<InventoryVector> requestedObjectsMap) throws IOException {
+        this(context, mode, listener, socket, requestedObjectsMap,
+                Collections.newSetFromMap(new ConcurrentHashMap<InventoryVector, Boolean>(10_000)),
+                new NetworkAddress.Builder().ip(socket.getInetAddress()).port(socket.getPort()).stream(1).build(),
+                0);
     }
 
     public Connection(InternalContext context, Mode mode, NetworkAddress node, MessageListener listener,
-                      ConcurrentMap<InventoryVector, Long> requestedObjectsMap) {
-        this(context, mode, listener, requestedObjectsMap);
-        this.socket = new Socket();
-        this.node = node;
+                      Set<InventoryVector> requestedObjectsMap) {
+        this(context, mode, listener, new Socket(), requestedObjectsMap,
+                Collections.newSetFromMap(new ConcurrentHashMap<InventoryVector, Boolean>(10_000)),
+                node, 0);
     }
 
-    private Connection(InternalContext context, Mode mode, MessageListener listener,
-                       ConcurrentMap<InventoryVector, Long> requestedObjectsMap) {
+    private Connection(InternalContext context, Mode mode, MessageListener listener, Socket socket,
+                       Set<InventoryVector> commonRequestedObjects, Set<InventoryVector> requestedObjects, NetworkAddress node, long syncTimeout) {
+        this.startTime = UnixTime.now();
         this.ctx = context;
         this.mode = mode;
         this.state = CONNECTING;
         this.listener = listener;
-        this.requestedObjects = requestedObjectsMap;
+        this.socket = socket;
+        this.commonRequestedObjects = commonRequestedObjects;
+        this.requestedObjects = requestedObjects;
         this.host = new NetworkAddress.Builder().ipv6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0).port(0).build();
-        ivCache = new ConcurrentHashMap<>();
+        this.node = node;
+        this.syncTimeout = (syncTimeout > 0 ? UnixTime.now(+syncTimeout) : 0);
+        this.ivCache = new ConcurrentHashMap<>();
+        this.networkHandler = (DefaultNetworkHandler) ctx.getNetworkHandler();
+    }
+
+    public static Connection sync(InternalContext ctx, InetAddress address, int port, MessageListener listener,
+                                  long timeoutInSeconds) throws IOException {
+        return new Connection(ctx, Mode.SYNC, listener, new Socket(address, port),
+                new HashSet<InventoryVector>(),
+                new HashSet<InventoryVector>(),
+                new NetworkAddress.Builder().ip(address).port(port).stream(1).build(),
+                timeoutInSeconds);
+    }
+
+    public long getStartTime() {
+        return startTime;
     }
 
     public Mode getMode() {
@@ -105,101 +137,42 @@ public class Connection implements Runnable {
         return node;
     }
 
-    @Override
-    public void run() {
-        try (Socket socket = this.socket) {
-            if (!socket.isConnected()) {
-                LOG.debug("Trying to connect to node " + node);
-                socket.connect(new InetSocketAddress(node.toInetAddress(), node.getPort()), CONNECT_TIMEOUT);
-            }
-            socket.setSoTimeout(READ_TIMEOUT);
-            this.in = socket.getInputStream();
-            this.out = socket.getOutputStream();
-            if (mode == CLIENT) {
-                send(new Version.Builder().defaults().addrFrom(host).addrRecv(node).build());
-            }
-            while (state != DISCONNECTED) {
-                try {
-                    NetworkMessage msg = Factory.getNetworkMessage(version, in);
-                    if (msg == null)
-                        continue;
-                    switch (state) {
-                        case ACTIVE:
-                            receiveMessage(msg.getPayload());
-                            sendQueue();
-                            break;
+    @SuppressWarnings("RedundantIfStatement")
+    private boolean syncFinished(NetworkMessage msg) {
+        if (mode != SYNC) {
+            return false;
+        }
+        if (Thread.interrupted()) {
+            return true;
+        }
+        if (state != ACTIVE) {
+            return false;
+        }
+        if (syncTimeout < UnixTime.now()) {
+            LOG.info("Synchronization timed out");
+            return true;
+        }
+        if (msg == null) {
+            if (requestedObjects.isEmpty() && sendingQueue.isEmpty())
+                return true;
 
-                        default:
-                            switch (msg.getPayload().getCommand()) {
-                                case VERSION:
-                                    Version payload = (Version) msg.getPayload();
-                                    if (payload.getNonce() == ctx.getClientNonce()) {
-                                        LOG.info("Tried to connect to self, disconnecting.");
-                                        disconnect();
-                                    } else if (payload.getVersion() >= BitmessageContext.CURRENT_VERSION) {
-                                        this.version = payload.getVersion();
-                                        this.streams = payload.getStreams();
-                                        send(new VerAck());
-                                        switch (mode) {
-                                            case SERVER:
-                                                send(new Version.Builder().defaults().addrFrom(host).addrRecv(node).build());
-                                                break;
-                                            case CLIENT:
-                                                activateConnection();
-                                                break;
-                                        }
-                                    } else {
-                                        LOG.info("Received unsupported version " + payload.getVersion() + ", disconnecting.");
-                                        disconnect();
-                                    }
-                                    break;
-                                case VERACK:
-                                    switch (mode) {
-                                        case SERVER:
-                                            activateConnection();
-                                            break;
-                                        case CLIENT:
-                                            // NO OP
-                                            break;
-                                    }
-                                    break;
-                                default:
-                                    throw new NodeException("Command 'version' or 'verack' expected, but was '"
-                                            + msg.getPayload().getCommand() + "'");
-                            }
-                    }
-                    if (socket.isClosed()) state = DISCONNECTED;
-                } catch (SocketTimeoutException ignore) {
-                    if (state == ACTIVE) {
-                        sendQueue();
-                    }
-                }
-            }
-        } catch (IOException | NodeException e) {
-            disconnect();
-            LOG.debug("Disconnected from node " + node + ": " + e.getMessage());
-        } catch (RuntimeException e) {
-            disconnect();
-            throw e;
+            readTimeoutCounter++;
+            return readTimeoutCounter > 1;
+        } else {
+            readTimeoutCounter = 0;
+            return false;
         }
     }
 
     private void activateConnection() {
         LOG.info("Successfully established connection with node " + node);
         state = ACTIVE;
-        sendAddresses();
+        if (mode != SYNC) {
+            sendAddresses();
+            ctx.getNodeRegistry().offerAddresses(Collections.singletonList(node));
+        }
         sendInventory();
         node.setTime(UnixTime.now());
-        ctx.getNodeRegistry().offerAddresses(Arrays.asList(node));
-    }
-
-    private void sendQueue() {
-        if (sendingQueue.size() > 0) {
-            LOG.debug("Sending " + sendingQueue.size() + " messages to node " + node);
-        }
-        for (MessagePayload msg = sendingQueue.poll(); msg != null; msg = sendingQueue.poll()) {
-            send(msg);
-        }
     }
 
     private void cleanupIvCache() {
@@ -227,41 +200,16 @@ public class Connection implements Runnable {
         }
     }
 
-    private void updateRequestedObjects(List<InventoryVector> missing) {
-        Long now = UnixTime.now();
-        Long fiveMinutesAgo = now - 5 * MINUTE;
-        Long tenMinutesAgo = now - 10 * MINUTE;
-        List<InventoryVector> stillMissing = new LinkedList<>();
-        for (Map.Entry<InventoryVector, Long> entry : requestedObjects.entrySet()) {
-            if (entry.getValue() < fiveMinutesAgo) {
-                stillMissing.add(entry.getKey());
-                // If it's still not available after 10 minutes, we won't look for it
-                // any longer (except it's announced again)
-                if (entry.getValue() < tenMinutesAgo) {
-                    requestedObjects.remove(entry.getKey());
-                }
-            }
-        }
-
-        for (InventoryVector iv : missing) {
-            requestedObjects.put(iv, now);
-        }
-        if (!stillMissing.isEmpty()) {
-            LOG.debug(stillMissing.size() + " items are still missing.");
-            missing.addAll(stillMissing);
-        }
-    }
-
     private void receiveMessage(MessagePayload messagePayload) {
         switch (messagePayload.getCommand()) {
             case INV:
                 Inv inv = (Inv) messagePayload;
+                int originalSize = inv.getInventory().size();
                 updateIvCache(inv.getInventory());
                 List<InventoryVector> missing = ctx.getInventory().getMissing(inv.getInventory(), streams);
-                missing.removeAll(requestedObjects.keySet());
-                LOG.debug("Received inventory with " + inv.getInventory().size() + " elements, of which are "
+                missing.removeAll(commonRequestedObjects);
+                LOG.debug("Received inventory with " + originalSize + " elements, of which are "
                         + missing.size() + " missing.");
-                updateRequestedObjects(missing);
                 send(new GetData.Builder().inventory(missing).build());
                 break;
             case GETDATA:
@@ -274,21 +222,26 @@ public class Connection implements Runnable {
             case OBJECT:
                 ObjectMessage objectMessage = (ObjectMessage) messagePayload;
                 try {
-                    LOG.debug("Received object " + objectMessage.getInventoryVector());
-                    Security.checkProofOfWork(objectMessage, ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
+                    requestedObjects.remove(objectMessage.getInventoryVector());
+                    if (ctx.getInventory().contains(objectMessage)) {
+                        LOG.trace("Received object " + objectMessage.getInventoryVector() + " - already in inventory");
+                        break;
+                    }
                     listener.receive(objectMessage);
+                    security().checkProofOfWork(objectMessage, ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
                     ctx.getInventory().storeObject(objectMessage);
                     // offer object to some random nodes so it gets distributed throughout the network:
-                    // FIXME: don't do this while we catch up after initialising our first connection
-                    // (that might be a bit tricky to do)
-                    ctx.getNetworkHandler().offer(objectMessage.getInventoryVector());
+                    networkHandler.offer(objectMessage.getInventoryVector());
+                    lastObjectTime = UnixTime.now();
                 } catch (InsufficientProofOfWorkException e) {
                     LOG.warn(e.getMessage());
+                    // DebugUtils.saveToFile(objectMessage); // this line must not be committed active
                 } catch (IOException e) {
                     LOG.error("Stream " + objectMessage.getStream() + ", object type " + objectMessage.getType() + ": " + e.getMessage(), e);
-                    DebugUtils.saveToFile(objectMessage);
                 } finally {
-                    requestedObjects.remove(objectMessage.getInventoryVector());
+                    if (commonRequestedObjects.remove(objectMessage.getInventoryVector())) {
+                        LOG.debug("Received object that wasn't requested.");
+                    }
                 }
                 break;
             case ADDR:
@@ -296,6 +249,7 @@ public class Connection implements Runnable {
                 LOG.debug("Received " + addr.getAddresses().size() + " addresses.");
                 ctx.getNodeRegistry().offerAddresses(addr.getAddresses());
                 break;
+            case CUSTOM:
             case VERACK:
             case VERSION:
                 throw new RuntimeException("Unexpectedly received '" + messagePayload.getCommand() + "' command");
@@ -318,11 +272,19 @@ public class Connection implements Runnable {
 
     public void disconnect() {
         state = DISCONNECTED;
+
+        // Make sure objects that are still missing are requested from other nodes
+        networkHandler.request(requestedObjects);
     }
 
-    private void send(MessagePayload payload) {
+    void send(MessagePayload payload) {
         try {
-            new NetworkMessage(payload).write(out);
+            if (payload instanceof GetData) {
+                requestedObjects.addAll(((GetData) payload).getInventory());
+            }
+            synchronized (this) {
+                new NetworkMessage(payload).write(out);
+            }
         } catch (IOException e) {
             LOG.error(e.getMessage(), e);
             disconnect();
@@ -330,7 +292,6 @@ public class Connection implements Runnable {
     }
 
     public void offer(InventoryVector iv) {
-        LOG.debug("Offering " + iv + " to node " + node.toString());
         sendingQueue.offer(new Inv.Builder()
                 .addInventoryVector(iv)
                 .build());
@@ -354,14 +315,147 @@ public class Connection implements Runnable {
         return Objects.hash(node);
     }
 
-    public void request(InventoryVector key) {
-        sendingQueue.offer(new GetData.Builder()
-                        .addInventoryVector(key)
-                        .build()
-        );
+    private synchronized void initSocket(Socket socket) throws IOException {
+        if (!socketInitialized) {
+            if (!socket.isConnected()) {
+                LOG.trace("Trying to connect to node " + node);
+                socket.connect(new InetSocketAddress(node.toInetAddress(), node.getPort()), CONNECT_TIMEOUT);
+            }
+            socket.setSoTimeout(READ_TIMEOUT);
+            in = socket.getInputStream();
+            out = socket.getOutputStream();
+            socketInitialized = true;
+        }
     }
 
-    public enum Mode {SERVER, CLIENT}
+    public ReaderRunnable getReader() {
+        return reader;
+    }
+
+    public WriterRunnable getWriter() {
+        return writer;
+    }
+
+    public enum Mode {SERVER, CLIENT, SYNC}
 
     public enum State {CONNECTING, ACTIVE, DISCONNECTED}
+
+    public class ReaderRunnable implements Runnable {
+        @Override
+        public void run() {
+            lastObjectTime = 0;
+            try (Socket socket = Connection.this.socket) {
+                initSocket(socket);
+                if (mode == CLIENT || mode == SYNC) {
+                    send(new Version.Builder().defaults().addrFrom(host).addrRecv(node).build());
+                }
+                while (state != DISCONNECTED) {
+                    if (mode != SYNC) {
+                        if (state == ACTIVE && requestedObjects.isEmpty() && sendingQueue.isEmpty()) {
+                            Thread.sleep(1000);
+                        } else {
+                            Thread.sleep(100);
+                        }
+                    }
+                    try {
+                        NetworkMessage msg = Factory.getNetworkMessage(version, in);
+                        if (msg == null)
+                            continue;
+                        switch (state) {
+                            case ACTIVE:
+                                receiveMessage(msg.getPayload());
+                                break;
+
+                            default:
+                                switch (msg.getPayload().getCommand()) {
+                                    case VERSION:
+                                        Version payload = (Version) msg.getPayload();
+                                        if (payload.getNonce() == ctx.getClientNonce()) {
+                                            LOG.info("Tried to connect to self, disconnecting.");
+                                            disconnect();
+                                        } else if (payload.getVersion() >= BitmessageContext.CURRENT_VERSION) {
+                                            version = payload.getVersion();
+                                            streams = payload.getStreams();
+                                            send(new VerAck());
+                                            switch (mode) {
+                                                case SERVER:
+                                                    send(new Version.Builder().defaults().addrFrom(host).addrRecv(node).build());
+                                                    break;
+                                                case CLIENT:
+                                                case SYNC:
+                                                    activateConnection();
+                                                    break;
+                                            }
+                                        } else {
+                                            LOG.info("Received unsupported version " + payload.getVersion() + ", disconnecting.");
+                                            disconnect();
+                                        }
+                                        break;
+                                    case VERACK:
+                                        switch (mode) {
+                                            case SERVER:
+                                                activateConnection();
+                                                break;
+                                            case CLIENT:
+                                            case SYNC:
+                                                // NO OP
+                                                break;
+                                        }
+                                        break;
+                                    case CUSTOM:
+                                        MessagePayload response = ctx.getCustomCommandHandler().handle((CustomMessage) msg.getPayload());
+                                        if (response != null) {
+                                            send(response);
+                                        }
+                                        disconnect();
+                                        break;
+                                    default:
+                                        throw new NodeException("Command 'version' or 'verack' expected, but was '"
+                                                + msg.getPayload().getCommand() + "'");
+                                }
+                        }
+                        if (socket.isClosed() || syncFinished(msg) || checkOpenRequests()) disconnect();
+                    } catch (SocketTimeoutException ignore) {
+                        if (state == ACTIVE) {
+                            if (syncFinished(null)) disconnect();
+                        }
+                    }
+                }
+            } catch (InterruptedException | IOException | NodeException e) {
+                LOG.trace("Reader disconnected from node " + node + ": " + e.getMessage());
+            } catch (RuntimeException e) {
+                LOG.trace("Reader disconnecting from node " + node + " due to error: " + e.getMessage(), e);
+            } finally {
+                disconnect();
+                try {
+                    socket.close();
+                } catch (Exception e) {
+                    LOG.debug(e.getMessage(), e);
+                }
+            }
+        }
+    }
+
+    private boolean checkOpenRequests() {
+        return !requestedObjects.isEmpty() && lastObjectTime > 0 && (UnixTime.now() - lastObjectTime) > 2 * MINUTE;
+    }
+
+    public class WriterRunnable implements Runnable {
+        @Override
+        public void run() {
+            try (Socket socket = Connection.this.socket) {
+                initSocket(socket);
+                while (state != DISCONNECTED) {
+                    if (!sendingQueue.isEmpty()) {
+                        send(sendingQueue.poll());
+                    } else {
+                        Thread.sleep(1000);
+                    }
+                }
+            } catch (IOException | InterruptedException e) {
+                LOG.trace("Writer disconnected from node " + node + ": " + e.getMessage());
+                disconnect();
+            }
+        }
+    }
 }

@@ -25,7 +25,7 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
-public class JdbcAddressRepositoryTest {
+public class JdbcAddressRepositoryTest extends TestBase {
     public static final String CONTACT_A = "BM-2cW7cD5cDQJDNkE7ibmyTxfvGAmnPqa9Vt";
     public static final String CONTACT_B = "BM-2cTtkBnb4BUYDndTKun6D9PjtueP2h1bQj";
     public static final String CONTACT_C = "BM-2cV5f9EpzaYARxtoruSpa6pDoucSf9ZNke";

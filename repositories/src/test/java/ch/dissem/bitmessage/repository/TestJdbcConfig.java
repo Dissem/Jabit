@@ -17,7 +17,8 @@
 package ch.dissem.bitmessage.repository;
 
 /**
- * Created by chris on 02.06.15.
+ * JdbcConfig to be used for tests. Uses an in-memory database and adds a useful {@link #reset()} method resetting
+ * the database.
  */
 public class TestJdbcConfig extends JdbcConfig {
     public TestJdbcConfig() {

@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -96,9 +97,10 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
             ResultSet rs = stmt.executeQuery("SELECT address, alias, public_key, private_key, subscribed FROM Address WHERE " + where);
             while (rs.next()) {
                 BitmessageAddress address;
-                Blob privateKeyBlob = rs.getBlob("private_key");
-                if (privateKeyBlob != null) {
-                    PrivateKey privateKey = PrivateKey.read(privateKeyBlob.getBinaryStream());
+
+                InputStream privateKeyStream = rs.getBinaryStream("private_key");
+                if (privateKeyStream != null) {
+                    PrivateKey privateKey = PrivateKey.read(privateKeyStream);
                     address = new BitmessageAddress(privateKey);
                 } else {
                     address = new BitmessageAddress(rs.getString("address"));
@@ -179,10 +181,9 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
         if (data != null) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             data.writeUnencrypted(out);
-            ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-            ps.setBlob(parameterIndex, in);
+            ps.setBytes(parameterIndex, out.toByteArray());
         } else {
-            ps.setBlob(parameterIndex, (Blob) null);
+            ps.setBytes(parameterIndex, null);
         }
     }
 

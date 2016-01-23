@@ -20,12 +20,15 @@ import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
-import ch.dissem.bitmessage.networking.NetworkNode;
+import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
+import ch.dissem.bitmessage.ports.MemoryNodeRegistry;
 import ch.dissem.bitmessage.repository.*;
+import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
 import java.util.List;
 import java.util.Scanner;
 
@@ -38,27 +41,32 @@ public class Application {
 
     private BitmessageContext ctx;
 
-    public Application() {
+    public Application(String syncServer, int syncPort) {
         JdbcConfig jdbcConfig = new JdbcConfig();
         ctx = new BitmessageContext.Builder()
                 .addressRepo(new JdbcAddressRepository(jdbcConfig))
                 .inventory(new JdbcInventory(jdbcConfig))
                 .nodeRegistry(new MemoryNodeRegistry())
                 .messageRepo(new JdbcMessageRepository(jdbcConfig))
-                .networkHandler(new NetworkNode())
+                .powRepo(new JdbcProofOfWorkRepository(jdbcConfig))
+                .networkHandler(new DefaultNetworkHandler())
+                .cryptography(new BouncyCryptography())
                 .port(48444)
+                .listener(new BitmessageContext.Listener() {
+                    @Override
+                    public void receive(Plaintext plaintext) {
+                        try {
+                            System.out.println(new String(plaintext.getMessage(), "UTF-8"));
+                        } catch (UnsupportedEncodingException e) {
+                            LOG.error(e.getMessage(), e);
+                        }
+                    }
+                })
                 .build();
 
-        ctx.startup(new BitmessageContext.Listener() {
-            @Override
-            public void receive(Plaintext plaintext) {
-                try {
-                    System.out.println(new String(plaintext.getMessage(), "UTF-8"));
-                } catch (UnsupportedEncodingException e) {
-                    LOG.error(e.getMessage(), e);
-                }
-            }
-        });
+        if (syncServer == null) {
+            ctx.startup();
+        }
 
         scanner = new Scanner(System.in);
 
@@ -70,6 +78,9 @@ public class Application {
             System.out.println("c) contacts");
             System.out.println("s) subscriptions");
             System.out.println("m) messages");
+            if (syncServer != null) {
+                System.out.println("y) sync");
+            }
             System.out.println("?) info");
             System.out.println("e) exit");
 
@@ -94,6 +105,9 @@ public class Application {
                         break;
                     case "e":
                         break;
+                    case "y":
+                        ctx.synchronize(InetAddress.getByName(syncServer), syncPort, 120, true);
+                        break;
                     default:
                         System.out.println("Unknown command. Please try again.");
                 }
@@ -102,6 +116,7 @@ public class Application {
             }
         } while (!"e".equals(command));
         LOG.info("Shutting down client");
+        ctx.cleanup();
         ctx.shutdown();
     }
 
