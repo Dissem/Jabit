@@ -101,14 +101,12 @@ public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
                 if (!Bytes.lt(target, mda.digest(mda.digest()), 8)) {
                     synchronized (callback) {
                         if (!Thread.interrupted()) {
-                            try {
-                                callback.onNonceCalculated(initialHash, nonce);
-                            } finally {
-                                semaphore.release();
-                                for (Worker w : workers) {
-                                    w.interrupt();
-                                }
+                            for (Worker w : workers) {
+                                w.interrupt();
                             }
+                            // Clear interrupted flag for callback
+                            Thread.interrupted();
+                            callback.onNonceCalculated(initialHash, nonce);
                         }
                     }
                     return;
@@ -129,8 +127,10 @@ public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
 
         @Override
         public void onNonceCalculated(byte[] initialHash, byte[] nonce) {
+            // Prevents the callback from being called twice if two nonces are found simultaneously
             synchronized (this) {
                 if (waiting) {
+                    semaphore.release();
                     LOG.info("Nonce calculated in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds");
                     waiting = false;
                     callback.onNonceCalculated(initialHash, nonce);

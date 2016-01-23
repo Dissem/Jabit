@@ -24,6 +24,10 @@ import static ch.dissem.bitmessage.utils.Bytes.inc;
 
 /**
  * You should really use the MultiThreadedPOWEngine, but this one might help you grok the other one.
+ * <p>
+ * <strong>Warning:</strong> implementations probably depend on POW being asynchronous, that's
+ * another reason not to use this one.
+ * </p>
  */
 public class SimplePOWEngine implements ProofOfWorkEngine {
     @Override
