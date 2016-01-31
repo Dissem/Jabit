@@ -129,6 +129,17 @@ public class JdbcAddressRepositoryTest extends TestBase {
     }
 
     @Test
+    public void ensureExistingKeysAreNotDeleted() {
+        BitmessageAddress address = new BitmessageAddress(IDENTITY_A);
+        address.setAlias("Test");
+        repo.save(address);
+        BitmessageAddress identityA = repo.getAddress(IDENTITY_A);
+        assertNotNull(identityA.getPubkey());
+        assertNotNull(identityA.getPrivateKey());
+        assertEquals("Test", identityA.getAlias());
+    }
+
+    @Test
     public void testRemove() throws Exception {
         BitmessageAddress address = repo.getAddress(IDENTITY_A);
         repo.remove(address);

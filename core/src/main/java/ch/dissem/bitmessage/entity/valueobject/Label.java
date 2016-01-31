@@ -79,6 +79,7 @@ public class Label implements Serializable {
         INBOX,
         BROADCAST,
         DRAFT,
+        OUTBOX,
         SENT,
         UNREAD,
         TRASH

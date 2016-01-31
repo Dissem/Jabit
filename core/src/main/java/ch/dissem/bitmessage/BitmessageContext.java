@@ -200,6 +200,7 @@ public class BitmessageContext {
                     LOG.info("Public key is missing from recipient. Requesting.");
                     requestPubkey(msg.getFrom(), to);
                     msg.setStatus(PUBKEY_REQUESTED);
+                    msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.OUTBOX));
                     ctx.getMessageRepository().save(msg);
                 } else {
                     LOG.info("Sending message.");
@@ -224,7 +225,7 @@ public class BitmessageContext {
                 requestingIdentity,
                 address,
                 new GetPubkey(address),
-                +28 * DAY
+                +2 * DAY
         );
     }
 

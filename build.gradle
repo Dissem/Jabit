@@ -5,7 +5,7 @@ subprojects {
 
     sourceCompatibility = 1.7
     group = 'ch.dissem.jabit'
-    version = '1.0.0'
+    version = '1.0.1-SNAPSHOT'
 
     ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
@@ -34,7 +34,7 @@ subprojects {
     }
 
     signing {
-        required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
+        required { isReleaseVersion }
         sign configurations.archives
     }
 

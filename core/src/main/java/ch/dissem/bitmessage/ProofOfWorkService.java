@@ -4,6 +4,7 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.PlaintextHolder;
+import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.ports.MessageRepository;
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine;
 import ch.dissem.bitmessage.ports.ProofOfWorkRepository;
@@ -42,10 +43,10 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
     }
 
     public void doProofOfWork(BitmessageAddress recipient, ObjectMessage object) {
-        long nonceTrialsPerByte = recipient == null ?
-                ctx.getNetworkNonceTrialsPerByte() : recipient.getPubkey().getNonceTrialsPerByte();
-        long extraBytes = recipient == null ?
-                ctx.getNetworkExtraBytes() : recipient.getPubkey().getExtraBytes();
+        Pubkey pubkey = recipient == null ? null : recipient.getPubkey();
+
+        long nonceTrialsPerByte = pubkey == null ? ctx.getNetworkNonceTrialsPerByte() : pubkey.getNonceTrialsPerByte();
+        long extraBytes = pubkey == null ? ctx.getNetworkExtraBytes() : pubkey.getExtraBytes();
 
         powRepo.putObject(object, nonceTrialsPerByte, extraBytes);
         if (object.getPayload() instanceof PlaintextHolder) {
