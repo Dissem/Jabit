@@ -28,6 +28,7 @@ import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Property;
+import ch.dissem.bitmessage.utils.TTL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -168,7 +169,7 @@ public class BitmessageContext {
                             msg.getFrom(),
                             to,
                             new Msg(msg),
-                            +2 * DAY
+                            TTL.msg()
                     );
                     msg.setStatus(SENT);
                     msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.SENT));
@@ -288,7 +289,6 @@ public class BitmessageContext {
         int connectionLimit = 150;
         long connectionTTL = 30 * MINUTE;
         boolean sendPubkeyOnIdentityCreation = true;
-        long pubkeyTTL = 28;
 
         public Builder() {
         }
@@ -383,7 +383,7 @@ public class BitmessageContext {
          */
         public Builder pubkeyTTL(long days) {
             if (days < 0 || days > 28 * DAY) throw new IllegalArgumentException("TTL must be between 1 and 28 days");
-            this.pubkeyTTL = days;
+            TTL.pubkey(days);
             return this;
         }
 

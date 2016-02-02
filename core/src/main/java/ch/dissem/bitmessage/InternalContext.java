@@ -22,6 +22,7 @@ import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Singleton;
+import ch.dissem.bitmessage.utils.TTL;
 import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +59,6 @@ public class InternalContext {
     private final long clientNonce;
     private final long networkNonceTrialsPerByte = 1000;
     private final long networkExtraBytes = 1000;
-    private final long pubkeyTTL;
     private long connectionTTL;
     private int connectionLimit;
 
@@ -78,7 +78,6 @@ public class InternalContext {
         this.port = builder.port;
         this.connectionLimit = builder.connectionLimit;
         this.connectionTTL = builder.connectionTTL;
-        this.pubkeyTTL = builder.pubkeyTTL;
 
         Singleton.initialize(cryptography);
 
@@ -194,7 +193,7 @@ public class InternalContext {
 
     public void sendPubkey(final BitmessageAddress identity, final long targetStream) {
         try {
-            long expires = UnixTime.now(pubkeyTTL);
+            long expires = UnixTime.now(TTL.pubkey());
             LOG.info("Expires at " + expires);
             final ObjectMessage response = new ObjectMessage.Builder()
                     .stream(targetStream)
@@ -233,7 +232,7 @@ public class InternalContext {
             addressRepository.save(contact);
         }
 
-        long expires = UnixTime.now(+pubkeyTTL);
+        long expires = UnixTime.now(TTL.getpubkey());
         LOG.info("Expires at " + expires);
         final ObjectMessage request = new ObjectMessage.Builder()
                 .stream(contact.getStream())

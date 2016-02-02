@@ -5,6 +5,8 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
 import ch.dissem.bitmessage.repository.*;
+import ch.dissem.bitmessage.utils.TTL;
+import ch.dissem.bitmessage.utils.UnixTime;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -12,6 +14,7 @@ import org.junit.Test;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -29,6 +32,9 @@ public class SystemTest {
 
     @BeforeClass
     public static void setUp() {
+        TTL.msg(5 * MINUTE);
+        TTL.getpubkey(5 * MINUTE);
+        TTL.pubkey(5 * MINUTE);
         JdbcConfig aliceDB = new JdbcConfig("jdbc:h2:mem:alice;DB_CLOSE_DELAY=-1", "sa", "");
         alice = new BitmessageContext.Builder()
                 .addressRepo(new JdbcAddressRepository(aliceDB))
