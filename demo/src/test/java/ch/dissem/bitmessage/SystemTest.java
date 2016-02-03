@@ -6,7 +6,6 @@ import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
 import ch.dissem.bitmessage.repository.*;
 import ch.dissem.bitmessage.utils.TTL;
-import ch.dissem.bitmessage.utils.UnixTime;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -78,7 +77,7 @@ public class SystemTest {
         String originalMessage = UUID.randomUUID().toString();
         alice.send(aliceIdentity, new BitmessageAddress(bobIdentity.getAddress()), "Subject", originalMessage);
 
-        Plaintext plaintext = bobListener.get(5, TimeUnit.MINUTES);
+        Plaintext plaintext = bobListener.get(15, TimeUnit.MINUTES);
 
         assertThat(plaintext.getText(), equalTo(originalMessage));
     }
