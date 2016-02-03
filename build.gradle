@@ -34,7 +34,7 @@ subprojects {
     }
 
     signing {
-        required { isReleaseVersion }
+        required { isReleaseVersion && project.getProperties().get("signing.keyId")?.length() > 0 }
         sign configurations.archives
     }
 
