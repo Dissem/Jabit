@@ -2,6 +2,7 @@ subprojects {
     apply plugin: 'java'
     apply plugin: 'maven'
     apply plugin: 'signing'
+    apply plugin: 'jacoco'
 
     sourceCompatibility = 1.7
     group = 'ch.dissem.jabit'
@@ -79,4 +80,13 @@ subprojects {
             }
         }
     }
+
+    jacocoTestReport {
+        reports {
+            xml.enabled = true
+            html.enabled = true
+        }
+    }
+
+    check.dependsOn jacocoTestReport
 }
