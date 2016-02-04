@@ -16,6 +16,8 @@ uploadArchives {
 
 sourceCompatibility = 1.8
 
+test.enabled = Boolean.valueOf(systemTestsEnabled)
+
 task fatCapsule(type: FatCapsule) {
     applicationClass 'ch.dissem.bitmessage.demo.Main'
 }
