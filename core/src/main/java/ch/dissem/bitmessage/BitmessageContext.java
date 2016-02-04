@@ -17,20 +17,22 @@
 package ch.dissem.bitmessage;
 
 import ch.dissem.bitmessage.entity.*;
-import ch.dissem.bitmessage.entity.payload.*;
+import ch.dissem.bitmessage.entity.payload.Broadcast;
+import ch.dissem.bitmessage.entity.payload.Msg;
+import ch.dissem.bitmessage.entity.payload.ObjectPayload;
+import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
-import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Property;
+import ch.dissem.bitmessage.utils.TTL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
-import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.*;
@@ -38,9 +40,7 @@ import java.util.concurrent.*;
 import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
-import static ch.dissem.bitmessage.utils.UnixTime.DAY;
-import static ch.dissem.bitmessage.utils.UnixTime.HOUR;
-import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
+import static ch.dissem.bitmessage.utils.UnixTime.*;
 
 /**
  * <p>Use this class if you want to create a Bitmessage client.</p>
@@ -122,67 +122,24 @@ public class BitmessageContext {
     }
 
     public void broadcast(final BitmessageAddress from, final String subject, final String message) {
-        pool.submit(new Runnable() {
-            @Override
-            public void run() {
-                Plaintext msg = new Plaintext.Builder(BROADCAST)
-                        .from(from)
-                        .message(subject, message)
-                        .build();
-
-                LOG.info("Sending message.");
-                msg.setStatus(DOING_PROOF_OF_WORK);
-                ctx.getMessageRepository().save(msg);
-                ctx.send(
-                        from,
-                        from,
-                        Factory.getBroadcast(from, msg),
-                        +2 * DAY
-                );
-                msg.setStatus(SENT);
-                msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.BROADCAST, Label.Type.SENT));
-                ctx.getMessageRepository().save(msg);
-            }
-        });
+        Plaintext msg = new Plaintext.Builder(BROADCAST)
+                .from(from)
+                .message(subject, message)
+                .build();
+        send(msg);
     }
 
     public void send(final BitmessageAddress from, final BitmessageAddress to, final String subject, final String message) {
         if (from.getPrivateKey() == null) {
             throw new IllegalArgumentException("'From' must be an identity, i.e. have a private key.");
         }
-        pool.submit(new Runnable() {
-            @Override
-            public void run() {
-                Plaintext msg = new Plaintext.Builder(MSG)
-                        .from(from)
-                        .to(to)
-                        .message(subject, message)
-                        .labels(messages().getLabels(Label.Type.SENT))
-                        .build();
-                if (to.getPubkey() == null) {
-                    tryToFindMatchingPubkey(to);
-                }
-                if (to.getPubkey() == null) {
-                    LOG.info("Public key is missing from recipient. Requesting.");
-                    requestPubkey(from, to);
-                    msg.setStatus(PUBKEY_REQUESTED);
-                    ctx.getMessageRepository().save(msg);
-                } else {
-                    LOG.info("Sending message.");
-                    msg.setStatus(DOING_PROOF_OF_WORK);
-                    ctx.getMessageRepository().save(msg);
-                    ctx.send(
-                            from,
-                            to,
-                            new Msg(msg),
-                            +2 * DAY
-                    );
-                    msg.setStatus(SENT);
-                    msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.SENT));
-                    ctx.getMessageRepository().save(msg);
-                }
-            }
-        });
+        Plaintext msg = new Plaintext.Builder(MSG)
+                .from(from)
+                .to(to)
+                .message(subject, message)
+                .labels(messages().getLabels(Label.Type.SENT))
+                .build();
+        send(msg);
     }
 
     public void send(final Plaintext msg) {
@@ -193,15 +150,18 @@ public class BitmessageContext {
             @Override
             public void run() {
                 BitmessageAddress to = msg.getTo();
-                if (to.getPubkey() == null) {
-                    tryToFindMatchingPubkey(to);
+                if (to != null) {
+                    if (to.getPubkey() == null) {
+                        LOG.info("Public key is missing from recipient. Requesting.");
+                        ctx.requestPubkey(to);
+                    }
+                    if (to.getPubkey() == null) {
+                        msg.setStatus(PUBKEY_REQUESTED);
+                        msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.OUTBOX));
+                        ctx.getMessageRepository().save(msg);
+                    }
                 }
-                if (to.getPubkey() == null) {
-                    LOG.info("Public key is missing from recipient. Requesting.");
-                    requestPubkey(msg.getFrom(), to);
-                    msg.setStatus(PUBKEY_REQUESTED);
-                    ctx.getMessageRepository().save(msg);
-                } else {
+                if (to == null || to.getPubkey() != null) {
                     LOG.info("Sending message.");
                     msg.setStatus(DOING_PROOF_OF_WORK);
                     ctx.getMessageRepository().save(msg);
@@ -209,7 +169,7 @@ public class BitmessageContext {
                             msg.getFrom(),
                             to,
                             new Msg(msg),
-                            +2 * DAY
+                            TTL.msg()
                     );
                     msg.setStatus(SENT);
                     msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.SENT));
@@ -217,15 +177,6 @@ public class BitmessageContext {
                 }
             }
         });
-    }
-
-    private void requestPubkey(BitmessageAddress requestingIdentity, BitmessageAddress address) {
-        ctx.send(
-                requestingIdentity,
-                address,
-                new GetPubkey(address),
-                +28 * DAY
-        );
     }
 
     public void startup() {
@@ -280,38 +231,8 @@ public class BitmessageContext {
 
     public void addContact(BitmessageAddress contact) {
         ctx.getAddressRepository().save(contact);
-        tryToFindMatchingPubkey(contact);
         if (contact.getPubkey() == null) {
             ctx.requestPubkey(contact);
-        }
-    }
-
-    private void tryToFindMatchingPubkey(BitmessageAddress address) {
-        for (ObjectMessage object : ctx.getInventory().getObjects(address.getStream(), address.getVersion(), ObjectType.PUBKEY)) {
-            try {
-                Pubkey pubkey = (Pubkey) object.getPayload();
-                if (address.getVersion() == 4) {
-                    V4Pubkey v4Pubkey = (V4Pubkey) pubkey;
-                    if (Arrays.equals(address.getTag(), v4Pubkey.getTag())) {
-                        v4Pubkey.decrypt(address.getPublicDecryptionKey());
-                        if (object.isSignatureValid(v4Pubkey)) {
-                            address.setPubkey(v4Pubkey);
-                            ctx.getAddressRepository().save(address);
-                            break;
-                        } else {
-                            LOG.info("Found pubkey for " + address + " but signature is invalid");
-                        }
-                    }
-                } else {
-                    if (Arrays.equals(pubkey.getRipe(), address.getRipe())) {
-                        address.setPubkey(pubkey);
-                        ctx.getAddressRepository().save(address);
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                LOG.debug(e.getMessage(), e);
-            }
         }
     }
 
@@ -368,7 +289,6 @@ public class BitmessageContext {
         int connectionLimit = 150;
         long connectionTTL = 30 * MINUTE;
         boolean sendPubkeyOnIdentityCreation = true;
-        long pubkeyTTL = 28;
 
         public Builder() {
         }
@@ -463,7 +383,7 @@ public class BitmessageContext {
          */
         public Builder pubkeyTTL(long days) {
             if (days < 0 || days > 28 * DAY) throw new IllegalArgumentException("TTL must be between 1 and 28 days");
-            this.pubkeyTTL = days;
+            TTL.pubkey(days);
             return this;
         }
 

@@ -152,13 +152,25 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
 
     private void update(BitmessageAddress address) throws IOException, SQLException {
         try (Connection connection = config.getConnection()) {
-            PreparedStatement ps = connection.prepareStatement(
-                    "UPDATE Address SET alias=?, public_key=?, private_key=?, subscribed=? WHERE address=?");
-            ps.setString(1, address.getAlias());
-            writePubkey(ps, 2, address.getPubkey());
-            writeBlob(ps, 3, address.getPrivateKey());
-            ps.setBoolean(4, address.isSubscribed());
-            ps.setString(5, address.getAddress());
+            StringBuilder statement = new StringBuilder("UPDATE Address SET alias=?");
+            if (address.getPubkey() != null) {
+                statement.append(", public_key=?");
+            }
+            if (address.getPrivateKey() != null) {
+                statement.append(", private_key=?");
+            }
+            statement.append(", subscribed=? WHERE address=?");
+            PreparedStatement ps = connection.prepareStatement(statement.toString());
+            int i = 0;
+            ps.setString(++i, address.getAlias());
+            if (address.getPubkey() != null) {
+                writePubkey(ps, ++i, address.getPubkey());
+            }
+            if (address.getPrivateKey() != null) {
+                writeBlob(ps, ++i, address.getPrivateKey());
+            }
+            ps.setBoolean(++i, address.isSubscribed());
+            ps.setString(++i, address.getAddress());
             ps.executeUpdate();
         }
     }

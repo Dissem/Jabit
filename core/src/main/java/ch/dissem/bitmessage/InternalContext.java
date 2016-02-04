@@ -19,16 +19,16 @@ package ch.dissem.bitmessage;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Encrypted;
 import ch.dissem.bitmessage.entity.ObjectMessage;
-import ch.dissem.bitmessage.entity.payload.Broadcast;
-import ch.dissem.bitmessage.entity.payload.GetPubkey;
-import ch.dissem.bitmessage.entity.payload.ObjectPayload;
+import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Singleton;
+import ch.dissem.bitmessage.utils.TTL;
 import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.TreeSet;
 
 /**
@@ -59,7 +59,6 @@ public class InternalContext {
     private final long clientNonce;
     private final long networkNonceTrialsPerByte = 1000;
     private final long networkExtraBytes = 1000;
-    private final long pubkeyTTL;
     private long connectionTTL;
     private int connectionLimit;
 
@@ -79,7 +78,6 @@ public class InternalContext {
         this.port = builder.port;
         this.connectionLimit = builder.connectionLimit;
         this.connectionTTL = builder.connectionTTL;
-        this.pubkeyTTL = builder.pubkeyTTL;
 
         Singleton.initialize(cryptography);
 
@@ -195,7 +193,7 @@ public class InternalContext {
 
     public void sendPubkey(final BitmessageAddress identity, final long targetStream) {
         try {
-            long expires = UnixTime.now(pubkeyTTL);
+            long expires = UnixTime.now(TTL.pubkey());
             LOG.info("Expires at " + expires);
             final ObjectMessage response = new ObjectMessage.Builder()
                     .stream(targetStream)
@@ -212,16 +210,71 @@ public class InternalContext {
         }
     }
 
+    /**
+     * Be aware that if the pubkey already exists in the inventory, the metods will not request it and the callback
+     * for freshly received pubkeys will not be called. Instead the pubkey is added to the contact and stored on DB.
+     */
     public void requestPubkey(final BitmessageAddress contact) {
-        long expires = UnixTime.now(+pubkeyTTL);
+        BitmessageAddress stored = addressRepository.getAddress(contact.getAddress());
+
+        tryToFindMatchingPubkey(contact);
+        if (contact.getPubkey() != null) {
+            if (stored != null) {
+                stored.setPubkey(contact.getPubkey());
+                addressRepository.save(stored);
+            } else {
+                addressRepository.save(contact);
+            }
+            return;
+        }
+
+        if (stored == null) {
+            addressRepository.save(contact);
+        }
+
+        long expires = UnixTime.now(TTL.getpubkey());
         LOG.info("Expires at " + expires);
-        final ObjectMessage response = new ObjectMessage.Builder()
+        final ObjectMessage request = new ObjectMessage.Builder()
                 .stream(contact.getStream())
                 .expiresTime(expires)
                 .payload(new GetPubkey(contact))
                 .build();
-        messageCallback.proofOfWorkStarted(response.getPayload());
-        proofOfWorkService.doProofOfWork(response);
+        messageCallback.proofOfWorkStarted(request.getPayload());
+        proofOfWorkService.doProofOfWork(request);
+    }
+
+    private void tryToFindMatchingPubkey(BitmessageAddress address) {
+        BitmessageAddress stored = addressRepository.getAddress(address.getAddress());
+        if (stored != null) {
+            address.setAlias(stored.getAlias());
+            address.setSubscribed(stored.isSubscribed());
+        }
+        for (ObjectMessage object : inventory.getObjects(address.getStream(), address.getVersion(), ObjectType.PUBKEY)) {
+            try {
+                Pubkey pubkey = (Pubkey) object.getPayload();
+                if (address.getVersion() == 4) {
+                    V4Pubkey v4Pubkey = (V4Pubkey) pubkey;
+                    if (Arrays.equals(address.getTag(), v4Pubkey.getTag())) {
+                        v4Pubkey.decrypt(address.getPublicDecryptionKey());
+                        if (object.isSignatureValid(v4Pubkey)) {
+                            address.setPubkey(v4Pubkey);
+                            addressRepository.save(address);
+                            break;
+                        } else {
+                            LOG.info("Found pubkey for " + address + " but signature is invalid");
+                        }
+                    }
+                } else {
+                    if (Arrays.equals(pubkey.getRipe(), address.getRipe())) {
+                        address.setPubkey(pubkey);
+                        addressRepository.save(address);
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                LOG.debug(e.getMessage(), e);
+            }
+        }
     }
 
     public long getClientNonce() {

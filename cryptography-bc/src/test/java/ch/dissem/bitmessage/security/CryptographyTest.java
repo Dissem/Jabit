@@ -1,11 +1,11 @@
 package ch.dissem.bitmessage.security;
 
 import ch.dissem.bitmessage.InternalContext;
+import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.GenericPayload;
 import ch.dissem.bitmessage.ports.MultiThreadedPOWEngine;
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine;
-import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import ch.dissem.bitmessage.utils.CallbackWaiter;
 import ch.dissem.bitmessage.utils.Singleton;
 import ch.dissem.bitmessage.utils.UnixTime;
@@ -15,13 +15,13 @@ import javax.xml.bind.DatatypeConverter;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
-import static ch.dissem.bitmessage.utils.UnixTime.DAY;
+import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
 import static org.junit.Assert.assertArrayEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Created by chris on 19.07.15.
+ * @author Christian Basler
  */
 public class CryptographyTest {
     public static final byte[] TEST_VALUE = "teststring".getBytes();
@@ -72,7 +72,7 @@ public class CryptographyTest {
     public void testProofOfWorkFails() throws IOException {
         ObjectMessage objectMessage = new ObjectMessage.Builder()
                 .nonce(new byte[8])
-                .expiresTime(UnixTime.now(+2 * DAY)) // 5 minutes
+                .expiresTime(UnixTime.now(+2 * MINUTE))
                 .objectType(0)
                 .payload(GenericPayload.read(0, new ByteArrayInputStream(new byte[0]), 1, 0))
                 .build();
@@ -83,7 +83,7 @@ public class CryptographyTest {
     public void testDoProofOfWork() throws Exception {
         ObjectMessage objectMessage = new ObjectMessage.Builder()
                 .nonce(new byte[8])
-                .expiresTime(UnixTime.now(+2 * DAY))
+                .expiresTime(UnixTime.now(+2 * MINUTE))
                 .objectType(0)
                 .payload(GenericPayload.read(0, new ByteArrayInputStream(new byte[0]), 1, 0))
                 .build();
