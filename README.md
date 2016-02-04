@@ -3,7 +3,7 @@ Jabit [![Build Status](https://travis-ci.org/Dissem/Jabit.svg?branch=master)](ht
 
 A Java implementation for the Bitmessage protocol. To build, use command `gradle build` or `./gradlew build`.
 
-Please note that development is still heavily in progress, and I will break the database a lot until it's ready for prime time.
+Please note that it still has its limitations, but the API should now be stable. Jabit uses Semantic Versioning, meaning as long as the major version doesn't change, nothing should break if you update.
 
 Security
 --------
