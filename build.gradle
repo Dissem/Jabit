@@ -6,7 +6,7 @@ subprojects {
 
     sourceCompatibility = 1.7
     group = 'ch.dissem.jabit'
-    version = '1.0.1-SNAPSHOT'
+    version = '1.0.1'
 
     ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
@@ -35,7 +35,7 @@ subprojects {
     }
 
     signing {
-        required { isReleaseVersion }
+        required { isReleaseVersion && project.getProperties().get("signing.keyId")?.length() > 0 }
         sign configurations.archives
     }
 
