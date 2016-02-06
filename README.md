@@ -1,9 +1,15 @@
-Jabit [![Build Status](https://travis-ci.org/Dissem/Jabit.svg?branch=master)](https://travis-ci.org/Dissem/Jabit)
+Jabit [![Maven Central](https://maven-badges.herokuapp.com/maven-central/ch.dissem.jabit/jabit-core/badge.svg)](https://maven-badges.herokuapp.com/maven-central/ch.dissem.jabit/jabit-core)
 =====
 
 A Java implementation for the Bitmessage protocol. To build, use command `gradle build` or `./gradlew build`.
 
 Please note that development is still heavily in progress, and I will break the database a lot until it's ready for prime time.
+
+#### Master
+[![Build Status](https://travis-ci.org/Dissem/Jabit.svg?branch=master)](https://travis-ci.org/Dissem/Jabit) [![codecov.io](https://codecov.io/github/Dissem/Jabit/coverage.svg?branch=master)](https://codecov.io/github/Dissem/Jabit?branch=master)
+
+#### Develop
+[![Build Status](https://travis-ci.org/Dissem/Jabit.svg?branch=develop)](https://travis-ci.org/Dissem/Jabit?branch=develop) [![codecov.io](https://codecov.io/github/Dissem/Jabit/coverage.svg?branch=develop)](https://codecov.io/github/Dissem/Jabit?branch=develop)
 
 Security
 --------
