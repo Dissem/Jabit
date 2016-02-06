@@ -455,7 +455,7 @@ public class Plaintext implements Streamable {
                         behaviorBitfield
                 ));
             }
-            if (to == null && type != Type.BROADCAST) {
+            if (to == null && type != Type.BROADCAST && destinationRipe != null) {
                 to = new BitmessageAddress(0, 0, destinationRipe);
             }
             return new Plaintext(this);

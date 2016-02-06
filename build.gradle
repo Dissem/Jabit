@@ -6,7 +6,7 @@ subprojects {
 
     sourceCompatibility = 1.7
     group = 'ch.dissem.jabit'
-    version = '1.0.1'
+    version = '1.0.2-SNAPSHOT'
 
     ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
