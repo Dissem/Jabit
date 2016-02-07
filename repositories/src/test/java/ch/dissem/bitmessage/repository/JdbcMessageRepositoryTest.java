@@ -30,11 +30,12 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
 import static ch.dissem.bitmessage.utils.Singleton.security;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.*;
 
 public class JdbcMessageRepositoryTest extends TestBase {
     private BitmessageAddress contactA;
@@ -47,6 +48,7 @@ public class JdbcMessageRepositoryTest extends TestBase {
 
     private Label inbox;
     private Label drafts;
+    private Label unread;
 
     @Before
     public void setUp() throws Exception {
@@ -72,33 +74,56 @@ public class JdbcMessageRepositoryTest extends TestBase {
 
         inbox = repo.getLabels(Label.Type.INBOX).get(0);
         drafts = repo.getLabels(Label.Type.DRAFT).get(0);
+        unread = repo.getLabels(Label.Type.UNREAD).get(0);
 
-        addMessage(contactA, identity, Plaintext.Status.RECEIVED, inbox);
+        addMessage(contactA, identity, Plaintext.Status.RECEIVED, inbox, unread);
         addMessage(identity, contactA, Plaintext.Status.DRAFT, drafts);
-        addMessage(identity, contactB, Plaintext.Status.DRAFT);
+        addMessage(identity, contactB, Plaintext.Status.DRAFT, unread);
     }
 
     @Test
-    public void testGetLabels() throws Exception {
+    public void ensureLabelsAreRetrieved() throws Exception {
         List<Label> labels = repo.getLabels();
         assertEquals(5, labels.size());
     }
 
     @Test
-    public void testGetLabelsByType() throws Exception {
+    public void ensureLabelsCanBeRetrievedByType() throws Exception {
         List<Label> labels = repo.getLabels(Label.Type.INBOX);
         assertEquals(1, labels.size());
         assertEquals("Inbox", labels.get(0).toString());
     }
 
     @Test
-    public void testFindMessagesByLabel() throws Exception {
+    public void ensureMessagesCanBeFoundByLabel() throws Exception {
         List<Plaintext> messages = repo.findMessages(inbox);
         assertEquals(1, messages.size());
         Plaintext m = messages.get(0);
         assertEquals(contactA, m.getFrom());
         assertEquals(identity, m.getTo());
         assertEquals(Plaintext.Status.RECEIVED, m.getStatus());
+    }
+
+    @Test
+    public void ensureUnreadMessagesCanBeFoundForAllLabels() {
+        int unread = repo.countUnread(null);
+        assertThat(unread, is(2));
+    }
+
+    @Test
+    public void ensureUnreadMessagesCanBeFoundByLabel() {
+        int unread = repo.countUnread(inbox);
+        assertThat(unread, is(1));
+    }
+
+    @Test
+    public void ensureMessageCanBeRetrievedByInitialHash() {
+        byte[] initialHash = new byte[64];
+        Plaintext message = repo.findMessages(contactA).get(0);
+        message.setInitialHash(initialHash);
+        repo.save(message);
+        Plaintext other = repo.getMessage(initialHash);
+        assertThat(other, is(message));
     }
 
     @Test
