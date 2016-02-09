@@ -38,8 +38,6 @@ public class CryptoBox implements Streamable {
     private final byte[] mac;
     private byte[] encrypted;
 
-    private long addressVersion;
-
 
     public CryptoBox(Streamable data, byte[] K) throws IOException {
         this(Encode.bytes(data), K);

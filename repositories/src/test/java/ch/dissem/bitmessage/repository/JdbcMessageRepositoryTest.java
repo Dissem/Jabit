@@ -30,7 +30,6 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
 import static ch.dissem.bitmessage.utils.Singleton.security;
@@ -42,8 +41,6 @@ public class JdbcMessageRepositoryTest extends TestBase {
     private BitmessageAddress contactB;
     private BitmessageAddress identity;
 
-    private TestJdbcConfig config;
-    private AddressRepository addressRepo;
     private MessageRepository repo;
 
     private Label inbox;
@@ -52,9 +49,9 @@ public class JdbcMessageRepositoryTest extends TestBase {
 
     @Before
     public void setUp() throws Exception {
-        config = new TestJdbcConfig();
+        TestJdbcConfig config = new TestJdbcConfig();
         config.reset();
-        addressRepo = new JdbcAddressRepository(config);
+        AddressRepository addressRepo = new JdbcAddressRepository(config);
         repo = new JdbcMessageRepository(config);
         new InternalContext(new BitmessageContext.Builder()
                 .cryptography(security())
