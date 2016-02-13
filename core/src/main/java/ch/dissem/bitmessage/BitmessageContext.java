@@ -26,6 +26,7 @@ import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
+import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Property;
 import ch.dissem.bitmessage.utils.TTL;
@@ -168,7 +169,7 @@ public class BitmessageContext {
                     ctx.send(
                             msg.getFrom(),
                             to,
-                            new Msg(msg),
+                            wrapInObjectPayload(msg),
                             TTL.msg()
                     );
                     msg.setStatus(SENT);
@@ -177,6 +178,17 @@ public class BitmessageContext {
                 }
             }
         });
+    }
+
+    private ObjectPayload wrapInObjectPayload(Plaintext msg) {
+        switch (msg.getType()) {
+            case MSG:
+                return new Msg(msg);
+            case BROADCAST:
+                return Factory.getBroadcast(msg);
+            default:
+                throw new RuntimeException("Unknown message type " + msg.getType());
+        }
     }
 
     public void startup() {

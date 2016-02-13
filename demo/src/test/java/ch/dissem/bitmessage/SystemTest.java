@@ -6,9 +6,7 @@ import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
 import ch.dissem.bitmessage.repository.*;
 import ch.dissem.bitmessage.utils.TTL;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -21,16 +19,16 @@ import static org.junit.Assert.assertThat;
  * @author Christian Basler
  */
 public class SystemTest {
-    static BitmessageContext alice;
-    static TestListener aliceListener = new TestListener();
-    static BitmessageAddress aliceIdentity;
+    private BitmessageContext alice;
+    private TestListener aliceListener = new TestListener();
+    private BitmessageAddress aliceIdentity;
 
-    static BitmessageContext bob;
-    static TestListener bobListener = new TestListener();
-    static BitmessageAddress bobIdentity;
+    private BitmessageContext bob;
+    private TestListener bobListener = new TestListener();
+    private BitmessageAddress bobIdentity;
 
-    @BeforeClass
-    public static void setUp() {
+    @Before
+    public void setUp() {
         TTL.msg(5 * MINUTE);
         TTL.getpubkey(5 * MINUTE);
         TTL.pubkey(5 * MINUTE);
@@ -65,20 +63,32 @@ public class SystemTest {
         bobIdentity = bob.createIdentity(false);
     }
 
-    @AfterClass
-    public static void tearDown() {
+    @After
+    public void tearDown() {
         alice.shutdown();
         bob.shutdown();
     }
 
     @Test
     public void ensureAliceCanSendMessageToBob() throws Exception {
-        bobListener.reset();
         String originalMessage = UUID.randomUUID().toString();
         alice.send(aliceIdentity, new BitmessageAddress(bobIdentity.getAddress()), "Subject", originalMessage);
 
         Plaintext plaintext = bobListener.get(15, TimeUnit.MINUTES);
 
+        assertThat(plaintext.getType(), equalTo(Plaintext.Type.MSG));
+        assertThat(plaintext.getText(), equalTo(originalMessage));
+    }
+
+    @Test
+    public void ensureBobCanReceiveBroadcastFromAlice() throws Exception {
+        String originalMessage = UUID.randomUUID().toString();
+        bob.addSubscribtion(new BitmessageAddress(aliceIdentity.getAddress()));
+        alice.broadcast(aliceIdentity, "Subject", originalMessage);
+
+        Plaintext plaintext = bobListener.get(15, TimeUnit.MINUTES);
+
+        assertThat(plaintext.getType(), equalTo(Plaintext.Type.BROADCAST));
         assertThat(plaintext.getText(), equalTo(originalMessage));
     }
 }
