@@ -1,4 +1,4 @@
-Jabit [![Maven Central](https://maven-badges.herokuapp.com/maven-central/ch.dissem.jabit/jabit-core/badge.svg)](https://maven-badges.herokuapp.com/maven-central/ch.dissem.jabit/jabit-core)
+Jabit [![Maven Central](https://maven-badges.herokuapp.com/maven-central/ch.dissem.jabit/jabit-core/badge.svg)](https://maven-badges.herokuapp.com/maven-central/ch.dissem.jabit/jabit-core) [![Javadoc](https://javadoc-emblem.rhcloud.com/doc/ch.dissem.jabit/jabit-core/badge.svg)](http://www.javadoc.io/doc/ch.dissem.jabit/jabit-core)
 =====
 
 A Java implementation for the Bitmessage protocol. To build, use command `gradle build` or `./gradlew build`.
