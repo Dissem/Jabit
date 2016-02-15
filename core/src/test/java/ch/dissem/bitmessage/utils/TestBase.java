@@ -17,12 +17,14 @@
 package ch.dissem.bitmessage.utils;
 
 import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
+import org.junit.BeforeClass;
 
 /**
- * Created by chris on 20.07.15.
+ * @author Christian Basler
  */
 public class TestBase {
-    static {
+    @BeforeClass
+    public static void setUpClass() {
         Singleton.initialize(new BouncyCryptography());
     }
 }

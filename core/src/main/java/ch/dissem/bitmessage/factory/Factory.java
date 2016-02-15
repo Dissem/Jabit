@@ -196,7 +196,7 @@ public class Factory {
         }
     }
 
-    public static ObjectPayload getBroadcast(Plaintext plaintext) {
+    public static Broadcast getBroadcast(Plaintext plaintext) {
         BitmessageAddress sendingAddress = plaintext.getFrom();
         if (sendingAddress.getVersion() < 4) {
             return new V4Broadcast(sendingAddress, plaintext);

@@ -5,10 +5,10 @@ import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.PlaintextHolder;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
+import ch.dissem.bitmessage.ports.Cryptography;
 import ch.dissem.bitmessage.ports.MessageRepository;
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine;
 import ch.dissem.bitmessage.ports.ProofOfWorkRepository;
-import ch.dissem.bitmessage.ports.Cryptography;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,16 +61,14 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
     public void onNonceCalculated(byte[] initialHash, byte[] nonce) {
         ObjectMessage object = powRepo.getItem(initialHash).object;
         object.setNonce(nonce);
-//        messageCallback.proofOfWorkCompleted(payload);
         Plaintext plaintext = messageRepo.getMessage(initialHash);
         if (plaintext != null) {
             plaintext.setInventoryVector(object.getInventoryVector());
             messageRepo.save(plaintext);
         }
         ctx.getInventory().storeObject(object);
-        ctx.getProofOfWorkRepository().removeObject(initialHash);
+        powRepo.removeObject(initialHash);
         ctx.getNetworkHandler().offer(object.getInventoryVector());
-//        messageCallback.messageOffered(payload, object.getInventoryVector());
     }
 
     @Override

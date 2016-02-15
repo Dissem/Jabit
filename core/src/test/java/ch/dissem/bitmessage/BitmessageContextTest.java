@@ -26,10 +26,12 @@ import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.MessageMatchers;
 import ch.dissem.bitmessage.utils.Singleton;
 import ch.dissem.bitmessage.utils.TestUtils;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -50,10 +52,7 @@ public class BitmessageContextTest {
 
     @Before
     public void setUp() throws Exception {
-        Field field = Singleton.class.getDeclaredField("cryptography");
-        field.setAccessible(true);
-        field.set(null, null);
-
+        Singleton.initialize(null);
         listener = mock(BitmessageContext.Listener.class);
         ctx = new BitmessageContext.Builder()
                 .addressRepo(mock(AddressRepository.class))
@@ -89,6 +88,51 @@ public class BitmessageContextTest {
         ctx.addContact(contact);
 
         verify(ctx.addresses(), times(1)).save(contact);
+        verify(ctx.internals().getProofOfWorkEngine(), never())
+                .calculateNonce(any(byte[].class), any(byte[].class), any(ProofOfWorkEngine.Callback.class));
+    }
+
+    @Test
+    public void ensureV2PubkeyIsNotRequestedIfItExistsInInventory() throws Exception {
+        BitmessageAddress contact = new BitmessageAddress("BM-opWQhvk9xtMFvQA2Kvetedpk8LkbraWHT");
+        when(ctx.internals().getInventory().getObjects(anyLong(), anyLong(), any(ObjectType.class)))
+                .thenReturn(Collections.singletonList(
+                        TestUtils.loadObjectMessage(2, "V2Pubkey.payload")
+                ));
+
+        ctx.addContact(contact);
+
+        verify(ctx.addresses(), atLeastOnce()).save(contact);
+        verify(ctx.internals().getProofOfWorkEngine(), never())
+                .calculateNonce(any(byte[].class), any(byte[].class), any(ProofOfWorkEngine.Callback.class));
+    }
+
+    @Test
+    public void ensureV4PubkeyIsNotRequestedIfItExistsInInventory() throws Exception {
+        BitmessageAddress contact = new BitmessageAddress("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h");
+        when(ctx.internals().getInventory().getObjects(anyLong(), anyLong(), any(ObjectType.class)))
+                .thenReturn(Collections.singletonList(
+                        TestUtils.loadObjectMessage(2, "V4Pubkey.payload")
+                ));
+        final BitmessageAddress stored = new BitmessageAddress(contact.getAddress());
+        stored.setAlias("Test");
+        when(ctx.addresses().getAddress(contact.getAddress())).thenReturn(stored);
+
+        ctx.addContact(contact);
+
+        verify(ctx.addresses(), atLeastOnce()).save(argThat(new BaseMatcher<BitmessageAddress>() {
+            @Override
+            public boolean matches(Object item) {
+                return item instanceof BitmessageAddress
+                        && ((BitmessageAddress) item).getPubkey() != null
+                        && stored.getAlias().equals(((BitmessageAddress) item).getAlias());
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("pubkey must not be null and alias must be ").appendValue(stored.getAlias());
+            }
+        }));
         verify(ctx.internals().getProofOfWorkEngine(), never())
                 .calculateNonce(any(byte[].class), any(byte[].class), any(ProofOfWorkEngine.Callback.class));
     }
