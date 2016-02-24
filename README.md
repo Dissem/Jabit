@@ -1,9 +1,13 @@
-Jabit [![Maven Central](https://maven-badges.herokuapp.com/maven-central/ch.dissem.jabit/jabit-core/badge.svg)](https://maven-badges.herokuapp.com/maven-central/ch.dissem.jabit/jabit-core) [![Javadoc](https://javadoc-emblem.rhcloud.com/doc/ch.dissem.jabit/jabit-core/badge.svg)](http://www.javadoc.io/doc/ch.dissem.jabit/jabit-core) [![Visit our IRC channel](https://img.shields.io/badge/irc-%23jabit-blue.svg)](https://kiwiirc.com/client/irc.freenode.net/#jabit)
+Jabit
 =====
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/ch.dissem.jabit/jabit-core/badge.svg)](https://maven-badges.herokuapp.com/maven-central/ch.dissem.jabit/jabit-core)
+[![Javadoc](https://javadoc-emblem.rhcloud.com/doc/ch.dissem.jabit/jabit-core/badge.svg)](http://www.javadoc.io/doc/ch.dissem.jabit/jabit-core)
+[![GitHub license](https://img.shields.io/github/license/Dissem/Jabit.svg)](https://raw.githubusercontent.com/Dissem/Jabit/master/LICENSE)
+[![Visit our IRC channel](https://img.shields.io/badge/irc-%23jabit-blue.svg)](https://kiwiirc.com/client/irc.freenode.net/#jabit)
 
 A Java implementation for the Bitmessage protocol. To build, use command `gradle build` or `./gradlew build`.
 
-Please note that development is still heavily in progress, and I will break the database a lot until it's ready for prime time.
+There are still some features missing, most notably acknowledgements. The API however should be stable, and it should work well enough for most use cases.
 
 #### Master
 [![Build Status](https://travis-ci.org/Dissem/Jabit.svg?branch=master)](https://travis-ci.org/Dissem/Jabit) [![codecov.io](https://codecov.io/github/Dissem/Jabit/coverage.svg?branch=master)](https://codecov.io/github/Dissem/Jabit?branch=master)
