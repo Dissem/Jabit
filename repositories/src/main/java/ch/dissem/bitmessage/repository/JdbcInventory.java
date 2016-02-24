@@ -19,6 +19,7 @@ package ch.dissem.bitmessage.repository;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.Inventory;
 import org.slf4j.Logger;
@@ -99,7 +100,7 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
             }
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 
@@ -126,7 +127,7 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
             return result;
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 

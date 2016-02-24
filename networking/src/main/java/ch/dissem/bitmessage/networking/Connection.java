@@ -114,7 +114,7 @@ class Connection {
 
     public static Connection sync(InternalContext ctx, InetAddress address, int port, MessageListener listener,
                                   long timeoutInSeconds) throws IOException {
-        return new Connection(ctx, Mode.SYNC, listener, new Socket(address, port),
+        return new Connection(ctx, SYNC, listener, new Socket(address, port),
                 new HashSet<InventoryVector>(),
                 new HashSet<InventoryVector>(),
                 new NetworkAddress.Builder().ip(address).port(port).stream(1).build(),

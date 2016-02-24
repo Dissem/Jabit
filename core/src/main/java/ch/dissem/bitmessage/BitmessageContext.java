@@ -410,23 +410,7 @@ public class BitmessageContext {
                 proofOfWorkEngine = new MultiThreadedPOWEngine();
             }
             if (messageCallback == null) {
-                messageCallback = new MessageCallback() {
-                    @Override
-                    public void proofOfWorkStarted(ObjectPayload message) {
-                    }
-
-                    @Override
-                    public void proofOfWorkCompleted(ObjectPayload message) {
-                    }
-
-                    @Override
-                    public void messageOffered(ObjectPayload message, InventoryVector iv) {
-                    }
-
-                    @Override
-                    public void messageAcknowledged(InventoryVector iv) {
-                    }
-                };
+                messageCallback = new BaseMessageCallback();
             }
             if (customCommandHandler == null) {
                 customCommandHandler = new CustomCommandHandler() {

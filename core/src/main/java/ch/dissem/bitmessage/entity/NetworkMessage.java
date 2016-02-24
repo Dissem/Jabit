@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage.entity;
 
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.ByteArrayOutputStream;
@@ -84,7 +85,7 @@ public class NetworkMessage implements Streamable {
         try {
             out.write(getChecksum(payloadBytes));
         } catch (GeneralSecurityException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
 
         // message payload

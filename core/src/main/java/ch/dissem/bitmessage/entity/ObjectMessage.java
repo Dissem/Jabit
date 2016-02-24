@@ -191,9 +191,6 @@ public class ObjectMessage implements MessagePayload {
         private long streamNumber;
         private ObjectPayload payload;
 
-        public Builder() {
-        }
-
         public Builder nonce(byte[] nonce) {
             this.nonce = nonce;
             return this;

@@ -171,6 +171,8 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
                                             case ACTIVE:
                                                 active++;
                                                 break;
+                                            default:
+                                                // nothing to do
                                         }
                                     }
                                 }

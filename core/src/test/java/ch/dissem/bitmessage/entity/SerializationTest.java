@@ -111,6 +111,7 @@ public class SerializationTest extends TestBase {
         before.write(out);
 
         NetworkMessage after = Factory.getNetworkMessage(3, new ByteArrayInputStream(out.toByteArray()));
+        assertNotNull(after);
         Inv invAfter = (Inv) after.getPayload();
         assertEquals(ivs, invAfter.getInventory());
     }

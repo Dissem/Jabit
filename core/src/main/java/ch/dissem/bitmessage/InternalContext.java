@@ -20,6 +20,7 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Encrypted;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.*;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Singleton;
 import ch.dissem.bitmessage.utils.TTL;
@@ -187,7 +188,7 @@ public class InternalContext {
             messageCallback.proofOfWorkStarted(payload);
             proofOfWorkService.doProofOfWork(to, object);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 
@@ -206,7 +207,7 @@ public class InternalContext {
             // TODO: remember that the pubkey is just about to be sent, and on which stream!
             proofOfWorkService.doProofOfWork(response);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 

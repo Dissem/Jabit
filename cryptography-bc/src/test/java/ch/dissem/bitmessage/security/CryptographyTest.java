@@ -5,6 +5,7 @@ import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.GenericPayload;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.exception.InsufficientProofOfWorkException;
 import ch.dissem.bitmessage.ports.MultiThreadedPOWEngine;
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine;
 import ch.dissem.bitmessage.utils.CallbackWaiter;
@@ -22,6 +23,7 @@ import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -102,7 +104,11 @@ public class CryptographyTest {
                     }
                 });
         objectMessage.setNonce(waiter.waitForValue());
-        crypto.checkProofOfWork(objectMessage, 1000, 1000);
+        try {
+            crypto.checkProofOfWork(objectMessage, 1000, 1000);
+        } catch (InsufficientProofOfWorkException e) {
+            fail(e.getMessage());
+        }
     }
 
     @Test

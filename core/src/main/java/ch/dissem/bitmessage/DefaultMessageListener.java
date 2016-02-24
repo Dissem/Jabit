@@ -65,6 +65,9 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
                 receive(object, (Broadcast) payload);
                 break;
             }
+            default: {
+                throw new IllegalArgumentException("Unknown payload type " + payload.getType());
+            }
         }
     }
 
@@ -96,7 +99,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
         }
     }
 
-    private void updatePubkey(BitmessageAddress address, Pubkey pubkey){
+    private void updatePubkey(BitmessageAddress address, Pubkey pubkey) {
         address.setPubkey(pubkey);
         LOG.info("Got pubkey for contact " + address);
         ctx.getAddressRepository().save(address);

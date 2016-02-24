@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity.valueobject;
 
 import ch.dissem.bitmessage.entity.Streamable;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.utils.Encode;
 import ch.dissem.bitmessage.utils.UnixTime;
 
@@ -85,7 +86,7 @@ public class NetworkAddress implements Streamable {
         try {
             return InetAddress.getByAddress(ipv6);
         } catch (UnknownHostException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 

@@ -52,30 +52,30 @@ public class NetworkHandlerTest {
     public static void setUp() {
         peerInventory = new TestInventory();
         peer = new BitmessageContext.Builder()
-                .addressRepo(Mockito.mock(AddressRepository.class))
+                .addressRepo(mock(AddressRepository.class))
                 .inventory(peerInventory)
-                .messageRepo(Mockito.mock(MessageRepository.class))
-                .powRepo(Mockito.mock(ProofOfWorkRepository.class))
+                .messageRepo(mock(MessageRepository.class))
+                .powRepo(mock(ProofOfWorkRepository.class))
                 .port(6001)
                 .nodeRegistry(new TestNodeRegistry())
                 .networkHandler(new DefaultNetworkHandler())
                 .cryptography(new BouncyCryptography())
-                .listener(Mockito.mock(BitmessageContext.Listener.class))
+                .listener(mock(BitmessageContext.Listener.class))
                 .build();
         peer.startup();
 
         nodeInventory = new TestInventory();
         networkHandler = new DefaultNetworkHandler();
         node = new BitmessageContext.Builder()
-                .addressRepo(Mockito.mock(AddressRepository.class))
+                .addressRepo(mock(AddressRepository.class))
                 .inventory(nodeInventory)
-                .messageRepo(Mockito.mock(MessageRepository.class))
-                .powRepo(Mockito.mock(ProofOfWorkRepository.class))
+                .messageRepo(mock(MessageRepository.class))
+                .powRepo(mock(ProofOfWorkRepository.class))
                 .port(6002)
                 .nodeRegistry(new TestNodeRegistry(localhost))
                 .networkHandler(networkHandler)
                 .cryptography(new BouncyCryptography())
-                .listener(Mockito.mock(BitmessageContext.Listener.class))
+                .listener(mock(BitmessageContext.Listener.class))
                 .build();
     }
 
