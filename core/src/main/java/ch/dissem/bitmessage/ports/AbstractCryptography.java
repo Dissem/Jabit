@@ -19,6 +19,7 @@ package ch.dissem.bitmessage.ports;
 import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.exception.InsufficientProofOfWorkException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.Bytes;
@@ -151,7 +152,7 @@ public abstract class AbstractCryptography implements Cryptography, InternalCont
         try {
             return MessageDigest.getInstance(algorithm, provider);
         } catch (GeneralSecurityException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 
@@ -161,7 +162,7 @@ public abstract class AbstractCryptography implements Cryptography, InternalCont
             mac.init(new SecretKeySpec(key_m, "HmacSHA256"));
             return mac.doFinal(data);
         } catch (GeneralSecurityException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 

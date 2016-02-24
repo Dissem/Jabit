@@ -19,6 +19,7 @@ package ch.dissem.bitmessage.entity;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.utils.AccessCounter;
 import ch.dissem.bitmessage.utils.Base58;
 import ch.dissem.bitmessage.utils.Bytes;
@@ -83,7 +84,7 @@ public class BitmessageAddress implements Serializable {
             os.write(checksum, 0, 4);
             this.address = "BM-" + Base58.encode(os.toByteArray());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 
@@ -124,7 +125,7 @@ public class BitmessageAddress implements Serializable {
                 this.publicDecryptionKey = Arrays.copyOfRange(checksum, 0, 32);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 
@@ -136,7 +137,7 @@ public class BitmessageAddress implements Serializable {
             out.write(ripe);
             return Arrays.copyOfRange(security().doubleSha512(out.toByteArray()), 32, 64);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 

@@ -21,7 +21,6 @@ import ch.dissem.bitmessage.entity.CustomMessage;
 import ch.dissem.bitmessage.entity.Streamable;
 import ch.dissem.bitmessage.entity.payload.CryptoBox;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
-import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.Encode;

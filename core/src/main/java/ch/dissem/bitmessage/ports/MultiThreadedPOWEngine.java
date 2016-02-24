@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage.ports;
 
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.utils.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +50,7 @@ public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
         try {
             semaphore.acquire();
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
         callback = new CallbackWrapper(callback);
         int cores = Runtime.getRuntime().availableProcessors();
@@ -88,7 +89,7 @@ public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
                 mda = MessageDigest.getInstance("SHA-512");
             } catch (NoSuchAlgorithmException e) {
                 LOG.error(e.getMessage(), e);
-                throw new RuntimeException(e);
+                throw new ApplicationException(e);
             }
         }
 
