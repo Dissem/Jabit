@@ -15,7 +15,7 @@ Project Status
 
 Basically, everything needed for a working Bitmessage client is there:
 * Creating new identities (private addresses)
-* Adding contracts and subscriptions
+* Adding contacts and subscriptions
 * Receiving broadcasts
 * Receiving messages
 * Sending messages and broadcasts
