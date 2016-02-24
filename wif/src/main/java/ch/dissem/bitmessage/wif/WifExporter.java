@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.wif;
 
 import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.utils.Base58;
 import org.ini4j.Ini;
 import org.ini4j.Profile;
@@ -95,7 +96,7 @@ public class WifExporter {
         try {
             ini.store(writer);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
         return writer.toString();
     }

@@ -25,6 +25,7 @@ import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.*;
@@ -119,7 +120,7 @@ public class BitmessageContext {
 
     public void addDistributedMailingList(String address, String alias) {
         // TODO
-        throw new RuntimeException("not implemented");
+        throw new ApplicationException("not implemented");
     }
 
     public void broadcast(final BitmessageAddress from, final String subject, final String message) {
@@ -187,7 +188,7 @@ public class BitmessageContext {
             case BROADCAST:
                 return Factory.getBroadcast(msg);
             default:
-                throw new RuntimeException("Unknown message type " + msg.getType());
+                throw new ApplicationException("Unknown message type " + msg.getType());
         }
     }
 

@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.ports.MessageRepository;
 import ch.dissem.bitmessage.utils.Strings;
 import org.slf4j.Logger;
@@ -53,7 +54,7 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
                 result.add(getLabel(rs));
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
         return result;
     }
@@ -118,7 +119,7 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
             case 1:
                 return plaintexts.get(0);
             default:
-                throw new RuntimeException("This shouldn't happen, found " + plaintexts.size() +
+                throw new ApplicationException("This shouldn't happen, found " + plaintexts.size() +
                         " messages, one or none was expected");
         }
     }
@@ -225,10 +226,10 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
                 } catch (SQLException e1) {
                     LOG.debug(e1.getMessage(), e);
                 }
-                throw new RuntimeException(e);
+                throw new ApplicationException(e);
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 

@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.Decode;
 import ch.dissem.bitmessage.utils.Encode;
@@ -111,9 +112,9 @@ public class Plaintext implements Streamable {
 
     public void setTo(BitmessageAddress to) {
         if (this.to.getVersion() != 0)
-            throw new RuntimeException("Correct address already set");
+            throw new IllegalStateException("Correct address already set");
         if (!Arrays.equals(this.to.getRipe(), to.getRipe())) {
-            throw new RuntimeException("RIPEs don't match");
+            throw new IllegalArgumentException("RIPEs don't match");
         }
         this.to = to;
     }
@@ -223,7 +224,7 @@ public class Plaintext implements Streamable {
             }
             return text;
         } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 
@@ -402,7 +403,7 @@ public class Plaintext implements Streamable {
                 this.encoding = Encoding.SIMPLE.getCode();
                 this.message = ("Subject:" + subject + '\n' + "Body:" + message).getBytes("UTF-8");
             } catch (UnsupportedEncodingException e) {
-                throw new RuntimeException(e);
+                throw new ApplicationException(e);
             }
             return this;
         }

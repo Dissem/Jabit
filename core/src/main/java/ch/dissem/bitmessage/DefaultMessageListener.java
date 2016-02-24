@@ -103,7 +103,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
         address.setPubkey(pubkey);
         LOG.info("Got pubkey for contact " + address);
         ctx.getAddressRepository().save(address);
-        List<Plaintext> messages = ctx.getMessageRepository().findMessages(Plaintext.Status.PUBKEY_REQUESTED, address);
+        List<Plaintext> messages = ctx.getMessageRepository().findMessages(PUBKEY_REQUESTED, address);
         LOG.info("Sending " + messages.size() + " messages for contact " + address);
         for (Plaintext msg : messages) {
             msg.setStatus(DOING_PROOF_OF_WORK);

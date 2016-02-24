@@ -252,6 +252,7 @@ class Connection {
             case CUSTOM:
             case VERACK:
             case VERSION:
+            default:
                 throw new RuntimeException("Unexpectedly received '" + messagePayload.getCommand() + "' command");
         }
     }

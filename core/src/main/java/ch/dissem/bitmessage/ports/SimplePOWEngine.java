@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage.ports;
 
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.utils.Bytes;
 
 import java.security.MessageDigest;
@@ -37,7 +38,7 @@ public class SimplePOWEngine implements ProofOfWorkEngine {
         try {
             mda = MessageDigest.getInstance("SHA-512");
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
         do {
             inc(nonce);

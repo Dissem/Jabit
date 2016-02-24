@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage.entity;
 
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.utils.AccessCounter;
 import ch.dissem.bitmessage.utils.Encode;
 
@@ -66,7 +67,7 @@ public class CustomMessage implements MessagePayload {
                 write(out);
                 return out.toByteArray();
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new ApplicationException(e);
             }
         }
     }
@@ -77,7 +78,7 @@ public class CustomMessage implements MessagePayload {
             Encode.varString(command, out);
             out.write(data);
         } else {
-            throw new RuntimeException("Tried to write custom message without data. " +
+            throw new ApplicationException("Tried to write custom message without data. " +
                     "Programmer: did you forget to override #write()?");
         }
     }
@@ -90,7 +91,7 @@ public class CustomMessage implements MessagePayload {
         try {
             return new CustomMessage(COMMAND_ERROR, message.getBytes("UTF-8"));
         } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 }

@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.entity.valueobject;
 
 import ch.dissem.bitmessage.entity.Streamable;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.Bytes;
 import ch.dissem.bitmessage.utils.Decode;
@@ -71,7 +72,7 @@ public class PrivateKey implements Streamable {
             this.pubkey = security().createPubkey(version, stream, privateSigningKey, privateEncryptionKey,
                     nonceTrialsPerByte, extraBytes, features);
         } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 

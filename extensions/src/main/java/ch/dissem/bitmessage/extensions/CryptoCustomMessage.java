@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.entity.CustomMessage;
 import ch.dissem.bitmessage.entity.Streamable;
 import ch.dissem.bitmessage.entity.payload.CryptoBox;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.Encode;
@@ -134,9 +135,9 @@ public class CryptoCustomMessage<T extends Streamable> extends CustomMessage {
             return read;
         }
 
-        public void checkSignature(Pubkey pubkey) throws IOException, RuntimeException {
+        public void checkSignature(Pubkey pubkey) throws IOException, IllegalStateException {
             if (!security().isSignatureValid(out.toByteArray(), varBytes(wrapped), pubkey)) {
-                throw new RuntimeException("Signature check failed");
+                throw new IllegalStateException("Signature check failed");
             }
         }
     }
