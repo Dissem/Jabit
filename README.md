@@ -7,7 +7,8 @@ Jabit
 
 A Java implementation for the Bitmessage protocol. To build, use command `gradle build` or `./gradlew build`.
 
-There are still some features missing, most notably acknowledgements. The API however should be stable, and it should work well enough for most use cases.
+Please note that it still has its limitations, but the API should now be stable. Jabit uses Semantic Versioning, meaning
+as long as the major version doesn't change, nothing should break if you update.
 
 #### Master
 [![Build Status](https://travis-ci.org/Dissem/Jabit.svg?branch=master)](https://travis-ci.org/Dissem/Jabit) [![codecov.io](https://codecov.io/github/Dissem/Jabit/coverage.svg?branch=master)](https://codecov.io/github/Dissem/Jabit?branch=master)
@@ -18,14 +19,16 @@ There are still some features missing, most notably acknowledgements. The API ho
 Security
 --------
 
-There are most probably some security issues, me programming this thing all by myself. Jabit doesn't do anything against timing attacks yet, for example. Please feel free to use the library, report bugs and maybe even help out. I hope the code is easy to understand and work with.
+There are most probably some security issues, me programming this thing all by myself. Jabit doesn't do anything against
+timing attacks yet, for example. Please feel free to use the library, report bugs and maybe even help out. I hope the
+code is easy to understand and work with.
 
 Project Status
 --------------
 
 Basically, everything needed for a working Bitmessage client is there:
 * Creating new identities (private addresses)
-* Adding contracts and subscriptions
+* Adding contacts and subscriptions
 * Receiving broadcasts
 * Receiving messages
 * Sending messages and broadcasts
