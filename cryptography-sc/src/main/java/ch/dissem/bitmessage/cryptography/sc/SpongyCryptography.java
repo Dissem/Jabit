@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.cryptography.sc;
 
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.ports.AbstractCryptography;
 import org.spongycastle.asn1.x9.X9ECParameters;
 import org.spongycastle.crypto.BufferedBlockCipher;
@@ -37,6 +38,7 @@ import org.spongycastle.jce.spec.ECPublicKeySpec;
 import org.spongycastle.math.ec.ECPoint;
 
 import java.math.BigInteger;
+import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.Signature;
@@ -109,8 +111,8 @@ public class SpongyCryptography extends AbstractCryptography {
             sig.initVerify(publicKey);
             sig.update(data);
             return sig.verify(signature);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        } catch (GeneralSecurityException e) {
+            throw new ApplicationException(e);
         }
     }
 
@@ -133,8 +135,8 @@ public class SpongyCryptography extends AbstractCryptography {
             sig.initSign(privKey);
             sig.update(data);
             return sig.sign();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        } catch (GeneralSecurityException e) {
+            throw new ApplicationException(e);
         }
     }
 

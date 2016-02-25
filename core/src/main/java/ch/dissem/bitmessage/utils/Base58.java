@@ -18,6 +18,7 @@
 package ch.dissem.bitmessage.utils;
 
 import ch.dissem.bitmessage.exception.AddressFormatException;
+import ch.dissem.bitmessage.exception.ApplicationException;
 
 import java.io.UnsupportedEncodingException;
 
@@ -83,7 +84,7 @@ public class Base58 {
         try {
             return new String(output, "US-ASCII");
         } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);  // Cannot happen.
+            throw new ApplicationException(e);  // Cannot happen.
         }
     }
 

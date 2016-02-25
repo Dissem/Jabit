@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.*;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.exception.InsufficientProofOfWorkException;
 import ch.dissem.bitmessage.exception.NodeException;
 import ch.dissem.bitmessage.factory.Factory;
@@ -253,7 +254,7 @@ class Connection {
             case VERACK:
             case VERSION:
             default:
-                throw new RuntimeException("Unexpectedly received '" + messagePayload.getCommand() + "' command");
+                throw new IllegalStateException("Unexpectedly received '" + messagePayload.getCommand() + "' command");
         }
     }
 
@@ -386,6 +387,8 @@ class Connection {
                                                 case SYNC:
                                                     activateConnection();
                                                     break;
+                                                default:
+                                                    // NO OP
                                             }
                                         } else {
                                             LOG.info("Received unsupported version " + payload.getVersion() + ", disconnecting.");
@@ -399,6 +402,7 @@ class Connection {
                                                 break;
                                             case CLIENT:
                                             case SYNC:
+                                            default:
                                                 // NO OP
                                                 break;
                                         }

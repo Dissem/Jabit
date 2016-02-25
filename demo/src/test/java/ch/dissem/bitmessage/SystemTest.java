@@ -19,6 +19,8 @@ import static org.junit.Assert.assertThat;
  * @author Christian Basler
  */
 public class SystemTest {
+    private static int port = 6000;
+
     private BitmessageContext alice;
     private TestListener aliceListener = new TestListener();
     private BitmessageAddress aliceIdentity;
@@ -29,6 +31,8 @@ public class SystemTest {
 
     @Before
     public void setUp() {
+        int alicePort = port++;
+        int bobPort = port++;
         TTL.msg(5 * MINUTE);
         TTL.getpubkey(5 * MINUTE);
         TTL.pubkey(5 * MINUTE);
@@ -38,8 +42,8 @@ public class SystemTest {
                 .inventory(new JdbcInventory(aliceDB))
                 .messageRepo(new JdbcMessageRepository(aliceDB))
                 .powRepo(new JdbcProofOfWorkRepository(aliceDB))
-                .port(6001)
-                .nodeRegistry(new TestNodeRegistry(6002))
+                .port(alicePort)
+                .nodeRegistry(new TestNodeRegistry(bobPort))
                 .networkHandler(new DefaultNetworkHandler())
                 .cryptography(new BouncyCryptography())
                 .listener(aliceListener)
@@ -53,8 +57,8 @@ public class SystemTest {
                 .inventory(new JdbcInventory(bobDB))
                 .messageRepo(new JdbcMessageRepository(bobDB))
                 .powRepo(new JdbcProofOfWorkRepository(bobDB))
-                .port(6002)
-                .nodeRegistry(new TestNodeRegistry(6001))
+                .port(bobPort)
+                .nodeRegistry(new TestNodeRegistry(alicePort))
                 .networkHandler(new DefaultNetworkHandler())
                 .cryptography(new BouncyCryptography())
                 .listener(bobListener)

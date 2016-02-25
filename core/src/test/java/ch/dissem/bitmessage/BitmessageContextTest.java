@@ -194,7 +194,8 @@ public class BitmessageContextTest {
                 .putObject(object(BROADCAST), eq(1000L), eq(1000L));
         verify(ctx.internals().getProofOfWorkEngine())
                 .calculateNonce(any(byte[].class), any(byte[].class), any(ProofOfWorkEngine.Callback.class));
-        verify(ctx.messages(), timeout(10000).atLeastOnce()).save(MessageMatchers.plaintext(Plaintext.Type.BROADCAST));
+        verify(ctx.messages(), timeout(10000).atLeastOnce())
+                .save(MessageMatchers.plaintext(Plaintext.Type.BROADCAST));
     }
 
     @Test(expected = IllegalArgumentException.class)

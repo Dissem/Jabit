@@ -1,12 +1,14 @@
 package ch.dissem.bitmessage.repository;
 
 import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.ProofOfWorkRepository;
 import ch.dissem.bitmessage.utils.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,11 +39,11 @@ public class JdbcProofOfWorkRepository extends JdbcHelper implements ProofOfWork
                         rs.getLong("extra_bytes")
                 );
             } else {
-                throw new RuntimeException("Object requested that we don't have. Initial hash: " + Strings.hex(initialHash));
+                throw new IllegalArgumentException("Object requested that we don't have. Initial hash: " + Strings.hex(initialHash));
             }
-        } catch (Exception e) {
+        } catch (SQLException e) {
             LOG.error(e.getMessage(), e);
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 
@@ -57,7 +59,7 @@ public class JdbcProofOfWorkRepository extends JdbcHelper implements ProofOfWork
             return result;
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 
@@ -71,12 +73,9 @@ public class JdbcProofOfWorkRepository extends JdbcHelper implements ProofOfWork
             ps.setLong(4, nonceTrialsPerByte);
             ps.setLong(5, extraBytes);
             ps.executeUpdate();
-        } catch (SQLException e) {
+        } catch (IOException | SQLException e) {
             LOG.debug("Error storing object of type " + object.getPayload().getClass().getSimpleName(), e);
-            throw new RuntimeException(e);
-        } catch (Exception e) {
-            LOG.error(e.getMessage(), e);
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 

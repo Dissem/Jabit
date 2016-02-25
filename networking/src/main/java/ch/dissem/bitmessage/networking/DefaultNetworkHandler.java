@@ -23,6 +23,7 @@ import ch.dissem.bitmessage.entity.GetData;
 import ch.dissem.bitmessage.entity.NetworkMessage;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.exception.NodeException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.NetworkHandler;
@@ -85,7 +86,7 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
             pool.execute(connection.getWriter());
             return reader;
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 
@@ -106,7 +107,7 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
                 }
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 
@@ -209,7 +210,7 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
                 }
             });
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 

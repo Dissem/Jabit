@@ -21,12 +21,12 @@ import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.payload.V3Pubkey;
 import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.AddressRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -129,8 +129,9 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
         try (Connection connection = config.getConnection()) {
             Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM Address WHERE address='" + address.getAddress() + "'");
-            rs.next();
-            return rs.getInt(1) > 0;
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);
         }

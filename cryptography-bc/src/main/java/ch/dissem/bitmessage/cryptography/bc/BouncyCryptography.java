@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.cryptography.bc;
 
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.ports.AbstractCryptography;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.BufferedBlockCipher;
@@ -37,6 +38,7 @@ import org.bouncycastle.jce.spec.ECPublicKeySpec;
 import org.bouncycastle.math.ec.ECPoint;
 
 import java.math.BigInteger;
+import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.Signature;
@@ -109,8 +111,8 @@ public class BouncyCryptography extends AbstractCryptography {
             sig.initVerify(publicKey);
             sig.update(data);
             return sig.verify(signature);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        } catch (GeneralSecurityException e) {
+            throw new ApplicationException(e);
         }
     }
 
@@ -133,8 +135,8 @@ public class BouncyCryptography extends AbstractCryptography {
             sig.initSign(privKey);
             sig.update(data);
             return sig.sign();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        } catch (GeneralSecurityException e) {
+            throw new ApplicationException(e);
         }
     }
 

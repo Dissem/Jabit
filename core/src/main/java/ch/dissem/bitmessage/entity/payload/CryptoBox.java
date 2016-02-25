@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity.payload;
 
 import ch.dissem.bitmessage.entity.Streamable;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.utils.*;
 import org.slf4j.Logger;
@@ -123,7 +124,7 @@ public class CryptoBox implements Streamable {
             writeWithoutMAC(macData);
             return security().mac(key_m, macData.toByteArray());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 
