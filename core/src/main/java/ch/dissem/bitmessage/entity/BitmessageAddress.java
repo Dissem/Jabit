@@ -188,7 +188,7 @@ public class BitmessageAddress implements Serializable {
 
     @Override
     public String toString() {
-        return alias != null ? alias : address;
+        return alias == null ? address : alias;
     }
 
     public byte[] getRipe() {

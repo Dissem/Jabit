@@ -54,9 +54,6 @@ public class Inv implements MessagePayload {
     public static final class Builder {
         private List<InventoryVector> inventory = new LinkedList<>();
 
-        public Builder() {
-        }
-
         public Builder addInventoryVector(InventoryVector inventoryVector) {
             this.inventory.add(inventoryVector);
             return this;

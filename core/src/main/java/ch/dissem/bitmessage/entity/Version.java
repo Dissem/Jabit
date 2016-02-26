@@ -143,9 +143,6 @@ public class Version implements MessagePayload {
         private String userAgent;
         private long[] streamNumbers;
 
-        public Builder() {
-        }
-
         public Builder defaults() {
             version = BitmessageContext.CURRENT_VERSION;
             services = 1;

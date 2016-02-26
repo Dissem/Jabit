@@ -90,10 +90,10 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
     @Override
     public int countUnread(Label label) {
         String where;
-        if (label != null) {
-            where = "id IN (SELECT message_id FROM Message_Label WHERE label_id=" + label.getId() + ") AND ";
-        } else {
+        if (label == null) {
             where = "";
+        } else {
+            where = "id IN (SELECT message_id FROM Message_Label WHERE label_id=" + label.getId() + ") AND ";
         }
         where += "id IN (SELECT message_id FROM Message_Label WHERE label_id IN (" +
                 "SELECT id FROM Label WHERE type = '" + Label.Type.UNREAD.name() + "'))";
@@ -237,14 +237,14 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         PreparedStatement ps = connection.prepareStatement(
                 "INSERT INTO Message (iv, type, sender, recipient, data, sent, received, status, initial_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 Statement.RETURN_GENERATED_KEYS);
-        ps.setBytes(1, message.getInventoryVector() != null ? message.getInventoryVector().getHash() : null);
+        ps.setBytes(1, message.getInventoryVector() == null ? null : message.getInventoryVector().getHash());
         ps.setString(2, message.getType().name());
         ps.setString(3, message.getFrom().getAddress());
-        ps.setString(4, message.getTo() != null ? message.getTo().getAddress() : null);
+        ps.setString(4, message.getTo() == null ? null : message.getTo().getAddress());
         writeBlob(ps, 5, message);
         ps.setLong(6, message.getSent());
         ps.setLong(7, message.getReceived());
-        ps.setString(8, message.getStatus() != null ? message.getStatus().name() : null);
+        ps.setString(8, message.getStatus() == null ? null : message.getStatus().name());
         ps.setBytes(9, message.getInitialHash());
 
         ps.executeUpdate();
@@ -258,10 +258,10 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
     private void update(Connection connection, Plaintext message) throws SQLException, IOException {
         PreparedStatement ps = connection.prepareStatement(
                 "UPDATE Message SET iv=?, sent=?, received=?, status=?, initial_hash=? WHERE id=?");
-        ps.setBytes(1, message.getInventoryVector() != null ? message.getInventoryVector().getHash() : null);
+        ps.setBytes(1, message.getInventoryVector() == null ? null : message.getInventoryVector().getHash());
         ps.setLong(2, message.getSent());
         ps.setLong(3, message.getReceived());
-        ps.setString(4, message.getStatus() != null ? message.getStatus().name() : null);
+        ps.setString(4, message.getStatus() == null ? null : message.getStatus().name());
         ps.setBytes(5, message.getInitialHash());
         ps.setLong(6, (Long) message.getId());
         ps.executeUpdate();

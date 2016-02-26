@@ -134,9 +134,6 @@ public class NetworkAddress implements Streamable {
         private byte[] ipv6;
         private int port;
 
-        public Builder() {
-        }
-
         public Builder time(final long time) {
             this.time = time;
             return this;

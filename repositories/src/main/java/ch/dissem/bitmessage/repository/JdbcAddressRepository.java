@@ -99,10 +99,7 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
                 BitmessageAddress address;
 
                 InputStream privateKeyStream = rs.getBinaryStream("private_key");
-                if (privateKeyStream != null) {
-                    PrivateKey privateKey = PrivateKey.read(privateKeyStream);
-                    address = new BitmessageAddress(privateKey);
-                } else {
+                if (privateKeyStream == null) {
                     address = new BitmessageAddress(rs.getString("address"));
                     Blob publicKeyBlob = rs.getBlob("public_key");
                     if (publicKeyBlob != null) {
@@ -113,6 +110,9 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
                         }
                         address.setPubkey(pubkey);
                     }
+                } else {
+                    PrivateKey privateKey = PrivateKey.read(privateKeyStream);
+                    address = new BitmessageAddress(privateKey);
                 }
                 address.setAlias(rs.getString("alias"));
                 address.setSubscribed(rs.getBoolean("subscribed"));

@@ -96,9 +96,6 @@ public class V2Pubkey extends Pubkey {
         private byte[] publicSigningKey;
         private byte[] publicEncryptionKey;
 
-        public Builder() {
-        }
-
         public Builder stream(long streamNumber) {
             this.streamNumber = streamNumber;
             return this;

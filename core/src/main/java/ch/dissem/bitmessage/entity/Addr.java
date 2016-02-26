@@ -55,9 +55,6 @@ public class Addr implements MessagePayload {
     public static final class Builder {
         private List<NetworkAddress> addresses = new ArrayList<NetworkAddress>();
 
-        public Builder() {
-        }
-
         public Builder addresses(Collection<NetworkAddress> addresses){
             this.addresses.addAll(addresses);
             return this;

@@ -289,18 +289,18 @@ public class Application {
         System.out.println("Stream:  " + address.getStream());
         System.out.println("Version: " + address.getVersion());
         if (address.getPrivateKey() == null) {
-            if (address.getPubkey() != null) {
-                System.out.println("Public key available");
-            } else {
+            if (address.getPubkey() == null) {
                 System.out.println("Public key still missing");
+            } else {
+                System.out.println("Public key available");
             }
         }
     }
 
     private void messages() {
         String command;
-        List<Plaintext> messages = ctx.messages().findMessages(Plaintext.Status.RECEIVED);
         do {
+            List<Plaintext> messages = ctx.messages().findMessages(Plaintext.Status.RECEIVED);
             System.out.println();
             int i = 0;
             for (Plaintext message : messages) {

@@ -302,9 +302,6 @@ public class BitmessageContext {
         long connectionTTL = 30 * MINUTE;
         boolean sendPubkeyOnIdentityCreation = true;
 
-        public Builder() {
-        }
-
         public Builder port(int port) {
             this.port = port;
             return this;

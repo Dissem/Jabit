@@ -156,10 +156,10 @@ public class ObjectMessage implements MessagePayload {
 
     @Override
     public void write(OutputStream out) throws IOException {
-        if (nonce != null) {
-            out.write(nonce);
-        } else {
+        if (nonce == null) {
             out.write(new byte[8]);
+        } else {
+            out.write(nonce);
         }
         out.write(getPayloadBytesWithoutNonce());
     }

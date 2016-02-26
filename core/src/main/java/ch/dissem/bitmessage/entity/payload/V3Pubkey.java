@@ -123,9 +123,6 @@ public class V3Pubkey extends V2Pubkey {
         private long extraBytes;
         private byte[] signature = new byte[0];
 
-        public Builder() {
-        }
-
         public Builder stream(long streamNumber) {
             this.streamNumber = streamNumber;
             return this;

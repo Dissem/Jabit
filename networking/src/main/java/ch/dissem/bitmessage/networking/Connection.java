@@ -21,7 +21,6 @@ import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.*;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
-import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.exception.InsufficientProofOfWorkException;
 import ch.dissem.bitmessage.exception.NodeException;
 import ch.dissem.bitmessage.factory.Factory;
