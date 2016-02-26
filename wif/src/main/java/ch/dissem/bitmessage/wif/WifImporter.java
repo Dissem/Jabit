@@ -23,8 +23,6 @@ import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.Base58;
 import org.ini4j.Ini;
 import org.ini4j.Profile;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.Arrays;
@@ -39,6 +37,9 @@ import static ch.dissem.bitmessage.utils.Singleton.security;
  * @author Christian Basler
  */
 public class WifImporter {
+    private static final byte WIF_FIRST_BYTE = (byte) 0x80;
+    private static final int WIF_SECRET_LENGTH = 37;
+
     private final BitmessageContext ctx;
     private final List<BitmessageAddress> identities = new LinkedList<>();
 
@@ -76,10 +77,12 @@ public class WifImporter {
 
     private byte[] getSecret(String walletImportFormat) throws IOException {
         byte[] bytes = Base58.decode(walletImportFormat);
-        if (bytes[0] != (byte) 0x80)
-            throw new IOException("Unknown format: 0x80 expected as first byte, but secret " + walletImportFormat + " was " + bytes[0]);
-        if (bytes.length != 37)
-            throw new IOException("Unknown format: 37 bytes expected, but secret " + walletImportFormat + " was " + bytes.length + " long");
+        if (bytes[0] != WIF_FIRST_BYTE)
+            throw new IOException("Unknown format: 0x80 expected as first byte, but secret " + walletImportFormat +
+                    " was " + bytes[0]);
+        if (bytes.length != WIF_SECRET_LENGTH)
+            throw new IOException("Unknown format: " + WIF_SECRET_LENGTH +
+                    " bytes expected, but secret " + walletImportFormat + " was " + bytes.length + " long");
 
         byte[] hash = security().doubleSha256(bytes, 33);
         for (int i = 0; i < 4; i++) {

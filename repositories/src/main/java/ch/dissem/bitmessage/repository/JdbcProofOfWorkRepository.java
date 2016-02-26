@@ -27,19 +27,23 @@ public class JdbcProofOfWorkRepository extends JdbcHelper implements ProofOfWork
 
     @Override
     public Item getItem(byte[] initialHash) {
-        try (Connection connection = config.getConnection()) {
-            PreparedStatement ps = connection.prepareStatement("SELECT data, version, nonce_trials_per_byte, extra_bytes FROM POW WHERE initial_hash=?");
+        try (
+                Connection connection = config.getConnection();
+                PreparedStatement ps = connection.prepareStatement("SELECT data, version, nonce_trials_per_byte, " +
+                        "extra_bytes FROM POW WHERE initial_hash=?")
+        ) {
             ps.setBytes(1, initialHash);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                Blob data = rs.getBlob("data");
-                return new Item(
-                        Factory.getObjectMessage(rs.getInt("version"), data.getBinaryStream(), (int) data.length()),
-                        rs.getLong("nonce_trials_per_byte"),
-                        rs.getLong("extra_bytes")
-                );
-            } else {
-                throw new IllegalArgumentException("Object requested that we don't have. Initial hash: " + Strings.hex(initialHash));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Blob data = rs.getBlob("data");
+                    return new Item(
+                            Factory.getObjectMessage(rs.getInt("version"), data.getBinaryStream(), (int) data.length()),
+                            rs.getLong("nonce_trials_per_byte"),
+                            rs.getLong("extra_bytes")
+                    );
+                } else {
+                    throw new IllegalArgumentException("Object requested that we don't have. Initial hash: " + Strings.hex(initialHash));
+                }
             }
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);
@@ -49,10 +53,12 @@ public class JdbcProofOfWorkRepository extends JdbcHelper implements ProofOfWork
 
     @Override
     public List<byte[]> getItems() {
-        try (Connection connection = config.getConnection()) {
+        try (
+                Connection connection = config.getConnection();
+                Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT initial_hash FROM POW")
+        ) {
             List<byte[]> result = new LinkedList<>();
-            Statement stmt = connection.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT initial_hash FROM POW");
             while (rs.next()) {
                 result.add(rs.getBytes("initial_hash"));
             }
@@ -65,8 +71,11 @@ public class JdbcProofOfWorkRepository extends JdbcHelper implements ProofOfWork
 
     @Override
     public void putObject(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) {
-        try (Connection connection = config.getConnection()) {
-            PreparedStatement ps = connection.prepareStatement("INSERT INTO POW (initial_hash, data, version, nonce_trials_per_byte, extra_bytes) VALUES (?, ?, ?, ?, ?)");
+        try (
+                Connection connection = config.getConnection();
+                PreparedStatement ps = connection.prepareStatement("INSERT INTO POW (initial_hash, data, version, " +
+                        "nonce_trials_per_byte, extra_bytes) VALUES (?, ?, ?, ?, ?)")
+        ) {
             ps.setBytes(1, security().getInitialHash(object));
             writeBlob(ps, 2, object);
             ps.setLong(3, object.getVersion());
@@ -81,8 +90,10 @@ public class JdbcProofOfWorkRepository extends JdbcHelper implements ProofOfWork
 
     @Override
     public void removeObject(byte[] initialHash) {
-        try (Connection connection = config.getConnection()) {
-            PreparedStatement ps = connection.prepareStatement("DELETE FROM POW WHERE initial_hash=?");
+        try (
+                Connection connection = config.getConnection();
+                PreparedStatement ps = connection.prepareStatement("DELETE FROM POW WHERE initial_hash=?")
+        ) {
             ps.setBytes(1, initialHash);
             ps.executeUpdate();
         } catch (SQLException e) {

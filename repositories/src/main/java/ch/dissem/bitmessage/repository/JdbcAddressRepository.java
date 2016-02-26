@@ -21,7 +21,6 @@ import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.payload.V3Pubkey;
 import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
-import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.AddressRepository;
 import org.slf4j.Logger;
@@ -92,9 +91,12 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
 
     private List<BitmessageAddress> find(String where) {
         List<BitmessageAddress> result = new LinkedList<>();
-        try (Connection connection = config.getConnection()) {
-            Statement stmt = connection.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT address, alias, public_key, private_key, subscribed FROM Address WHERE " + where);
+        try (
+                Connection connection = config.getConnection();
+                Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT address, alias, public_key, private_key, subscribed " +
+                        "FROM Address WHERE " + where)
+        ) {
             while (rs.next()) {
                 BitmessageAddress address;
 
@@ -126,9 +128,12 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
     }
 
     private boolean exists(BitmessageAddress address) {
-        try (Connection connection = config.getConnection()) {
-            Statement stmt = connection.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM Address WHERE address='" + address.getAddress() + "'");
+        try (
+                Connection connection = config.getConnection();
+                Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM Address " +
+                        "WHERE address='" + address.getAddress() + "'")
+        ) {
             if (rs.next()) {
                 return rs.getInt(1) > 0;
             }
@@ -152,16 +157,18 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
     }
 
     private void update(BitmessageAddress address) throws IOException, SQLException {
-        try (Connection connection = config.getConnection()) {
-            StringBuilder statement = new StringBuilder("UPDATE Address SET alias=?");
-            if (address.getPubkey() != null) {
-                statement.append(", public_key=?");
-            }
-            if (address.getPrivateKey() != null) {
-                statement.append(", private_key=?");
-            }
-            statement.append(", subscribed=? WHERE address=?");
-            PreparedStatement ps = connection.prepareStatement(statement.toString());
+        StringBuilder statement = new StringBuilder("UPDATE Address SET alias=?");
+        if (address.getPubkey() != null) {
+            statement.append(", public_key=?");
+        }
+        if (address.getPrivateKey() != null) {
+            statement.append(", private_key=?");
+        }
+        statement.append(", subscribed=? WHERE address=?");
+        try (
+                Connection connection = config.getConnection();
+                PreparedStatement ps = connection.prepareStatement(statement.toString())
+        ) {
             int i = 0;
             ps.setString(++i, address.getAlias());
             if (address.getPubkey() != null) {
@@ -177,9 +184,12 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
     }
 
     private void insert(BitmessageAddress address) throws IOException, SQLException {
-        try (Connection connection = config.getConnection()) {
-            PreparedStatement ps = connection.prepareStatement(
-                    "INSERT INTO Address (address, version, alias, public_key, private_key, subscribed) VALUES (?, ?, ?, ?, ?, ?)");
+        try (
+                Connection connection = config.getConnection();
+                PreparedStatement ps = connection.prepareStatement(
+                        "INSERT INTO Address (address, version, alias, public_key, private_key, subscribed) " +
+                                "VALUES (?, ?, ?, ?, ?, ?)")
+        ) {
             ps.setString(1, address.getAddress());
             ps.setLong(2, address.getVersion());
             ps.setString(3, address.getAlias());
@@ -202,8 +212,10 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
 
     @Override
     public void remove(BitmessageAddress address) {
-        try (Connection connection = config.getConnection()) {
-            Statement stmt = connection.createStatement();
+        try (
+                Connection connection = config.getConnection();
+                Statement stmt = connection.createStatement()
+        ) {
             stmt.executeUpdate("DELETE FROM Address WHERE address = '" + address.getAddress() + "'");
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);

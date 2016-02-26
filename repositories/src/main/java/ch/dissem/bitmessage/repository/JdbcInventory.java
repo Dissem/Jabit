@@ -61,11 +61,12 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
                 if (cache.get(stream) == null) {
                     result = new ConcurrentHashMap<>();
                     cache.put(stream, result);
-
-                    try (Connection connection = config.getConnection()) {
-                        Statement stmt = connection.createStatement();
-                        ResultSet rs = stmt.executeQuery("SELECT hash, expires FROM Inventory WHERE expires > "
-                                + now(-5 * MINUTE) + " AND stream = " + stream);
+                    try (
+                            Connection connection = config.getConnection();
+                            Statement stmt = connection.createStatement();
+                            ResultSet rs = stmt.executeQuery("SELECT hash, expires FROM Inventory " +
+                                    "WHERE expires > " + now(-5 * MINUTE) + " AND stream = " + stream)
+                    ) {
                         while (rs.next()) {
                             result.put(new InventoryVector(rs.getBytes("hash")), rs.getLong("expires"));
                         }
@@ -116,7 +117,7 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
             query.append(" AND version = ").append(version);
         }
         if (types.length > 0) {
-            query.append(" AND type IN (").append(join(types)).append(")");
+            query.append(" AND type IN (").append(join(types)).append(')');
         }
         try (
                 Connection connection = config.getConnection();
