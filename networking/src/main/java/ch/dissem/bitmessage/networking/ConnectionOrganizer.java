@@ -99,12 +99,12 @@ public class ConnectionOrganizer implements Runnable {
                             networkHandler.startConnection(c);
                         }
                         Thread.sleep(10000);
-                    } else if (initialConnection != null) {
+                    } else if (initialConnection == null) {
+                        Thread.sleep(30000);
+                    } else {
                         initialConnection.disconnect();
                         initialConnection = null;
                         Thread.sleep(10000);
-                    } else {
-                        Thread.sleep(30000);
                     }
                 } catch (InterruptedException e) {
                     networkHandler.stop();

@@ -39,11 +39,7 @@ import static ch.dissem.bitmessage.utils.Singleton.security;
  * @author Christian Basler
  */
 public class WifImporter {
-    private final static Logger LOG = LoggerFactory.getLogger(WifImporter.class);
-
     private final BitmessageContext ctx;
-    private final Ini ini = new Ini();
-
     private final List<BitmessageAddress> identities = new LinkedList<>();
 
     public WifImporter(BitmessageContext ctx, File file) throws IOException {
