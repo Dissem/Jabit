@@ -2,7 +2,7 @@ Jabit
 =====
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/ch.dissem.jabit/jabit-core/badge.svg)](https://maven-badges.herokuapp.com/maven-central/ch.dissem.jabit/jabit-core)
 [![Javadoc](https://javadoc-emblem.rhcloud.com/doc/ch.dissem.jabit/jabit-core/badge.svg)](http://www.javadoc.io/doc/ch.dissem.jabit/jabit-core)
-[![GitHub license](https://img.shields.io/github/license/Dissem/Jabit.svg)](https://raw.githubusercontent.com/Dissem/Jabit/master/LICENSE)
+[![Apache 2](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](https://raw.githubusercontent.com/Dissem/Jabit/master/LICENSE)
 [![Visit our IRC channel](https://img.shields.io/badge/irc-%23jabit-blue.svg)](https://kiwiirc.com/client/irc.freenode.net/#jabit)
 
 A Java implementation for the Bitmessage protocol. To build, use command `gradle build` or `./gradlew build`.
@@ -11,10 +11,14 @@ Please note that it still has its limitations, but the API should now be stable.
 as long as the major version doesn't change, nothing should break if you update.
 
 #### Master
-[![Build Status](https://travis-ci.org/Dissem/Jabit.svg?branch=master)](https://travis-ci.org/Dissem/Jabit) [![codecov.io](https://codecov.io/github/Dissem/Jabit/coverage.svg?branch=master)](https://codecov.io/github/Dissem/Jabit?branch=master)
+[![Build Status](https://travis-ci.org/Dissem/Jabit.svg?branch=master)](https://travis-ci.org/Dissem/Jabit) 
+[![Code Quality](https://img.shields.io/codacy/e9938d2adbb74a0db553115bef692ff3/master.svg)](https://www.codacy.com/app/chrigu-meyer/Jabit/dashboard?bid=3144281)
+[![Test Coverage](https://codecov.io/github/Dissem/Jabit/coverage.svg?branch=master)](https://codecov.io/github/Dissem/Jabit?branch=master)
 
 #### Develop
-[![Build Status](https://travis-ci.org/Dissem/Jabit.svg?branch=develop)](https://travis-ci.org/Dissem/Jabit?branch=develop) [![codecov.io](https://codecov.io/github/Dissem/Jabit/coverage.svg?branch=develop)](https://codecov.io/github/Dissem/Jabit?branch=develop)
+[![Build Status](https://travis-ci.org/Dissem/Jabit.svg?branch=develop)](https://travis-ci.org/Dissem/Jabit?branch=develop) 
+[![Code Quality](https://img.shields.io/codacy/e9938d2adbb74a0db553115bef692ff3/develop.svg)](https://www.codacy.com/app/chrigu-meyer/Jabit/dashboard?bid=3144279)
+[![Test Coverage](https://codecov.io/github/Dissem/Jabit/coverage.svg?branch=develop)](https://codecov.io/github/Dissem/Jabit?branch=develop)
 
 Security
 --------
