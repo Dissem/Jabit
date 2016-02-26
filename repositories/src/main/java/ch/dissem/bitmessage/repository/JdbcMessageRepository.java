@@ -201,47 +201,49 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         // save from address if necessary
         if (message.getId() == null) {
             BitmessageAddress savedAddress = ctx.getAddressRepository().getAddress(message.getFrom().getAddress());
-            if (savedAddress == null || savedAddress.getPrivateKey() == null) {
-                if (savedAddress != null && savedAddress.getAlias() != null) {
-                    message.getFrom().setAlias(savedAddress.getAlias());
-                }
+            if (savedAddress == null) {
                 ctx.getAddressRepository().save(message.getFrom());
+            } else if (savedAddress.getPubkey() == null && message.getFrom().getPubkey() != null) {
+                savedAddress.setPubkey(message.getFrom().getPubkey());
+                ctx.getAddressRepository().save(savedAddress);
             }
         }
 
         try (Connection connection = config.getConnection()) {
             try {
                 connection.setAutoCommit(false);
-                // save message
-                if (message.getId() == null) {
-                    insert(connection, message);
-                } else {
-                    update(connection, message);
-                }
-
-                // remove existing labels
-                try (Statement stmt = connection.createStatement()) {
-                    stmt.executeUpdate("DELETE FROM Message_Label WHERE message_id=" + message.getId());
-                }
-                // save labels
-                try (PreparedStatement ps = connection.prepareStatement("INSERT INTO Message_Label VALUES (" +
-                        message.getId() + ", ?)")) {
-                    for (Label label : message.getLabels()) {
-                        ps.setLong(1, (Long) label.getId());
-                        ps.executeUpdate();
-                    }
-                }
+                save(connection, message);
+                updateLabels(connection, message);
                 connection.commit();
             } catch (IOException | SQLException e) {
-                try {
-                    connection.rollback();
-                } catch (SQLException e1) {
-                    LOG.debug(e1.getMessage(), e);
-                }
-                throw new ApplicationException(e);
+                connection.rollback();
+                throw e;
             }
-        } catch (SQLException e) {
+        } catch (IOException | SQLException e) {
             throw new ApplicationException(e);
+        }
+    }
+
+    private void save(Connection connection, Plaintext message) throws IOException, SQLException {
+        if (message.getId() == null) {
+            insert(connection, message);
+        } else {
+            update(connection, message);
+        }
+    }
+
+    private void updateLabels(Connection connection, Plaintext message) throws SQLException {
+        // remove existing labels
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("DELETE FROM Message_Label WHERE message_id=" + message.getId());
+        }
+        // save new labels
+        try (PreparedStatement ps = connection.prepareStatement("INSERT INTO Message_Label VALUES (" +
+                message.getId() + ", ?)")) {
+            for (Label label : message.getLabels()) {
+                ps.setLong(1, (Long) label.getId());
+                ps.executeUpdate();
+            }
         }
     }
 
