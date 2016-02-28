@@ -17,10 +17,10 @@
 package ch.dissem.bitmessage.demo;
 
 import ch.dissem.bitmessage.BitmessageContext;
+import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
 import ch.dissem.bitmessage.ports.MemoryNodeRegistry;
 import ch.dissem.bitmessage.repository.*;
-import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import ch.dissem.bitmessage.wif.WifExporter;
 import ch.dissem.bitmessage.wif.WifImporter;
 import org.kohsuke.args4j.CmdLineException;
@@ -29,6 +29,7 @@ import org.kohsuke.args4j.Option;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
 
 public class Main {
     public static void main(String[] args) throws IOException {
@@ -64,7 +65,8 @@ public class Main {
                 new WifImporter(ctx, options.importWIF).importAll();
             }
         } else {
-            new Application(options.syncServer, options.syncPort);
+            InetAddress syncServer = options.syncServer == null ? null : InetAddress.getByName(options.syncServer);
+            new Application(syncServer, options.syncPort);
         }
     }
 
