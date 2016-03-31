@@ -39,7 +39,7 @@ import static ch.dissem.bitmessage.entity.payload.ObjectType.*;
 import static ch.dissem.bitmessage.utils.MessageMatchers.object;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -205,5 +205,22 @@ public class BitmessageContextTest {
                 .message("Subject", "Message")
                 .build();
         ctx.send(msg);
+    }
+
+    @Test
+    public void ensureChanIsJoined() {
+        String chanAddress = "BM-2cW67GEKkHGonXKZLCzouLLxnLym3azS8r";
+        BitmessageAddress chan = ctx.joinChan("general", chanAddress);
+        assertNotNull(chan);
+        assertEquals(chan.getAddress(), chanAddress);
+        assertTrue(chan.isChan());
+    }
+
+    @Test
+    public void ensureChanIsCreated() {
+        BitmessageAddress chan = ctx.createChan("test");
+        assertNotNull(chan);
+        assertEquals(chan.getVersion(), Pubkey.LATEST_VERSION);
+        assertTrue(chan.isChan());
     }
 }

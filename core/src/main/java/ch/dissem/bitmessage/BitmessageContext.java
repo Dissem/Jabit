@@ -17,10 +17,7 @@
 package ch.dissem.bitmessage;
 
 import ch.dissem.bitmessage.entity.*;
-import ch.dissem.bitmessage.entity.payload.Broadcast;
-import ch.dissem.bitmessage.entity.payload.Msg;
-import ch.dissem.bitmessage.entity.payload.ObjectPayload;
-import ch.dissem.bitmessage.entity.payload.ObjectType;
+import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
@@ -117,9 +114,17 @@ public class BitmessageContext {
         return identity;
     }
 
-    public void addDistributedMailingList(String address, String alias) {
-        // TODO
-        throw new ApplicationException("not implemented");
+    public BitmessageAddress joinChan(String passphrase, String address) {
+        BitmessageAddress chan = BitmessageAddress.chan(address, passphrase);
+        ctx.getAddressRepository().save(chan);
+        return chan;
+    }
+
+    public BitmessageAddress createChan(String passphrase) {
+        // FIXME: hardcoded stream number
+        BitmessageAddress chan = BitmessageAddress.chan(1, passphrase);
+        ctx.getAddressRepository().save(chan);
+        return chan;
     }
 
     public void broadcast(final BitmessageAddress from, final String subject, final String message) {

@@ -57,6 +57,7 @@ public class BitmessageAddress implements Serializable {
 
     private String alias;
     private boolean subscribed;
+    private boolean chan;
 
     BitmessageAddress(long version, long stream, byte[] ripe) {
         try {
@@ -91,6 +92,27 @@ public class BitmessageAddress implements Serializable {
     public BitmessageAddress(Pubkey publicKey) {
         this(publicKey.getVersion(), publicKey.getStream(), publicKey.getRipe());
         this.pubkey = publicKey;
+    }
+
+    public BitmessageAddress(String address, String passphrase) {
+        this(address);
+        this.privateKey = new PrivateKey(this, passphrase);
+        if (!Arrays.equals(ripe, privateKey.getPubkey().getRipe())) {
+            throw new IllegalArgumentException("Wrong address or passphrase");
+        }
+    }
+
+    public static BitmessageAddress chan(String address, String passphrase) {
+        BitmessageAddress result = new BitmessageAddress(address, passphrase);
+        result.chan = true;
+        return result;
+    }
+
+    public static BitmessageAddress chan(long stream, String passphrase) {
+        PrivateKey privateKey = new PrivateKey(Pubkey.LATEST_VERSION, stream, passphrase);
+        BitmessageAddress result = new BitmessageAddress(privateKey);
+        result.chan = true;
+        return result;
     }
 
     public BitmessageAddress(PrivateKey privateKey) {
@@ -220,5 +242,9 @@ public class BitmessageAddress implements Serializable {
 
     public void setSubscribed(boolean subscribed) {
         this.subscribed = subscribed;
+    }
+
+    public boolean isChan() {
+        return chan;
     }
 }

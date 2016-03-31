@@ -41,6 +41,34 @@ public class Encode {
         varInt(value, stream, null);
     }
 
+    public static byte[] varInt(long value) throws IOException {
+        final byte[] result;
+        if (value < 0) {
+            // This is due to the fact that Java doesn't really support unsigned values.
+            // Please be aware that this might be an error due to a smaller negative value being cast to long.
+            // Normally, negative values shouldn't occur within the protocol, and I large enough longs
+            // to being recognized as negatives aren't realistic.
+            ByteBuffer buffer = ByteBuffer.allocate(9);
+            buffer.put((byte) 0xff);
+            result = buffer.putLong(value).array();
+        } else if (value < 0xfd) {
+            result = new byte[]{(byte) value};
+        } else if (value <= 0xffffL) {
+            ByteBuffer buffer = ByteBuffer.allocate(3);
+            buffer.put((byte) 0xfd);
+            result = buffer.putShort((short) value).array();
+        } else if (value <= 0xffffffffL) {
+            ByteBuffer buffer = ByteBuffer.allocate(5);
+            buffer.put((byte) 0xfe);
+            result = buffer.putInt((int) value).array();
+        } else {
+            ByteBuffer buffer = ByteBuffer.allocate(9);
+            buffer.put((byte) 0xff);
+            result = buffer.putLong(value).array();
+        }
+        return result;
+    }
+
     public static void varInt(long value, OutputStream stream, AccessCounter counter) throws IOException {
         if (value < 0) {
             // This is due to the fact that Java doesn't really support unsigned values.
@@ -81,7 +109,7 @@ public class Encode {
     }
 
     public static void int16(long value, OutputStream stream, AccessCounter counter) throws IOException {
-        stream.write(ByteBuffer.allocate(4).putInt((int) value).array(), 2, 2);
+        stream.write(ByteBuffer.allocate(2).putShort((short) value).array());
         inc(counter, 2);
     }
 

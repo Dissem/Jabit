@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage.entity.valueobject;
 
+import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Streamable;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.exception.ApplicationException;
@@ -64,14 +65,32 @@ public class PrivateKey implements Streamable {
         this.pubkey = pubkey;
     }
 
-    public PrivateKey(long version, long stream, String passphrase, long nonceTrialsPerByte, long extraBytes, Pubkey.Feature... features) {
+    public PrivateKey(BitmessageAddress address, String passphrase) {
+        this(address.getVersion(), address.getStream(), passphrase);
+    }
+
+    public PrivateKey(long version, long stream, String passphrase) {
         try {
-            // FIXME: this is most definitely wrong
-            this.privateSigningKey = Bytes.truncate(security().sha512(passphrase.getBytes("UTF-8"), new byte[]{0}), 32);
-            this.privateEncryptionKey = Bytes.truncate(security().sha512(passphrase.getBytes("UTF-8"), new byte[]{1}), 32);
-            this.pubkey = security().createPubkey(version, stream, privateSigningKey, privateEncryptionKey,
-                    nonceTrialsPerByte, extraBytes, features);
-        } catch (UnsupportedEncodingException e) {
+            byte[] signingKey;
+            int signingKeyNonce = 0;
+            byte[] encryptionKey;
+            int encryptionKeyNonce = 1;
+            byte[] passPhraseBytes = passphrase.getBytes("UTF-8");
+            byte[] ripe;
+            do {
+                signingKey = Bytes.truncate(security().sha512(passPhraseBytes, Encode.varInt(signingKeyNonce)), 32);
+                encryptionKey = Bytes.truncate(security().sha512(passPhraseBytes, Encode.varInt(encryptionKeyNonce)), 32);
+                byte[] publicSigningKey = security().createPublicKey(signingKey);
+                byte[] publicEncryptionKey = security().createPublicKey(encryptionKey);
+                ripe = security().ripemd160(security().sha512(publicSigningKey, publicEncryptionKey));
+
+                signingKeyNonce += 2;
+                encryptionKeyNonce += 2;
+            } while (ripe[0] != 0);
+            this.privateSigningKey = signingKey;
+            this.privateEncryptionKey = encryptionKey;
+            this.pubkey = security().createPubkey(version, stream, privateSigningKey, privateEncryptionKey, 0, 0);
+        } catch (IOException e) {
             throw new ApplicationException(e);
         }
     }
