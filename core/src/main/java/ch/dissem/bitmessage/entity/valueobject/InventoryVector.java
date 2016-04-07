@@ -25,6 +25,8 @@ import java.io.Serializable;
 import java.util.Arrays;
 
 public class InventoryVector implements Streamable, Serializable {
+    private static final long serialVersionUID = -7349009673063348719L;
+
     /**
      * Hash of the object
      */
@@ -42,7 +44,7 @@ public class InventoryVector implements Streamable, Serializable {
 
     @Override
     public int hashCode() {
-        return hash != null ? Arrays.hashCode(hash) : 0;
+        return hash == null ? 0 : Arrays.hashCode(hash);
     }
 
     public byte[] getHash() {

@@ -31,6 +31,8 @@ import java.util.Arrays;
  * A node's address. It's written in IPv6 format.
  */
 public class NetworkAddress implements Streamable {
+    private static final long serialVersionUID = 2500120578167100300L;
+
     private long time;
 
     /**

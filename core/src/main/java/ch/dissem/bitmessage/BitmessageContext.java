@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.*;
@@ -126,6 +127,18 @@ public class BitmessageContext {
         BitmessageAddress chan = BitmessageAddress.chan(1, passphrase);
         ctx.getAddressRepository().save(chan);
         return chan;
+    }
+
+    public List<BitmessageAddress> createDeterministicAddresses(
+            String passphrase, int numberOfAddresses, int version, int stream, boolean shorter) {
+        List<BitmessageAddress> result = BitmessageAddress.deterministic(
+                passphrase, numberOfAddresses, version, stream, shorter);
+        for (int i = 0; i < result.size(); i++) {
+            BitmessageAddress address = result.get(i);
+            address.setAlias(passphrase + " (" + (i + 1) + ")");
+            ctx.getAddressRepository().save(address);
+        }
+        return result;
     }
 
     public void broadcast(final BitmessageAddress from, final String subject, final String message) {

@@ -20,6 +20,8 @@ import java.io.Serializable;
 import java.util.Objects;
 
 public class Label implements Serializable {
+    private static final long serialVersionUID = 831782893630994914L;
+
     private Object id;
     private String label;
     private Type type;

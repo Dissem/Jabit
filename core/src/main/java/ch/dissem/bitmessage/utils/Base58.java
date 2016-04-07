@@ -31,7 +31,7 @@ import static java.util.Arrays.copyOfRange;
  */
 public class Base58 {
     private static final int[] INDEXES = new int[128];
-    private static char[] ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
+    private static final char[] ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
 
     static {
         for (int i = 0; i < INDEXES.length; i++) {

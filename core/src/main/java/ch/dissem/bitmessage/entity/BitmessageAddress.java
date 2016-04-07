@@ -29,7 +29,9 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 import static ch.dissem.bitmessage.utils.Decode.bytes;
@@ -41,6 +43,8 @@ import static ch.dissem.bitmessage.utils.Singleton.security;
  * holding private keys.
  */
 public class BitmessageAddress implements Serializable {
+    private static final long serialVersionUID = 2386328540805994064L;
+
     private final long version;
     private final long stream;
     private final byte[] ripe;
@@ -112,6 +116,16 @@ public class BitmessageAddress implements Serializable {
         PrivateKey privateKey = new PrivateKey(Pubkey.LATEST_VERSION, stream, passphrase);
         BitmessageAddress result = new BitmessageAddress(privateKey);
         result.chan = true;
+        return result;
+    }
+
+    public static List<BitmessageAddress> deterministic(String passphrase, int numberOfAddresses,
+                                                        int version, int stream, boolean shorter) {
+        List<BitmessageAddress> result = new ArrayList<>(numberOfAddresses);
+        List<PrivateKey> privateKeys = PrivateKey.deterministic(passphrase, numberOfAddresses, version, stream, shorter);
+        for (PrivateKey pk : privateKeys) {
+            result.add(new BitmessageAddress(pk));
+        }
         return result;
     }
 
