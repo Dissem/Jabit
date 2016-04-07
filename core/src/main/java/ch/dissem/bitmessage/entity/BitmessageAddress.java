@@ -247,4 +247,8 @@ public class BitmessageAddress implements Serializable {
     public boolean isChan() {
         return chan;
     }
+
+    public void setChan(boolean chan) {
+        this.chan = chan;
+    }
 }

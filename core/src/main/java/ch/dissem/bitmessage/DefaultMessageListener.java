@@ -73,7 +73,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
 
     protected void receive(ObjectMessage object, GetPubkey getPubkey) {
         BitmessageAddress identity = ctx.getAddressRepository().findIdentity(getPubkey.getRipeTag());
-        if (identity != null && identity.getPrivateKey() != null) {
+        if (identity != null && identity.getPrivateKey() != null && !identity.isChan()) {
             LOG.info("Got pubkey request for identity " + identity);
             // FIXME: only send pubkey if it wasn't sent in the last 28 days
             ctx.sendPubkey(identity, object.getStream());

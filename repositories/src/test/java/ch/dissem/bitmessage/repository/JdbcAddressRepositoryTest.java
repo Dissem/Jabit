@@ -95,7 +95,7 @@ public class JdbcAddressRepositoryTest extends TestBase {
         addSubscription("BM-2D9QKN4teYRvoq2fyzpiftPh9WP9qggtzh");
 
         List<BitmessageAddress> subscriptions;
-        
+
         subscriptions = repo.getSubscriptions(5);
         assertEquals(1, subscriptions.size());
 
@@ -137,6 +137,24 @@ public class JdbcAddressRepositoryTest extends TestBase {
         assertNotNull(identityA.getPubkey());
         assertNotNull(identityA.getPrivateKey());
         assertEquals("Test", identityA.getAlias());
+        assertFalse(identityA.isChan());
+    }
+
+    @Test
+    public void ensureNewChanIsSavedAndUpdated() {
+        BitmessageAddress chan = BitmessageAddress.chan(1, "test");
+        repo.save(chan);
+        BitmessageAddress address = repo.getAddress(chan.getAddress());
+        assertNotNull(address);
+        assertTrue(address.isChan());
+
+        address.setAlias("Test");
+        repo.save(address);
+
+        address = repo.getAddress(chan.getAddress());
+        assertNotNull(address);
+        assertTrue(address.isChan());
+        assertEquals("Test", address.getAlias());
     }
 
     @Test

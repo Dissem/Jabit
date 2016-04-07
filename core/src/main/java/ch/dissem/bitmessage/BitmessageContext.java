@@ -116,6 +116,7 @@ public class BitmessageContext {
 
     public BitmessageAddress joinChan(String passphrase, String address) {
         BitmessageAddress chan = BitmessageAddress.chan(address, passphrase);
+        chan.setAlias(passphrase);
         ctx.getAddressRepository().save(chan);
         return chan;
     }

@@ -54,14 +54,11 @@ public class Application {
                 .networkHandler(new DefaultNetworkHandler())
                 .cryptography(new BouncyCryptography())
                 .port(48444)
-                .listener(new BitmessageContext.Listener() {
-                    @Override
-                    public void receive(Plaintext plaintext) {
-                        try {
-                            System.out.println(new String(plaintext.getMessage(), "UTF-8"));
-                        } catch (UnsupportedEncodingException e) {
-                            LOG.error(e.getMessage(), e);
-                        }
+                .listener(plaintext -> {
+                    try {
+                        System.out.println(new String(plaintext.getMessage(), "UTF-8"));
+                    } catch (UnsupportedEncodingException e) {
+                        LOG.error(e.getMessage(), e);
                     }
                 })
                 .build();
@@ -136,12 +133,17 @@ public class Application {
             System.out.println();
             commandLine.listAddresses(identities, "identities");
             System.out.println("a) create identity");
+            System.out.println("c) join chan");
             System.out.println(COMMAND_BACK);
 
             command = commandLine.nextCommand();
             switch (command) {
                 case "a":
                     addIdentity();
+                    identities = ctx.addresses().getIdentities();
+                    break;
+                case "c":
+                    joinChan();
                     identities = ctx.addresses().getIdentities();
                     break;
                 case "b":
@@ -166,6 +168,15 @@ public class Application {
             identity.setAlias(alias);
         }
         ctx.addresses().save(identity);
+    }
+
+    private void joinChan() {
+        System.out.println();
+        System.out.print("Passphrase: ");
+        String passphrase = commandLine.nextLine();
+        System.out.print("Address: ");
+        String address = commandLine.nextLineTrimmed();
+        ctx.joinChan(passphrase, address);
     }
 
     private void contacts() {
@@ -257,6 +268,12 @@ public class Application {
                 System.out.println("Public key still missing");
             } else {
                 System.out.println("Public key available");
+            }
+        } else {
+            if (address.isChan()) {
+                System.out.println("Chan");
+            } else {
+                System.out.println("Identity");
             }
         }
     }

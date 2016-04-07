@@ -71,6 +71,11 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
     }
 
     @Override
+    public List<BitmessageAddress> getChans() {
+        return find("chan = '1'");
+    }
+
+    @Override
     public List<BitmessageAddress> getSubscriptions() {
         return find("subscribed = '1'");
     }
@@ -86,7 +91,7 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
 
     @Override
     public List<BitmessageAddress> getContacts() {
-        return find("private_key IS NULL");
+        return find("private_key IS NULL OR chan = '1'");
     }
 
     private List<BitmessageAddress> find(String where) {
@@ -94,7 +99,7 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
         try (
                 Connection connection = config.getConnection();
                 Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT address, alias, public_key, private_key, subscribed " +
+                ResultSet rs = stmt.executeQuery("SELECT address, alias, public_key, private_key, subscribed, chan " +
                         "FROM Address WHERE " + where)
         ) {
             while (rs.next()) {
@@ -118,6 +123,7 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
                 }
                 address.setAlias(rs.getString("alias"));
                 address.setSubscribed(rs.getBoolean("subscribed"));
+                address.setChan(rs.getBoolean("chan"));
 
                 result.add(address);
             }
@@ -164,7 +170,7 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
         if (address.getPrivateKey() != null) {
             statement.append(", private_key=?");
         }
-        statement.append(", subscribed=? WHERE address=?");
+        statement.append(", subscribed=?, chan=? WHERE address=?");
         try (
                 Connection connection = config.getConnection();
                 PreparedStatement ps = connection.prepareStatement(statement.toString())
@@ -178,6 +184,7 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
                 writeBlob(ps, ++i, address.getPrivateKey());
             }
             ps.setBoolean(++i, address.isSubscribed());
+            ps.setBoolean(++i, address.isChan());
             ps.setString(++i, address.getAddress());
             ps.executeUpdate();
         }
@@ -187,8 +194,8 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
         try (
                 Connection connection = config.getConnection();
                 PreparedStatement ps = connection.prepareStatement(
-                        "INSERT INTO Address (address, version, alias, public_key, private_key, subscribed) " +
-                                "VALUES (?, ?, ?, ?, ?, ?)")
+                        "INSERT INTO Address (address, version, alias, public_key, private_key, subscribed, chan) " +
+                                "VALUES (?, ?, ?, ?, ?, ?, ?)")
         ) {
             ps.setString(1, address.getAddress());
             ps.setLong(2, address.getVersion());
@@ -196,6 +203,7 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
             writePubkey(ps, 4, address.getPubkey());
             writeBlob(ps, 5, address.getPrivateKey());
             ps.setBoolean(6, address.isSubscribed());
+            ps.setBoolean(7, address.isChan());
             ps.executeUpdate();
         }
     }
