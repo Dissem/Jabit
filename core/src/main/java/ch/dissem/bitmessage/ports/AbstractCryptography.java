@@ -35,6 +35,8 @@ import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 
+import static ch.dissem.bitmessage.InternalContext.NETWORK_EXTRA_BYTES;
+import static ch.dissem.bitmessage.InternalContext.NETWORK_NONCE_TRIALS_PER_BYTE;
 import static ch.dissem.bitmessage.utils.Numbers.max;
 
 /**
@@ -99,8 +101,8 @@ public abstract class AbstractCryptography implements Cryptography, InternalCont
 
     public void doProofOfWork(ObjectMessage object, long nonceTrialsPerByte,
                               long extraBytes, ProofOfWorkEngine.Callback callback) {
-        nonceTrialsPerByte = max(nonceTrialsPerByte, context.getNetworkNonceTrialsPerByte());
-        extraBytes = max(extraBytes, context.getNetworkExtraBytes());
+        nonceTrialsPerByte = max(nonceTrialsPerByte, NETWORK_NONCE_TRIALS_PER_BYTE);
+        extraBytes = max(extraBytes, NETWORK_EXTRA_BYTES);
 
         byte[] initialHash = getInitialHash(object);
 
@@ -125,8 +127,8 @@ public abstract class AbstractCryptography implements Cryptography, InternalCont
 
     @Override
     public byte[] getProofOfWorkTarget(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) {
-        if (nonceTrialsPerByte == 0) nonceTrialsPerByte = context.getNetworkNonceTrialsPerByte();
-        if (extraBytes == 0) extraBytes = context.getNetworkExtraBytes();
+        if (nonceTrialsPerByte == 0) nonceTrialsPerByte = NETWORK_NONCE_TRIALS_PER_BYTE;
+        if (extraBytes == 0) extraBytes = NETWORK_EXTRA_BYTES;
 
         BigInteger TTL = BigInteger.valueOf(object.getExpiresTime() - UnixTime.now());
         BigInteger numerator = TWO_POW_64;

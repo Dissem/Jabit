@@ -28,6 +28,8 @@ import java.io.OutputStream;
  * Users who are subscribed to the sending address will see the message appear in their inbox.
  */
 public class V5Broadcast extends V4Broadcast {
+    private static final long serialVersionUID = 920649721626968644L;
+
     private byte[] tag;
 
     private V5Broadcast(long stream, byte[] tag, CryptoBox encrypted) {

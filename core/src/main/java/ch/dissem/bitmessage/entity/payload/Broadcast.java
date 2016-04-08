@@ -32,6 +32,8 @@ import static ch.dissem.bitmessage.utils.Singleton.security;
  * Broadcasts are version 4 or 5.
  */
 public abstract class Broadcast extends ObjectPayload implements Encrypted, PlaintextHolder {
+    private static final long serialVersionUID = 4064521827582239069L;
+
     protected final long stream;
     protected CryptoBox encrypted;
     protected Plaintext plaintext;

@@ -31,6 +31,7 @@ import static ch.dissem.bitmessage.utils.Singleton.security;
 
 
 public class CryptoBox implements Streamable {
+    private static final long serialVersionUID = 7217659539975573852L;
     private static final Logger LOG = LoggerFactory.getLogger(CryptoBox.class);
 
     private final byte[] initializationVector;

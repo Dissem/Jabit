@@ -40,8 +40,6 @@ import static ch.dissem.bitmessage.entity.Plaintext.Status.PUBKEY_REQUESTED;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
 import static ch.dissem.bitmessage.utils.MessageMatchers.plaintext;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 /**

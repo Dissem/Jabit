@@ -70,6 +70,9 @@ public class WifImporter {
                     section.get("payloadlengthextrabytes", long.class),
                     Pubkey.Feature.bitfield(features)
             );
+            if (section.containsKey("chan")) {
+                address.setChan(section.get("chan", boolean.class));
+            }
             address.setAlias(section.get("label"));
             identities.add(address);
         }

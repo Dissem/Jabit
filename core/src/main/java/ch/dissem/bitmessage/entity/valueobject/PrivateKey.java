@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage.entity.valueobject;
 
+import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Streamable;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
@@ -81,7 +82,8 @@ public class PrivateKey implements Streamable {
     private PrivateKey(Builder builder) {
         this.privateSigningKey = builder.privSK;
         this.privateEncryptionKey = builder.privEK;
-        this.pubkey = Factory.createPubkey(builder.version, builder.stream, builder.pubSK, builder.pubEK, 0, 0);
+        this.pubkey = Factory.createPubkey(builder.version, builder.stream, builder.pubSK, builder.pubEK,
+                InternalContext.NETWORK_NONCE_TRIALS_PER_BYTE, InternalContext.NETWORK_EXTRA_BYTES);
     }
 
     private static class Builder {

@@ -17,4 +17,5 @@
 package ch.dissem.bitmessage.exception;
 
 public class DecryptionFailedException extends Exception {
+    private static final long serialVersionUID = 3241116253113872731L;
 }

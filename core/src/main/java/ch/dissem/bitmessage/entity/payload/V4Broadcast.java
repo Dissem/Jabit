@@ -28,6 +28,8 @@ import java.io.OutputStream;
  * Broadcasts are version 4 or 5.
  */
 public class V4Broadcast extends Broadcast {
+    private static final long serialVersionUID = 195663108282762711L;
+
     protected V4Broadcast(long version, long stream, CryptoBox encrypted, Plaintext plaintext) {
         super(version, stream, encrypted, plaintext);
     }

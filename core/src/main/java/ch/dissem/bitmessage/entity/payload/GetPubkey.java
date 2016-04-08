@@ -27,6 +27,8 @@ import java.io.OutputStream;
  * Request for a public key.
  */
 public class GetPubkey extends ObjectPayload {
+    private static final long serialVersionUID = -3634516646972610180L;
+
     private long stream;
     private byte[] ripeTag;
 

@@ -31,6 +31,8 @@ import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
  * Used for person-to-person messages.
  */
 public class Msg extends ObjectPayload implements Encrypted, PlaintextHolder {
+    private static final long serialVersionUID = 4327495048296365733L;
+
     private long stream;
     private CryptoBox encrypted;
     private Plaintext plaintext;

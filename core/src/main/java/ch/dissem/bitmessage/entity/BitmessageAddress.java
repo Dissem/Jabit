@@ -101,6 +101,7 @@ public class BitmessageAddress implements Serializable {
     public BitmessageAddress(String address, String passphrase) {
         this(address);
         this.privateKey = new PrivateKey(this, passphrase);
+        this.pubkey = this.privateKey.getPubkey();
         if (!Arrays.equals(ripe, privateKey.getPubkey().getRipe())) {
             throw new IllegalArgumentException("Wrong address or passphrase");
         }
@@ -120,7 +121,7 @@ public class BitmessageAddress implements Serializable {
     }
 
     public static List<BitmessageAddress> deterministic(String passphrase, int numberOfAddresses,
-                                                        int version, int stream, boolean shorter) {
+                                                        long version, long stream, boolean shorter) {
         List<BitmessageAddress> result = new ArrayList<>(numberOfAddresses);
         List<PrivateKey> privateKeys = PrivateKey.deterministic(passphrase, numberOfAddresses, version, stream, shorter);
         for (PrivateKey pk : privateKeys) {

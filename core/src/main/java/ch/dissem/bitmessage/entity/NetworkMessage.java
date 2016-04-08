@@ -33,6 +33,8 @@ import static ch.dissem.bitmessage.utils.Singleton.security;
  * A network message is exchanged between two nodes.
  */
 public class NetworkMessage implements Streamable {
+    private static final long serialVersionUID = 702708857104464809L;
+
     /**
      * Magic value indicating message origin network, and used to seek to next message when stream state is unknown
      */

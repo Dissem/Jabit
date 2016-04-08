@@ -43,6 +43,9 @@ import java.util.TreeSet;
 public class InternalContext {
     private final static Logger LOG = LoggerFactory.getLogger(InternalContext.class);
 
+    public final static long NETWORK_NONCE_TRIALS_PER_BYTE = 1000;
+    public final static long NETWORK_EXTRA_BYTES = 1000;
+
     private final Cryptography cryptography;
     private final Inventory inventory;
     private final NodeRegistry nodeRegistry;
@@ -58,8 +61,6 @@ public class InternalContext {
     private final TreeSet<Long> streams = new TreeSet<>();
     private final int port;
     private final long clientNonce;
-    private final long networkNonceTrialsPerByte = 1000;
-    private final long networkExtraBytes = 1000;
     private long connectionTTL;
     private int connectionLimit;
 
@@ -156,14 +157,6 @@ public class InternalContext {
 
     public int getPort() {
         return port;
-    }
-
-    public long getNetworkNonceTrialsPerByte() {
-        return networkNonceTrialsPerByte;
-    }
-
-    public long getNetworkExtraBytes() {
-        return networkExtraBytes;
     }
 
     public void send(final BitmessageAddress from, BitmessageAddress to, final ObjectPayload payload,

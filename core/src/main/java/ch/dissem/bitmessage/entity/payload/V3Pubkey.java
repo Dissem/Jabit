@@ -29,6 +29,8 @@ import java.util.Objects;
  * A version 3 public key.
  */
 public class V3Pubkey extends V2Pubkey {
+    private static final long serialVersionUID = 6958853116648528319L;
+
     long nonceTrialsPerByte;
     long extraBytes;
     byte[] signature;

@@ -32,6 +32,8 @@ import static ch.dissem.bitmessage.utils.Decode.*;
  * @author Christian Basler
  */
 public class ProofOfWorkRequest implements Streamable {
+    private static final long serialVersionUID = 4729003751499662713L;
+
     private final BitmessageAddress sender;
     private final byte[] initialHash;
     private final Request request;

@@ -28,6 +28,8 @@ import java.util.Arrays;
  * have to know what it is.
  */
 public class GenericPayload extends ObjectPayload {
+    private static final long serialVersionUID = -912314085064185940L;
+
     private long stream;
     private byte[] data;
 

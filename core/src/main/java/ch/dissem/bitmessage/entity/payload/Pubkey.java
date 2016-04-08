@@ -26,6 +26,8 @@ import static ch.dissem.bitmessage.utils.Singleton.security;
  * Public keys for signing and encryption, the answer to a 'getpubkey' request.
  */
 public abstract class Pubkey extends ObjectPayload {
+    private static final long serialVersionUID = -6634533361454999619L;
+
     public final static long LATEST_VERSION = 4;
 
     protected Pubkey(long version) {

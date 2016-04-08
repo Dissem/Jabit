@@ -41,6 +41,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
 
+import static ch.dissem.bitmessage.InternalContext.NETWORK_EXTRA_BYTES;
+import static ch.dissem.bitmessage.InternalContext.NETWORK_NONCE_TRIALS_PER_BYTE;
 import static ch.dissem.bitmessage.networking.Connection.Mode.CLIENT;
 import static ch.dissem.bitmessage.networking.Connection.Mode.SYNC;
 import static ch.dissem.bitmessage.networking.Connection.State.*;
@@ -247,7 +249,7 @@ class Connection {
         }
         try {
             listener.receive(objectMessage);
-            security().checkProofOfWork(objectMessage, ctx.getNetworkNonceTrialsPerByte(), ctx.getNetworkExtraBytes());
+            security().checkProofOfWork(objectMessage, NETWORK_NONCE_TRIALS_PER_BYTE, NETWORK_EXTRA_BYTES);
             ctx.getInventory().storeObject(objectMessage);
             // offer object to some random nodes so it gets distributed throughout the network:
             networkHandler.offer(objectMessage.getInventoryVector());

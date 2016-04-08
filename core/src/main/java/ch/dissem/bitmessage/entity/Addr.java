@@ -29,6 +29,8 @@ import java.util.List;
  * The 'addr' command holds a list of known active Bitmessage nodes.
  */
 public class Addr implements MessagePayload {
+    private static final long serialVersionUID = -5117688017050138720L;
+
     private final List<NetworkAddress> addresses;
 
     private Addr(Builder builder) {
@@ -53,7 +55,7 @@ public class Addr implements MessagePayload {
     }
 
     public static final class Builder {
-        private List<NetworkAddress> addresses = new ArrayList<NetworkAddress>();
+        private List<NetworkAddress> addresses = new ArrayList<>();
 
         public Builder addresses(Collection<NetworkAddress> addresses){
             this.addresses.addAll(addresses);

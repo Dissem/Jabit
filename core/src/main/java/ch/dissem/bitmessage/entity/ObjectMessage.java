@@ -36,6 +36,8 @@ import static ch.dissem.bitmessage.utils.Singleton.security;
  * The 'object' command sends an object that is shared throughout the network.
  */
 public class ObjectMessage implements MessagePayload {
+    private static final long serialVersionUID = 2495752480120659139L;
+
     private byte[] nonce;
     private long expiresTime;
     private long objectType;

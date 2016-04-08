@@ -28,6 +28,8 @@ import java.util.List;
  * The 'getdata' command is used to request objects from a node.
  */
 public class GetData implements MessagePayload {
+    private static final long serialVersionUID = 1433878785969631061L;
+
     public static final int MAX_INVENTORY_SIZE = 50_000;
 
     List<InventoryVector> inventory;

@@ -36,6 +36,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.*;
 
+import static ch.dissem.bitmessage.InternalContext.NETWORK_EXTRA_BYTES;
+import static ch.dissem.bitmessage.InternalContext.NETWORK_NONCE_TRIALS_PER_BYTE;
 import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
@@ -99,8 +101,8 @@ public class BitmessageContext {
         final BitmessageAddress identity = new BitmessageAddress(new PrivateKey(
                 shorter,
                 ctx.getStreams()[0],
-                ctx.getNetworkNonceTrialsPerByte(),
-                ctx.getNetworkExtraBytes(),
+                NETWORK_NONCE_TRIALS_PER_BYTE,
+                NETWORK_EXTRA_BYTES,
                 features
         ));
         ctx.getAddressRepository().save(identity);
@@ -130,12 +132,12 @@ public class BitmessageContext {
     }
 
     public List<BitmessageAddress> createDeterministicAddresses(
-            String passphrase, int numberOfAddresses, int version, int stream, boolean shorter) {
+            String passphrase, int numberOfAddresses, long version, long stream, boolean shorter) {
         List<BitmessageAddress> result = BitmessageAddress.deterministic(
                 passphrase, numberOfAddresses, version, stream, shorter);
         for (int i = 0; i < result.size(); i++) {
             BitmessageAddress address = result.get(i);
-            address.setAlias(passphrase + " (" + (i + 1) + ")");
+            address.setAlias("deterministic (" + (i + 1) + ")");
             ctx.getAddressRepository().save(address);
         }
         return result;

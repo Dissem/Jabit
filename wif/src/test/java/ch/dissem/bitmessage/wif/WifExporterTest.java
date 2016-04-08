@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.wif;
 
 import ch.dissem.bitmessage.BitmessageContext;
+import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import org.junit.Before;
@@ -80,9 +81,27 @@ public class WifExporterTest {
                 "noncetrialsperbyte = 320" + System.lineSeparator() +
                 "payloadlengthextrabytes = 14000" + System.lineSeparator() +
                 "privsigningkey = 5KU2gbe9u4rKJ8PHYb1rvwMnZnAJj4gtV5GLwoYckeYzygWUzB9" + System.lineSeparator() +
-                "privencryptionkey = 5KHd4c6cavd8xv4kzo3PwnVaYuBgEfg7voPQ5V97aZKgpYBXGck" + System.lineSeparator() + System.lineSeparator();
+                "privencryptionkey = 5KHd4c6cavd8xv4kzo3PwnVaYuBgEfg7voPQ5V97aZKgpYBXGck" + System.lineSeparator() +
+                System.lineSeparator();
         importer = new WifImporter(ctx, expected);
         exporter.addIdentity(importer.getIdentities().get(0));
+        assertEquals(expected, exporter.toString());
+    }
+
+    @Test
+    public void ensureChanIsAdded() throws Exception {
+        String expected = "[BM-2cW67GEKkHGonXKZLCzouLLxnLym3azS8r]" + System.lineSeparator() +
+                "label = general" + System.lineSeparator() +
+                "enabled = true" + System.lineSeparator() +
+                "decoy = false" + System.lineSeparator() +
+                "chan = true" + System.lineSeparator() +
+                "noncetrialsperbyte = 1000" + System.lineSeparator() +
+                "payloadlengthextrabytes = 1000" + System.lineSeparator() +
+                "privsigningkey = 5Jnbdwc4u4DG9ipJxYLznXSvemkRFueQJNHujAQamtDDoX3N1eQ" + System.lineSeparator() +
+                "privencryptionkey = 5JrDcFtQDv5ydcHRW6dfGUEvThoxCCLNEUaxQfy8LXXgTJzVAcq" + System.lineSeparator() +
+                System.lineSeparator();
+        BitmessageAddress chan = ctx.joinChan("general", "BM-2cW67GEKkHGonXKZLCzouLLxnLym3azS8r");
+        exporter.addIdentity(chan);
         assertEquals(expected, exporter.toString());
     }
 }

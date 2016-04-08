@@ -33,6 +33,8 @@ import java.util.Arrays;
  * to create messages to be used in spam or in flooding attacks.
  */
 public class V4Pubkey extends Pubkey implements Encrypted {
+    private static final long serialVersionUID = 1556710353694033093L;
+
     private long stream;
     private byte[] tag;
     private CryptoBox encrypted;

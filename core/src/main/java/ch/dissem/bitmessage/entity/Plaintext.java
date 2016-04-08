@@ -31,6 +31,8 @@ import java.util.*;
  * The unencrypted message to be sent by 'msg' or 'broadcast'.
  */
 public class Plaintext implements Streamable {
+    private static final long serialVersionUID = -5325729856394951079L;
+
     private final Type type;
     private final BitmessageAddress from;
     private final long encoding;

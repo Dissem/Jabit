@@ -34,10 +34,6 @@ import java.util.Arrays;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.isNull;
-import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.*;
 
 /**

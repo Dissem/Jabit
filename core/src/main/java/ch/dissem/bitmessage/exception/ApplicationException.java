@@ -20,6 +20,8 @@ package ch.dissem.bitmessage.exception;
  * @author Christian Basler
  */
 public class ApplicationException extends RuntimeException {
+    private static final long serialVersionUID = 1796776684126759324L;
+
     public ApplicationException(Throwable cause) {
         super(cause);
     }

@@ -22,6 +22,8 @@ package ch.dissem.bitmessage.exception;
  * @author Ch. Basler
  */
 public class NodeException extends RuntimeException {
+    private static final long serialVersionUID = 2965325796118227802L;
+
     public NodeException(String message) {
         super(message);
     }

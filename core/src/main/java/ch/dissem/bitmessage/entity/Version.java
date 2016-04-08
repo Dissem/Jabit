@@ -29,6 +29,8 @@ import java.util.Random;
  * The 'version' command advertises this node's latest supported protocol version upon initiation.
  */
 public class Version implements MessagePayload {
+    private static final long serialVersionUID = 7219240857343176567L;
+
     /**
      * Identifies protocol version being used by the node. Should equal 3. Nodes should disconnect if the remote node's
      * version is lower but continue with the connection if it is higher.

@@ -27,6 +27,8 @@ import java.io.OutputStream;
  * A version 2 public key.
  */
 public class V2Pubkey extends Pubkey {
+    private static final long serialVersionUID = -257598690676510460L;
+
     protected long stream;
     protected int behaviorBitfield;
     protected byte[] publicSigningKey; // 64 Bytes

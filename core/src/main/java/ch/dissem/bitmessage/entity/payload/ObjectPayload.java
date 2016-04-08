@@ -21,12 +21,13 @@ import ch.dissem.bitmessage.entity.Streamable;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.Serializable;
 
 /**
  * The payload of an 'object' command. This is shared by the network.
  */
 public abstract class ObjectPayload implements Streamable {
+    private static final long serialVersionUID = -5034977402902364482L;
+
     private final long version;
 
     protected ObjectPayload(long version) {

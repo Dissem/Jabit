@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.util.Arrays;
 
 public class InsufficientProofOfWorkException extends IOException {
+    private static final long serialVersionUID = 9105580366564571318L;
+
     public InsufficientProofOfWorkException(byte[] target, byte[] hash) {
         super("Insufficient proof of work: " + Strings.hex(target) + " required, " + Strings.hex(Arrays.copyOfRange(hash, 0, 8)) + " achieved.");
     }

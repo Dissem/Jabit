@@ -60,6 +60,9 @@ public class WifExporter {
         section.add("label", identity.getAlias());
         section.add("enabled", true);
         section.add("decoy", false);
+        if (identity.isChan()) {
+            section.add("chan", identity.isChan());
+        }
         section.add("noncetrialsperbyte", identity.getPubkey().getNonceTrialsPerByte());
         section.add("payloadlengthextrabytes", identity.getPubkey().getExtraBytes());
         section.add("privsigningkey", exportSecret(identity.getPrivateKey().getPrivateSigningKey()));

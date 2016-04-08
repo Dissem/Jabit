@@ -31,16 +31,13 @@ import org.hamcrest.Description;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import static ch.dissem.bitmessage.entity.payload.ObjectType.*;
 import static ch.dissem.bitmessage.utils.MessageMatchers.object;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 /**
@@ -214,6 +211,38 @@ public class BitmessageContextTest {
         assertNotNull(chan);
         assertEquals(chan.getAddress(), chanAddress);
         assertTrue(chan.isChan());
+    }
+
+    @Test
+    public void ensureDeterministicAddressesAreCreated() {
+        final int expected_size = 8;
+        List<BitmessageAddress> addresses = ctx.createDeterministicAddresses("test", expected_size, 4, 1, false);
+        assertEquals(expected_size, addresses.size());
+        Set<String> expected = new HashSet<>(expected_size);
+        expected.add("BM-2cWFkyuXXFw6d393RGnin2RpSXj8wxtt6F");
+        expected.add("BM-2cX8TF9vuQZEWvT7UrEeq1HN9dgiSUPLEN");
+        expected.add("BM-2cUzX8f9CKUU7L8NeB8GExZvf54PrcXq1S");
+        expected.add("BM-2cU7MAoQd7KE8SPF7AKFPpoEZKjk86KRqE");
+        expected.add("BM-2cVm8ByVBacc2DVhdTNs6rmy5ZQK6DUsrt");
+        expected.add("BM-2cW2af1vB6kWon2WkygDHqGwfcpfAFm2Jk");
+        expected.add("BM-2cWdWD7UtUN4gWChgNX9pvyvNPjUZvU8BT");
+        expected.add("BM-2cXkYgYcUrv4fGxSHzyEScW955Cc8sDteo");
+        for (BitmessageAddress a : addresses) {
+            assertTrue(expected.contains(a.getAddress()));
+            expected.remove(a.getAddress());
+        }
+    }
+    @Test
+    public void ensureShortDeterministicAddressesAreCreated() {
+        final int expected_size = 1;
+        List<BitmessageAddress> addresses = ctx.createDeterministicAddresses("test", expected_size, 4, 1, true);
+        assertEquals(expected_size, addresses.size());
+        Set<String> expected = new HashSet<>(expected_size);
+        expected.add("BM-NBGyBAEp6VnBkFWKpzUSgxuTqVdWPi78");
+        for (BitmessageAddress a : addresses) {
+            assertTrue(expected.contains(a.getAddress()));
+            expected.remove(a.getAddress());
+        }
     }
 
     @Test

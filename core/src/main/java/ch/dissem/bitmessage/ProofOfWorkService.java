@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
+import static ch.dissem.bitmessage.InternalContext.NETWORK_EXTRA_BYTES;
+import static ch.dissem.bitmessage.InternalContext.NETWORK_NONCE_TRIALS_PER_BYTE;
 import static ch.dissem.bitmessage.utils.Singleton.security;
 
 /**
@@ -45,8 +47,8 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
     public void doProofOfWork(BitmessageAddress recipient, ObjectMessage object) {
         Pubkey pubkey = recipient == null ? null : recipient.getPubkey();
 
-        long nonceTrialsPerByte = pubkey == null ? ctx.getNetworkNonceTrialsPerByte() : pubkey.getNonceTrialsPerByte();
-        long extraBytes = pubkey == null ? ctx.getNetworkExtraBytes() : pubkey.getExtraBytes();
+        long nonceTrialsPerByte = pubkey == null ? NETWORK_NONCE_TRIALS_PER_BYTE : pubkey.getNonceTrialsPerByte();
+        long extraBytes = pubkey == null ? NETWORK_EXTRA_BYTES : pubkey.getExtraBytes();
 
         powRepo.putObject(object, nonceTrialsPerByte, extraBytes);
         if (object.getPayload() instanceof PlaintextHolder) {

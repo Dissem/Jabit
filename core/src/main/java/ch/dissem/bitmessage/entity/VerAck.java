@@ -23,6 +23,8 @@ import java.io.OutputStream;
  * The 'verack' command answers a 'version' command, accepting the other node's version.
  */
 public class VerAck implements MessagePayload {
+    private static final long serialVersionUID = -4302074845199181687L;
+
     @Override
     public Command getCommand() {
         return Command.VERACK;

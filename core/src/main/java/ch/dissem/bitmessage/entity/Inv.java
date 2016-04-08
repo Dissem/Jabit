@@ -28,6 +28,8 @@ import java.util.List;
  * The 'inv' command holds up to 50000 inventory vectors, i.e. hashes of inventory items.
  */
 public class Inv implements MessagePayload {
+    private static final long serialVersionUID = 3662992522956947145L;
+
     private List<InventoryVector> inventory;
 
     private Inv(Builder builder) {

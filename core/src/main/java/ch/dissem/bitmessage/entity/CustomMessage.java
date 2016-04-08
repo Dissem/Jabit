@@ -29,6 +29,8 @@ import static ch.dissem.bitmessage.utils.Decode.varString;
  * @author Christian Basler
  */
 public class CustomMessage implements MessagePayload {
+    private static final long serialVersionUID = -8932056829480326011L;
+
     public static final String COMMAND_ERROR = "ERROR";
 
     private final String command;

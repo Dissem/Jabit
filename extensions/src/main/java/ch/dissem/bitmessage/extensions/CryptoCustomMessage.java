@@ -36,7 +36,10 @@ import static ch.dissem.bitmessage.utils.Singleton.security;
  * @author Christian Basler
  */
 public class CryptoCustomMessage<T extends Streamable> extends CustomMessage {
+    private static final long serialVersionUID = 7395193565986284426L;
+
     public static final String COMMAND = "ENCRYPTED";
+
     private final Reader<T> dataReader;
     private CryptoBox container;
     private BitmessageAddress sender;
