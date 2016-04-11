@@ -17,10 +17,10 @@
 package ch.dissem.bitmessage.demo;
 
 import ch.dissem.bitmessage.BitmessageContext;
+import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
 import ch.dissem.bitmessage.ports.MemoryNodeRegistry;
 import ch.dissem.bitmessage.repository.*;
-import ch.dissem.bitmessage.security.bc.BouncySecurity;
 import ch.dissem.bitmessage.wif.WifExporter;
 import ch.dissem.bitmessage.wif.WifImporter;
 import org.kohsuke.args4j.CmdLineException;
@@ -29,6 +29,7 @@ import org.kohsuke.args4j.Option;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
 
 public class Main {
     public static void main(String[] args) throws IOException {
@@ -51,8 +52,9 @@ public class Main {
                     .inventory(new JdbcInventory(jdbcConfig))
                     .nodeRegistry(new MemoryNodeRegistry())
                     .messageRepo(new JdbcMessageRepository(jdbcConfig))
+                    .powRepo(new JdbcProofOfWorkRepository(jdbcConfig))
                     .networkHandler(new DefaultNetworkHandler())
-                    .security(new BouncySecurity())
+                    .cryptography(new BouncyCryptography())
                     .port(48444)
                     .build();
 
@@ -63,7 +65,8 @@ public class Main {
                 new WifImporter(ctx, options.importWIF).importAll();
             }
         } else {
-            new Application();
+            InetAddress syncServer = options.syncServer == null ? null : InetAddress.getByName(options.syncServer);
+            new Application(syncServer, options.syncPort);
         }
     }
 
@@ -73,5 +76,11 @@ public class Main {
 
         @Option(name = "-export", usage = "Export to WIF file.")
         private File exportWIF;
+
+        @Option(name = "-syncServer", usage = "Use manual synchronization with the given server instead of starting a full node.")
+        private String syncServer;
+
+        @Option(name = "-syncPort", usage = "Port to use for synchronisation")
+        private int syncPort = 8444;
     }
 }

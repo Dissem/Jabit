@@ -1,6 +1,6 @@
 rootProject.name = 'Jabit'
 
-include 'domain'
+include 'core'
 
 include 'networking'
 
@@ -10,6 +10,8 @@ include 'demo'
 
 include 'wif'
 
-include 'security-sc'
+include 'cryptography-sc'
 
-include 'security-bc'
+include 'cryptography-bc'
+
+include 'extensions'

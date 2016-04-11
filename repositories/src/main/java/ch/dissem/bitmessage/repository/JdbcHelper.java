@@ -31,7 +31,7 @@ import static ch.dissem.bitmessage.utils.Strings.hex;
 /**
  * Helper class that does Flyway migration, provides JDBC connections and some helper methods.
  */
-abstract class JdbcHelper {
+public abstract class JdbcHelper {
     private static final Logger LOG = LoggerFactory.getLogger(JdbcHelper.class);
 
     protected final JdbcConfig config;
@@ -77,12 +77,12 @@ abstract class JdbcHelper {
     }
 
     protected void writeBlob(PreparedStatement ps, int parameterIndex, Streamable data) throws SQLException, IOException {
-        if (data != null) {
+        if (data == null) {
+            ps.setBytes(parameterIndex, null);
+        } else {
             ByteArrayOutputStream os = new ByteArrayOutputStream();
             data.write(os);
             ps.setBytes(parameterIndex, os.toByteArray());
-        } else {
-            ps.setBytes(parameterIndex, null);
         }
     }
 }

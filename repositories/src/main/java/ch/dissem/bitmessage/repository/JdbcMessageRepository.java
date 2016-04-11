@@ -21,7 +21,9 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.ports.MessageRepository;
+import ch.dissem.bitmessage.utils.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,14 +47,16 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
     @Override
     public List<Label> getLabels() {
         List<Label> result = new LinkedList<>();
-        try (Connection connection = config.getConnection()) {
-            Statement stmt = connection.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label ORDER BY ord");
+        try (
+                Connection connection = config.getConnection();
+                Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label ORDER BY ord")
+        ) {
             while (rs.next()) {
                 result.add(getLabel(rs));
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
         return result;
     }
@@ -72,10 +76,12 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
     @Override
     public List<Label> getLabels(Label.Type... types) {
         List<Label> result = new LinkedList<>();
-        try (Connection connection = config.getConnection()) {
-            Statement stmt = connection.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label WHERE type IN (" + join(types) +
-                    ") ORDER BY ord");
+        try (
+                Connection connection = config.getConnection();
+                Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label WHERE type IN (" + join(types) +
+                        ") ORDER BY ord")
+        ) {
             while (rs.next()) {
                 result.add(getLabel(rs));
             }
@@ -88,17 +94,19 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
     @Override
     public int countUnread(Label label) {
         String where;
-        if (label != null) {
-            where = "id IN (SELECT message_id FROM Message_Label WHERE label_id=" + label.getId() + ") AND ";
-        } else {
+        if (label == null) {
             where = "";
+        } else {
+            where = "id IN (SELECT message_id FROM Message_Label WHERE label_id=" + label.getId() + ") AND ";
         }
         where += "id IN (SELECT message_id FROM Message_Label WHERE label_id IN (" +
                 "SELECT id FROM Label WHERE type = '" + Label.Type.UNREAD.name() + "'))";
 
-        try (Connection connection = config.getConnection()) {
-            Statement stmt = connection.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT count(*) FROM Message WHERE " + where);
+        try (
+                Connection connection = config.getConnection();
+                Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT count(*) FROM Message WHERE " + where)
+        ) {
             if (rs.next()) {
                 return rs.getInt(1);
             }
@@ -106,6 +114,20 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
             LOG.error(e.getMessage(), e);
         }
         return 0;
+    }
+
+    @Override
+    public Plaintext getMessage(byte[] initialHash) {
+        List<Plaintext> plaintexts = find("initial_hash=X'" + Strings.hex(initialHash) + "'");
+        switch (plaintexts.size()) {
+            case 0:
+                return null;
+            case 1:
+                return plaintexts.get(0);
+            default:
+                throw new ApplicationException("This shouldn't happen, found " + plaintexts.size() +
+                        " messages, one or none was expected");
+        }
     }
 
     @Override
@@ -130,9 +152,12 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     private List<Plaintext> find(String where) {
         List<Plaintext> result = new LinkedList<>();
-        try (Connection connection = config.getConnection()) {
-            Statement stmt = connection.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT id, iv, type, sender, recipient, data, sent, received, status FROM Message WHERE " + where);
+        try (
+                Connection connection = config.getConnection();
+                Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT id, iv, type, sender, recipient, data, sent, received, status " +
+                        "FROM Message WHERE " + where)
+        ) {
             while (rs.next()) {
                 byte[] iv = rs.getBytes("iv");
                 InputStream data = rs.getBinaryStream("data");
@@ -141,8 +166,8 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
                 long id = rs.getLong("id");
                 builder.id(id);
                 builder.IV(new InventoryVector(iv));
-                builder.from(ctx.getAddressRepo().getAddress(rs.getString("sender")));
-                builder.to(ctx.getAddressRepo().getAddress(rs.getString("recipient")));
+                builder.from(ctx.getAddressRepository().getAddress(rs.getString("sender")));
+                builder.to(ctx.getAddressRepository().getAddress(rs.getString("recipient")));
                 builder.sent(rs.getLong("sent"));
                 builder.received(rs.getLong("received"));
                 builder.status(Plaintext.Status.valueOf(rs.getString("status")));
@@ -157,9 +182,11 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     private Collection<Label> findLabels(Connection connection, long messageId) {
         List<Label> result = new ArrayList<>();
-        try {
-            Statement stmt = connection.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label WHERE id IN (SELECT label_id FROM Message_Label WHERE message_id=" + messageId + ")");
+        try (
+                Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label " +
+                        "WHERE id IN (SELECT label_id FROM Message_Label WHERE message_id=" + messageId + ")")
+        ) {
             while (rs.next()) {
                 result.add(getLabel(rs));
             }
@@ -173,88 +200,96 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
     public void save(Plaintext message) {
         // save from address if necessary
         if (message.getId() == null) {
-            BitmessageAddress savedAddress = ctx.getAddressRepo().getAddress(message.getFrom().getAddress());
-            if (savedAddress == null || savedAddress.getPrivateKey() == null) {
-                if (savedAddress != null && savedAddress.getAlias() != null) {
-                    message.getFrom().setAlias(savedAddress.getAlias());
-                }
-                ctx.getAddressRepo().save(message.getFrom());
+            BitmessageAddress savedAddress = ctx.getAddressRepository().getAddress(message.getFrom().getAddress());
+            if (savedAddress == null) {
+                ctx.getAddressRepository().save(message.getFrom());
+            } else if (savedAddress.getPubkey() == null && message.getFrom().getPubkey() != null) {
+                savedAddress.setPubkey(message.getFrom().getPubkey());
+                ctx.getAddressRepository().save(savedAddress);
             }
         }
 
         try (Connection connection = config.getConnection()) {
             try {
                 connection.setAutoCommit(false);
-                // save message
-                if (message.getId() == null) {
-                    insert(connection, message);
-                } else {
-                    update(connection, message);
-                }
-
-                // remove existing labels
-                Statement stmt = connection.createStatement();
-                stmt.executeUpdate("DELETE FROM Message_Label WHERE message_id=" + message.getId());
-
-                // save labels
-                PreparedStatement ps = connection.prepareStatement("INSERT INTO Message_Label VALUES (" + message.getId() + ", ?)");
-                for (Label label : message.getLabels()) {
-                    ps.setLong(1, (Long) label.getId());
-                    ps.executeUpdate();
-                }
-
+                save(connection, message);
+                updateLabels(connection, message);
                 connection.commit();
             } catch (IOException | SQLException e) {
-                try {
-                    connection.rollback();
-                } catch (SQLException e1) {
-                    LOG.debug(e1.getMessage(), e);
-                }
-                throw new RuntimeException(e);
+                connection.rollback();
+                throw e;
             }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
+        } catch (IOException | SQLException e) {
+            throw new ApplicationException(e);
+        }
+    }
+
+    private void save(Connection connection, Plaintext message) throws IOException, SQLException {
+        if (message.getId() == null) {
+            insert(connection, message);
+        } else {
+            update(connection, message);
+        }
+    }
+
+    private void updateLabels(Connection connection, Plaintext message) throws SQLException {
+        // remove existing labels
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("DELETE FROM Message_Label WHERE message_id=" + message.getId());
+        }
+        // save new labels
+        try (PreparedStatement ps = connection.prepareStatement("INSERT INTO Message_Label VALUES (" +
+                message.getId() + ", ?)")) {
+            for (Label label : message.getLabels()) {
+                ps.setLong(1, (Long) label.getId());
+                ps.executeUpdate();
+            }
         }
     }
 
     private void insert(Connection connection, Plaintext message) throws SQLException, IOException {
-        PreparedStatement ps = connection.prepareStatement(
-                "INSERT INTO Message (iv, type, sender, recipient, data, sent, received, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                Statement.RETURN_GENERATED_KEYS);
-        ps.setBytes(1, message.getInventoryVector() != null ? message.getInventoryVector().getHash() : null);
-        ps.setString(2, message.getType().name());
-        ps.setString(3, message.getFrom().getAddress());
-        ps.setString(4, message.getTo() != null ? message.getTo().getAddress() : null);
-        writeBlob(ps, 5, message);
-        ps.setLong(6, message.getSent());
-        ps.setLong(7, message.getReceived());
-        ps.setString(8, message.getStatus() != null ? message.getStatus().name() : null);
+        try (PreparedStatement ps = connection.prepareStatement(
+                "INSERT INTO Message (iv, type, sender, recipient, data, sent, received, status, initial_hash) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                Statement.RETURN_GENERATED_KEYS)
+        ) {
+            ps.setBytes(1, message.getInventoryVector() == null ? null : message.getInventoryVector().getHash());
+            ps.setString(2, message.getType().name());
+            ps.setString(3, message.getFrom().getAddress());
+            ps.setString(4, message.getTo() == null ? null : message.getTo().getAddress());
+            writeBlob(ps, 5, message);
+            ps.setLong(6, message.getSent());
+            ps.setLong(7, message.getReceived());
+            ps.setString(8, message.getStatus() == null ? null : message.getStatus().name());
+            ps.setBytes(9, message.getInitialHash());
 
-        ps.executeUpdate();
-
-        // get generated id
-        ResultSet rs = ps.getGeneratedKeys();
-        rs.next();
-        message.setId(rs.getLong(1));
+            ps.executeUpdate();
+            // get generated id
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                rs.next();
+                message.setId(rs.getLong(1));
+            }
+        }
     }
 
     private void update(Connection connection, Plaintext message) throws SQLException, IOException {
-        PreparedStatement ps = connection.prepareStatement(
-                "UPDATE Message SET iv=?, sent=?, received=?, status=? WHERE id=?");
-        ps.setBytes(1, message.getInventoryVector() != null ? message.getInventoryVector().getHash() : null);
-        ps.setLong(2, message.getSent());
-        ps.setLong(3, message.getReceived());
-        ps.setString(4, message.getStatus() != null ? message.getStatus().name() : null);
-        ps.setLong(5, (Long) message.getId());
-        ps.executeUpdate();
+        try (PreparedStatement ps = connection.prepareStatement(
+                "UPDATE Message SET iv=?, sent=?, received=?, status=?, initial_hash=? WHERE id=?")) {
+            ps.setBytes(1, message.getInventoryVector() == null ? null : message.getInventoryVector().getHash());
+            ps.setLong(2, message.getSent());
+            ps.setLong(3, message.getReceived());
+            ps.setString(4, message.getStatus() == null ? null : message.getStatus().name());
+            ps.setBytes(5, message.getInitialHash());
+            ps.setLong(6, (Long) message.getId());
+            ps.executeUpdate();
+        }
     }
 
     @Override
     public void remove(Plaintext message) {
         try (Connection connection = config.getConnection()) {
-            try {
-                connection.setAutoCommit(false);
-                Statement stmt = connection.createStatement();
+            connection.setAutoCommit(false);
+            try (Statement stmt = connection.createStatement()) {
                 stmt.executeUpdate("DELETE FROM Message_Label WHERE message_id = " + message.getId());
                 stmt.executeUpdate("DELETE FROM Message WHERE id = " + message.getId());
                 connection.commit();

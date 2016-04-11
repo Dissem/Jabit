@@ -23,6 +23,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static ch.dissem.bitmessage.utils.UnixTime.now;
@@ -73,7 +74,7 @@ public class JdbcNodeRegistryTest extends TestBase {
         List<NetworkAddress> knownAddresses = registry.getKnownAddresses(1000, 1);
         assertEquals(5, knownAddresses.size());
 
-        registry.offerAddresses(Arrays.asList(
+        registry.offerAddresses(Collections.singletonList(
                 createAddress(1, 8445, 1, now())
         ));
 

@@ -16,18 +16,21 @@ uploadArchives {
 
 sourceCompatibility = 1.8
 
+test.enabled = Boolean.valueOf(systemTestsEnabled)
+
 task fatCapsule(type: FatCapsule) {
     applicationClass 'ch.dissem.bitmessage.demo.Main'
 }
 
 dependencies {
-    compile project(':domain')
+    compile project(':core')
     compile project(':networking')
     compile project(':repositories')
-    compile project(':security-bc')
+    compile project(':cryptography-bc')
     compile project(':wif')
     compile 'org.slf4j:slf4j-simple:1.7.12'
     compile 'args4j:args4j:2.32'
     compile 'com.h2database:h2:1.4.190'
     testCompile 'junit:junit:4.11'
+    testCompile 'org.mockito:mockito-core:1.10.19'
 }

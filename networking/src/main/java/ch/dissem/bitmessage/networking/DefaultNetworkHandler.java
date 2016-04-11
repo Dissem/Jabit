@@ -18,41 +18,45 @@ package ch.dissem.bitmessage.networking;
 
 import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.InternalContext.ContextHolder;
+import ch.dissem.bitmessage.entity.CustomMessage;
+import ch.dissem.bitmessage.entity.GetData;
+import ch.dissem.bitmessage.entity.NetworkMessage;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
-import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
+import ch.dissem.bitmessage.exception.ApplicationException;
+import ch.dissem.bitmessage.exception.NodeException;
+import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.NetworkHandler;
 import ch.dissem.bitmessage.utils.Collections;
 import ch.dissem.bitmessage.utils.Property;
-import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.*;
 
-import static ch.dissem.bitmessage.networking.Connection.Mode.CLIENT;
 import static ch.dissem.bitmessage.networking.Connection.Mode.SERVER;
 import static ch.dissem.bitmessage.networking.Connection.State.ACTIVE;
-import static ch.dissem.bitmessage.networking.Connection.State.DISCONNECTED;
 import static ch.dissem.bitmessage.utils.DebugUtils.inc;
+import static java.util.Collections.newSetFromMap;
 
 /**
  * Handles all the networky stuff.
  */
 public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
-    public final static int NETWORK_MAGIC_NUMBER = 8;
     private final static Logger LOG = LoggerFactory.getLogger(DefaultNetworkHandler.class);
-    private final List<Connection> connections = new LinkedList<>();
+
+    public final static int NETWORK_MAGIC_NUMBER = 8;
+
+    final Collection<Connection> connections = new ConcurrentLinkedQueue<>();
     private final ExecutorService pool;
     private InternalContext ctx;
-    private ServerSocket serverSocket;
+    private ServerRunnable server;
     private volatile boolean running;
 
-    private ConcurrentMap<InventoryVector, Long> requestedObjects = new ConcurrentHashMap<>();
+    final Set<InventoryVector> requestedObjects = newSetFromMap(new ConcurrentHashMap<InventoryVector, Boolean>(50_000));
 
     public DefaultNetworkHandler() {
         pool = Executors.newCachedThreadPool(new ThreadFactory() {
@@ -71,14 +75,35 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
     }
 
     @Override
-    public Future<?> synchronize(InetAddress trustedHost, int port, MessageListener listener, long timeoutInSeconds) {
+    public Future<?> synchronize(InetAddress server, int port, MessageListener listener, long timeoutInSeconds) {
         try {
-            Connection connection = Connection.sync(ctx, trustedHost, port, listener, timeoutInSeconds);
+            Connection connection = Connection.sync(ctx, server, port, listener, timeoutInSeconds);
             Future<?> reader = pool.submit(connection.getReader());
             pool.execute(connection.getWriter());
             return reader;
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
+        }
+    }
+
+    @Override
+    public CustomMessage send(InetAddress server, int port, CustomMessage request) {
+        try (Socket socket = new Socket(server, port)) {
+            socket.setSoTimeout(Connection.READ_TIMEOUT);
+            new NetworkMessage(request).write(socket.getOutputStream());
+            NetworkMessage networkMessage = Factory.getNetworkMessage(3, socket.getInputStream());
+            if (networkMessage != null && networkMessage.getPayload() instanceof CustomMessage) {
+                return (CustomMessage) networkMessage.getPayload();
+            } else {
+                if (networkMessage == null) {
+                    throw new NodeException("No response from node " + server);
+                } else {
+                    throw new NodeException("Unexpected response from node " +
+                            server + ": " + networkMessage.getPayload().getCommand());
+                }
+            }
+        } catch (IOException e) {
+            throw new ApplicationException(e);
         }
     }
 
@@ -93,76 +118,11 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
         try {
             running = true;
             connections.clear();
-            serverSocket = new ServerSocket(ctx.getPort());
-            pool.execute(new Runnable() {
-                @Override
-                public void run() {
-                    while (!serverSocket.isClosed()) {
-                        try {
-                            Socket socket = serverSocket.accept();
-                            socket.setSoTimeout(Connection.READ_TIMEOUT);
-                            startConnection(new Connection(ctx, SERVER, socket, listener, requestedObjects));
-                        } catch (IOException e) {
-                            LOG.debug(e.getMessage(), e);
-                        }
-                    }
-                }
-            });
-            pool.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        while (running) {
-                            try {
-                                int active = 0;
-                                long now = UnixTime.now();
-                                synchronized (connections) {
-                                    int diff = connections.size() - ctx.getConnectionLimit();
-                                    if (diff > 0) {
-                                        for (Connection c : connections) {
-                                            c.disconnect();
-                                            diff--;
-                                            if (diff == 0) break;
-                                        }
-                                    }
-                                    for (Iterator<Connection> iterator = connections.iterator(); iterator.hasNext(); ) {
-                                        Connection c = iterator.next();
-                                        if (now - c.getStartTime() > ctx.getConnectionTTL()) {
-                                            c.disconnect();
-                                        }
-                                        if (c.getState() == DISCONNECTED) {
-                                            // Remove the current element from the iterator and the list.
-                                            iterator.remove();
-                                        }
-                                        if (c.getState() == ACTIVE) {
-                                            active++;
-                                        }
-                                    }
-                                }
-                                if (active < NETWORK_MAGIC_NUMBER) {
-                                    List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(
-                                            NETWORK_MAGIC_NUMBER - active, ctx.getStreams());
-                                    for (NetworkAddress address : addresses) {
-                                        startConnection(new Connection(ctx, CLIENT, address, listener, requestedObjects));
-                                    }
-                                    Thread.sleep(10000);
-                                } else {
-                                    Thread.sleep(30000);
-                                }
-                            } catch (InterruptedException e) {
-                                running = false;
-                            } catch (Exception e) {
-                                LOG.error("Error in connection manager. Ignored.", e);
-                            }
-                        }
-                    } finally {
-                        LOG.debug("Connection manager shutting down.");
-                        running = false;
-                    }
-                }
-            });
+            server = new ServerRunnable(ctx, this, listener);
+            pool.execute(server);
+            pool.execute(new ConnectionOrganizer(ctx, this, listener));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 
@@ -173,21 +133,22 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
 
     @Override
     public void stop() {
-        running = false;
-        try {
-            serverSocket.close();
-        } catch (IOException e) {
-            LOG.debug(e.getMessage(), e);
-        }
+        server.close();
         synchronized (connections) {
+            running = false;
             for (Connection c : connections) {
                 c.disconnect();
             }
         }
+        requestedObjects.clear();
     }
 
-    private void startConnection(Connection c) {
+    void startConnection(Connection c) {
+        if (!running) return;
+
         synchronized (connections) {
+            if (!running) return;
+
             // prevent connecting twice to the same node
             if (connections.contains(c)) {
                 return;
@@ -201,11 +162,9 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
     @Override
     public void offer(final InventoryVector iv) {
         List<Connection> target = new LinkedList<>();
-        synchronized (connections) {
-            for (Connection connection : connections) {
-                if (connection.getState() == ACTIVE && !connection.knowsOf(iv)) {
-                    target.add(connection);
-                }
+        for (Connection connection : connections) {
+            if (connection.getState() == ACTIVE && !connection.knowsOf(iv)) {
+                target.add(connection);
             }
         }
         List<Connection> randomSubset = Collections.selectRandom(NETWORK_MAGIC_NUMBER, target);
@@ -220,16 +179,14 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
         TreeMap<Long, Integer> incomingConnections = new TreeMap<>();
         TreeMap<Long, Integer> outgoingConnections = new TreeMap<>();
 
-        synchronized (connections) {
-            for (Connection connection : connections) {
-                if (connection.getState() == ACTIVE) {
-                    long stream = connection.getNode().getStream();
-                    streams.add(stream);
-                    if (connection.getMode() == SERVER) {
-                        inc(incomingConnections, stream);
-                    } else {
-                        inc(outgoingConnections, stream);
-                    }
+        for (Connection connection : connections) {
+            if (connection.getState() == ACTIVE) {
+                long stream = connection.getNode().getStream();
+                streams.add(stream);
+                if (connection.getMode() == SERVER) {
+                    inc(incomingConnections, stream);
+                } else {
+                    inc(outgoingConnections, stream);
                 }
             }
         }
@@ -247,7 +204,55 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
         }
         return new Property("network", null,
                 new Property("connectionManager", running ? "running" : "stopped"),
-                new Property("connections", null, streamProperties)
+                new Property("connections", null, streamProperties),
+                new Property("requestedObjects", requestedObjects.size())
         );
+    }
+
+    void request(Set<InventoryVector> inventoryVectors) {
+        if (!running || inventoryVectors.isEmpty()) return;
+
+        Map<Connection, List<InventoryVector>> distribution = new HashMap<>();
+        for (Connection connection : connections) {
+            if (connection.getState() == ACTIVE) {
+                distribution.put(connection, new LinkedList<InventoryVector>());
+            }
+        }
+        Iterator<InventoryVector> iterator = inventoryVectors.iterator();
+        if (!iterator.hasNext()) {
+            return;
+        }
+        InventoryVector next = iterator.next();
+        Connection previous = null;
+        do {
+            for (Connection connection : distribution.keySet()) {
+                if (connection == previous) {
+                    next = iterator.next();
+                }
+                if (connection.knowsOf(next)) {
+                    List<InventoryVector> ivs = distribution.get(connection);
+                    if (ivs.size() == GetData.MAX_INVENTORY_SIZE) {
+                        connection.send(new GetData.Builder().inventory(ivs).build());
+                        ivs.clear();
+                    }
+                    ivs.add(next);
+                    iterator.remove();
+
+                    if (iterator.hasNext()) {
+                        next = iterator.next();
+                        previous = connection;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        } while (iterator.hasNext());
+
+        for (Connection connection : distribution.keySet()) {
+            List<InventoryVector> ivs = distribution.get(connection);
+            if (!ivs.isEmpty()) {
+                connection.send(new GetData.Builder().inventory(ivs).build());
+            }
+        }
     }
 }

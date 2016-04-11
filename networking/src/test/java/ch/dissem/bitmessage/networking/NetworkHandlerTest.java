@@ -21,12 +21,12 @@ import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.ports.AddressRepository;
 import ch.dissem.bitmessage.ports.MessageRepository;
 import ch.dissem.bitmessage.ports.NetworkHandler;
-import ch.dissem.bitmessage.security.bc.BouncySecurity;
+import ch.dissem.bitmessage.ports.ProofOfWorkRepository;
+import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import ch.dissem.bitmessage.utils.Property;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.net.InetAddress;
 import java.util.concurrent.Future;
@@ -51,28 +51,30 @@ public class NetworkHandlerTest {
     public static void setUp() {
         peerInventory = new TestInventory();
         peer = new BitmessageContext.Builder()
-                .addressRepo(Mockito.mock(AddressRepository.class))
+                .addressRepo(mock(AddressRepository.class))
                 .inventory(peerInventory)
-                .messageRepo(Mockito.mock(MessageRepository.class))
+                .messageRepo(mock(MessageRepository.class))
+                .powRepo(mock(ProofOfWorkRepository.class))
                 .port(6001)
                 .nodeRegistry(new TestNodeRegistry())
                 .networkHandler(new DefaultNetworkHandler())
-                .security(new BouncySecurity())
-                .listener(Mockito.mock(BitmessageContext.Listener.class))
+                .cryptography(new BouncyCryptography())
+                .listener(mock(BitmessageContext.Listener.class))
                 .build();
         peer.startup();
 
         nodeInventory = new TestInventory();
         networkHandler = new DefaultNetworkHandler();
         node = new BitmessageContext.Builder()
-                .addressRepo(Mockito.mock(AddressRepository.class))
+                .addressRepo(mock(AddressRepository.class))
                 .inventory(nodeInventory)
-                .messageRepo(Mockito.mock(MessageRepository.class))
+                .messageRepo(mock(MessageRepository.class))
+                .powRepo(mock(ProofOfWorkRepository.class))
                 .port(6002)
                 .nodeRegistry(new TestNodeRegistry(localhost))
                 .networkHandler(networkHandler)
-                .security(new BouncySecurity())
-                .listener(Mockito.mock(BitmessageContext.Listener.class))
+                .cryptography(new BouncyCryptography())
+                .listener(mock(BitmessageContext.Listener.class))
                 .build();
     }
 
@@ -91,14 +93,14 @@ public class NetworkHandlerTest {
         } while (node.isRunning());
     }
 
-    @Test(timeout = 20_000)
+    @Test(timeout = 5_000)
     public void ensureNodesAreConnecting() {
         try {
             node.startup();
             Property status;
             do {
                 Thread.yield();
-                status = node.status().getProperty("network").getProperty("connections").getProperty("stream 0");
+                status = node.status().getProperty("network", "connections", "stream 0");
             } while (status == null);
             assertEquals(1, status.getProperty("outgoing").getValue());
         } finally {
@@ -114,7 +116,8 @@ public class NetworkHandlerTest {
         );
 
         nodeInventory.init(
-                "V1Msg.payload"
+                "V1Msg.payload",
+                "V4Pubkey.payload"
         );
 
         Future<?> future = networkHandler.synchronize(InetAddress.getLocalHost(), 6001,
@@ -125,7 +128,7 @@ public class NetworkHandlerTest {
         assertInventorySize(3, peerInventory);
     }
 
-    @Test(timeout = 10_000)
+    @Test(timeout = 5_000)
     public void ensureObjectsAreSynchronizedIfOnlyPeerHasObjects() throws Exception {
         peerInventory.init(
                 "V4Pubkey.payload",
@@ -142,7 +145,7 @@ public class NetworkHandlerTest {
         assertInventorySize(2, peerInventory);
     }
 
-    @Test(timeout = 10_000)
+    @Test(timeout = 5_000)
     public void ensureObjectsAreSynchronizedIfOnlyNodeHasObjects() throws Exception {
         peerInventory.init();
 
