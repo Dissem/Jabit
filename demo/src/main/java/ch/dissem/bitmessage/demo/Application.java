@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
+import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
 import ch.dissem.bitmessage.ports.MemoryNodeRegistry;
 import ch.dissem.bitmessage.repository.*;
@@ -30,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static ch.dissem.bitmessage.demo.CommandLine.COMMAND_BACK;
 import static ch.dissem.bitmessage.demo.CommandLine.ERROR_UNKNOWN_COMMAND;
@@ -325,8 +327,10 @@ public class Application {
         System.out.println();
         System.out.println(message.getText());
         System.out.println();
-        System.out.println("Labels: " + message.getLabels());
+        System.out.println(message.getLabels().stream().map(Label::toString).collect(
+                Collectors.joining("Labels: ", ", ", "")));
         System.out.println();
+        ctx.labeler().markAsRead(message);
         String command;
         do {
             System.out.println("r) reply");

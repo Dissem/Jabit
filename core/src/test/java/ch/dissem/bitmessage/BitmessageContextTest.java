@@ -143,10 +143,11 @@ public class BitmessageContextTest {
         objects.add(TestUtils.loadObjectMessage(5, "V5Broadcast.payload"));
         when(ctx.internals().getInventory().getObjects(eq(address.getStream()), anyLong(), any(ObjectType.class)))
                 .thenReturn(objects);
+        when(ctx.addresses().getSubscriptions(anyLong())).thenReturn(Collections.singletonList(address));
 
         ctx.addSubscribtion(address);
 
-        verify(ctx.addresses(), times(1)).save(address);
+        verify(ctx.addresses(), atLeastOnce()).save(address);
         assertThat(address.isSubscribed(), is(true));
         verify(ctx.internals().getInventory()).getObjects(eq(address.getStream()), anyLong(), any(ObjectType.class));
         verify(listener).receive(any(Plaintext.class));
@@ -232,6 +233,7 @@ public class BitmessageContextTest {
             expected.remove(a.getAddress());
         }
     }
+
     @Test
     public void ensureShortDeterministicAddressesAreCreated() {
         final int expected_size = 1;

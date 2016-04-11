@@ -17,7 +17,10 @@
 package ch.dissem.bitmessage;
 
 import ch.dissem.bitmessage.entity.*;
-import ch.dissem.bitmessage.entity.payload.*;
+import ch.dissem.bitmessage.entity.payload.Broadcast;
+import ch.dissem.bitmessage.entity.payload.Msg;
+import ch.dissem.bitmessage.entity.payload.ObjectPayload;
+import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
@@ -65,6 +68,7 @@ public class BitmessageContext {
 
     private final InternalContext ctx;
 
+    private final Labeler labeler;
     private final Listener listener;
     private final NetworkHandler.MessageListener networkListener;
 
@@ -72,8 +76,9 @@ public class BitmessageContext {
 
     private BitmessageContext(Builder builder) {
         ctx = new InternalContext(builder);
+        labeler = builder.labeler;
         listener = builder.listener;
-        networkListener = new DefaultMessageListener(ctx, listener);
+        networkListener = new DefaultMessageListener(ctx, labeler, listener);
 
         // As this thread is used for parts that do POW, which itself uses parallel threads, only
         // one should be executed at any time.
@@ -95,6 +100,10 @@ public class BitmessageContext {
 
     public MessageRepository messages() {
         return ctx.getMessageRepository();
+    }
+
+    public Labeler labeler() {
+        return labeler;
     }
 
     public BitmessageAddress createIdentity(boolean shorter, Feature... features) {
@@ -280,7 +289,9 @@ public class BitmessageContext {
             try {
                 Broadcast broadcast = (Broadcast) object.getPayload();
                 broadcast.decrypt(address);
-                listener.receive(broadcast.getPlaintext());
+                // This decrypts it twice, but on the other hand it doesn't try to decrypt the objects with
+                // other subscriptions and the interface stays as simple as possible.
+                networkListener.receive(object);
             } catch (DecryptionFailedException ignore) {
             } catch (Exception e) {
                 LOG.debug(e.getMessage(), e);
@@ -318,6 +329,7 @@ public class BitmessageContext {
         Cryptography cryptography;
         MessageCallback messageCallback;
         CustomCommandHandler customCommandHandler;
+        Labeler labeler;
         Listener listener;
         int connectionLimit = 150;
         long connectionTTL = 30 * MINUTE;
@@ -378,6 +390,11 @@ public class BitmessageContext {
             return this;
         }
 
+        public Builder labeler(Labeler labeler) {
+            this.labeler = labeler;
+            return this;
+        }
+
         public Builder listener(Listener listener) {
             this.listener = listener;
             return this;
@@ -429,6 +446,9 @@ public class BitmessageContext {
             }
             if (messageCallback == null) {
                 messageCallback = new BaseMessageCallback();
+            }
+            if (labeler == null) {
+                labeler = new DefaultLabeler();
             }
             if (customCommandHandler == null) {
                 customCommandHandler = new CustomCommandHandler() {

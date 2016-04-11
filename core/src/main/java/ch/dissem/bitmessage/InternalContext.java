@@ -96,7 +96,7 @@ public class InternalContext {
 
         init(cryptography, inventory, nodeRegistry, networkHandler, addressRepository, messageRepository,
                 proofOfWorkRepository, proofOfWorkService, proofOfWorkEngine,
-                messageCallback, customCommandHandler);
+                messageCallback, customCommandHandler, builder.labeler);
         for (BitmessageAddress identity : addressRepository.getIdentities()) {
             streams.add(identity.getStream());
         }

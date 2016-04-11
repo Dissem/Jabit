@@ -25,6 +25,7 @@ import ch.dissem.bitmessage.entity.payload.GetPubkey;
 import ch.dissem.bitmessage.entity.payload.Msg;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.AddressRepository;
+import ch.dissem.bitmessage.ports.Labeler;
 import ch.dissem.bitmessage.ports.MessageRepository;
 import ch.dissem.bitmessage.utils.Singleton;
 import ch.dissem.bitmessage.utils.TestBase;
@@ -62,7 +63,7 @@ public class DefaultMessageListenerTest extends TestBase {
         when(ctx.getAddressRepository()).thenReturn(addressRepo);
         when(ctx.getMessageRepository()).thenReturn(messageRepo);
 
-        listener = new DefaultMessageListener(ctx, mock(BitmessageContext.Listener.class));
+        listener = new DefaultMessageListener(ctx, mock(Labeler.class), mock(BitmessageContext.Listener.class));
     }
 
     @Test
