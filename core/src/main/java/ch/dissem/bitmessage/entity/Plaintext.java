@@ -175,7 +175,7 @@ public class Plaintext implements Streamable {
         if (type == Type.MSG) {
             if (to.has(Pubkey.Feature.DOES_ACK)) {
                 ByteArrayOutputStream ack = new ByteArrayOutputStream();
-                ackMessage.write(ack);
+                getAckMessage().write(ack);
                 byte[] data = ack.toByteArray();
                 Encode.varInt(data.length, out);
                 out.write(data);

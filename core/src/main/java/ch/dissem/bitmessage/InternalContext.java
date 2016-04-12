@@ -16,14 +16,10 @@
 
 package ch.dissem.bitmessage;
 
-import ch.dissem.bitmessage.entity.BitmessageAddress;
-import ch.dissem.bitmessage.entity.Encrypted;
-import ch.dissem.bitmessage.entity.ObjectMessage;
-import ch.dissem.bitmessage.entity.payload.*;
-import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.entity.*;
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.entity.valueobject.Label;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Singleton;
 import ch.dissem.bitmessage.utils.TTL;
@@ -36,7 +32,6 @@ import java.util.Arrays;
 import java.util.TreeSet;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Status.SENT;
-import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 
 /**
  * The internal context should normally only be used for port implementations. If you need it in your client
@@ -182,11 +177,11 @@ public class InternalContext {
             if (payload instanceof Msg && recipient.has(Pubkey.Feature.DOES_ACK)) {
                 ObjectMessage ackMessage = ((Msg) payload).getPlaintext().getAckMessage();
                 messageCallback.proofOfWorkStarted(payload);
-                security.doProofOfWork(ackMessage, networkNonceTrialsPerByte, networkExtraBytes, new ProofOfWorkEngine.Callback() {
+                cryptography.doProofOfWork(ackMessage, NETWORK_NONCE_TRIALS_PER_BYTE, NETWORK_EXTRA_BYTES, new ProofOfWorkEngine.Callback() {
                     @Override
-                    public void onNonceCalculated(byte[] nonce) {
+                    public void onNonceCalculated(byte[] initialHash, byte[] nonce) {
                         object.encrypt(recipient.getPubkey());
-                        proofOfWorkService.doProofOfWork(to, object);
+                        proofOfWorkService.doProofOfWork(recipient, object);
                     }
                 });
             } else {
@@ -318,7 +313,7 @@ public class InternalContext {
         }
 
         @Override
-        public void onNonceCalculated(byte[] nonce) {
+        public void onNonceCalculated(byte[] initialHash, byte[] nonce) {
             object.setNonce(nonce);
             messageCallback.proofOfWorkCompleted(payload);
             if (payload instanceof PlaintextHolder) {

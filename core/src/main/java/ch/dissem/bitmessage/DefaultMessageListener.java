@@ -165,8 +165,8 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
         listener.receive(msg);
         updatePubkey(msg.getFrom(), msg.getFrom().getPubkey());
 
-        if (msg.getType() == Type.MSG && identity.has(Pubkey.Feature.DOES_ACK)) {
-            ObjectMessage ack = plaintext.getAckMessage();
+        if (msg.getType() == Plaintext.Type.MSG && msg.getTo().has(Pubkey.Feature.DOES_ACK)) {
+            ObjectMessage ack = msg.getAckMessage();
             if (ack != null) {
                 ctx.getInventory().storeObject(ack);
                 ctx.getNetworkHandler().offer(ack.getInventoryVector());
