@@ -76,16 +76,19 @@ public abstract class Pubkey extends ObjectPayload {
          * Receiving node expects that the RIPE hash encoded in their address preceedes the encrypted message data of msg
          * messages bound for them.
          */
-        INCLUDE_DESTINATION(1 << 30),
+        INCLUDE_DESTINATION(30),
         /**
          * If true, the receiving node does send acknowledgements (rather than dropping them).
          */
-        DOES_ACK(1 << 31);
+        DOES_ACK(31);
 
         private int bit;
 
-        Feature(int bit) {
-            this.bit = bit;
+        Feature(int bitNumber) {
+            // The Bitmessage Protocol Specification starts counting at the most significant bit,
+            // thus the slightly awkward calculation.
+            // https://bitmessage.org/wiki/Protocol_specification#Pubkey_bitfield_features
+            this.bit = 1 << (31 - bitNumber);
         }
 
         public static int bitfield(Feature... features) {

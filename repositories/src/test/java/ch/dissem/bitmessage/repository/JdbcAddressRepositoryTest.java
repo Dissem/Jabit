@@ -17,12 +17,14 @@
 package ch.dissem.bitmessage.repository;
 
 import ch.dissem.bitmessage.entity.BitmessageAddress;
+import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
 
+import static ch.dissem.bitmessage.entity.payload.Pubkey.Feature.DOES_ACK;
 import static org.junit.Assert.*;
 
 public class JdbcAddressRepositoryTest extends TestBase {
@@ -46,7 +48,7 @@ public class JdbcAddressRepositoryTest extends TestBase {
         repo.save(new BitmessageAddress(CONTACT_B));
         repo.save(new BitmessageAddress(CONTACT_C));
 
-        BitmessageAddress identityA = new BitmessageAddress(new PrivateKey(false, 1, 1000, 1000));
+        BitmessageAddress identityA = new BitmessageAddress(new PrivateKey(false, 1, 1000, 1000, DOES_ACK));
         repo.save(identityA);
         IDENTITY_A = identityA.getAddress();
         BitmessageAddress identityB = new BitmessageAddress(new PrivateKey(false, 1, 1000, 1000));
@@ -68,6 +70,7 @@ public class JdbcAddressRepositoryTest extends TestBase {
         assertEquals(4, identity.getVersion());
         assertEquals(identity, repo.findIdentity(identity.getTag()));
         assertNull(repo.findContact(identity.getTag()));
+        assertTrue(identity.has(Pubkey.Feature.DOES_ACK));
     }
 
     @Test
