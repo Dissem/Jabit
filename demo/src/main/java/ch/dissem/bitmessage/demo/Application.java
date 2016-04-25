@@ -25,10 +25,10 @@ import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
 import ch.dissem.bitmessage.ports.MemoryNodeRegistry;
 import ch.dissem.bitmessage.repository.*;
+import org.apache.commons.lang3.text.WordUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -56,13 +56,7 @@ public class Application {
                 .networkHandler(new DefaultNetworkHandler())
                 .cryptography(new BouncyCryptography())
                 .port(48444)
-                .listener(plaintext -> {
-                    try {
-                        System.out.println(new String(plaintext.getMessage(), "UTF-8"));
-                    } catch (UnsupportedEncodingException e) {
-                        LOG.error(e.getMessage(), e);
-                    }
-                })
+                .listener(plaintext -> System.out.println("New Message from " + plaintext.getFrom() + ": " + plaintext.getSubject()))
                 .build();
 
         if (syncServer == null) {
@@ -288,7 +282,13 @@ public class Application {
             int i = 0;
             for (Label label : labels) {
                 i++;
-                System.out.println(i + ") " + label + " [" + ctx.messages().countUnread(label) + "]");
+                System.out.print(i + ") " + label);
+                int unread = ctx.messages().countUnread(label);
+                if (unread > 0) {
+                    System.out.println(" [" + unread + "]");
+                } else {
+                    System.out.println();
+                }
             }
             System.out.println("a) Archive");
             System.out.println();
@@ -370,7 +370,7 @@ public class Application {
         System.out.println("To:      " + message.getTo());
         System.out.println("Subject: " + message.getSubject());
         System.out.println();
-        System.out.println(message.getText());
+        System.out.println(WordUtils.wrap(message.getText(), 120));
         System.out.println();
         System.out.println(message.getLabels().stream().map(Label::toString).collect(
                 Collectors.joining(", ", "Labels: ", "")));

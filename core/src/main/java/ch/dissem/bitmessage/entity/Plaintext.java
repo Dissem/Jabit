@@ -62,7 +62,7 @@ public class Plaintext implements Streamable {
         encoding = builder.encoding;
         message = builder.message;
         ackData = builder.ackData;
-        if (builder.ackMessage != null) {
+        if (builder.ackMessage != null && builder.ackMessage.length > 0) {
             ackMessage = Factory.getObjectMessage(
                     3,
                     new ByteArrayInputStream(builder.ackMessage),

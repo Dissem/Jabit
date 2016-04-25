@@ -105,7 +105,8 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         try (
                 Connection connection = config.getConnection();
                 Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT count(*) FROM Message WHERE " + where)
+                ResultSet rs = stmt.executeQuery("SELECT count(*) FROM Message WHERE " + where
+                        + " ORDER BY received DESC")
         ) {
             if (rs.next()) {
                 return rs.getInt(1);
