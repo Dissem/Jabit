@@ -64,12 +64,9 @@ public class BitmessageContext {
     public static final int CURRENT_VERSION = 3;
     private final static Logger LOG = LoggerFactory.getLogger(BitmessageContext.class);
 
-    private final ExecutorService pool;
-
     private final InternalContext ctx;
 
     private final Labeler labeler;
-    private final Listener listener;
     private final NetworkHandler.MessageListener networkListener;
 
     private final boolean sendPubkeyOnIdentityCreation;
@@ -77,12 +74,7 @@ public class BitmessageContext {
     private BitmessageContext(Builder builder) {
         ctx = new InternalContext(builder);
         labeler = builder.labeler;
-        listener = builder.listener;
-        networkListener = new DefaultMessageListener(ctx, labeler, listener);
-
-        // As this thread is used for parts that do POW, which itself uses parallel threads, only
-        // one should be executed at any time.
-        pool = Executors.newFixedThreadPool(1);
+        networkListener = new DefaultMessageListener(ctx, labeler, builder.listener);
 
         sendPubkeyOnIdentityCreation = builder.sendPubkeyOnIdentityCreation;
 
@@ -116,12 +108,7 @@ public class BitmessageContext {
         ));
         ctx.getAddressRepository().save(identity);
         if (sendPubkeyOnIdentityCreation) {
-            pool.submit(new Runnable() {
-                @Override
-                public void run() {
-                    ctx.sendPubkey(identity, identity.getStream());
-                }
-            });
+            ctx.sendPubkey(identity, identity.getStream());
         }
         return identity;
     }
@@ -177,35 +164,33 @@ public class BitmessageContext {
         if (msg.getFrom() == null || msg.getFrom().getPrivateKey() == null) {
             throw new IllegalArgumentException("'From' must be an identity, i.e. have a private key.");
         }
-        pool.submit(new Runnable() {
-            @Override
-            public void run() {
-                BitmessageAddress to = msg.getTo();
-                if (to != null) {
-                    if (to.getPubkey() == null) {
-                        LOG.info("Public key is missing from recipient. Requesting.");
-                        ctx.requestPubkey(to);
-                    }
-                    if (to.getPubkey() == null) {
-                        msg.setStatus(PUBKEY_REQUESTED);
-                        msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.OUTBOX));
-                        ctx.getMessageRepository().save(msg);
-                    }
-                }
-                if (to == null || to.getPubkey() != null) {
-                    LOG.info("Sending message.");
-                    msg.setStatus(DOING_PROOF_OF_WORK);
-                    msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.OUTBOX));
-                    ctx.getMessageRepository().save(msg);
-                    ctx.send(
-                            msg.getFrom(),
-                            to,
-                            wrapInObjectPayload(msg),
-                            TTL.msg()
-                    );
-                }
+        BitmessageAddress to = msg.getTo();
+        if (to != null) {
+            if (to.getPubkey() == null) {
+                LOG.info("Public key is missing from recipient. Requesting.");
+                ctx.requestPubkey(to);
             }
-        });
+            if (to.getPubkey() == null) {
+                msg.setStatus(PUBKEY_REQUESTED);
+                msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.OUTBOX));
+                ctx.getMessageRepository().save(msg);
+            }
+        }
+        if (to == null || to.getPubkey() != null) {
+            LOG.info("Sending message.");
+            msg.setStatus(DOING_PROOF_OF_WORK);
+            msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.OUTBOX));
+            ctx.getMessageRepository().save(msg);
+            ctx.send(
+                    msg.getFrom(),
+                    to,
+                    wrapInObjectPayload(msg),
+                    TTL.msg()
+            );
+            msg.setStatus(SENT);
+            msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.SENT));
+            ctx.getMessageRepository().save(msg);
+        }
     }
 
     private ObjectPayload wrapInObjectPayload(Plaintext msg) {
@@ -425,6 +410,8 @@ public class BitmessageContext {
          * sender can't receive your public key) in some special situations. Also note that it's probably
          * not a good idea to set it too low.
          * </p>
+         *
+         * @deprecated use {@link TTL#pubkey(long)} instead.
          */
         public Builder pubkeyTTL(long days) {
             if (days < 0 || days > 28 * DAY) throw new IllegalArgumentException("TTL must be between 1 and 28 days");

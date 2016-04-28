@@ -28,8 +28,7 @@ import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.NetworkHandler;
 import ch.dissem.bitmessage.utils.Collections;
 import ch.dissem.bitmessage.utils.Property;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import ch.dissem.bitmessage.utils.ThreadFactoryBuilder;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -40,34 +39,26 @@ import java.util.concurrent.*;
 import static ch.dissem.bitmessage.networking.Connection.Mode.SERVER;
 import static ch.dissem.bitmessage.networking.Connection.State.ACTIVE;
 import static ch.dissem.bitmessage.utils.DebugUtils.inc;
+import static ch.dissem.bitmessage.utils.ThreadFactoryBuilder.pool;
 import static java.util.Collections.newSetFromMap;
 
 /**
  * Handles all the networky stuff.
  */
 public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
-    private final static Logger LOG = LoggerFactory.getLogger(DefaultNetworkHandler.class);
-
     public final static int NETWORK_MAGIC_NUMBER = 8;
 
     final Collection<Connection> connections = new ConcurrentLinkedQueue<>();
-    private final ExecutorService pool;
+    private final ExecutorService pool = Executors.newCachedThreadPool(
+            pool("network")
+                    .lowPrio()
+                    .daemon()
+                    .build());
     private InternalContext ctx;
     private ServerRunnable server;
     private volatile boolean running;
 
     final Set<InventoryVector> requestedObjects = newSetFromMap(new ConcurrentHashMap<InventoryVector, Boolean>(50_000));
-
-    public DefaultNetworkHandler() {
-        pool = Executors.newCachedThreadPool(new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                Thread thread = Executors.defaultThreadFactory().newThread(r);
-                thread.setPriority(Thread.MIN_PRIORITY);
-                return thread;
-            }
-        });
-    }
 
     @Override
     public void setContext(InternalContext context) {
