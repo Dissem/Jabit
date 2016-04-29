@@ -56,7 +56,6 @@ public class BitmessageContextTest {
                 .cryptography(new BouncyCryptography())
                 .inventory(mock(Inventory.class))
                 .listener(listener)
-                .messageCallback(mock(MessageCallback.class))
                 .messageRepo(mock(MessageRepository.class))
                 .networkHandler(mock(NetworkHandler.class))
                 .nodeRegistry(mock(NodeRegistry.class))

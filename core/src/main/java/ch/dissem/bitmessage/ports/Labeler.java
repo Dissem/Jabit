@@ -19,7 +19,11 @@ package ch.dissem.bitmessage.ports;
 import ch.dissem.bitmessage.entity.Plaintext;
 
 /**
- * Defines and sets labels
+ * Defines and sets labels. Note that it should also update the status field of a message.
+ * <p>
+ * As the labeler gets called whenever the state of a message changes, it can also be used
+ * as a listener.
+ * </p>
  */
 public interface Labeler {
     /**
@@ -28,6 +32,14 @@ public interface Labeler {
      * @param msg an unlabeled message or broadcast
      */
     void setLabels(Plaintext msg);
+
+    void markAsDraft(Plaintext msg);
+
+    void markAsSending(Plaintext msg);
+
+    void markAsSent(Plaintext msg);
+
+    void markAsAcknowledged(Plaintext msg);
 
     void markAsRead(Plaintext msg);
 

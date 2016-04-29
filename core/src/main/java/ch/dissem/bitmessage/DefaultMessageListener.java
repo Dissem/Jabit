@@ -109,7 +109,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
         List<Plaintext> messages = ctx.getMessageRepository().findMessages(PUBKEY_REQUESTED, address);
         LOG.info("Sending " + messages.size() + " messages for contact " + address);
         for (Plaintext msg : messages) {
-            msg.setStatus(DOING_PROOF_OF_WORK);
+            ctx.getLabeler().markAsSending(msg);
             ctx.getMessageRepository().save(msg);
             ctx.send(
                     msg.getFrom(),
@@ -117,8 +117,6 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
                     new Msg(msg),
                     +2 * DAY
             );
-            msg.setStatus(SENT);
-            ctx.getMessageRepository().save(msg);
         }
     }
 
@@ -158,7 +156,6 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
     }
 
     protected void receive(InventoryVector iv, Plaintext msg) {
-        msg.setStatus(RECEIVED);
         msg.setInventoryVector(iv);
         labeler.setLabels(msg);
         ctx.getMessageRepository().save(msg);

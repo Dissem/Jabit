@@ -18,7 +18,6 @@ package ch.dissem.bitmessage;
 
 import ch.dissem.bitmessage.entity.*;
 import ch.dissem.bitmessage.entity.payload.*;
-import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Singleton;
@@ -30,8 +29,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.TreeSet;
-
-import static ch.dissem.bitmessage.entity.Plaintext.Status.SENT;
 
 /**
  * The internal context should normally only be used for port implementations. If you need it in your client
@@ -55,9 +52,9 @@ public class InternalContext {
     private final MessageRepository messageRepository;
     private final ProofOfWorkRepository proofOfWorkRepository;
     private final ProofOfWorkEngine proofOfWorkEngine;
-    private final MessageCallback messageCallback;
     private final CustomCommandHandler customCommandHandler;
     private final ProofOfWorkService proofOfWorkService;
+    private final Labeler labeler;
 
     private final TreeSet<Long> streams = new TreeSet<>();
     private final int port;
@@ -76,11 +73,11 @@ public class InternalContext {
         this.proofOfWorkService = new ProofOfWorkService();
         this.proofOfWorkEngine = builder.proofOfWorkEngine;
         this.clientNonce = cryptography.randomNonce();
-        this.messageCallback = builder.messageCallback;
         this.customCommandHandler = builder.customCommandHandler;
         this.port = builder.port;
         this.connectionLimit = builder.connectionLimit;
         this.connectionTTL = builder.connectionTTL;
+        this.labeler = builder.labeler;
 
         Singleton.initialize(cryptography);
 
@@ -96,8 +93,7 @@ public class InternalContext {
         }
 
         init(cryptography, inventory, nodeRegistry, networkHandler, addressRepository, messageRepository,
-                proofOfWorkRepository, proofOfWorkService, proofOfWorkEngine,
-                messageCallback, customCommandHandler, builder.labeler);
+                proofOfWorkRepository, proofOfWorkService, proofOfWorkEngine, customCommandHandler, builder.labeler);
         for (BitmessageAddress identity : addressRepository.getIdentities()) {
             streams.add(identity.getStream());
         }
@@ -147,6 +143,10 @@ public class InternalContext {
         return proofOfWorkService;
     }
 
+    public Labeler getLabeler() {
+        return labeler;
+    }
+
     public long[] getStreams() {
         long[] result = new long[streams.size()];
         int i = 0;
@@ -176,7 +176,6 @@ public class InternalContext {
             }
             if (payload instanceof Msg && recipient.has(Pubkey.Feature.DOES_ACK)) {
                 ObjectMessage ackMessage = ((Msg) payload).getPlaintext().getAckMessage();
-                messageCallback.proofOfWorkStarted(payload);
                 cryptography.doProofOfWork(ackMessage, NETWORK_NONCE_TRIALS_PER_BYTE, NETWORK_EXTRA_BYTES, new ProofOfWorkEngine.Callback() {
                     @Override
                     public void onNonceCalculated(byte[] initialHash, byte[] nonce) {
@@ -208,7 +207,6 @@ public class InternalContext {
                     .build();
             response.sign(identity.getPrivateKey());
             response.encrypt(cryptography.createPublicKey(identity.getPublicDecryptionKey()));
-            messageCallback.proofOfWorkStarted(identity.getPubkey());
             // TODO: remember that the pubkey is just about to be sent, and on which stream!
             proofOfWorkService.doProofOfWork(response);
         } catch (IOException e) {
@@ -245,7 +243,6 @@ public class InternalContext {
                 .expiresTime(expires)
                 .payload(new GetPubkey(contact))
                 .build();
-        messageCallback.proofOfWorkStarted(request.getPayload());
         proofOfWorkService.doProofOfWork(request);
     }
 
@@ -301,32 +298,5 @@ public class InternalContext {
 
     public interface ContextHolder {
         void setContext(InternalContext context);
-    }
-
-    private class ProofOfWorkCallback implements ProofOfWorkEngine.Callback {
-        private final ObjectMessage object;
-        private final ObjectPayload payload;
-
-        private ProofOfWorkCallback(ObjectMessage object, ObjectPayload payload) {
-            this.object = object;
-            this.payload = payload;
-        }
-
-        @Override
-        public void onNonceCalculated(byte[] initialHash, byte[] nonce) {
-            object.setNonce(nonce);
-            messageCallback.proofOfWorkCompleted(payload);
-            if (payload instanceof PlaintextHolder) {
-                Plaintext plaintext = ((PlaintextHolder) payload).getPlaintext();
-                plaintext.setInventoryVector(object.getInventoryVector());
-                plaintext.setStatus(SENT);
-                plaintext.removeLabel(Label.Type.OUTBOX);
-                plaintext.addLabels(messageRepository.getLabels(Label.Type.SENT));
-                messageRepository.save(plaintext);
-            }
-            inventory.storeObject(object);
-            networkHandler.offer(object.getInventoryVector());
-            messageCallback.messageOffered(payload, object.getInventoryVector());
-        }
     }
 }

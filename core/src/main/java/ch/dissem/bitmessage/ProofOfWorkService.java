@@ -66,6 +66,7 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
         Plaintext plaintext = messageRepo.getMessage(initialHash);
         if (plaintext != null) {
             plaintext.setInventoryVector(object.getInventoryVector());
+            ctx.getLabeler().markAsSent(plaintext);
             messageRepo.save(plaintext);
         }
         ctx.getInventory().storeObject(object);

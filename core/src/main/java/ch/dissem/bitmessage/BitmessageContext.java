@@ -22,7 +22,6 @@ import ch.dissem.bitmessage.entity.payload.Msg;
 import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
-import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
@@ -37,11 +36,12 @@ import java.net.InetAddress;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.*;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import static ch.dissem.bitmessage.InternalContext.NETWORK_EXTRA_BYTES;
 import static ch.dissem.bitmessage.InternalContext.NETWORK_NONCE_TRIALS_PER_BYTE;
-import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
 import static ch.dissem.bitmessage.utils.UnixTime.*;
@@ -155,8 +155,8 @@ public class BitmessageContext {
                 .from(from)
                 .to(to)
                 .message(subject, message)
-                .labels(messages().getLabels(Label.Type.SENT))
                 .build();
+        labeler().markAsSending(msg);
         send(msg);
     }
 
@@ -171,15 +171,11 @@ public class BitmessageContext {
                 ctx.requestPubkey(to);
             }
             if (to.getPubkey() == null) {
-                msg.setStatus(PUBKEY_REQUESTED);
-                msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.OUTBOX));
                 ctx.getMessageRepository().save(msg);
             }
         }
         if (to == null || to.getPubkey() != null) {
             LOG.info("Sending message.");
-            msg.setStatus(DOING_PROOF_OF_WORK);
-            msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.OUTBOX));
             ctx.getMessageRepository().save(msg);
             ctx.send(
                     msg.getFrom(),
@@ -187,9 +183,6 @@ public class BitmessageContext {
                     wrapInObjectPayload(msg),
                     TTL.msg()
             );
-            msg.setStatus(SENT);
-            msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.SENT));
-            ctx.getMessageRepository().save(msg);
         }
     }
 
@@ -310,7 +303,6 @@ public class BitmessageContext {
         ProofOfWorkRepository proofOfWorkRepository;
         ProofOfWorkEngine proofOfWorkEngine;
         Cryptography cryptography;
-        MessageCallback messageCallback;
         CustomCommandHandler customCommandHandler;
         Labeler labeler;
         Listener listener;
@@ -355,11 +347,6 @@ public class BitmessageContext {
 
         public Builder cryptography(Cryptography cryptography) {
             this.cryptography = cryptography;
-            return this;
-        }
-
-        public Builder messageCallback(MessageCallback callback) {
-            this.messageCallback = callback;
             return this;
         }
 
@@ -428,9 +415,6 @@ public class BitmessageContext {
             nonNull("proofOfWorkRepo", proofOfWorkRepository);
             if (proofOfWorkEngine == null) {
                 proofOfWorkEngine = new MultiThreadedPOWEngine();
-            }
-            if (messageCallback == null) {
-                messageCallback = new BaseMessageCallback();
             }
             if (labeler == null) {
                 labeler = new DefaultLabeler();
