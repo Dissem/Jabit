@@ -82,7 +82,7 @@ public class SerializationTest extends TestBase {
                 .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
                 .to(TestUtils.loadContact())
                 .message("Subject", "Message")
-                .ack("ack".getBytes())
+                .ackData("ack".getBytes())
                 .signature(new byte[0])
                 .build();
         ByteArrayOutputStream out = new ByteArrayOutputStream();

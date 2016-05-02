@@ -39,7 +39,7 @@ public class GenericPayload extends ObjectPayload {
         this.data = data;
     }
 
-    public static GenericPayload read(long version, InputStream is, long stream, int length) throws IOException {
+    public static GenericPayload read(long version, long stream, InputStream is, int length) throws IOException {
         return new GenericPayload(version, stream, Decode.bytes(is, length));
     }
 

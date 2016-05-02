@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 
+import static ch.dissem.bitmessage.entity.payload.ObjectType.MSG;
 import static ch.dissem.bitmessage.utils.Singleton.security;
 
 /**
@@ -155,7 +156,7 @@ public class Factory {
         }
         // fallback: just store the message - we don't really care what it is
         LOG.trace("Unexpected object type: " + objectType);
-        return GenericPayload.read(version, stream, streamNumber, length);
+        return GenericPayload.read(version, streamNumber, stream, length);
     }
 
     private static ObjectPayload parseGetPubkey(long version, long streamNumber, InputStream stream, int length) throws IOException {
@@ -177,7 +178,7 @@ public class Factory {
 
     private static ObjectPayload parsePubkey(long version, long streamNumber, InputStream stream, int length) throws IOException {
         Pubkey pubkey = readPubkey(version, streamNumber, stream, length, true);
-        return pubkey != null ? pubkey : GenericPayload.read(version, stream, streamNumber, length);
+        return pubkey != null ? pubkey : GenericPayload.read(version, streamNumber, stream, length);
     }
 
     private static ObjectPayload parseMsg(long version, long streamNumber, InputStream stream, int length) throws IOException {
@@ -192,7 +193,7 @@ public class Factory {
                 return V5Broadcast.read(stream, streamNumber, length);
             default:
                 LOG.debug("Encountered unknown broadcast version " + version);
-                return GenericPayload.read(version, stream, streamNumber, length);
+                return GenericPayload.read(version, streamNumber, stream, length);
         }
     }
 
@@ -208,7 +209,7 @@ public class Factory {
     public static ObjectMessage createAck(Plaintext plaintext) {
         if (plaintext == null || plaintext.getAckData() == null)
             return null;
-        Ack ack = new Ack(3, plaintext.getFrom().getStream(), plaintext.getAckData());
-        return new ObjectMessage.Builder().payload(ack).build();
+        GenericPayload ack = new GenericPayload(3, plaintext.getFrom().getStream(), plaintext.getAckData());
+        return new ObjectMessage.Builder().objectType(MSG).payload(ack).build();
     }
 }

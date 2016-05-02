@@ -65,6 +65,7 @@ public class ProofOfWorkServiceTest {
         when(ctx.getInventory()).thenReturn(inventory);
         when(ctx.getNetworkHandler()).thenReturn(networkHandler);
         when(ctx.getMessageRepository()).thenReturn(messageRepo);
+        when(ctx.getLabeler()).thenReturn(mock(Labeler.class));
 
         proofOfWorkService = new ProofOfWorkService();
         proofOfWorkService.setContext(ctx);

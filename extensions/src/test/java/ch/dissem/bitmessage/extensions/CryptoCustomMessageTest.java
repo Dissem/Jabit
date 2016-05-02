@@ -52,7 +52,7 @@ public class CryptoCustomMessageTest extends TestBase {
                 new CryptoCustomMessage.Reader<GenericPayload>() {
                     @Override
                     public GenericPayload read(BitmessageAddress ignore, InputStream in) throws IOException {
-                        return GenericPayload.read(0, in, 1, 100);
+                        return GenericPayload.read(0, 1, in, 100);
                     }
                 });
         GenericPayload payloadAfter = messageAfter.decrypt(sendingIdentity.getPublicDecryptionKey());

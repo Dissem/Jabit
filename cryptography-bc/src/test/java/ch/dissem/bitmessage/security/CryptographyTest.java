@@ -21,9 +21,7 @@ import java.io.IOException;
 import static ch.dissem.bitmessage.utils.UnixTime.DAY;
 import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -82,7 +80,7 @@ public class CryptographyTest {
                 .nonce(new byte[8])
                 .expiresTime(UnixTime.now(+28 * DAY))
                 .objectType(0)
-                .payload(GenericPayload.read(0, new ByteArrayInputStream(new byte[0]), 1, 0))
+                .payload(GenericPayload.read(0, 1, new ByteArrayInputStream(new byte[0]), 0))
                 .build();
         crypto.checkProofOfWork(objectMessage, 1000, 1000);
     }
@@ -93,7 +91,7 @@ public class CryptographyTest {
                 .nonce(new byte[8])
                 .expiresTime(UnixTime.now(+2 * MINUTE))
                 .objectType(0)
-                .payload(GenericPayload.read(0, new ByteArrayInputStream(new byte[0]), 1, 0))
+                .payload(GenericPayload.read(0, 1, new ByteArrayInputStream(new byte[0]), 0))
                 .build();
         final CallbackWaiter<byte[]> waiter = new CallbackWaiter<>();
         crypto.doProofOfWork(objectMessage, 1000, 1000,

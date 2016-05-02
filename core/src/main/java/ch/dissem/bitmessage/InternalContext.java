@@ -175,10 +175,13 @@ public class InternalContext {
                 object.sign(from.getPrivateKey());
             }
             if (payload instanceof Msg && recipient.has(Pubkey.Feature.DOES_ACK)) {
-                ObjectMessage ackMessage = ((Msg) payload).getPlaintext().getAckMessage();
+                final ObjectMessage ackMessage = ((Msg) payload).getPlaintext().getAckMessage();
                 cryptography.doProofOfWork(ackMessage, NETWORK_NONCE_TRIALS_PER_BYTE, NETWORK_EXTRA_BYTES, new ProofOfWorkEngine.Callback() {
                     @Override
                     public void onNonceCalculated(byte[] initialHash, byte[] nonce) {
+                        // FIXME: the message gets lost if calculation is cancelled
+                        // (e.g. by terminating the application)
+                        ackMessage.setNonce(nonce);
                         object.encrypt(recipient.getPubkey());
                         proofOfWorkService.doProofOfWork(recipient, object);
                     }

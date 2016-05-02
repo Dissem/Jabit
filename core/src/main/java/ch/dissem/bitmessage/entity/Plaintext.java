@@ -173,7 +173,7 @@ public class Plaintext implements Streamable {
         Encode.varInt(message.length, out);
         out.write(message);
         if (type == Type.MSG) {
-            if (to.has(Pubkey.Feature.DOES_ACK)) {
+            if (to.has(Pubkey.Feature.DOES_ACK) && getAckMessage() != null) {
                 ByteArrayOutputStream ack = new ByteArrayOutputStream();
                 getAckMessage().write(ack);
                 byte[] data = ack.toByteArray();
@@ -255,7 +255,7 @@ public class Plaintext implements Streamable {
         return Objects.equals(encoding, plaintext.encoding) &&
                 Objects.equals(from, plaintext.from) &&
                 Arrays.equals(message, plaintext.message) &&
-                Arrays.equals(ackData, plaintext.ackData) &&
+                Objects.equals(getAckMessage(), plaintext.getAckMessage()) &&
                 Arrays.equals(to.getRipe(), plaintext.to.getRipe()) &&
                 Arrays.equals(signature, plaintext.signature) &&
                 Objects.equals(status, plaintext.status) &&

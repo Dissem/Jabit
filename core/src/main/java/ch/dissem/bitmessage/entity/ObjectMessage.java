@@ -29,6 +29,8 @@ import ch.dissem.bitmessage.utils.Encode;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.Objects;
 
 import static ch.dissem.bitmessage.utils.Singleton.security;
 
@@ -55,7 +57,7 @@ public class ObjectMessage implements MessagePayload {
         expiresTime = builder.expiresTime;
         objectType = builder.objectType;
         version = builder.payload.getVersion();
-        stream = builder.streamNumber;
+        stream = builder.streamNumber > 0 ? builder.streamNumber : builder.payload.getStream();
         payload = builder.payload;
     }
 
@@ -229,5 +231,30 @@ public class ObjectMessage implements MessagePayload {
         public ObjectMessage build() {
             return new ObjectMessage(this);
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ObjectMessage that = (ObjectMessage) o;
+
+        return expiresTime == that.expiresTime &&
+                objectType == that.objectType &&
+                version == that.version &&
+                stream == that.stream &&
+                Objects.equals(payload, that.payload);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Arrays.hashCode(nonce);
+        result = 31 * result + (int) (expiresTime ^ (expiresTime >>> 32));
+        result = 31 * result + (int) (objectType ^ (objectType >>> 32));
+        result = 31 * result + (int) (version ^ (version >>> 32));
+        result = 31 * result + (int) (stream ^ (stream >>> 32));
+        result = 31 * result + (payload != null ? payload.hashCode() : 0);
+        return result;
     }
 }

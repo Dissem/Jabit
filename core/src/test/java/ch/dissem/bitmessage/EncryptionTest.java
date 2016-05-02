@@ -42,7 +42,7 @@ public class EncryptionTest extends TestBase {
         PrivateKey privateKey = new PrivateKey(false, 1, 1000, 1000);
         CryptoBox cryptoBox = new CryptoBox(before, privateKey.getPubkey().getEncryptionKey());
 
-        GenericPayload after = GenericPayload.read(0, cryptoBox.decrypt(privateKey.getPrivateEncryptionKey()), 1, 100);
+        GenericPayload after = GenericPayload.read(0, 1, cryptoBox.decrypt(privateKey.getPrivateEncryptionKey()), 100);
 
         assertEquals(before, after);
     }

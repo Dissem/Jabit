@@ -23,6 +23,7 @@ import ch.dissem.bitmessage.entity.PlaintextHolder;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST;
 import static ch.dissem.bitmessage.utils.Singleton.security;
@@ -95,5 +96,19 @@ public abstract class Broadcast extends ObjectPayload implements Encrypted, Plai
     @Override
     public boolean isDecrypted() {
         return plaintext != null;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Broadcast broadcast = (Broadcast) o;
+        return stream == broadcast.stream &&
+                (Objects.equals(encrypted, broadcast.encrypted) || Objects.equals(plaintext, broadcast.plaintext));
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(stream);
     }
 }
