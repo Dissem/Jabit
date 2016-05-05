@@ -32,7 +32,7 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 
 import static ch.dissem.bitmessage.entity.payload.ObjectType.MSG;
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * Creates {@link NetworkMessage} objects from {@link InputStream InputStreams}
@@ -117,8 +117,8 @@ public class Factory {
         BitmessageAddress temp = new BitmessageAddress(address);
         PrivateKey privateKey = new PrivateKey(privateSigningKey, privateEncryptionKey,
                 createPubkey(temp.getVersion(), temp.getStream(),
-                        security().createPublicKey(privateSigningKey),
-                        security().createPublicKey(privateEncryptionKey),
+                        cryptography().createPublicKey(privateSigningKey),
+                        cryptography().createPublicKey(privateEncryptionKey),
                         nonceTrialsPerByte, extraBytes, behaviourBitfield));
         BitmessageAddress result = new BitmessageAddress(privateKey);
         if (!result.getAddress().equals(address)) {

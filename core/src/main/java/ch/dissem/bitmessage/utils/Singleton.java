@@ -30,7 +30,7 @@ public class Singleton {
         }
     }
 
-    public static Cryptography security() {
+    public static Cryptography cryptography() {
         return cryptography;
     }
 }

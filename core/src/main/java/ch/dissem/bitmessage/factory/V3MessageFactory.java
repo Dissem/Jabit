@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import static ch.dissem.bitmessage.entity.NetworkMessage.MAGIC_BYTES;
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * Creates protocol v3 network messages from {@link InputStream InputStreams}
@@ -183,7 +183,7 @@ class V3MessageFactory {
     }
 
     private static boolean testChecksum(byte[] checksum, byte[] payload) {
-        byte[] payloadChecksum = security().sha512(payload);
+        byte[] payloadChecksum = cryptography().sha512(payload);
         for (int i = 0; i < checksum.length; i++) {
             if (checksum[i] != payloadChecksum[i]) {
                 return false;

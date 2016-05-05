@@ -32,7 +32,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
 
@@ -54,7 +54,7 @@ public class JdbcMessageRepositoryTest extends TestBase {
         AddressRepository addressRepo = new JdbcAddressRepository(config);
         repo = new JdbcMessageRepository(config);
         new InternalContext(new BitmessageContext.Builder()
-                .cryptography(security())
+                .cryptography(cryptography())
                 .addressRepo(addressRepo)
                 .messageRepo(repo)
         );
@@ -146,7 +146,7 @@ public class JdbcMessageRepositoryTest extends TestBase {
     @Test
     public void testSave() throws Exception {
         Plaintext message = new Plaintext.Builder(MSG)
-                .IV(new InventoryVector(security().randomBytes(32)))
+                .IV(new InventoryVector(cryptography().randomBytes(32)))
                 .from(identity)
                 .to(contactA)
                 .message("Subject", "Message")
@@ -169,7 +169,7 @@ public class JdbcMessageRepositoryTest extends TestBase {
     public void testUpdate() throws Exception {
         List<Plaintext> messages = repo.findMessages(Plaintext.Status.DRAFT, contactA);
         Plaintext message = messages.get(0);
-        message.setInventoryVector(new InventoryVector(security().randomBytes(32)));
+        message.setInventoryVector(new InventoryVector(cryptography().randomBytes(32)));
         repo.save(message);
 
         messages = repo.findMessages(Plaintext.Status.DRAFT, contactA);

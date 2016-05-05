@@ -68,9 +68,11 @@ public class JdbcAddressRepositoryTest extends TestBase {
     public void testFindIdentity() throws Exception {
         BitmessageAddress identity = new BitmessageAddress(IDENTITY_A);
         assertEquals(4, identity.getVersion());
-        assertEquals(identity, repo.findIdentity(identity.getTag()));
         assertNull(repo.findContact(identity.getTag()));
-        assertTrue(identity.has(Pubkey.Feature.DOES_ACK));
+
+        BitmessageAddress storedIdentity = repo.findIdentity(identity.getTag());
+        assertEquals(identity, storedIdentity);
+        assertTrue(storedIdentity.has(Pubkey.Feature.DOES_ACK));
     }
 
     @Test

@@ -18,12 +18,9 @@ package ch.dissem.bitmessage;
 
 import ch.dissem.bitmessage.entity.*;
 import ch.dissem.bitmessage.entity.payload.Broadcast;
-import ch.dissem.bitmessage.entity.payload.Msg;
-import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
-import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.*;
@@ -178,23 +175,16 @@ public class BitmessageContext {
         if (to == null || to.getPubkey() != null) {
             LOG.info("Sending message.");
             ctx.getMessageRepository().save(msg);
-            ctx.send(
-                    msg.getFrom(),
-                    to,
-                    wrapInObjectPayload(msg),
-                    TTL.msg()
-            );
-        }
-    }
-
-    private ObjectPayload wrapInObjectPayload(Plaintext msg) {
-        switch (msg.getType()) {
-            case MSG:
-                return new Msg(msg);
-            case BROADCAST:
-                return Factory.getBroadcast(msg);
-            default:
-                throw new ApplicationException("Unknown message type " + msg.getType());
+            if (msg.getType() == MSG) {
+                ctx.send(msg, TTL.msg());
+            } else {
+                ctx.send(
+                        msg.getFrom(),
+                        to,
+                        Factory.getBroadcast(msg),
+                        TTL.msg()
+                );
+            }
         }
     }
 

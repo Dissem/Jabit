@@ -28,7 +28,7 @@ import ch.dissem.bitmessage.utils.UnixTime;
 import java.io.*;
 import java.util.*;
 
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * The unencrypted message to be sent by 'msg' or 'broadcast'.
@@ -511,7 +511,7 @@ public class Plaintext implements Streamable {
                 to = new BitmessageAddress(0, 0, destinationRipe);
             }
             if (type == Type.MSG && ackMessage == null && ackData == null) {
-                ackData = security().randomBytes(32);
+                ackData = cryptography().randomBytes(32);
             }
             return new Plaintext(this);
         }

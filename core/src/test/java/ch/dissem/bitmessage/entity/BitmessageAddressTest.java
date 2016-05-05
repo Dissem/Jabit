@@ -28,7 +28,7 @@ import java.util.Arrays;
 
 import static ch.dissem.bitmessage.entity.payload.Pubkey.Feature.DOES_ACK;
 import static ch.dissem.bitmessage.entity.payload.Pubkey.Feature.INCLUDE_DESTINATION;
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 import static org.junit.Assert.*;
 
 public class BitmessageAddressTest extends TestBase {
@@ -126,7 +126,7 @@ public class BitmessageAddressTest extends TestBase {
         System.out.println("\n\n" + Strings.hex(privsigningkey) + "\n\n");
 
         BitmessageAddress address = new BitmessageAddress(new PrivateKey(privsigningkey, privencryptionkey,
-                security().createPubkey(3, 1, privsigningkey, privencryptionkey, 320, 14000)));
+                cryptography().createPubkey(3, 1, privsigningkey, privencryptionkey, 320, 14000)));
         assertEquals(address_string, address.getAddress());
     }
 
@@ -136,7 +136,7 @@ public class BitmessageAddressTest extends TestBase {
         byte[] privsigningkey = getSecret("5KMWqfCyJZGFgW6QrnPJ6L9Gatz25B51y7ErgqNr1nXUVbtZbdU");
         byte[] privencryptionkey = getSecret("5JXXWEuhHQEPk414SzEZk1PHDRi8kCuZd895J7EnKeQSahJPxGz");
         BitmessageAddress address = new BitmessageAddress(new PrivateKey(privsigningkey, privencryptionkey,
-                security().createPubkey(4, 1, privsigningkey, privencryptionkey, 320, 14000)));
+                cryptography().createPubkey(4, 1, privsigningkey, privencryptionkey, 320, 14000)));
         assertEquals("BM-2cV5f9EpzaYARxtoruSpa6pDoucSf9ZNke", address.getAddress());
     }
 
@@ -151,7 +151,7 @@ public class BitmessageAddressTest extends TestBase {
         if (bytes.length != 37)
             throw new IOException("Unknown format: 37 bytes expected, but secret " + walletImportFormat + " was " + bytes.length + " long");
 
-        byte[] hash = security().doubleSha256(bytes, 33);
+        byte[] hash = cryptography().doubleSha256(bytes, 33);
         for (int i = 0; i < 4; i++) {
             if (hash[i] != bytes[33 + i]) throw new IOException("Hash check failed for secret " + walletImportFormat);
         }

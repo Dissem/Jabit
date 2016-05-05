@@ -28,7 +28,7 @@ import ch.dissem.bitmessage.utils.Encode;
 import java.io.*;
 
 import static ch.dissem.bitmessage.utils.Decode.*;
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * A {@link CustomMessage} implementation that contains signed and encrypted data.
@@ -80,7 +80,7 @@ public class CryptoCustomMessage<T extends Streamable> extends CustomMessage {
         }
 
         data.write(out);
-        Encode.varBytes(security().getSignature(out.toByteArray(), identity.getPrivateKey()), out);
+        Encode.varBytes(cryptography().getSignature(out.toByteArray(), identity.getPrivateKey()), out);
         container = new CryptoBox(out.toByteArray(), publicKey);
     }
 
@@ -138,7 +138,7 @@ public class CryptoCustomMessage<T extends Streamable> extends CustomMessage {
         }
 
         public void checkSignature(Pubkey pubkey) throws IOException, IllegalStateException {
-            if (!security().isSignatureValid(out.toByteArray(), varBytes(wrapped), pubkey)) {
+            if (!cryptography().isSignatureValid(out.toByteArray(), varBytes(wrapped), pubkey)) {
                 throw new IllegalStateException("Signature check failed");
             }
         }

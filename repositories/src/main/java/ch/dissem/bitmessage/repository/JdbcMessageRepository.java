@@ -118,6 +118,24 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
     }
 
     @Override
+    public Plaintext getMessage(Object id) {
+        if (id instanceof Long) {
+            List<Plaintext> plaintexts = find("id=" + id);
+            switch (plaintexts.size()) {
+                case 0:
+                    return null;
+                case 1:
+                    return plaintexts.get(0);
+                default:
+                    throw new ApplicationException("This shouldn't happen, found " + plaintexts.size() +
+                            " messages, one or none was expected");
+            }
+        } else {
+            throw new IllegalArgumentException("Long expected for ID");
+        }
+    }
+
+    @Override
     public Plaintext getMessage(byte[] initialHash) {
         List<Plaintext> plaintexts = find("initial_hash=X'" + Strings.hex(initialHash) + "'");
         switch (plaintexts.size()) {

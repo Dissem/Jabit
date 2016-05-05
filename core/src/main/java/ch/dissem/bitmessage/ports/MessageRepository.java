@@ -30,6 +30,8 @@ public interface MessageRepository {
 
     int countUnread(Label label);
 
+    Plaintext getMessage(Object id);
+
     Plaintext getMessage(byte[] initialHash);
 
     List<Plaintext> findMessages(Label label);

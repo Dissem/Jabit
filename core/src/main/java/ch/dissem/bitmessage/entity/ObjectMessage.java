@@ -32,7 +32,7 @@ import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Objects;
 
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * The 'object' command sends an object that is shared throughout the network.
@@ -96,7 +96,7 @@ public class ObjectMessage implements MessagePayload {
 
     public InventoryVector getInventoryVector() {
         return new InventoryVector(
-                Bytes.truncate(security().doubleSha512(nonce, getPayloadBytesWithoutNonce()), 32)
+                Bytes.truncate(cryptography().doubleSha512(nonce, getPayloadBytesWithoutNonce()), 32)
         );
     }
 
@@ -121,7 +121,7 @@ public class ObjectMessage implements MessagePayload {
 
     public void sign(PrivateKey key) {
         if (payload.isSigned()) {
-            payload.setSignature(security().getSignature(getBytesToSign(), key));
+            payload.setSignature(cryptography().getSignature(getBytesToSign(), key));
         }
     }
 
@@ -155,7 +155,7 @@ public class ObjectMessage implements MessagePayload {
 
     public boolean isSignatureValid(Pubkey pubkey) throws IOException {
         if (isEncrypted()) throw new IllegalStateException("Payload must be decrypted first");
-        return security().isSignatureValid(getBytesToSign(), payload.getSignature(), pubkey);
+        return cryptography().isSignatureValid(getBytesToSign(), payload.getSignature(), pubkey);
     }
 
     @Override

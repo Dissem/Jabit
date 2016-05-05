@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 import static org.junit.Assert.*;
 
 public class SerializationTest extends TestBase {
@@ -102,7 +102,7 @@ public class SerializationTest extends TestBase {
     public void ensureNetworkMessageIsSerializedAndDeserializedCorrectly() throws Exception {
         ArrayList<InventoryVector> ivs = new ArrayList<>(50000);
         for (int i = 0; i < 50000; i++) {
-            ivs.add(new InventoryVector(security().randomBytes(32)));
+            ivs.add(new InventoryVector(cryptography().randomBytes(32)));
         }
 
         Inv inv = new Inv.Builder().inventory(ivs).build();

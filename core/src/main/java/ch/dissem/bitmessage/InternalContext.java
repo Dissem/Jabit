@@ -160,6 +160,15 @@ public class InternalContext {
         return port;
     }
 
+    public void send(final Plaintext plaintext, final long timeToLive) {
+        if (plaintext.getAckMessage() != null) {
+            long expires = UnixTime.now(+timeToLive);
+            proofOfWorkService.doProofOfWorkWithAck(plaintext, expires);
+        } else {
+            send(plaintext.getFrom(), plaintext.getTo(), new Msg(plaintext), timeToLive);
+        }
+    }
+
     public void send(final BitmessageAddress from, BitmessageAddress to, final ObjectPayload payload,
                      final long timeToLive) {
         try {
@@ -174,26 +183,12 @@ public class InternalContext {
             if (object.isSigned()) {
                 object.sign(from.getPrivateKey());
             }
-            if (payload instanceof Msg && recipient.has(Pubkey.Feature.DOES_ACK)) {
-                final ObjectMessage ackMessage = ((Msg) payload).getPlaintext().getAckMessage();
-                cryptography.doProofOfWork(ackMessage, NETWORK_NONCE_TRIALS_PER_BYTE, NETWORK_EXTRA_BYTES, new ProofOfWorkEngine.Callback() {
-                    @Override
-                    public void onNonceCalculated(byte[] initialHash, byte[] nonce) {
-                        // FIXME: the message gets lost if calculation is cancelled
-                        // (e.g. by terminating the application)
-                        ackMessage.setNonce(nonce);
-                        object.encrypt(recipient.getPubkey());
-                        proofOfWorkService.doProofOfWork(recipient, object);
-                    }
-                });
-            } else {
-                if (payload instanceof Broadcast) {
-                    ((Broadcast) payload).encrypt();
-                } else if (payload instanceof Encrypted) {
-                    object.encrypt(recipient.getPubkey());
-                }
-                proofOfWorkService.doProofOfWork(to, object);
+            if (payload instanceof Broadcast) {
+                ((Broadcast) payload).encrypt();
+            } else if (payload instanceof Encrypted) {
+                object.encrypt(recipient.getPubkey());
             }
+            proofOfWorkService.doProofOfWork(to, object);
         } catch (IOException e) {
             throw new ApplicationException(e);
         }

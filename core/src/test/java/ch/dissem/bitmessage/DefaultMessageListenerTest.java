@@ -99,7 +99,7 @@ public class DefaultMessageListenerTest extends TestBase {
                 .payload(identity.getPubkey())
                 .build();
         objectMessage.sign(identity.getPrivateKey());
-        objectMessage.encrypt(Singleton.security().createPublicKey(identity.getPublicDecryptionKey()));
+        objectMessage.encrypt(Singleton.cryptography().createPublicKey(identity.getPublicDecryptionKey()));
         listener.receive(objectMessage);
 
         verify(addressRepo).save(any(BitmessageAddress.class));

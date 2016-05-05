@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * Public keys for signing and encryption, the answer to a 'getpubkey' request.
@@ -35,7 +35,7 @@ public abstract class Pubkey extends ObjectPayload {
     }
 
     public static byte[] getRipe(byte[] publicSigningKey, byte[] publicEncryptionKey) {
-        return security().ripemd160(security().sha512(publicSigningKey, publicEncryptionKey));
+        return cryptography().ripemd160(cryptography().sha512(publicSigningKey, publicEncryptionKey));
     }
 
     public abstract byte[] getSigningKey();
@@ -45,7 +45,7 @@ public abstract class Pubkey extends ObjectPayload {
     public abstract int getBehaviorBitfield();
 
     public byte[] getRipe() {
-        return security().ripemd160(security().sha512(getSigningKey(), getEncryptionKey()));
+        return cryptography().ripemd160(cryptography().sha512(getSigningKey(), getEncryptionKey()));
     }
 
     public long getNonceTrialsPerByte() {

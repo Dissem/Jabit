@@ -46,7 +46,7 @@ import static ch.dissem.bitmessage.InternalContext.NETWORK_NONCE_TRIALS_PER_BYTE
 import static ch.dissem.bitmessage.networking.Connection.Mode.CLIENT;
 import static ch.dissem.bitmessage.networking.Connection.Mode.SYNC;
 import static ch.dissem.bitmessage.networking.Connection.State.*;
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
 
 /**
@@ -249,7 +249,7 @@ class Connection {
         }
         try {
             listener.receive(objectMessage);
-            security().checkProofOfWork(objectMessage, NETWORK_NONCE_TRIALS_PER_BYTE, NETWORK_EXTRA_BYTES);
+            cryptography().checkProofOfWork(objectMessage, NETWORK_NONCE_TRIALS_PER_BYTE, NETWORK_EXTRA_BYTES);
             ctx.getInventory().storeObject(objectMessage);
             // offer object to some random nodes so it gets distributed throughout the network:
             networkHandler.offer(objectMessage.getInventoryVector());

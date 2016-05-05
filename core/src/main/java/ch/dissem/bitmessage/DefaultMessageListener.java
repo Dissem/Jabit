@@ -111,12 +111,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
         for (Plaintext msg : messages) {
             ctx.getLabeler().markAsSending(msg);
             ctx.getMessageRepository().save(msg);
-            ctx.send(
-                    msg.getFrom(),
-                    msg.getTo(),
-                    new Msg(msg),
-                    +2 * DAY
-            );
+            ctx.send(msg, +2 * DAY);
         }
     }
 

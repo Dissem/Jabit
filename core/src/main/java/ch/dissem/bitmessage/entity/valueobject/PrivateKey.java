@@ -30,7 +30,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * Represents a private key. Additional information (stream, version, features, ...) is stored in the accompanying
@@ -53,15 +53,15 @@ public class PrivateKey implements Streamable {
         byte[] pubEK;
         byte[] ripe;
         do {
-            privSK = security().randomBytes(PRIVATE_KEY_SIZE);
-            privEK = security().randomBytes(PRIVATE_KEY_SIZE);
-            pubSK = security().createPublicKey(privSK);
-            pubEK = security().createPublicKey(privEK);
+            privSK = cryptography().randomBytes(PRIVATE_KEY_SIZE);
+            privEK = cryptography().randomBytes(PRIVATE_KEY_SIZE);
+            pubSK = cryptography().createPublicKey(privSK);
+            pubEK = cryptography().createPublicKey(privEK);
             ripe = Pubkey.getRipe(pubSK, pubEK);
         } while (ripe[0] != 0 || (shorter && ripe[1] != 0));
         this.privateSigningKey = privSK;
         this.privateEncryptionKey = privEK;
-        this.pubkey = security().createPubkey(Pubkey.LATEST_VERSION, stream, privateSigningKey, privateEncryptionKey,
+        this.pubkey = cryptography().createPubkey(Pubkey.LATEST_VERSION, stream, privateSigningKey, privateEncryptionKey,
                 nonceTrialsPerByte, extraBytes, features);
     }
 
@@ -118,11 +118,11 @@ public class PrivateKey implements Streamable {
                 long encryptionKeyNonce = nextNonce + 1;
                 byte[] ripe;
                 do {
-                    privEK = Bytes.truncate(security().sha512(seed, Encode.varInt(encryptionKeyNonce)), 32);
-                    privSK = Bytes.truncate(security().sha512(seed, Encode.varInt(signingKeyNonce)), 32);
-                    pubSK = security().createPublicKey(privSK);
-                    pubEK = security().createPublicKey(privEK);
-                    ripe = security().ripemd160(security().sha512(pubSK, pubEK));
+                    privEK = Bytes.truncate(cryptography().sha512(seed, Encode.varInt(encryptionKeyNonce)), 32);
+                    privSK = Bytes.truncate(cryptography().sha512(seed, Encode.varInt(signingKeyNonce)), 32);
+                    pubSK = cryptography().createPublicKey(privSK);
+                    pubEK = cryptography().createPublicKey(privEK);
+                    ripe = cryptography().ripemd160(cryptography().sha512(pubSK, pubEK));
 
                     signingKeyNonce += 2;
                     encryptionKeyNonce += 2;

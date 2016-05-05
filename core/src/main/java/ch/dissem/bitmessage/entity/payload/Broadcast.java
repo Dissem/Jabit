@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.util.Objects;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST;
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * Users who are subscribed to the sending address will see the message appear in their inbox.
@@ -81,7 +81,7 @@ public abstract class Broadcast extends ObjectPayload implements Encrypted, Plai
     }
 
     public void encrypt() throws IOException {
-        encrypt(security().createPublicKey(plaintext.getFrom().getPublicDecryptionKey()));
+        encrypt(cryptography().createPublicKey(plaintext.getFrom().getPublicDecryptionKey()));
     }
 
     @Override

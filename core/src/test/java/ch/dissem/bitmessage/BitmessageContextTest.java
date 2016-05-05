@@ -24,19 +24,20 @@ import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.ports.*;
-import ch.dissem.bitmessage.utils.*;
+import ch.dissem.bitmessage.utils.MessageMatchers;
+import ch.dissem.bitmessage.utils.Singleton;
+import ch.dissem.bitmessage.utils.TTL;
+import ch.dissem.bitmessage.utils.TestUtils;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.*;
-import java.util.Collections;
-import java.util.stream.Collectors;
 
 import static ch.dissem.bitmessage.entity.payload.ObjectType.*;
 import static ch.dissem.bitmessage.utils.MessageMatchers.object;
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -80,8 +81,13 @@ public class BitmessageContextTest {
                     }
 
                     @Override
+                    public void putObject(Item item) {
+                        items.put(new InventoryVector(cryptography().getInitialHash(item.object)), item);
+                    }
+
+                    @Override
                     public void putObject(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) {
-                        items.put(new InventoryVector(security().getInitialHash(object)), new Item(object, nonceTrialsPerByte, extraBytes));
+                        items.put(new InventoryVector(cryptography().getInitialHash(object)), new Item(object, nonceTrialsPerByte, extraBytes));
                     }
 
                     @Override
@@ -196,7 +202,7 @@ public class BitmessageContextTest {
     public void ensureMessageIsSent() throws Exception {
         ctx.send(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"), TestUtils.loadContact(),
                 "Subject", "Message");
-        assertEquals(1, ctx.internals().getProofOfWorkRepository().getItems().size());
+        assertEquals(2, ctx.internals().getProofOfWorkRepository().getItems().size());
         verify(ctx.internals().getProofOfWorkRepository(), timeout(10000).atLeastOnce())
                 .putObject(object(MSG), eq(1000L), eq(1000L));
         verify(ctx.messages(), timeout(10000).atLeastOnce()).save(MessageMatchers.plaintext(Plaintext.Type.MSG));

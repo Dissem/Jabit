@@ -30,7 +30,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 import static org.junit.Assert.assertEquals;
 
 public class CryptoCustomMessageTest extends TestBase {
@@ -39,9 +39,9 @@ public class CryptoCustomMessageTest extends TestBase {
         PrivateKey privateKey = PrivateKey.read(TestUtils.getResource("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8.privkey"));
         BitmessageAddress sendingIdentity = new BitmessageAddress(privateKey);
 
-        GenericPayload payloadBefore = new GenericPayload(0, 1, security().randomBytes(100));
+        GenericPayload payloadBefore = new GenericPayload(0, 1, cryptography().randomBytes(100));
         CryptoCustomMessage<GenericPayload> messageBefore = new CryptoCustomMessage<>(payloadBefore);
-        messageBefore.signAndEncrypt(sendingIdentity, security().createPublicKey(sendingIdentity.getPublicDecryptionKey()));
+        messageBefore.signAndEncrypt(sendingIdentity, cryptography().createPublicKey(sendingIdentity.getPublicDecryptionKey()));
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         messageBefore.write(out);
@@ -65,11 +65,11 @@ public class CryptoCustomMessageTest extends TestBase {
         PrivateKey privateKey = PrivateKey.read(TestUtils.getResource("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8.privkey"));
         final BitmessageAddress sendingIdentity = new BitmessageAddress(privateKey);
 
-        ProofOfWorkRequest requestBefore = new ProofOfWorkRequest(sendingIdentity, security().randomBytes(64),
+        ProofOfWorkRequest requestBefore = new ProofOfWorkRequest(sendingIdentity, cryptography().randomBytes(64),
                 ProofOfWorkRequest.Request.CALCULATE);
 
         CryptoCustomMessage<ProofOfWorkRequest> messageBefore = new CryptoCustomMessage<>(requestBefore);
-        messageBefore.signAndEncrypt(sendingIdentity, security().createPublicKey(sendingIdentity.getPublicDecryptionKey()));
+        messageBefore.signAndEncrypt(sendingIdentity, cryptography().createPublicKey(sendingIdentity.getPublicDecryptionKey()));
 
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
