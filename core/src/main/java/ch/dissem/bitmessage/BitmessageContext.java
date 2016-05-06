@@ -31,8 +31,6 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -71,16 +69,10 @@ public class BitmessageContext {
     private BitmessageContext(Builder builder) {
         ctx = new InternalContext(builder);
         labeler = builder.labeler;
+        ctx.getProofOfWorkService().doMissingProofOfWork();
+
         networkListener = new DefaultMessageListener(ctx, labeler, builder.listener);
-
         sendPubkeyOnIdentityCreation = builder.sendPubkeyOnIdentityCreation;
-
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                ctx.getProofOfWorkService().doMissingProofOfWork();
-            }
-        }, 30_000); // After 30 seconds
     }
 
     public AddressRepository addresses() {

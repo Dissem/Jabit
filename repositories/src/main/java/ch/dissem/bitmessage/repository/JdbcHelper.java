@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.repository;
 
 import ch.dissem.bitmessage.entity.Streamable;
 import ch.dissem.bitmessage.entity.payload.ObjectType;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +26,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Collection;
 
 import static ch.dissem.bitmessage.utils.Strings.hex;
 
@@ -84,5 +86,13 @@ public abstract class JdbcHelper {
             data.write(os);
             ps.setBytes(parameterIndex, os.toByteArray());
         }
+    }
+
+    protected <T> T single(Collection<T> collection) {
+        if (collection.size() > 1) {
+            throw new ApplicationException("This shouldn't happen, found " + collection.size() +
+                    " messages, one or none was expected");
+        }
+        return collection.stream().findAny().orElse(null);
     }
 }

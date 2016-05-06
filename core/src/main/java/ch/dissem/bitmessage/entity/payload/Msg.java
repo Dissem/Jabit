@@ -33,6 +33,7 @@ import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
  */
 public class Msg extends ObjectPayload implements Encrypted, PlaintextHolder {
     private static final long serialVersionUID = 4327495048296365733L;
+    public static final int ACK_LENGTH = 32;
 
     private long stream;
     private CryptoBox encrypted;

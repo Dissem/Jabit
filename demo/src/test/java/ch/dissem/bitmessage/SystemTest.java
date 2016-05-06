@@ -5,11 +5,13 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
 import ch.dissem.bitmessage.ports.DefaultLabeler;
+import ch.dissem.bitmessage.ports.Labeler;
 import ch.dissem.bitmessage.repository.*;
 import ch.dissem.bitmessage.utils.TTL;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +22,7 @@ import static ch.dissem.bitmessage.entity.payload.Pubkey.Feature.DOES_ACK;
 import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.any;
 
 /**
  * @author Christian Basler
@@ -29,6 +32,7 @@ public class SystemTest {
 
     private BitmessageContext alice;
     private TestListener aliceListener = new TestListener();
+    private Labeler aliceLabeler = Mockito.spy(new DebugLabeler("Alice"));
     private BitmessageAddress aliceIdentity;
 
     private BitmessageContext bob;
@@ -53,7 +57,7 @@ public class SystemTest {
                 .networkHandler(new DefaultNetworkHandler())
                 .cryptography(new BouncyCryptography())
                 .listener(aliceListener)
-                .labeler(new DebugLabeler("Alice"))
+                .labeler(aliceLabeler)
                 .build();
         alice.startup();
         aliceIdentity = alice.createIdentity(false, DOES_ACK);
@@ -93,6 +97,9 @@ public class SystemTest {
 
         assertThat(plaintext.getType(), equalTo(Plaintext.Type.MSG));
         assertThat(plaintext.getText(), equalTo(originalMessage));
+
+        Mockito.verify(aliceLabeler, Mockito.timeout(TimeUnit.MINUTES.toMillis(15)).atLeastOnce())
+                .markAsAcknowledged(any());
     }
 
     @Test

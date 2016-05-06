@@ -137,16 +137,12 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     @Override
     public Plaintext getMessage(byte[] initialHash) {
-        List<Plaintext> plaintexts = find("initial_hash=X'" + Strings.hex(initialHash) + "'");
-        switch (plaintexts.size()) {
-            case 0:
-                return null;
-            case 1:
-                return plaintexts.get(0);
-            default:
-                throw new ApplicationException("This shouldn't happen, found " + plaintexts.size() +
-                        " messages, one or none was expected");
-        }
+        return single(find("initial_hash=X'" + Strings.hex(initialHash) + "'"));
+    }
+
+    @Override
+    public Plaintext getMessageForAck(byte[] ackData) {
+        return single(find("ack_data=X'" + Strings.hex(ackData) + "' AND status='" + Plaintext.Status.SENT + "'"));
     }
 
     @Override
@@ -174,7 +170,7 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         try (
                 Connection connection = config.getConnection();
                 Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT id, iv, type, sender, recipient, data, sent, received, status " +
+                ResultSet rs = stmt.executeQuery("SELECT id, iv, type, sender, recipient, data, ack_data, sent, received, status " +
                         "FROM Message WHERE " + where)
         ) {
             while (rs.next()) {
@@ -187,6 +183,7 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
                 builder.IV(new InventoryVector(iv));
                 builder.from(ctx.getAddressRepository().getAddress(rs.getString("sender")));
                 builder.to(ctx.getAddressRepository().getAddress(rs.getString("recipient")));
+                builder.ackData(rs.getBytes("ack_data"));
                 builder.sent(rs.getLong("sent"));
                 builder.received(rs.getLong("received"));
                 builder.status(Plaintext.Status.valueOf(rs.getString("status")));
@@ -268,8 +265,8 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     private void insert(Connection connection, Plaintext message) throws SQLException, IOException {
         try (PreparedStatement ps = connection.prepareStatement(
-                "INSERT INTO Message (iv, type, sender, recipient, data, sent, received, status, initial_hash) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO Message (iv, type, sender, recipient, data, ack_data, sent, received, status, initial_hash) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 Statement.RETURN_GENERATED_KEYS)
         ) {
             ps.setBytes(1, message.getInventoryVector() == null ? null : message.getInventoryVector().getHash());
@@ -277,10 +274,11 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
             ps.setString(3, message.getFrom().getAddress());
             ps.setString(4, message.getTo() == null ? null : message.getTo().getAddress());
             writeBlob(ps, 5, message);
-            ps.setLong(6, message.getSent());
-            ps.setLong(7, message.getReceived());
-            ps.setString(8, message.getStatus() == null ? null : message.getStatus().name());
-            ps.setBytes(9, message.getInitialHash());
+            ps.setBytes(6, message.getAckData());
+            ps.setLong(7, message.getSent());
+            ps.setLong(8, message.getReceived());
+            ps.setString(9, message.getStatus() == null ? null : message.getStatus().name());
+            ps.setBytes(10, message.getInitialHash());
 
             ps.executeUpdate();
             // get generated id

@@ -48,9 +48,12 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
     }
 
     @Override
+    @SuppressWarnings("ConstantConditions")
     public void receive(ObjectMessage object) throws IOException {
         ObjectPayload payload = object.getPayload();
-        if (payload.getType() == null) return;
+        if (payload.getType() == null && payload instanceof GenericPayload) {
+            receive((GenericPayload) payload);
+        }
 
         switch (payload.getType()) {
             case GET_PUBKEY: {
@@ -125,10 +128,20 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
                 if (!object.isSignatureValid(plaintext.getFrom().getPubkey())) {
                     LOG.warn("Msg with IV " + object.getInventoryVector() + " was successfully decrypted, but signature check failed. Ignoring.");
                 } else {
-                    receive(object.getInventoryVector(), msg.getPlaintext());
+                    receive(object.getInventoryVector(), plaintext);
                 }
                 break;
             } catch (DecryptionFailedException ignore) {
+            }
+        }
+    }
+
+    protected void receive(GenericPayload ack) {
+        if (ack.getData().length == Msg.ACK_LENGTH) {
+            Plaintext msg = ctx.getMessageRepository().getMessageForAck(ack.getData());
+            if (msg != null) {
+                ctx.getLabeler().markAsAcknowledged(msg);
+                ctx.getMessageRepository().save(msg);
             }
         }
     }

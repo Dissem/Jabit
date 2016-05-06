@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage.entity;
 
+import ch.dissem.bitmessage.entity.payload.Msg;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
@@ -511,7 +512,7 @@ public class Plaintext implements Streamable {
                 to = new BitmessageAddress(0, 0, destinationRipe);
             }
             if (type == Type.MSG && ackMessage == null && ackData == null) {
-                ackData = cryptography().randomBytes(32);
+                ackData = cryptography().randomBytes(Msg.ACK_LENGTH);
             }
             return new Plaintext(this);
         }

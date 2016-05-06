@@ -34,6 +34,8 @@ public interface MessageRepository {
 
     Plaintext getMessage(byte[] initialHash);
 
+    Plaintext getMessageForAck(byte[] ackData);
+
     List<Plaintext> findMessages(Label label);
 
     List<Plaintext> findMessages(Status status);

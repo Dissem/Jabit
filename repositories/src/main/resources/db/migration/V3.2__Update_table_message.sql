@@ -1,0 +1,1 @@
+ALTER TABLE Message ADD COLUMN ack_data BINARY(32);

@@ -23,6 +23,8 @@ import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.NodeException;
+import ch.dissem.bitmessage.utils.TTL;
+import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -210,6 +212,6 @@ public class Factory {
         if (plaintext == null || plaintext.getAckData() == null)
             return null;
         GenericPayload ack = new GenericPayload(3, plaintext.getFrom().getStream(), plaintext.getAckData());
-        return new ObjectMessage.Builder().objectType(MSG).payload(ack).build();
+        return new ObjectMessage.Builder().objectType(MSG).payload(ack).expiresTime(UnixTime.now(+TTL.msg())).build();
     }
 }

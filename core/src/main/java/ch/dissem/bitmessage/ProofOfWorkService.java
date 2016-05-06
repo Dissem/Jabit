@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static ch.dissem.bitmessage.InternalContext.NETWORK_EXTRA_BYTES;
 import static ch.dissem.bitmessage.InternalContext.NETWORK_NONCE_TRIALS_PER_BYTE;
@@ -29,14 +31,21 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
     private MessageRepository messageRepo;
 
     public void doMissingProofOfWork() {
-        List<byte[]> items = powRepo.getItems();
+        final List<byte[]> items = powRepo.getItems();
         if (items.isEmpty()) return;
 
-        LOG.info("Doing POW for " + items.size() + " tasks.");
-        for (byte[] initialHash : items) {
-            Item item = powRepo.getItem(initialHash);
-            cryptography.doProofOfWork(item.object, item.nonceTrialsPerByte, item.extraBytes, this);
-        }
+        // Wait for 30 seconds, to let the application start up before putting heavy load on the CPU
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                LOG.info("Doing POW for " + items.size() + " tasks.");
+                for (byte[] initialHash : items) {
+                    Item item = powRepo.getItem(initialHash);
+                    cryptography.doProofOfWork(item.object, item.nonceTrialsPerByte, item.extraBytes,
+                            ProofOfWorkService.this);
+                }
+            }
+        }, 30_000);
     }
 
     public void doProofOfWork(ObjectMessage object) {
@@ -79,7 +88,6 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
                 messageRepo.save(plaintext);
             }
             ctx.getInventory().storeObject(object);
-            powRepo.removeObject(initialHash);
             ctx.getNetworkHandler().offer(object.getInventoryVector());
         } else {
             item.message.getAckMessage().setNonce(nonce);
@@ -96,6 +104,7 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
             }
             doProofOfWork(item.message.getTo(), object);
         }
+        powRepo.removeObject(initialHash);
     }
 
     @Override

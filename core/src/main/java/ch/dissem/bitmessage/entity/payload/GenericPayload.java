@@ -53,6 +53,10 @@ public class GenericPayload extends ObjectPayload {
         return stream;
     }
 
+    public byte[] getData() {
+        return data;
+    }
+
     @Override
     public void write(OutputStream stream) throws IOException {
         stream.write(data);
