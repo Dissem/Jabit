@@ -1,6 +1,5 @@
 package ch.dissem.bitmessage.ports;
 
-import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.Plaintext;
 

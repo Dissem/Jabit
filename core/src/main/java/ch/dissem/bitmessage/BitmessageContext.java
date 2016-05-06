@@ -153,7 +153,6 @@ public class BitmessageContext {
                 .to(to)
                 .message(subject, message)
                 .build();
-        labeler().markAsSending(msg);
         send(msg);
     }
 
@@ -161,7 +160,7 @@ public class BitmessageContext {
         if (msg.getFrom() == null || msg.getFrom().getPrivateKey() == null) {
             throw new IllegalArgumentException("'From' must be an identity, i.e. have a private key.");
         }
-        msg.setStatus(Plaintext.Status.DRAFT);
+        labeler().markAsSending(msg);
         BitmessageAddress to = msg.getTo();
         if (to != null) {
             if (to.getPubkey() == null) {

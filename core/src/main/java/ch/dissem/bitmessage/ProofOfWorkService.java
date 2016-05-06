@@ -1,9 +1,7 @@
 package ch.dissem.bitmessage;
 
 import ch.dissem.bitmessage.entity.*;
-import ch.dissem.bitmessage.entity.payload.Broadcast;
 import ch.dissem.bitmessage.entity.payload.Msg;
-import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.ports.Cryptography;
 import ch.dissem.bitmessage.ports.MessageRepository;

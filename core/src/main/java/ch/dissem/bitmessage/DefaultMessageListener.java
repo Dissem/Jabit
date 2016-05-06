@@ -24,6 +24,7 @@ import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.ports.Labeler;
 import ch.dissem.bitmessage.ports.NetworkHandler;
+import ch.dissem.bitmessage.utils.TTL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -111,7 +112,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
         for (Plaintext msg : messages) {
             ctx.getLabeler().markAsSending(msg);
             ctx.getMessageRepository().save(msg);
-            ctx.send(msg, +2 * DAY);
+            ctx.send(msg, TTL.msg());
         }
     }
 

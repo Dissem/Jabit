@@ -43,7 +43,7 @@ public class DefaultLabeler implements Labeler, InternalContext.ContextHolder {
 
     @Override
     public void markAsSending(Plaintext msg) {
-        if (msg.getTo() != null || msg.getTo().getPubkey() == null) {
+        if (msg.getTo() != null && msg.getTo().getPubkey() == null) {
             msg.setStatus(PUBKEY_REQUESTED);
         } else {
             msg.setStatus(DOING_PROOF_OF_WORK);
