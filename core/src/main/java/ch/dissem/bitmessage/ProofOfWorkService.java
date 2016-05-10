@@ -30,7 +30,7 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
     private ProofOfWorkRepository powRepo;
     private MessageRepository messageRepo;
 
-    public void doMissingProofOfWork() {
+    public void doMissingProofOfWork(long delayInMilliseconds) {
         final List<byte[]> items = powRepo.getItems();
         if (items.isEmpty()) return;
 
@@ -45,7 +45,7 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
                             ProofOfWorkService.this);
                 }
             }
-        }, 30_000);
+        }, delayInMilliseconds);
     }
 
     public void doProofOfWork(ObjectMessage object) {

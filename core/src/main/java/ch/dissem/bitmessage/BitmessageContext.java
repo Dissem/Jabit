@@ -69,7 +69,7 @@ public class BitmessageContext {
     private BitmessageContext(Builder builder) {
         ctx = new InternalContext(builder);
         labeler = builder.labeler;
-        ctx.getProofOfWorkService().doMissingProofOfWork();
+        ctx.getProofOfWorkService().doMissingProofOfWork(30_000); // TODO: this should be configurable
 
         networkListener = new DefaultMessageListener(ctx, labeler, builder.listener);
         sendPubkeyOnIdentityCreation = builder.sendPubkeyOnIdentityCreation;
