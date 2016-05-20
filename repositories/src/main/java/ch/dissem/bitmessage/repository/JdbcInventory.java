@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static ch.dissem.bitmessage.utils.SqlStrings.join;
 import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
 import static ch.dissem.bitmessage.utils.UnixTime.now;
 

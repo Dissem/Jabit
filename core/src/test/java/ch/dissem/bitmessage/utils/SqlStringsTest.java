@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Christian Basler
+ * Copyright 2016 Christian Basler
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.repository;
+package ch.dissem.bitmessage.utils;
 
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class JdbcHelperTest {
+public class SqlStringsTest {
     @Test
     public void ensureJoinWorksWithLongArray() {
         long[] test = {1L, 2L};
-        assertEquals("1, 2", JdbcHelper.join(test).toString());
+        assertEquals("1, 2", SqlStrings.join(test).toString());
     }
 }

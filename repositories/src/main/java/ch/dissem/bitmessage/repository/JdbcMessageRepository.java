@@ -16,16 +16,12 @@
 
 package ch.dissem.bitmessage.repository;
 
-import ch.dissem.bitmessage.InternalContext;
-import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.exception.ApplicationException;
+import ch.dissem.bitmessage.ports.AbstractMessageRepository;
 import ch.dissem.bitmessage.ports.MessageRepository;
-import ch.dissem.bitmessage.utils.Strings;
-import ch.dissem.bitmessage.utils.TTL;
-import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,34 +29,30 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
-public class JdbcMessageRepository extends JdbcHelper implements MessageRepository, InternalContext.ContextHolder {
+import static ch.dissem.bitmessage.repository.JdbcHelper.writeBlob;
+
+public class JdbcMessageRepository extends AbstractMessageRepository implements MessageRepository {
     private static final Logger LOG = LoggerFactory.getLogger(JdbcMessageRepository.class);
 
-    private InternalContext ctx;
+    private final JdbcConfig config;
 
     public JdbcMessageRepository(JdbcConfig config) {
-        super(config);
+        this.config = config;
     }
 
     @Override
-    public List<Label> getLabels() {
-        List<Label> result = new LinkedList<>();
+    protected List<Label> findLabels(String where) {
         try (
-                Connection connection = config.getConnection();
-                Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label ORDER BY ord")
+                Connection connection = config.getConnection()
         ) {
-            while (rs.next()) {
-                result.add(getLabel(rs));
-            }
+            return findLabels(connection, where);
         } catch (SQLException e) {
-            throw new ApplicationException(e);
+            LOG.error(e.getMessage(), e);
         }
-        return result;
+        return new ArrayList<>();
     }
 
     private Label getLabel(ResultSet rs) throws SQLException {
@@ -73,24 +65,6 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         label.setId(rs.getLong("id"));
 
         return label;
-    }
-
-    @Override
-    public List<Label> getLabels(Label.Type... types) {
-        List<Label> result = new LinkedList<>();
-        try (
-                Connection connection = config.getConnection();
-                Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label WHERE type IN (" + join(types) +
-                        ") ORDER BY ord")
-        ) {
-            while (rs.next()) {
-                result.add(getLabel(rs));
-            }
-        } catch (SQLException e) {
-            LOG.error(e.getMessage(), e);
-        }
-        return result;
     }
 
     @Override
@@ -120,60 +94,7 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
     }
 
     @Override
-    public Plaintext getMessage(Object id) {
-        if (id instanceof Long) {
-            List<Plaintext> plaintexts = find("id=" + id);
-            switch (plaintexts.size()) {
-                case 0:
-                    return null;
-                case 1:
-                    return plaintexts.get(0);
-                default:
-                    throw new ApplicationException("This shouldn't happen, found " + plaintexts.size() +
-                            " messages, one or none was expected");
-            }
-        } else {
-            throw new IllegalArgumentException("Long expected for ID");
-        }
-    }
-
-    @Override
-    public Plaintext getMessage(byte[] initialHash) {
-        return single(find("initial_hash=X'" + Strings.hex(initialHash) + "'"));
-    }
-
-    @Override
-    public Plaintext getMessageForAck(byte[] ackData) {
-        return single(find("ack_data=X'" + Strings.hex(ackData) + "' AND status='" + Plaintext.Status.SENT + "'"));
-    }
-
-    @Override
-    public List<Plaintext> findMessages(Label label) {
-        return find("id IN (SELECT message_id FROM Message_Label WHERE label_id=" + label.getId() + ")");
-    }
-
-    @Override
-    public List<Plaintext> findMessages(Plaintext.Status status, BitmessageAddress recipient) {
-        return find("status='" + status.name() + "' AND recipient='" + recipient.getAddress() + "'");
-    }
-
-    @Override
-    public List<Plaintext> findMessages(Plaintext.Status status) {
-        return find("status='" + status.name() + "'");
-    }
-
-    @Override
-    public List<Plaintext> findMessages(BitmessageAddress sender) {
-        return find("sender='" + sender.getAddress() + "'");
-    }
-
-    @Override
-    public List<Plaintext> findMessagesToResend() {
-        return find("status='" + Plaintext.Status.SENT.name() + "'" +
-                " AND next_try < " + UnixTime.now());
-    }
-
-    private List<Plaintext> find(String where) {
+    protected List<Plaintext> find(String where) {
         List<Plaintext> result = new LinkedList<>();
         try (
                 Connection connection = config.getConnection();
@@ -199,7 +120,8 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
                 builder.ttl(rs.getLong("ttl"));
                 builder.retries(rs.getInt("retries"));
                 builder.nextTry(rs.getLong("next_try"));
-                builder.labels(findLabels(connection, id));
+                builder.labels(findLabels(connection,
+                        "WHERE id IN (SELECT label_id FROM Message_Label WHERE message_id=" + id + ") ORDER BY ord"));
                 Plaintext message = builder.build();
                 message.setInitialHash(rs.getBytes("initial_hash"));
                 result.add(message);
@@ -210,12 +132,11 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         return result;
     }
 
-    private Collection<Label> findLabels(Connection connection, long messageId) {
+    private List<Label> findLabels(Connection connection, String where) {
         List<Label> result = new ArrayList<>();
         try (
                 Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label " +
-                        "WHERE id IN (SELECT label_id FROM Message_Label WHERE message_id=" + messageId + ")")
+                ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label WHERE " + where)
         ) {
             while (rs.next()) {
                 result.add(getLabel(rs));
@@ -228,16 +149,7 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     @Override
     public void save(Plaintext message) {
-        // save from address if necessary
-        if (message.getId() == null) {
-            BitmessageAddress savedAddress = ctx.getAddressRepository().getAddress(message.getFrom().getAddress());
-            if (savedAddress == null) {
-                ctx.getAddressRepository().save(message.getFrom());
-            } else if (savedAddress.getPubkey() == null && message.getFrom().getPubkey() != null) {
-                savedAddress.setPubkey(message.getFrom().getPubkey());
-                ctx.getAddressRepository().save(savedAddress);
-            }
-        }
+        safeSenderIfNecessary(message);
 
         try (Connection connection = config.getConnection()) {
             try {
@@ -349,10 +261,5 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);
         }
-    }
-
-    @Override
-    public void setContext(InternalContext context) {
-        this.ctx = context;
     }
 }

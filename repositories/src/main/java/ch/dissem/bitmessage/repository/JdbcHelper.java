@@ -42,43 +42,7 @@ public abstract class JdbcHelper {
         this.config = config;
     }
 
-    public static StringBuilder join(long... objects) {
-        StringBuilder streamList = new StringBuilder();
-        for (int i = 0; i < objects.length; i++) {
-            if (i > 0) streamList.append(", ");
-            streamList.append(objects[i]);
-        }
-        return streamList;
-    }
-
-    public static StringBuilder join(byte[]... objects) {
-        StringBuilder streamList = new StringBuilder();
-        for (int i = 0; i < objects.length; i++) {
-            if (i > 0) streamList.append(", ");
-            streamList.append(hex(objects[i]));
-        }
-        return streamList;
-    }
-
-    public static StringBuilder join(ObjectType... types) {
-        StringBuilder streamList = new StringBuilder();
-        for (int i = 0; i < types.length; i++) {
-            if (i > 0) streamList.append(", ");
-            streamList.append(types[i].getNumber());
-        }
-        return streamList;
-    }
-
-    public static StringBuilder join(Enum... types) {
-        StringBuilder streamList = new StringBuilder();
-        for (int i = 0; i < types.length; i++) {
-            if (i > 0) streamList.append(", ");
-            streamList.append('\'').append(types[i].name()).append('\'');
-        }
-        return streamList;
-    }
-
-    protected void writeBlob(PreparedStatement ps, int parameterIndex, Streamable data) throws SQLException, IOException {
+    public static void writeBlob(PreparedStatement ps, int parameterIndex, Streamable data) throws SQLException, IOException {
         if (data == null) {
             ps.setBytes(parameterIndex, null);
         } else {
@@ -86,13 +50,5 @@ public abstract class JdbcHelper {
             data.write(os);
             ps.setBytes(parameterIndex, os.toByteArray());
         }
-    }
-
-    protected <T> T single(Collection<T> collection) {
-        if (collection.size() > 1) {
-            throw new ApplicationException("This shouldn't happen, found " + collection.size() +
-                    " messages, one or none was expected");
-        }
-        return collection.stream().findAny().orElse(null);
     }
 }
