@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.TreeSet;
 
 /**
@@ -160,12 +161,13 @@ public class InternalContext {
         return port;
     }
 
-    public void send(final Plaintext plaintext, final long timeToLive) {
+    public void send(final Plaintext plaintext) {
         if (plaintext.getAckMessage() != null) {
-            long expires = UnixTime.now(+timeToLive);
+            long expires = UnixTime.now(+plaintext.getTTL());
+            LOG.info("Expires at " + expires);
             proofOfWorkService.doProofOfWorkWithAck(plaintext, expires);
         } else {
-            send(plaintext.getFrom(), plaintext.getTo(), new Msg(plaintext), timeToLive);
+            send(plaintext.getFrom(), plaintext.getTo(), new Msg(plaintext), plaintext.getTTL());
         }
     }
 
@@ -275,6 +277,14 @@ public class InternalContext {
             } catch (Exception e) {
                 LOG.debug(e.getMessage(), e);
             }
+        }
+    }
+
+    public void resendUnacknowledged() {
+        List<Plaintext> messages = messageRepository.findMessagesToResend();
+        for (Plaintext message : messages) {
+            send(message);
+            messageRepository.save(message);
         }
     }
 

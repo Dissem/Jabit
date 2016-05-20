@@ -34,6 +34,10 @@ public class NodeRegistryTest {
         assertThat(registry.getKnownAddresses(10), empty());
     }
 
+    /**
+     * Please note that this test fails if there is no internet connection,
+     * as the initial nodes' IP addresses are determined by DNS lookup.
+     */
     @Test
     public void ensureGetKnownNodesForStream1YieldsResult() {
         assertThat(registry.getKnownAddresses(10, 1), hasSize(1));

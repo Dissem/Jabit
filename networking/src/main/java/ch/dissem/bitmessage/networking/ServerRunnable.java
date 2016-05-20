@@ -37,12 +37,15 @@ public class ServerRunnable implements Runnable, Closeable {
     private final ServerSocket serverSocket;
     private final DefaultNetworkHandler networkHandler;
     private final NetworkHandler.MessageListener listener;
+    private final long clientNonce;
 
-    public ServerRunnable(InternalContext ctx, DefaultNetworkHandler networkHandler, NetworkHandler.MessageListener listener) throws IOException {
+    public ServerRunnable(InternalContext ctx, DefaultNetworkHandler networkHandler,
+                          NetworkHandler.MessageListener listener, long clientNonce) throws IOException {
         this.ctx = ctx;
         this.networkHandler = networkHandler;
         this.listener = listener;
         this.serverSocket = new ServerSocket(ctx.getPort());
+        this.clientNonce = clientNonce;
     }
 
     @Override
@@ -52,7 +55,7 @@ public class ServerRunnable implements Runnable, Closeable {
                 Socket socket = serverSocket.accept();
                 socket.setSoTimeout(Connection.READ_TIMEOUT);
                 networkHandler.startConnection(new Connection(ctx, SERVER, socket, listener,
-                        networkHandler.requestedObjects));
+                        networkHandler.requestedObjects, clientNonce));
             } catch (IOException e) {
                 LOG.debug(e.getMessage(), e);
             }

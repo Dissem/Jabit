@@ -17,13 +17,14 @@
 package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.Msg;
-import ch.dissem.bitmessage.entity.payload.Pubkey;
+import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.Decode;
 import ch.dissem.bitmessage.utils.Encode;
+import ch.dissem.bitmessage.utils.TTL;
 import ch.dissem.bitmessage.utils.UnixTime;
 
 import java.io.*;
@@ -54,6 +55,10 @@ public class Plaintext implements Streamable {
     private Set<Label> labels;
     private byte[] initialHash;
 
+    private long ttl;
+    private int retries;
+    private Long nextTry;
+
     private Plaintext(Builder builder) {
         id = builder.id;
         inventoryVector = builder.inventoryVector;
@@ -74,6 +79,9 @@ public class Plaintext implements Streamable {
         sent = builder.sent;
         received = builder.received;
         labels = builder.labels;
+        ttl = builder.ttl;
+        retries = builder.retries;
+        nextTry = builder.nextTry;
     }
 
     public static Plaintext read(Type type, InputStream in) throws IOException {
@@ -96,7 +104,7 @@ public class Plaintext implements Streamable {
                 .destinationRipe(type == Type.MSG ? Decode.bytes(in, 20) : null)
                 .encoding(Decode.varInt(in))
                 .message(Decode.varBytes(in))
-                .ack(type == Type.MSG ? Decode.varBytes(in) : null);
+                .ackMessage(type == Type.MSG ? Decode.varBytes(in) : null);
     }
 
     public InventoryVector getInventoryVector() {
@@ -174,12 +182,10 @@ public class Plaintext implements Streamable {
         Encode.varInt(message.length, out);
         out.write(message);
         if (type == Type.MSG) {
-            if (to.has(Pubkey.Feature.DOES_ACK) && getAckMessage() != null) {
+            if (to.has(Feature.DOES_ACK) && getAckMessage() != null) {
                 ByteArrayOutputStream ack = new ByteArrayOutputStream();
                 getAckMessage().write(ack);
-                byte[] data = ack.toByteArray();
-                Encode.varInt(data.length, out);
-                out.write(data);
+                Encode.varBytes(ack.toByteArray(), out);
             } else {
                 Encode.varInt(0, out);
             }
@@ -222,6 +228,30 @@ public class Plaintext implements Streamable {
 
     public void setStatus(Status status) {
         this.status = status;
+    }
+
+    public long getTTL() {
+        return ttl;
+    }
+
+    public int getRetries() {
+        return retries;
+    }
+
+    public Long getNextTry() {
+        return nextTry;
+    }
+
+    public void updateNextTry() {
+        if (nextTry == null) {
+            if (sent != null && to.has(Feature.DOES_ACK)) {
+                nextTry = sent + ttl;
+                retries++;
+            }
+        } else {
+            nextTry = nextTry + (1 << retries) * ttl;
+            retries++;
+        }
     }
 
     public String getSubject() {
@@ -272,9 +302,7 @@ public class Plaintext implements Streamable {
 
     public void addLabels(Label... labels) {
         if (labels != null) {
-            for (Label label : labels) {
-                this.labels.add(label);
-            }
+            Collections.addAll(this.labels, labels);
         }
     }
 
@@ -366,6 +394,9 @@ public class Plaintext implements Streamable {
         private long received;
         private Status status;
         private Set<Label> labels = new HashSet<>();
+        private long ttl;
+        private int retries;
+        private Long nextTry;
 
         public Builder(Type type) {
             this.type = type;
@@ -459,14 +490,15 @@ public class Plaintext implements Streamable {
             return this;
         }
 
-        public Builder ack(byte[] ack) {
-            if (type != Type.MSG && ack != null) throw new IllegalArgumentException("ack only allowed for msg");
+        public Builder ackMessage(byte[] ack) {
+            if (type != Type.MSG && ack != null) throw new IllegalArgumentException("ackMessage only allowed for msg");
             this.ackMessage = ack;
             return this;
         }
 
         public Builder ackData(byte[] ackData) {
-            if (type != Type.MSG && ackData != null) throw new IllegalArgumentException("ack only allowed for msg");
+            if (type != Type.MSG && ackData != null)
+                throw new IllegalArgumentException("ackMessage only allowed for msg");
             this.ackData = ackData;
             return this;
         }
@@ -496,6 +528,21 @@ public class Plaintext implements Streamable {
             return this;
         }
 
+        public Builder ttl(long ttl) {
+            this.ttl = ttl;
+            return this;
+        }
+
+        public Builder retries(int retries) {
+            this.retries = retries;
+            return this;
+        }
+
+        public Builder nextTry(Long nextTry) {
+            this.nextTry = nextTry;
+            return this;
+        }
+
         public Plaintext build() {
             if (from == null) {
                 from = new BitmessageAddress(Factory.createPubkey(
@@ -513,6 +560,9 @@ public class Plaintext implements Streamable {
             }
             if (type == Type.MSG && ackMessage == null && ackData == null) {
                 ackData = cryptography().randomBytes(Msg.ACK_LENGTH);
+            }
+            if (ttl <= 0) {
+                ttl = TTL.msg();
             }
             return new Plaintext(this);
         }

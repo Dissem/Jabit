@@ -82,7 +82,7 @@ public class SerializationTest extends TestBase {
                 .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
                 .to(TestUtils.loadContact())
                 .message("Subject", "Message")
-                .ackData("ack".getBytes())
+                .ackData("ackMessage".getBytes())
                 .signature(new byte[0])
                 .build();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -96,6 +96,32 @@ public class SerializationTest extends TestBase {
         received.set(p2, 0L);
 
         assertEquals(p1, p2);
+    }
+
+    @Test
+    public void ensurePlaintextWithAckMessageIsSerializedAndDeserializedCorrectly() throws Exception {
+        Plaintext p1 = new Plaintext.Builder(MSG)
+                .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
+                .to(TestUtils.loadContact())
+                .message("Subject", "Message")
+                .ackData("ackMessage".getBytes())
+                .signature(new byte[0])
+                .build();
+        ObjectMessage ackMessage1 = p1.getAckMessage();
+        assertNotNull(ackMessage1);
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        p1.write(out);
+        ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+        Plaintext p2 = Plaintext.read(MSG, in);
+
+        // Received is automatically set on deserialization, so we'll need to set it to 0
+        Field received = Plaintext.class.getDeclaredField("received");
+        received.setAccessible(true);
+        received.set(p2, 0L);
+
+        assertEquals(p1, p2);
+        assertEquals(ackMessage1, p2.getAckMessage());
     }
 
     @Test

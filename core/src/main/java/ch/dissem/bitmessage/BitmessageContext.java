@@ -167,13 +167,13 @@ public class BitmessageContext {
             LOG.info("Sending message.");
             ctx.getMessageRepository().save(msg);
             if (msg.getType() == MSG) {
-                ctx.send(msg, TTL.msg());
+                ctx.send(msg);
             } else {
                 ctx.send(
                         msg.getFrom(),
                         to,
                         Factory.getBroadcast(msg),
-                        TTL.msg()
+                        msg.getTTL()
                 );
             }
         }

@@ -24,6 +24,8 @@ import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.ports.MessageRepository;
 import ch.dissem.bitmessage.utils.Strings;
+import ch.dissem.bitmessage.utils.TTL;
+import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -165,13 +167,20 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
         return find("sender='" + sender.getAddress() + "'");
     }
 
+    @Override
+    public List<Plaintext> findMessagesToResend() {
+        return find("status='" + Plaintext.Status.SENT.name() + "'" +
+                " AND next_try < " + UnixTime.now());
+    }
+
     private List<Plaintext> find(String where) {
         List<Plaintext> result = new LinkedList<>();
         try (
                 Connection connection = config.getConnection();
                 Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT id, iv, type, sender, recipient, data, ack_data, sent, received, status " +
-                        "FROM Message WHERE " + where)
+                ResultSet rs = stmt.executeQuery(
+                        "SELECT id, iv, type, sender, recipient, data, ack_data, sent, received, initial_hash, status, ttl, retries, next_try " +
+                                "FROM Message WHERE " + where)
         ) {
             while (rs.next()) {
                 byte[] iv = rs.getBytes("iv");
@@ -187,8 +196,13 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
                 builder.sent(rs.getLong("sent"));
                 builder.received(rs.getLong("received"));
                 builder.status(Plaintext.Status.valueOf(rs.getString("status")));
+                builder.ttl(rs.getLong("ttl"));
+                builder.retries(rs.getInt("retries"));
+                builder.nextTry(rs.getLong("next_try"));
                 builder.labels(findLabels(connection, id));
-                result.add(builder.build());
+                Plaintext message = builder.build();
+                message.setInitialHash(rs.getBytes("initial_hash"));
+                result.add(message);
             }
         } catch (IOException | SQLException e) {
             LOG.error(e.getMessage(), e);
@@ -265,8 +279,9 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     private void insert(Connection connection, Plaintext message) throws SQLException, IOException {
         try (PreparedStatement ps = connection.prepareStatement(
-                "INSERT INTO Message (iv, type, sender, recipient, data, ack_data, sent, received, status, initial_hash) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO Message (iv, type, sender, recipient, data, ack_data, sent, received, " +
+                        "status, initial_hash, ttl, retries, next_try) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 Statement.RETURN_GENERATED_KEYS)
         ) {
             ps.setBytes(1, message.getInventoryVector() == null ? null : message.getInventoryVector().getHash());
@@ -279,6 +294,9 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
             ps.setLong(8, message.getReceived());
             ps.setString(9, message.getStatus() == null ? null : message.getStatus().name());
             ps.setBytes(10, message.getInitialHash());
+            ps.setLong(11, message.getTTL());
+            ps.setInt(12, message.getRetries());
+            ps.setObject(13, message.getNextTry());
 
             ps.executeUpdate();
             // get generated id
@@ -291,13 +309,23 @@ public class JdbcMessageRepository extends JdbcHelper implements MessageReposito
 
     private void update(Connection connection, Plaintext message) throws SQLException, IOException {
         try (PreparedStatement ps = connection.prepareStatement(
-                "UPDATE Message SET iv=?, sent=?, received=?, status=?, initial_hash=? WHERE id=?")) {
+                "UPDATE Message SET iv=?, type=?, sender=?, recipient=?, data=?, ack_data=?, sent=?, received=?, " +
+                        "status=?, initial_hash=?, ttl=?, retries=?, next_try=? " +
+                        "WHERE id=?")) {
             ps.setBytes(1, message.getInventoryVector() == null ? null : message.getInventoryVector().getHash());
-            ps.setLong(2, message.getSent());
-            ps.setLong(3, message.getReceived());
-            ps.setString(4, message.getStatus() == null ? null : message.getStatus().name());
-            ps.setBytes(5, message.getInitialHash());
-            ps.setLong(6, (Long) message.getId());
+            ps.setString(2, message.getType().name());
+            ps.setString(3, message.getFrom().getAddress());
+            ps.setString(4, message.getTo() == null ? null : message.getTo().getAddress());
+            writeBlob(ps, 5, message);
+            ps.setBytes(6, message.getAckData());
+            ps.setLong(7, message.getSent());
+            ps.setLong(8, message.getReceived());
+            ps.setString(9, message.getStatus() == null ? null : message.getStatus().name());
+            ps.setBytes(10, message.getInitialHash());
+            ps.setLong(11, message.getTTL());
+            ps.setInt(12, message.getRetries());
+            ps.setObject(13, message.getNextTry());
+            ps.setLong(14, (Long) message.getId());
             ps.executeUpdate();
         }
     }

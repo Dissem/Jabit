@@ -51,8 +51,11 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
     @SuppressWarnings("ConstantConditions")
     public void receive(ObjectMessage object) throws IOException {
         ObjectPayload payload = object.getPayload();
-        if (payload.getType() == null && payload instanceof GenericPayload) {
-            receive((GenericPayload) payload);
+        if (payload.getType() == null) {
+            if (payload instanceof GenericPayload) {
+                receive((GenericPayload) payload);
+            }
+            return;
         }
 
         switch (payload.getType()) {
@@ -115,7 +118,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
         for (Plaintext msg : messages) {
             ctx.getLabeler().markAsSending(msg);
             ctx.getMessageRepository().save(msg);
-            ctx.send(msg, TTL.msg());
+            ctx.send(msg);
         }
     }
 

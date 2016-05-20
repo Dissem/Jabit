@@ -69,6 +69,7 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
 
     public void doProofOfWorkWithAck(Plaintext plaintext, long expirationTime) {
         final ObjectMessage ack = plaintext.getAckMessage();
+        messageRepo.save(plaintext);
         Item item = new Item(ack, NETWORK_NONCE_TRIALS_PER_BYTE, NETWORK_EXTRA_BYTES,
                 expirationTime, plaintext);
         powRepo.putObject(item);
@@ -84,6 +85,7 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
             Plaintext plaintext = messageRepo.getMessage(initialHash);
             if (plaintext != null) {
                 plaintext.setInventoryVector(object.getInventoryVector());
+                plaintext.updateNextTry();
                 ctx.getLabeler().markAsSent(plaintext);
                 messageRepo.save(plaintext);
             }

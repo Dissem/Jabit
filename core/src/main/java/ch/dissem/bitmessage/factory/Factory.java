@@ -212,6 +212,6 @@ public class Factory {
         if (plaintext == null || plaintext.getAckData() == null)
             return null;
         GenericPayload ack = new GenericPayload(3, plaintext.getFrom().getStream(), plaintext.getAckData());
-        return new ObjectMessage.Builder().objectType(MSG).payload(ack).expiresTime(UnixTime.now(+TTL.msg())).build();
+        return new ObjectMessage.Builder().objectType(MSG).payload(ack).expiresTime(UnixTime.now(plaintext.getTTL())).build();
     }
 }

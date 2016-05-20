@@ -72,6 +72,7 @@ class Connection {
     private final ReaderRunnable reader = new ReaderRunnable();
     private final WriterRunnable writer = new WriterRunnable();
     private final DefaultNetworkHandler networkHandler;
+    private final long clientNonce;
 
     private volatile State state;
     private InputStream in;
@@ -83,22 +84,23 @@ class Connection {
     private long lastObjectTime;
 
     public Connection(InternalContext context, Mode mode, Socket socket, MessageListener listener,
-                      Set<InventoryVector> requestedObjectsMap) throws IOException {
+                      Set<InventoryVector> requestedObjectsMap, long clientNonce) throws IOException {
         this(context, mode, listener, socket, requestedObjectsMap,
                 Collections.newSetFromMap(new ConcurrentHashMap<InventoryVector, Boolean>(10_000)),
                 new NetworkAddress.Builder().ip(socket.getInetAddress()).port(socket.getPort()).stream(1).build(),
-                0);
+                0, clientNonce);
     }
 
     public Connection(InternalContext context, Mode mode, NetworkAddress node, MessageListener listener,
-                      Set<InventoryVector> requestedObjectsMap) {
+                      Set<InventoryVector> requestedObjectsMap, long clientNonce) {
         this(context, mode, listener, new Socket(), requestedObjectsMap,
                 Collections.newSetFromMap(new ConcurrentHashMap<InventoryVector, Boolean>(10_000)),
-                node, 0);
+                node, 0, clientNonce);
     }
 
     private Connection(InternalContext context, Mode mode, MessageListener listener, Socket socket,
-                       Set<InventoryVector> commonRequestedObjects, Set<InventoryVector> requestedObjects, NetworkAddress node, long syncTimeout) {
+                       Set<InventoryVector> commonRequestedObjects, Set<InventoryVector> requestedObjects,
+                       NetworkAddress node, long syncTimeout, long clientNonce) {
         this.startTime = UnixTime.now();
         this.ctx = context;
         this.mode = mode;
@@ -112,6 +114,7 @@ class Connection {
         this.syncTimeout = (syncTimeout > 0 ? UnixTime.now(+syncTimeout) : 0);
         this.ivCache = new ConcurrentHashMap<>();
         this.networkHandler = (DefaultNetworkHandler) ctx.getNetworkHandler();
+        this.clientNonce = clientNonce;
     }
 
     public static Connection sync(InternalContext ctx, InetAddress address, int port, MessageListener listener,
@@ -120,7 +123,7 @@ class Connection {
                 new HashSet<InventoryVector>(),
                 new HashSet<InventoryVector>(),
                 new NetworkAddress.Builder().ip(address).port(port).stream(1).build(),
-                timeoutInSeconds);
+                timeoutInSeconds, cryptography().randomNonce());
     }
 
     public long getStartTime() {
@@ -362,7 +365,7 @@ class Connection {
             try (Socket socket = Connection.this.socket) {
                 initSocket(socket);
                 if (mode == CLIENT || mode == SYNC) {
-                    send(new Version.Builder().defaults().addrFrom(host).addrRecv(node).build());
+                    send(new Version.Builder().defaults(clientNonce).addrFrom(host).addrRecv(node).build());
                 }
                 while (state != DISCONNECTED) {
                     if (mode != SYNC) {
@@ -446,7 +449,7 @@ class Connection {
                 send(new VerAck());
                 switch (mode) {
                     case SERVER:
-                        send(new Version.Builder().defaults().addrFrom(host).addrRecv(node).build());
+                        send(new Version.Builder().defaults(clientNonce).addrFrom(host).addrRecv(node).build());
                         break;
                     case CLIENT:
                     case SYNC:

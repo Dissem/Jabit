@@ -44,6 +44,8 @@ public interface MessageRepository {
 
     List<Plaintext> findMessages(BitmessageAddress sender);
 
+    List<Plaintext> findMessagesToResend();
+
     void save(Plaintext message);
 
     void remove(Plaintext message);

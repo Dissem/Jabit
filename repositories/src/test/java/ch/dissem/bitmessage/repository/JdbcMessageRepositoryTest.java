@@ -19,6 +19,7 @@ package ch.dissem.bitmessage.repository;
 import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
+import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
@@ -32,6 +33,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
+import static ch.dissem.bitmessage.entity.payload.Pubkey.Feature.DOES_ACK;
 import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
@@ -59,14 +61,14 @@ public class JdbcMessageRepositoryTest extends TestBase {
                 .messageRepo(repo)
         );
 
-        BitmessageAddress tmp = new BitmessageAddress(new PrivateKey(false, 1, 1000, 1000));
+        BitmessageAddress tmp = new BitmessageAddress(new PrivateKey(false, 1, 1000, 1000, DOES_ACK));
         contactA = new BitmessageAddress(tmp.getAddress());
         contactA.setPubkey(tmp.getPubkey());
         addressRepo.save(contactA);
         contactB = new BitmessageAddress("BM-2cTtkBnb4BUYDndTKun6D9PjtueP2h1bQj");
         addressRepo.save(contactB);
 
-        identity = new BitmessageAddress(new PrivateKey(false, 1, 1000, 1000));
+        identity = new BitmessageAddress(new PrivateKey(false, 1, 1000, 1000, DOES_ACK));
         addressRepo.save(identity);
 
         inbox = repo.getLabels(Label.Type.INBOX).get(0);
@@ -121,6 +123,18 @@ public class JdbcMessageRepositoryTest extends TestBase {
         repo.save(message);
         Plaintext other = repo.getMessage(initialHash);
         assertThat(other, is(message));
+    }
+
+    @Test
+    public void ensureAckMessageCanBeUpdatedAndRetrieved() {
+        byte[] initialHash = new byte[64];
+        Plaintext message = repo.findMessages(contactA).get(0);
+        message.setInitialHash(initialHash);
+        ObjectMessage ackMessage = message.getAckMessage();
+        repo.save(message);
+        Plaintext other = repo.getMessage(initialHash);
+        assertThat(other, is(message));
+        assertThat(other.getAckMessage(), is(ackMessage));
     }
 
     @Test

@@ -145,13 +145,13 @@ public class Version implements MessagePayload {
         private String userAgent;
         private long[] streamNumbers;
 
-        public Builder defaults() {
+        public Builder defaults(long clientNonce) {
             version = BitmessageContext.CURRENT_VERSION;
             services = 1;
             timestamp = UnixTime.now();
-            nonce = new Random().nextInt();
             userAgent = "/Jabit:0.0.1/";
             streamNumbers = new long[]{1};
+            nonce = clientNonce;
             return this;
         }
 
