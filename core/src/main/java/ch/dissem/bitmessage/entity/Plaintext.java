@@ -22,13 +22,11 @@ import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.factory.Factory;
-import ch.dissem.bitmessage.utils.Decode;
-import ch.dissem.bitmessage.utils.Encode;
-import ch.dissem.bitmessage.utils.TTL;
-import ch.dissem.bitmessage.utils.UnixTime;
+import ch.dissem.bitmessage.utils.*;
 
 import java.io.*;
 import java.util.*;
+import java.util.Collections;
 
 import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
@@ -245,7 +243,7 @@ public class Plaintext implements Streamable {
     public void updateNextTry() {
         if (nextTry == null) {
             if (sent != null && to.has(Feature.DOES_ACK)) {
-                nextTry = sent + ttl;
+                nextTry = UnixTime.now(+ttl);
                 retries++;
             }
         } else {

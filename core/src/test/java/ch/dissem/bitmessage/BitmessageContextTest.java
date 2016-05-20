@@ -20,6 +20,7 @@ import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.Plaintext;
+import ch.dissem.bitmessage.entity.Plaintext.Type;
 import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
@@ -63,6 +64,7 @@ public class BitmessageContextTest {
                 .messageRepo(mock(MessageRepository.class))
                 .networkHandler(mock(NetworkHandler.class))
                 .nodeRegistry(mock(NodeRegistry.class))
+                .labeler(spy(new DefaultLabeler()))
                 .powRepo(spy(new ProofOfWorkRepository() {
                     Map<InventoryVector, Item> items = new HashMap<>();
 
@@ -205,7 +207,7 @@ public class BitmessageContextTest {
         assertEquals(2, ctx.internals().getProofOfWorkRepository().getItems().size());
         verify(ctx.internals().getProofOfWorkRepository(), timeout(10000).atLeastOnce())
                 .putObject(object(MSG), eq(1000L), eq(1000L));
-        verify(ctx.messages(), timeout(10000).atLeastOnce()).save(MessageMatchers.plaintext(Plaintext.Type.MSG));
+        verify(ctx.messages(), timeout(10000).atLeastOnce()).save(MessageMatchers.plaintext(Type.MSG));
     }
 
     @Test
@@ -215,7 +217,7 @@ public class BitmessageContextTest {
                 "Subject", "Message");
         verify(ctx.internals().getProofOfWorkRepository(), timeout(10000).atLeastOnce())
                 .putObject(object(GET_PUBKEY), eq(1000L), eq(1000L));
-        verify(ctx.messages(), timeout(10000).atLeastOnce()).save(MessageMatchers.plaintext(Plaintext.Type.MSG));
+        verify(ctx.messages(), timeout(10000).atLeastOnce()).save(MessageMatchers.plaintext(Type.MSG));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -234,12 +236,12 @@ public class BitmessageContextTest {
         verify(ctx.internals().getProofOfWorkEngine())
                 .calculateNonce(any(byte[].class), any(byte[].class), any(ProofOfWorkEngine.Callback.class));
         verify(ctx.messages(), timeout(10000).atLeastOnce())
-                .save(MessageMatchers.plaintext(Plaintext.Type.BROADCAST));
+                .save(MessageMatchers.plaintext(Type.BROADCAST));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void ensureSenderWithoutPrivateKeyThrowsException() {
-        Plaintext msg = new Plaintext.Builder(Plaintext.Type.BROADCAST)
+        Plaintext msg = new Plaintext.Builder(Type.BROADCAST)
                 .from(new BitmessageAddress("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
                 .message("Subject", "Message")
                 .build();
@@ -294,5 +296,20 @@ public class BitmessageContextTest {
         assertNotNull(chan);
         assertEquals(chan.getVersion(), Pubkey.LATEST_VERSION);
         assertTrue(chan.isChan());
+    }
+
+    @Test
+    public void ensureUnacknowledgedMessageIsResent() throws Exception {
+        Plaintext plaintext = new Plaintext.Builder(Type.MSG)
+                .ttl(1)
+                .message("subject", "message")
+                .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
+                .to(TestUtils.loadContact())
+                .build();
+        assertTrue(plaintext.getTo().has(Pubkey.Feature.DOES_ACK));
+        when(ctx.messages().findMessagesToResend()).thenReturn(Collections.singletonList(plaintext));
+        when(ctx.messages().getMessage(any(byte[].class))).thenReturn(plaintext);
+        ctx.internals().resendUnacknowledged();
+        verify(ctx.labeler(), timeout(1000).times(1)).markAsSent(eq(plaintext));
     }
 }

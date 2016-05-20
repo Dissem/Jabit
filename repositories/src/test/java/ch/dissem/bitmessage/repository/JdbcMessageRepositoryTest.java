@@ -26,6 +26,8 @@ import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.ports.AddressRepository;
 import ch.dissem.bitmessage.ports.MessageRepository;
+import ch.dissem.bitmessage.utils.UnixTime;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,6 +38,7 @@ import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
 import static ch.dissem.bitmessage.entity.payload.Pubkey.Feature.DOES_ACK;
 import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
 public class JdbcMessageRepositoryTest extends TestBase {
@@ -192,11 +195,40 @@ public class JdbcMessageRepositoryTest extends TestBase {
     }
 
     @Test
-    public void testRemove() throws Exception {
+    public void ensureMessageIsRemoved() throws Exception {
         Plaintext toRemove = repo.findMessages(Plaintext.Status.DRAFT, contactB).get(0);
-        repo.remove(toRemove);
         List<Plaintext> messages = repo.findMessages(Plaintext.Status.DRAFT);
-        assertEquals(1, messages.size());
+        assertEquals(2, messages.size());
+        repo.remove(toRemove);
+        messages = repo.findMessages(Plaintext.Status.DRAFT);
+        assertThat(messages, hasSize(1));
+    }
+
+    @Test
+    public void ensureUnacknowledgedMessagesAreFoundForResend() throws Exception {
+        Plaintext message = new Plaintext.Builder(MSG)
+                .IV(new InventoryVector(cryptography().randomBytes(32)))
+                .from(identity)
+                .to(contactA)
+                .message("Subject", "Message")
+                .status(Plaintext.Status.SENT)
+                .ttl(1)
+                .build();
+        message.updateNextTry();
+        assertThat(message.getRetries(), is(1));
+        assertThat(message.getNextTry(), greaterThan(UnixTime.now()));
+        assertThat(message.getNextTry(), lessThanOrEqualTo(UnixTime.now(+1)));
+        repo.save(message);
+        Thread.sleep(2100);
+        List<Plaintext> messagesToResend = repo.findMessagesToResend();
+        assertThat(messagesToResend, hasSize(1));
+
+        message.updateNextTry();
+        assertThat(message.getRetries(), is(2));
+        assertThat(message.getNextTry(), greaterThan(UnixTime.now()));
+        repo.save(message);
+        messagesToResend = repo.findMessagesToResend();
+        assertThat(messagesToResend, empty());
     }
 
     private void addMessage(BitmessageAddress from, BitmessageAddress to, Plaintext.Status status, Label... labels) {
