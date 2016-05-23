@@ -5,10 +5,10 @@ Jabit
 [![Apache 2](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](https://raw.githubusercontent.com/Dissem/Jabit/master/LICENSE)
 [![Visit our IRC channel](https://img.shields.io/badge/irc-%23jabit-blue.svg)](https://kiwiirc.com/client/irc.freenode.net/#jabit)
 
-A Java implementation for the Bitmessage protocol. To build, use command `gradle build` or `./gradlew build`.
+A Java implementation for the Bitmessage protocol. To build, use command
+`gradle build` or `./gradlew build`.
 
-Please note that it still has its limitations, but the API should now be stable. Jabit uses Semantic Versioning, meaning
-as long as the major version doesn't change, nothing should break if you update.
+Please note that it still has its limitations, but the API should now be stable. Jabit uses Semantic Versioning, meaning as long as the major version doesn't change, nothing should break if you update.
 
 #### Master
 [![Build Status](https://travis-ci.org/Dissem/Jabit.svg?branch=master)](https://travis-ci.org/Dissem/Jabit) 
@@ -23,9 +23,7 @@ as long as the major version doesn't change, nothing should break if you update.
 Security
 --------
 
-There are most probably some security issues, me programming this thing all by myself. Jabit doesn't do anything against
-timing attacks yet, for example. Please feel free to use the library, report bugs and maybe even help out. I hope the
-code is easy to understand and work with.
+There are most probably some security issues, me programming this thing all by myself. Jabit doesn't do anything against timing attacks yet, for example. Please feel free to use the library, report bugs and maybe even help out. I hope the code is easy to understand and work with.
 
 Project Status
 --------------
@@ -74,17 +72,22 @@ BitmessageContext ctx = new BitmessageContext.Builder()
         .nodeRegistry(new MemoryNodeRegistry())
         .networkHandler(new NetworkNode())
         .cryptography(new BouncyCryptography())
+        .listener(System.out::println)
         .build();
 ```
-This creates a simple context using a H2 database that will be created in the user's home directory. Next you'll need to
-start the context and decide what happens if a message arrives:
+This creates a simple context using a H2 database that will be created in the user's home directory. In the listener you decide what happens when a message arrives. If you can't use lambdas, you may instead write
 ```Java
-ctx.startup(new BitmessageContext.Listener() {
-    @Override
-    public void receive(Plaintext plaintext) {
-        // TODO: Notify the user
-    }
-});
+        .listener(new BitmessageContext.Listener() {
+            @Override
+            public void receive(Plaintext plaintext) {
+                // TODO: Notify the user
+            }
+        })
+```
+
+Next you'll need to start the context:
+```Java
+ctx.startup()
 ```
 Then you might want to create an identity
 ```Java
@@ -99,4 +102,23 @@ ctx.addContact(contact);
 to which you can send some messages
 ```Java
 ctx.send(identity, contact, "Test", "Hello Chris, this is a message.");
+```
+
+### Housekeeping
+
+As Bitmessage stores all currently valid messages, we'll need to delete expired objects from time to time:
+```Java
+ctx.cleanup();
+```
+If the client runs all the time, it might be a good idea to do this daily or at least weekly. Otherwise, you might just want to clean up on shutdown.
+
+Also, if some messages weren't acknowledged when it expired, they can be resent:
+```Java
+ctx.resendUnacknowledgedMessages();
+```
+This could be triggered periodically, or manually by the user. Please be aware that _if_ there is a message to resend, proof of work needs to be calculated, so to not annoy your users you might not want to trigger it on shutdown. As the client might have been offline for some time, it might as well be wise to wait until it caught up downloading new messages before resending those messages, after all they might be acknowledged by now.
+
+There probably won't happen extremely bad things if you don't - at least not more than otherwise - but you can properly shutdown the network connection by calling
+```Java
+ctx.shutdown();
 ```

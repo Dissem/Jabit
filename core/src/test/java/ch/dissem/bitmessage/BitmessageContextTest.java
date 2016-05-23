@@ -309,7 +309,7 @@ public class BitmessageContextTest {
         assertTrue(plaintext.getTo().has(Pubkey.Feature.DOES_ACK));
         when(ctx.messages().findMessagesToResend()).thenReturn(Collections.singletonList(plaintext));
         when(ctx.messages().getMessage(any(byte[].class))).thenReturn(plaintext);
-        ctx.internals().resendUnacknowledged();
+        ctx.resendUnacknowledgedMessages();
         verify(ctx.labeler(), timeout(1000).times(1)).markAsSent(eq(plaintext));
     }
 }
