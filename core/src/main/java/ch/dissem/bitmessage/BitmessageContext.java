@@ -233,16 +233,15 @@ public class BitmessageContext {
      * Sends messages again whose time to live expired without being acknowledged. (And whose
      * recipient is expected to send acknowledgements.
      * <p>
-     *     You should call this method regularly, but be aware of the following:
-     *     <ul>
-     *         <li>As messages might be sent, POW will be done. It is therefore not advised to
-     *         call it on shutdown.</li>
-     *         <li>It shouldn't be called right after startup, as it's possible the missing
-     *         acknowledgement was sent while the client was offline.</li>
-     *         <li>Other than that, the call isn't expensive as long as there is no message
-     *         to send, so it might be a good idea to just call it every few minutes.</li>
-     *     </ul>
-     * </p>
+     * You should call this method regularly, but be aware of the following:
+     * <ul>
+     * <li>As messages might be sent, POW will be done. It is therefore not advised to
+     * call it on shutdown.</li>
+     * <li>It shouldn't be called right after startup, as it's possible the missing
+     * acknowledgement was sent while the client was offline.</li>
+     * <li>Other than that, the call isn't expensive as long as there is no message
+     * to send, so it might be a good idea to just call it every few minutes.</li>
+     * </ul>
      */
     public void resendUnacknowledgedMessages() {
         ctx.resendUnacknowledged();
