@@ -5,10 +5,11 @@ Jabit
 [![Apache 2](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](https://raw.githubusercontent.com/Dissem/Jabit/master/LICENSE)
 [![Visit our IRC channel](https://img.shields.io/badge/irc-%23jabit-blue.svg)](https://kiwiirc.com/client/irc.freenode.net/#jabit)
 
-A Java implementation for the Bitmessage protocol. To build, use command
-`gradle build` or `./gradlew build`.
+A Java implementation for the Bitmessage protocol. To build, use command `./gradlew build`.
 
 Please note that it still has its limitations, but the API should now be stable. Jabit uses Semantic Versioning, meaning as long as the major version doesn't change, nothing should break if you update.
+
+Be aware though that this doesn't necessarily applies for SNAPSHOT builds and the development branch, notably when it comes to database updates. _In other words, they may break your installation!_ 
 
 #### Master
 [![Build Status](https://travis-ci.org/Dissem/Jabit.svg?branch=master)](https://travis-ci.org/Dissem/Jabit) 
