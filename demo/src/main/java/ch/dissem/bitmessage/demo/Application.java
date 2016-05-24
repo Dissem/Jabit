@@ -118,8 +118,27 @@ public class Application {
     }
 
     private void info() {
-        System.out.println();
-        System.out.println(ctx.status());
+        String command;
+        do {
+            System.out.println();
+            System.out.println(ctx.status());
+            System.out.println();
+            System.out.println("c) cleanup inventory");
+            System.out.println("r) resend unacknowledged messages");
+            System.out.println(COMMAND_BACK);
+
+            command = commandLine.nextCommand();
+            switch (command) {
+                case "c":
+                    ctx.cleanup();
+                    break;
+                case "r":
+                    ctx.resendUnacknowledgedMessages();
+                    break;
+                case "b":
+                    return;
+            }
+        } while (!"b".equals(command));
     }
 
     private void identities() {

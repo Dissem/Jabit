@@ -281,7 +281,8 @@ public class BitmessageContext {
 
     public Property status() {
         return new Property("status", null,
-                ctx.getNetworkHandler().getNetworkStatus()
+                ctx.getNetworkHandler().getNetworkStatus(),
+                new Property("unacknowledged", ctx.getMessageRepository().findMessagesToResend().size())
         );
     }
 
