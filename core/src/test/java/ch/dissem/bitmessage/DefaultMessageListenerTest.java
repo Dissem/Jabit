@@ -24,9 +24,7 @@ import ch.dissem.bitmessage.entity.payload.Broadcast;
 import ch.dissem.bitmessage.entity.payload.GetPubkey;
 import ch.dissem.bitmessage.entity.payload.Msg;
 import ch.dissem.bitmessage.factory.Factory;
-import ch.dissem.bitmessage.ports.AddressRepository;
-import ch.dissem.bitmessage.ports.Labeler;
-import ch.dissem.bitmessage.ports.MessageRepository;
+import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Singleton;
 import ch.dissem.bitmessage.utils.TestBase;
 import ch.dissem.bitmessage.utils.TestUtils;
@@ -51,6 +49,10 @@ public class DefaultMessageListenerTest extends TestBase {
     private AddressRepository addressRepo;
     @Mock
     private MessageRepository messageRepo;
+    @Mock
+    private Inventory inventory;
+    @Mock
+    private NetworkHandler networkHandler;
 
     private InternalContext ctx;
     private DefaultMessageListener listener;
@@ -62,6 +64,9 @@ public class DefaultMessageListenerTest extends TestBase {
         Singleton.initialize(new BouncyCryptography());
         when(ctx.getAddressRepository()).thenReturn(addressRepo);
         when(ctx.getMessageRepository()).thenReturn(messageRepo);
+        when(ctx.getInventory()).thenReturn(inventory);
+        when(ctx.getNetworkHandler()).thenReturn(networkHandler);
+        when(ctx.getLabeler()).thenReturn(mock(Labeler.class));
 
         listener = new DefaultMessageListener(ctx, mock(Labeler.class), mock(BitmessageContext.Listener.class));
     }
@@ -94,7 +99,7 @@ public class DefaultMessageListenerTest extends TestBase {
                 .payload(identity.getPubkey())
                 .build();
         objectMessage.sign(identity.getPrivateKey());
-        objectMessage.encrypt(Singleton.security().createPublicKey(identity.getPublicDecryptionKey()));
+        objectMessage.encrypt(Singleton.cryptography().createPublicKey(identity.getPublicDecryptionKey()));
         listener.receive(objectMessage);
 
         verify(addressRepo).save(any(BitmessageAddress.class));
@@ -104,6 +109,7 @@ public class DefaultMessageListenerTest extends TestBase {
     public void ensureIncomingMessageIsSaved() throws Exception {
         BitmessageAddress identity = TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8");
         BitmessageAddress contact = new BitmessageAddress(identity.getAddress());
+        contact.setPubkey(identity.getPubkey());
 
         when(addressRepo.getIdentities()).thenReturn(Collections.singletonList(identity));
 

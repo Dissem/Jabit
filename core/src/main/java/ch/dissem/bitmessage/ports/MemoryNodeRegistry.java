@@ -46,15 +46,11 @@ public class MemoryNodeRegistry implements NodeRegistry {
             while (scanner.hasNext()) {
                 try {
                     String line = scanner.nextLine().trim();
-                    if (line.startsWith("#") || line.isEmpty()) {
-                        // Ignore
-                        continue;
-                    }
                     if (line.startsWith("[stream")) {
                         stream = Long.parseLong(line.substring(8, line.lastIndexOf(']')));
                         streamSet = new HashSet<>();
                         stableNodes.put(stream, streamSet);
-                    } else if (streamSet != null) {
+                    } else if (streamSet != null && !line.isEmpty() && !line.startsWith("#")) {
                         int portIndex = line.lastIndexOf(':');
                         InetAddress[] inetAddresses = InetAddress.getAllByName(line.substring(0, portIndex));
                         int port = Integer.valueOf(line.substring(portIndex + 1));
@@ -89,12 +85,12 @@ public class MemoryNodeRegistry implements NodeRegistry {
                         known.remove(node);
                     }
                 }
-            } else {
-                Set<NetworkAddress> nodes = stableNodes.get(stream);
-                if (nodes == null || nodes.isEmpty()) {
+            }
+            if (result.isEmpty()) {
+                if (stableNodes.isEmpty()) {
                     loadStableNodes();
-                    nodes = stableNodes.get(stream);
                 }
+                Set<NetworkAddress> nodes = stableNodes.get(stream);
                 if (nodes != null && !nodes.isEmpty()) {
                     // To reduce load on stable nodes, only return one
                     result.add(selectRandom(nodes));

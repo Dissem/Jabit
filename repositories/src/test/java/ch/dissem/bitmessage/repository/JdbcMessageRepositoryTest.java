@@ -19,12 +19,15 @@ package ch.dissem.bitmessage.repository;
 import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
+import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.ports.AddressRepository;
 import ch.dissem.bitmessage.ports.MessageRepository;
+import ch.dissem.bitmessage.utils.UnixTime;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -32,8 +35,10 @@ import java.util.Arrays;
 import java.util.List;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.entity.payload.Pubkey.Feature.DOES_ACK;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
 public class JdbcMessageRepositoryTest extends TestBase {
@@ -54,19 +59,19 @@ public class JdbcMessageRepositoryTest extends TestBase {
         AddressRepository addressRepo = new JdbcAddressRepository(config);
         repo = new JdbcMessageRepository(config);
         new InternalContext(new BitmessageContext.Builder()
-                .cryptography(security())
+                .cryptography(cryptography())
                 .addressRepo(addressRepo)
                 .messageRepo(repo)
         );
 
-        BitmessageAddress tmp = new BitmessageAddress(new PrivateKey(false, 1, 1000, 1000));
+        BitmessageAddress tmp = new BitmessageAddress(new PrivateKey(false, 1, 1000, 1000, DOES_ACK));
         contactA = new BitmessageAddress(tmp.getAddress());
         contactA.setPubkey(tmp.getPubkey());
         addressRepo.save(contactA);
         contactB = new BitmessageAddress("BM-2cTtkBnb4BUYDndTKun6D9PjtueP2h1bQj");
         addressRepo.save(contactB);
 
-        identity = new BitmessageAddress(new PrivateKey(false, 1, 1000, 1000));
+        identity = new BitmessageAddress(new PrivateKey(false, 1, 1000, 1000, DOES_ACK));
         addressRepo.save(identity);
 
         inbox = repo.getLabels(Label.Type.INBOX).get(0);
@@ -124,6 +129,18 @@ public class JdbcMessageRepositoryTest extends TestBase {
     }
 
     @Test
+    public void ensureAckMessageCanBeUpdatedAndRetrieved() {
+        byte[] initialHash = new byte[64];
+        Plaintext message = repo.findMessages(contactA).get(0);
+        message.setInitialHash(initialHash);
+        ObjectMessage ackMessage = message.getAckMessage();
+        repo.save(message);
+        Plaintext other = repo.getMessage(initialHash);
+        assertThat(other, is(message));
+        assertThat(other.getAckMessage(), is(ackMessage));
+    }
+
+    @Test
     public void testFindMessagesByStatus() throws Exception {
         List<Plaintext> messages = repo.findMessages(Plaintext.Status.RECEIVED);
         assertEquals(1, messages.size());
@@ -146,7 +163,7 @@ public class JdbcMessageRepositoryTest extends TestBase {
     @Test
     public void testSave() throws Exception {
         Plaintext message = new Plaintext.Builder(MSG)
-                .IV(new InventoryVector(security().randomBytes(32)))
+                .IV(new InventoryVector(cryptography().randomBytes(32)))
                 .from(identity)
                 .to(contactA)
                 .message("Subject", "Message")
@@ -169,7 +186,7 @@ public class JdbcMessageRepositoryTest extends TestBase {
     public void testUpdate() throws Exception {
         List<Plaintext> messages = repo.findMessages(Plaintext.Status.DRAFT, contactA);
         Plaintext message = messages.get(0);
-        message.setInventoryVector(new InventoryVector(security().randomBytes(32)));
+        message.setInventoryVector(new InventoryVector(cryptography().randomBytes(32)));
         repo.save(message);
 
         messages = repo.findMessages(Plaintext.Status.DRAFT, contactA);
@@ -178,11 +195,40 @@ public class JdbcMessageRepositoryTest extends TestBase {
     }
 
     @Test
-    public void testRemove() throws Exception {
+    public void ensureMessageIsRemoved() throws Exception {
         Plaintext toRemove = repo.findMessages(Plaintext.Status.DRAFT, contactB).get(0);
-        repo.remove(toRemove);
         List<Plaintext> messages = repo.findMessages(Plaintext.Status.DRAFT);
-        assertEquals(1, messages.size());
+        assertEquals(2, messages.size());
+        repo.remove(toRemove);
+        messages = repo.findMessages(Plaintext.Status.DRAFT);
+        assertThat(messages, hasSize(1));
+    }
+
+    @Test
+    public void ensureUnacknowledgedMessagesAreFoundForResend() throws Exception {
+        Plaintext message = new Plaintext.Builder(MSG)
+                .IV(new InventoryVector(cryptography().randomBytes(32)))
+                .from(identity)
+                .to(contactA)
+                .message("Subject", "Message")
+                .status(Plaintext.Status.SENT)
+                .ttl(1)
+                .build();
+        message.updateNextTry();
+        assertThat(message.getRetries(), is(1));
+        assertThat(message.getNextTry(), greaterThan(UnixTime.now()));
+        assertThat(message.getNextTry(), lessThanOrEqualTo(UnixTime.now(+1)));
+        repo.save(message);
+        Thread.sleep(2100);
+        List<Plaintext> messagesToResend = repo.findMessagesToResend();
+        assertThat(messagesToResend, hasSize(1));
+
+        message.updateNextTry();
+        assertThat(message.getRetries(), is(2));
+        assertThat(message.getNextTry(), greaterThan(UnixTime.now()));
+        repo.save(message);
+        messagesToResend = repo.findMessagesToResend();
+        assertThat(messagesToResend, empty());
     }
 
     private void addMessage(BitmessageAddress from, BitmessageAddress to, Plaintext.Status status, Label... labels) {

@@ -27,7 +27,7 @@ import java.io.*;
 import java.util.Arrays;
 
 import static ch.dissem.bitmessage.entity.valueobject.PrivateKey.PRIVATE_KEY_SIZE;
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 
 public class CryptoBox implements Streamable {
@@ -50,22 +50,22 @@ public class CryptoBox implements Streamable {
 
         // 1. The destination public key is called K.
         // 2. Generate 16 random bytes using a secure random number generator. Call them IV.
-        initializationVector = security().randomBytes(16);
+        initializationVector = cryptography().randomBytes(16);
 
         // 3. Generate a new random EC key pair with private key called r and public key called R.
-        byte[] r = security().randomBytes(PRIVATE_KEY_SIZE);
-        R = security().createPublicKey(r);
+        byte[] r = cryptography().randomBytes(PRIVATE_KEY_SIZE);
+        R = cryptography().createPublicKey(r);
         // 4. Do an EC point multiply with public key K and private key r. This gives you public key P.
-        byte[] P = security().multiply(K, r);
+        byte[] P = cryptography().multiply(K, r);
         byte[] X = Points.getX(P);
         // 5. Use the X component of public key P and calculate the SHA512 hash H.
-        byte[] H = security().sha512(X);
+        byte[] H = cryptography().sha512(X);
         // 6. The first 32 bytes of H are called key_e and the last 32 bytes are called key_m.
         byte[] key_e = Arrays.copyOfRange(H, 0, 32);
         byte[] key_m = Arrays.copyOfRange(H, 32, 64);
         // 7. Pad the input text to a multiple of 16 bytes, in accordance to PKCS7.
         // 8. Encrypt the data with AES-256-CBC, using IV as initialization vector, key_e as encryption key and the padded input text as payload. Call the output cipher text.
-        encrypted = security().crypt(true, data, key_e, initializationVector);
+        encrypted = cryptography().crypt(true, data, key_e, initializationVector);
         // 9. Calculate a 32 byte MAC with HMACSHA256, using key_m as salt and IV + R + cipher text as data. Call the output MAC.
         mac = calculateMac(key_m);
 
@@ -75,7 +75,7 @@ public class CryptoBox implements Streamable {
     private CryptoBox(Builder builder) {
         initializationVector = builder.initializationVector;
         curveType = builder.curveType;
-        R = security().createPoint(builder.xComponent, builder.yComponent);
+        R = cryptography().createPoint(builder.xComponent, builder.yComponent);
         encrypted = builder.encrypted;
         mac = builder.mac;
     }
@@ -101,9 +101,9 @@ public class CryptoBox implements Streamable {
     public InputStream decrypt(byte[] k) throws DecryptionFailedException {
         // 1. The private key used to decrypt is called k.
         // 2. Do an EC point multiply with private key k and public key R. This gives you public key P.
-        byte[] P = security().multiply(R, k);
+        byte[] P = cryptography().multiply(R, k);
         // 3. Use the X component of public key P and calculate the SHA512 hash H.
-        byte[] H = security().sha512(Arrays.copyOfRange(P, 1, 33));
+        byte[] H = cryptography().sha512(Arrays.copyOfRange(P, 1, 33));
         // 4. The first 32 bytes of H are called key_e and the last 32 bytes are called key_m.
         byte[] key_e = Arrays.copyOfRange(H, 0, 32);
         byte[] key_m = Arrays.copyOfRange(H, 32, 64);
@@ -116,14 +116,14 @@ public class CryptoBox implements Streamable {
 
         // 7. Decrypt the cipher text with AES-256-CBC, using IV as initialization vector, key_e as decryption key
         //    and the cipher text as payload. The output is the padded input text.
-        return new ByteArrayInputStream(security().crypt(false, encrypted, key_e, initializationVector));
+        return new ByteArrayInputStream(cryptography().crypt(false, encrypted, key_e, initializationVector));
     }
 
     private byte[] calculateMac(byte[] key_m) {
         try {
             ByteArrayOutputStream macData = new ByteArrayOutputStream();
             writeWithoutMAC(macData);
-            return security().mac(key_m, macData.toByteArray());
+            return cryptography().mac(key_m, macData.toByteArray());
         } catch (IOException e) {
             throw new ApplicationException(e);
         }

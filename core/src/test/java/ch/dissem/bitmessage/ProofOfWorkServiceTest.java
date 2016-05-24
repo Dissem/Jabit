@@ -65,6 +65,7 @@ public class ProofOfWorkServiceTest {
         when(ctx.getInventory()).thenReturn(inventory);
         when(ctx.getNetworkHandler()).thenReturn(networkHandler);
         when(ctx.getMessageRepository()).thenReturn(messageRepo);
+        when(ctx.getLabeler()).thenReturn(mock(Labeler.class));
 
         proofOfWorkService = new ProofOfWorkService();
         proofOfWorkService.setContext(ctx);
@@ -76,9 +77,9 @@ public class ProofOfWorkServiceTest {
         when(proofOfWorkRepo.getItem(any(byte[].class))).thenReturn(new ProofOfWorkRepository.Item(null, 1001, 1002));
         doNothing().when(cryptography).doProofOfWork(any(ObjectMessage.class), anyLong(), anyLong(), any(ProofOfWorkEngine.Callback.class));
 
-        proofOfWorkService.doMissingProofOfWork();
+        proofOfWorkService.doMissingProofOfWork(10);
 
-        verify(cryptography).doProofOfWork((ObjectMessage) isNull(), eq(1001L), eq(1002L),
+        verify(cryptography, timeout(1000)).doProofOfWork((ObjectMessage) isNull(), eq(1001L), eq(1002L),
                 any(ProofOfWorkEngine.Callback.class));
     }
 

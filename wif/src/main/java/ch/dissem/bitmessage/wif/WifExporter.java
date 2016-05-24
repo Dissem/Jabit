@@ -27,7 +27,7 @@ import java.io.*;
 import java.util.Collection;
 
 import static ch.dissem.bitmessage.entity.valueobject.PrivateKey.PRIVATE_KEY_SIZE;
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * @author Christian Basler
@@ -77,7 +77,7 @@ public class WifExporter {
         byte[] result = new byte[37];
         result[0] = (byte) 0x80;
         System.arraycopy(privateKey, 0, result, 1, PRIVATE_KEY_SIZE);
-        byte[] hash = security().doubleSha256(result, PRIVATE_KEY_SIZE + 1);
+        byte[] hash = cryptography().doubleSha256(result, PRIVATE_KEY_SIZE + 1);
         System.arraycopy(hash, 0, result, PRIVATE_KEY_SIZE + 1, 4);
         return Base58.encode(result);
     }

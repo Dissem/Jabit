@@ -18,13 +18,9 @@ package ch.dissem.bitmessage;
 
 import ch.dissem.bitmessage.entity.*;
 import ch.dissem.bitmessage.entity.payload.Broadcast;
-import ch.dissem.bitmessage.entity.payload.Msg;
-import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
-import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
-import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.*;
@@ -35,15 +31,12 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static ch.dissem.bitmessage.InternalContext.NETWORK_EXTRA_BYTES;
 import static ch.dissem.bitmessage.InternalContext.NETWORK_NONCE_TRIALS_PER_BYTE;
-import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
 import static ch.dissem.bitmessage.utils.UnixTime.*;
@@ -76,16 +69,10 @@ public class BitmessageContext {
     private BitmessageContext(Builder builder) {
         ctx = new InternalContext(builder);
         labeler = builder.labeler;
+        ctx.getProofOfWorkService().doMissingProofOfWork(30_000); // TODO: this should be configurable
+
         networkListener = new DefaultMessageListener(ctx, labeler, builder.listener);
-
         sendPubkeyOnIdentityCreation = builder.sendPubkeyOnIdentityCreation;
-
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                ctx.getProofOfWorkService().doMissingProofOfWork();
-            }
-        }, 30_000); // After 30 seconds
     }
 
     public AddressRepository addresses() {
@@ -157,7 +144,6 @@ public class BitmessageContext {
                 .from(from)
                 .to(to)
                 .message(subject, message)
-                .labels(messages().getLabels(Label.Type.SENT))
                 .build();
         send(msg);
     }
@@ -166,6 +152,7 @@ public class BitmessageContext {
         if (msg.getFrom() == null || msg.getFrom().getPrivateKey() == null) {
             throw new IllegalArgumentException("'From' must be an identity, i.e. have a private key.");
         }
+        labeler().markAsSending(msg);
         BitmessageAddress to = msg.getTo();
         if (to != null) {
             if (to.getPubkey() == null) {
@@ -173,35 +160,22 @@ public class BitmessageContext {
                 ctx.requestPubkey(to);
             }
             if (to.getPubkey() == null) {
-                msg.setStatus(PUBKEY_REQUESTED);
-                msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.OUTBOX));
                 ctx.getMessageRepository().save(msg);
             }
         }
         if (to == null || to.getPubkey() != null) {
             LOG.info("Sending message.");
-            msg.setStatus(DOING_PROOF_OF_WORK);
             ctx.getMessageRepository().save(msg);
-            ctx.send(
-                    msg.getFrom(),
-                    to,
-                    wrapInObjectPayload(msg),
-                    TTL.msg()
-            );
-            msg.setStatus(SENT);
-            msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.SENT));
-            ctx.getMessageRepository().save(msg);
-        }
-    }
-
-    private ObjectPayload wrapInObjectPayload(Plaintext msg) {
-        switch (msg.getType()) {
-            case MSG:
-                return new Msg(msg);
-            case BROADCAST:
-                return Factory.getBroadcast(msg);
-            default:
-                throw new ApplicationException("Unknown message type " + msg.getType());
+            if (msg.getType() == MSG) {
+                ctx.send(msg);
+            } else {
+                ctx.send(
+                        msg.getFrom(),
+                        to,
+                        Factory.getBroadcast(msg),
+                        msg.getTTL()
+                );
+            }
         }
     }
 
@@ -247,8 +221,30 @@ public class BitmessageContext {
         return ctx.getNetworkHandler().send(server, port, request);
     }
 
+    /**
+     * Removes expired objects from the inventory. You should call this method regularly,
+     * e.g. daily and on each shutdown.
+     */
     public void cleanup() {
         ctx.getInventory().cleanup();
+    }
+
+    /**
+     * Sends messages again whose time to live expired without being acknowledged. (And whose
+     * recipient is expected to send acknowledgements.
+     * <p>
+     * You should call this method regularly, but be aware of the following:
+     * <ul>
+     * <li>As messages might be sent, POW will be done. It is therefore not advised to
+     * call it on shutdown.</li>
+     * <li>It shouldn't be called right after startup, as it's possible the missing
+     * acknowledgement was sent while the client was offline.</li>
+     * <li>Other than that, the call isn't expensive as long as there is no message
+     * to send, so it might be a good idea to just call it every few minutes.</li>
+     * </ul>
+     */
+    public void resendUnacknowledgedMessages() {
+        ctx.resendUnacknowledged();
     }
 
     public boolean isRunning() {
@@ -285,7 +281,8 @@ public class BitmessageContext {
 
     public Property status() {
         return new Property("status", null,
-                ctx.getNetworkHandler().getNetworkStatus()
+                ctx.getNetworkHandler().getNetworkStatus(),
+                new Property("unacknowledged", ctx.getMessageRepository().findMessagesToResend().size())
         );
     }
 
@@ -311,7 +308,6 @@ public class BitmessageContext {
         ProofOfWorkRepository proofOfWorkRepository;
         ProofOfWorkEngine proofOfWorkEngine;
         Cryptography cryptography;
-        MessageCallback messageCallback;
         CustomCommandHandler customCommandHandler;
         Labeler labeler;
         Listener listener;
@@ -356,11 +352,6 @@ public class BitmessageContext {
 
         public Builder cryptography(Cryptography cryptography) {
             this.cryptography = cryptography;
-            return this;
-        }
-
-        public Builder messageCallback(MessageCallback callback) {
-            this.messageCallback = callback;
             return this;
         }
 
@@ -429,9 +420,6 @@ public class BitmessageContext {
             nonNull("proofOfWorkRepo", proofOfWorkRepository);
             if (proofOfWorkEngine == null) {
                 proofOfWorkEngine = new MultiThreadedPOWEngine();
-            }
-            if (messageCallback == null) {
-                messageCallback = new BaseMessageCallback();
             }
             if (labeler == null) {
                 labeler = new DefaultLabeler();

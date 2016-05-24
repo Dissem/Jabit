@@ -24,6 +24,7 @@ import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.ports.Labeler;
 import ch.dissem.bitmessage.ports.NetworkHandler;
+import ch.dissem.bitmessage.utils.TTL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,9 +48,15 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
     }
 
     @Override
+    @SuppressWarnings("ConstantConditions")
     public void receive(ObjectMessage object) throws IOException {
         ObjectPayload payload = object.getPayload();
-        if (payload.getType() == null) return;
+        if (payload.getType() == null) {
+            if (payload instanceof GenericPayload) {
+                receive((GenericPayload) payload);
+            }
+            return;
+        }
 
         switch (payload.getType()) {
             case GET_PUBKEY: {
@@ -109,16 +116,9 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
         List<Plaintext> messages = ctx.getMessageRepository().findMessages(PUBKEY_REQUESTED, address);
         LOG.info("Sending " + messages.size() + " messages for contact " + address);
         for (Plaintext msg : messages) {
-            msg.setStatus(DOING_PROOF_OF_WORK);
+            ctx.getLabeler().markAsSending(msg);
             ctx.getMessageRepository().save(msg);
-            ctx.send(
-                    msg.getFrom(),
-                    msg.getTo(),
-                    new Msg(msg),
-                    +2 * DAY
-            );
-            msg.setStatus(SENT);
-            ctx.getMessageRepository().save(msg);
+            ctx.send(msg);
         }
     }
 
@@ -126,14 +126,25 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
         for (BitmessageAddress identity : ctx.getAddressRepository().getIdentities()) {
             try {
                 msg.decrypt(identity.getPrivateKey().getPrivateEncryptionKey());
-                msg.getPlaintext().setTo(identity);
-                if (!object.isSignatureValid(msg.getPlaintext().getFrom().getPubkey())) {
+                Plaintext plaintext = msg.getPlaintext();
+                plaintext.setTo(identity);
+                if (!object.isSignatureValid(plaintext.getFrom().getPubkey())) {
                     LOG.warn("Msg with IV " + object.getInventoryVector() + " was successfully decrypted, but signature check failed. Ignoring.");
                 } else {
-                    receive(object.getInventoryVector(), msg.getPlaintext());
+                    receive(object.getInventoryVector(), plaintext);
                 }
                 break;
             } catch (DecryptionFailedException ignore) {
+            }
+        }
+    }
+
+    protected void receive(GenericPayload ack) {
+        if (ack.getData().length == Msg.ACK_LENGTH) {
+            Plaintext msg = ctx.getMessageRepository().getMessageForAck(ack.getData());
+            if (msg != null) {
+                ctx.getLabeler().markAsAcknowledged(msg);
+                ctx.getMessageRepository().save(msg);
             }
         }
     }
@@ -157,11 +168,18 @@ class DefaultMessageListener implements NetworkHandler.MessageListener {
     }
 
     protected void receive(InventoryVector iv, Plaintext msg) {
-        msg.setStatus(RECEIVED);
         msg.setInventoryVector(iv);
         labeler.setLabels(msg);
         ctx.getMessageRepository().save(msg);
         listener.receive(msg);
         updatePubkey(msg.getFrom(), msg.getFrom().getPubkey());
+
+        if (msg.getType() == Plaintext.Type.MSG && msg.getTo().has(Pubkey.Feature.DOES_ACK)) {
+            ObjectMessage ack = msg.getAckMessage();
+            if (ack != null) {
+                ctx.getInventory().storeObject(ack);
+                ctx.getNetworkHandler().offer(ack.getInventoryVector());
+            }
+        }
     }
 }

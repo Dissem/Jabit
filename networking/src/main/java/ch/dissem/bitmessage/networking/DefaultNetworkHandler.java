@@ -28,7 +28,6 @@ import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.NetworkHandler;
 import ch.dissem.bitmessage.utils.Collections;
 import ch.dissem.bitmessage.utils.Property;
-import ch.dissem.bitmessage.utils.ThreadFactoryBuilder;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -109,9 +108,9 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
         try {
             running = true;
             connections.clear();
-            server = new ServerRunnable(ctx, this, listener);
+            server = new ServerRunnable(ctx, this, listener, ctx.getClientNonce());
             pool.execute(server);
-            pool.execute(new ConnectionOrganizer(ctx, this, listener));
+            pool.execute(new ConnectionOrganizer(ctx, this, listener, ctx.getClientNonce()));
         } catch (IOException e) {
             throw new ApplicationException(e);
         }

@@ -16,9 +16,7 @@
 
 package ch.dissem.bitmessage;
 
-import ch.dissem.bitmessage.entity.BitmessageAddress;
-import ch.dissem.bitmessage.entity.Encrypted;
-import ch.dissem.bitmessage.entity.ObjectMessage;
+import ch.dissem.bitmessage.entity.*;
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.ports.*;
@@ -30,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.TreeSet;
 
 /**
@@ -54,9 +53,9 @@ public class InternalContext {
     private final MessageRepository messageRepository;
     private final ProofOfWorkRepository proofOfWorkRepository;
     private final ProofOfWorkEngine proofOfWorkEngine;
-    private final MessageCallback messageCallback;
     private final CustomCommandHandler customCommandHandler;
     private final ProofOfWorkService proofOfWorkService;
+    private final Labeler labeler;
 
     private final TreeSet<Long> streams = new TreeSet<>();
     private final int port;
@@ -75,11 +74,11 @@ public class InternalContext {
         this.proofOfWorkService = new ProofOfWorkService();
         this.proofOfWorkEngine = builder.proofOfWorkEngine;
         this.clientNonce = cryptography.randomNonce();
-        this.messageCallback = builder.messageCallback;
         this.customCommandHandler = builder.customCommandHandler;
         this.port = builder.port;
         this.connectionLimit = builder.connectionLimit;
         this.connectionTTL = builder.connectionTTL;
+        this.labeler = builder.labeler;
 
         Singleton.initialize(cryptography);
 
@@ -95,8 +94,7 @@ public class InternalContext {
         }
 
         init(cryptography, inventory, nodeRegistry, networkHandler, addressRepository, messageRepository,
-                proofOfWorkRepository, proofOfWorkService, proofOfWorkEngine,
-                messageCallback, customCommandHandler, builder.labeler);
+                proofOfWorkRepository, proofOfWorkService, proofOfWorkEngine, customCommandHandler, builder.labeler);
         for (BitmessageAddress identity : addressRepository.getIdentities()) {
             streams.add(identity.getStream());
         }
@@ -146,6 +144,10 @@ public class InternalContext {
         return proofOfWorkService;
     }
 
+    public Labeler getLabeler() {
+        return labeler;
+    }
+
     public long[] getStreams() {
         long[] result = new long[streams.size()];
         int i = 0;
@@ -159,14 +161,24 @@ public class InternalContext {
         return port;
     }
 
+    public void send(final Plaintext plaintext) {
+        if (plaintext.getAckMessage() != null) {
+            long expires = UnixTime.now(+plaintext.getTTL());
+            LOG.info("Expires at " + expires);
+            proofOfWorkService.doProofOfWorkWithAck(plaintext, expires);
+        } else {
+            send(plaintext.getFrom(), plaintext.getTo(), new Msg(plaintext), plaintext.getTTL());
+        }
+    }
+
     public void send(final BitmessageAddress from, BitmessageAddress to, final ObjectPayload payload,
                      final long timeToLive) {
         try {
-            if (to == null) to = from;
+            final BitmessageAddress recipient = (to != null ? to : from);
             long expires = UnixTime.now(+timeToLive);
             LOG.info("Expires at " + expires);
             final ObjectMessage object = new ObjectMessage.Builder()
-                    .stream(to.getStream())
+                    .stream(recipient.getStream())
                     .expiresTime(expires)
                     .payload(payload)
                     .build();
@@ -176,9 +188,8 @@ public class InternalContext {
             if (payload instanceof Broadcast) {
                 ((Broadcast) payload).encrypt();
             } else if (payload instanceof Encrypted) {
-                object.encrypt(to.getPubkey());
+                object.encrypt(recipient.getPubkey());
             }
-            messageCallback.proofOfWorkStarted(payload);
             proofOfWorkService.doProofOfWork(to, object);
         } catch (IOException e) {
             throw new ApplicationException(e);
@@ -196,7 +207,6 @@ public class InternalContext {
                     .build();
             response.sign(identity.getPrivateKey());
             response.encrypt(cryptography.createPublicKey(identity.getPublicDecryptionKey()));
-            messageCallback.proofOfWorkStarted(identity.getPubkey());
             // TODO: remember that the pubkey is just about to be sent, and on which stream!
             proofOfWorkService.doProofOfWork(response);
         } catch (IOException e) {
@@ -233,7 +243,6 @@ public class InternalContext {
                 .expiresTime(expires)
                 .payload(new GetPubkey(contact))
                 .build();
-        messageCallback.proofOfWorkStarted(request.getPayload());
         proofOfWorkService.doProofOfWork(request);
     }
 
@@ -268,6 +277,14 @@ public class InternalContext {
             } catch (Exception e) {
                 LOG.debug(e.getMessage(), e);
             }
+        }
+    }
+
+    public void resendUnacknowledged() {
+        List<Plaintext> messages = messageRepository.findMessagesToResend();
+        for (Plaintext message : messages) {
+            send(message);
+            messageRepository.save(message);
         }
     }
 

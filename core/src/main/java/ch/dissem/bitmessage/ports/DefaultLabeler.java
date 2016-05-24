@@ -20,13 +20,14 @@ import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 
-import java.util.Iterator;
+import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
 
 public class DefaultLabeler implements Labeler, InternalContext.ContextHolder {
     private InternalContext ctx;
 
     @Override
     public void setLabels(Plaintext msg) {
+        msg.setStatus(RECEIVED);
         if (msg.getType() == Plaintext.Type.BROADCAST) {
             msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.INBOX, Label.Type.BROADCAST, Label.Type.UNREAD));
         } else {
@@ -35,14 +36,37 @@ public class DefaultLabeler implements Labeler, InternalContext.ContextHolder {
     }
 
     @Override
-    public void markAsRead(Plaintext msg) {
-        Iterator<Label> iterator = msg.getLabels().iterator();
-        while (iterator.hasNext()) {
-            Label label = iterator.next();
-            if (label.getType() == Label.Type.UNREAD) {
-                iterator.remove();
-            }
+    public void markAsDraft(Plaintext msg) {
+        msg.setStatus(DRAFT);
+        msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.DRAFT));
+    }
+
+    @Override
+    public void markAsSending(Plaintext msg) {
+        if (msg.getTo() != null && msg.getTo().getPubkey() == null) {
+            msg.setStatus(PUBKEY_REQUESTED);
+        } else {
+            msg.setStatus(DOING_PROOF_OF_WORK);
         }
+        msg.removeLabel(Label.Type.DRAFT);
+        msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.OUTBOX));
+    }
+
+    @Override
+    public void markAsSent(Plaintext msg) {
+        msg.setStatus(SENT);
+        msg.removeLabel(Label.Type.OUTBOX);
+        msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.SENT));
+    }
+
+    @Override
+    public void markAsAcknowledged(Plaintext msg) {
+        msg.setStatus(SENT_ACKNOWLEDGED);
+    }
+
+    @Override
+    public void markAsRead(Plaintext msg) {
+        msg.removeLabel(Label.Type.UNREAD);
     }
 
     @Override

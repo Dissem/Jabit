@@ -31,7 +31,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * @author Christian Basler
@@ -87,7 +87,7 @@ public class WifImporter {
             throw new IOException("Unknown format: " + WIF_SECRET_LENGTH +
                     " bytes expected, but secret " + walletImportFormat + " was " + bytes.length + " long");
 
-        byte[] hash = security().doubleSha256(bytes, 33);
+        byte[] hash = cryptography().doubleSha256(bytes, 33);
         for (int i = 0; i < 4; i++) {
             if (hash[i] != bytes[33 + i]) throw new IOException("Hash check failed for secret " + walletImportFormat);
         }

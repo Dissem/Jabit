@@ -29,8 +29,10 @@ import ch.dissem.bitmessage.utils.Encode;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.Objects;
 
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * The 'object' command sends an object that is shared throughout the network.
@@ -55,7 +57,7 @@ public class ObjectMessage implements MessagePayload {
         expiresTime = builder.expiresTime;
         objectType = builder.objectType;
         version = builder.payload.getVersion();
-        stream = builder.streamNumber;
+        stream = builder.streamNumber > 0 ? builder.streamNumber : builder.payload.getStream();
         payload = builder.payload;
     }
 
@@ -94,7 +96,7 @@ public class ObjectMessage implements MessagePayload {
 
     public InventoryVector getInventoryVector() {
         return new InventoryVector(
-                Bytes.truncate(security().doubleSha512(nonce, getPayloadBytesWithoutNonce()), 32)
+                Bytes.truncate(cryptography().doubleSha512(nonce, getPayloadBytesWithoutNonce()), 32)
         );
     }
 
@@ -119,7 +121,7 @@ public class ObjectMessage implements MessagePayload {
 
     public void sign(PrivateKey key) {
         if (payload.isSigned()) {
-            payload.setSignature(security().getSignature(getBytesToSign(), key));
+            payload.setSignature(cryptography().getSignature(getBytesToSign(), key));
         }
     }
 
@@ -153,7 +155,7 @@ public class ObjectMessage implements MessagePayload {
 
     public boolean isSignatureValid(Pubkey pubkey) throws IOException {
         if (isEncrypted()) throw new IllegalStateException("Payload must be decrypted first");
-        return security().isSignatureValid(getBytesToSign(), payload.getSignature(), pubkey);
+        return cryptography().isSignatureValid(getBytesToSign(), payload.getSignature(), pubkey);
     }
 
     @Override
@@ -229,5 +231,30 @@ public class ObjectMessage implements MessagePayload {
         public ObjectMessage build() {
             return new ObjectMessage(this);
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ObjectMessage that = (ObjectMessage) o;
+
+        return expiresTime == that.expiresTime &&
+                objectType == that.objectType &&
+                version == that.version &&
+                stream == that.stream &&
+                Objects.equals(payload, that.payload);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Arrays.hashCode(nonce);
+        result = 31 * result + (int) (expiresTime ^ (expiresTime >>> 32));
+        result = 31 * result + (int) (objectType ^ (objectType >>> 32));
+        result = 31 * result + (int) (version ^ (version >>> 32));
+        result = 31 * result + (int) (stream ^ (stream >>> 32));
+        result = 31 * result + (payload != null ? payload.hashCode() : 0);
+        return result;
     }
 }

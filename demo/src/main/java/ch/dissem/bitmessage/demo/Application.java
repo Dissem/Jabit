@@ -25,10 +25,10 @@ import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
 import ch.dissem.bitmessage.ports.MemoryNodeRegistry;
 import ch.dissem.bitmessage.repository.*;
+import org.apache.commons.lang3.text.WordUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -56,13 +56,7 @@ public class Application {
                 .networkHandler(new DefaultNetworkHandler())
                 .cryptography(new BouncyCryptography())
                 .port(48444)
-                .listener(plaintext -> {
-                    try {
-                        System.out.println(new String(plaintext.getMessage(), "UTF-8"));
-                    } catch (UnsupportedEncodingException e) {
-                        LOG.error(e.getMessage(), e);
-                    }
-                })
+                .listener(plaintext -> System.out.println("New Message from " + plaintext.getFrom() + ": " + plaintext.getSubject()))
                 .build();
 
         if (syncServer == null) {
@@ -99,7 +93,7 @@ public class Application {
                         subscriptions();
                         break;
                     case "m":
-                        messages();
+                        labels();
                         break;
                     case "?":
                         info();
@@ -124,8 +118,27 @@ public class Application {
     }
 
     private void info() {
-        System.out.println();
-        System.out.println(ctx.status());
+        String command;
+        do {
+            System.out.println();
+            System.out.println(ctx.status());
+            System.out.println();
+            System.out.println("c) cleanup inventory");
+            System.out.println("r) resend unacknowledged messages");
+            System.out.println(COMMAND_BACK);
+
+            command = commandLine.nextCommand();
+            switch (command) {
+                case "c":
+                    ctx.cleanup();
+                    break;
+                case "r":
+                    ctx.resendUnacknowledgedMessages();
+                    break;
+                case "b":
+                    return;
+            }
+        } while (!"b".equals(command));
     }
 
     private void identities() {
@@ -280,22 +293,71 @@ public class Application {
         }
     }
 
-    private void messages() {
+    private void labels() {
+        List<Label> labels = ctx.messages().getLabels();
         String command;
         do {
-            List<Plaintext> messages = ctx.messages().findMessages(Plaintext.Status.RECEIVED);
+            System.out.println();
+            int i = 0;
+            for (Label label : labels) {
+                i++;
+                System.out.print(i + ") " + label);
+                int unread = ctx.messages().countUnread(label);
+                if (unread > 0) {
+                    System.out.println(" [" + unread + "]");
+                } else {
+                    System.out.println();
+                }
+            }
+            System.out.println("a) Archive");
+            System.out.println();
+            System.out.println("c) compose message");
+            System.out.println("s) compose broadcast");
+            System.out.println(COMMAND_BACK);
+
+            command = commandLine.nextCommand();
+            switch (command) {
+                case "a":
+                    messages(null);
+                    break;
+                case "c":
+                    compose(false);
+                    break;
+                case "s":
+                    compose(true);
+                    break;
+                case "b":
+                    return;
+                default:
+                    try {
+                        int index = Integer.parseInt(command) - 1;
+                        messages(labels.get(index));
+                    } catch (NumberFormatException | IndexOutOfBoundsException e) {
+                        System.out.println(ERROR_UNKNOWN_COMMAND);
+                    }
+            }
+        } while (!"b".equalsIgnoreCase(command));
+    }
+
+    private void messages(Label label) {
+        String command;
+        do {
+            List<Plaintext> messages = ctx.messages().findMessages(label);
             System.out.println();
             int i = 0;
             for (Plaintext message : messages) {
                 i++;
-                System.out.println(i + ") From: " + message.getFrom() + "; Subject: " + message.getSubject());
+                System.out.println(i + (message.isUnread() ? ">" : ")") + " From: " + message.getFrom() + "; Subject: " + message.getSubject());
             }
             if (i == 0) {
-                System.out.println("You have no messages.");
+                System.out.println("There are no messages.");
             }
             System.out.println();
             System.out.println("c) compose message");
             System.out.println("s) compose broadcast");
+            if (label.getType() == Label.Type.TRASH) {
+                System.out.println("e) empty trash");
+            }
             System.out.println(COMMAND_BACK);
 
             command = commandLine.nextCommand();
@@ -306,6 +368,8 @@ public class Application {
                 case "s":
                     compose(true);
                     break;
+                case "e":
+                    messages.forEach(ctx.messages()::remove);
                 case "b":
                     return;
                 default:
@@ -325,16 +389,18 @@ public class Application {
         System.out.println("To:      " + message.getTo());
         System.out.println("Subject: " + message.getSubject());
         System.out.println();
-        System.out.println(message.getText());
+        System.out.println(WordUtils.wrap(message.getText(), 120));
         System.out.println();
         System.out.println(message.getLabels().stream().map(Label::toString).collect(
-                Collectors.joining("Labels: ", ", ", "")));
+                Collectors.joining(", ", "Labels: ", "")));
         System.out.println();
         ctx.labeler().markAsRead(message);
+        ctx.messages().save(message);
         String command;
         do {
             System.out.println("r) reply");
             System.out.println("d) delete");
+            System.out.println("a) archive");
             System.out.println(COMMAND_BACK);
             command = commandLine.nextCommand();
             switch (command) {
@@ -342,7 +408,13 @@ public class Application {
                     compose(message.getTo(), message.getFrom(), "RE: " + message.getSubject());
                     break;
                 case "d":
-                    ctx.messages().remove(message);
+                    ctx.labeler().delete(message);
+                    ctx.messages().save(message);
+                    return;
+                case "a":
+                    ctx.labeler().archive(message);
+                    ctx.messages().save(message);
+                    return;
                 case "b":
                     return;
                 default:

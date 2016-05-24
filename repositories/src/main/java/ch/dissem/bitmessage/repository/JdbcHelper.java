@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.repository;
 
 import ch.dissem.bitmessage.entity.Streamable;
 import ch.dissem.bitmessage.entity.payload.ObjectType;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +26,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Collection;
 
 import static ch.dissem.bitmessage.utils.Strings.hex;
 
@@ -40,43 +42,7 @@ public abstract class JdbcHelper {
         this.config = config;
     }
 
-    public static StringBuilder join(long... objects) {
-        StringBuilder streamList = new StringBuilder();
-        for (int i = 0; i < objects.length; i++) {
-            if (i > 0) streamList.append(", ");
-            streamList.append(objects[i]);
-        }
-        return streamList;
-    }
-
-    public static StringBuilder join(byte[]... objects) {
-        StringBuilder streamList = new StringBuilder();
-        for (int i = 0; i < objects.length; i++) {
-            if (i > 0) streamList.append(", ");
-            streamList.append(hex(objects[i]));
-        }
-        return streamList;
-    }
-
-    public static StringBuilder join(ObjectType... types) {
-        StringBuilder streamList = new StringBuilder();
-        for (int i = 0; i < types.length; i++) {
-            if (i > 0) streamList.append(", ");
-            streamList.append(types[i].getNumber());
-        }
-        return streamList;
-    }
-
-    public static StringBuilder join(Enum... types) {
-        StringBuilder streamList = new StringBuilder();
-        for (int i = 0; i < types.length; i++) {
-            if (i > 0) streamList.append(", ");
-            streamList.append('\'').append(types[i].name()).append('\'');
-        }
-        return streamList;
-    }
-
-    protected void writeBlob(PreparedStatement ps, int parameterIndex, Streamable data) throws SQLException, IOException {
+    public static void writeBlob(PreparedStatement ps, int parameterIndex, Streamable data) throws SQLException, IOException {
         if (data == null) {
             ps.setBytes(parameterIndex, null);
         } else {

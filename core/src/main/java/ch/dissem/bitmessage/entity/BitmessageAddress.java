@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.Pubkey;
+import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
 import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.ApplicationException;
@@ -36,7 +37,7 @@ import java.util.Objects;
 
 import static ch.dissem.bitmessage.utils.Decode.bytes;
 import static ch.dissem.bitmessage.utils.Decode.varInt;
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * A Bitmessage address. Can be a user's private address, an address string without public keys or a recipient's address
@@ -73,19 +74,19 @@ public class BitmessageAddress implements Serializable {
             Encode.varInt(version, os);
             Encode.varInt(stream, os);
             if (version < 4) {
-                byte[] checksum = security().sha512(os.toByteArray(), ripe);
+                byte[] checksum = cryptography().sha512(os.toByteArray(), ripe);
                 this.tag = null;
                 this.publicDecryptionKey = Arrays.copyOfRange(checksum, 0, 32);
             } else {
                 // for tag and decryption key, the checksum has to be created with 0x00 padding
-                byte[] checksum = security().doubleSha512(os.toByteArray(), ripe);
+                byte[] checksum = cryptography().doubleSha512(os.toByteArray(), ripe);
                 this.tag = Arrays.copyOfRange(checksum, 32, 64);
                 this.publicDecryptionKey = Arrays.copyOfRange(checksum, 0, 32);
             }
             // but for the address and its checksum they need to be stripped
             int offset = Bytes.numberOfLeadingZeros(ripe);
             os.write(ripe, offset, ripe.length - offset);
-            byte[] checksum = security().doubleSha512(os.toByteArray());
+            byte[] checksum = cryptography().doubleSha512(os.toByteArray());
             os.write(checksum, 0, 4);
             this.address = "BM-" + Base58.encode(os.toByteArray());
         } catch (IOException e) {
@@ -146,18 +147,18 @@ public class BitmessageAddress implements Serializable {
             this.ripe = Bytes.expand(bytes(in, bytes.length - counter.length() - 4), 20);
 
             // test checksum
-            byte[] checksum = security().doubleSha512(bytes, bytes.length - 4);
+            byte[] checksum = cryptography().doubleSha512(bytes, bytes.length - 4);
             byte[] expectedChecksum = bytes(in, 4);
             for (int i = 0; i < 4; i++) {
                 if (expectedChecksum[i] != checksum[i])
                     throw new IllegalArgumentException("Checksum of address failed");
             }
             if (version < 4) {
-                checksum = security().sha512(Arrays.copyOfRange(bytes, 0, counter.length()), ripe);
+                checksum = cryptography().sha512(Arrays.copyOfRange(bytes, 0, counter.length()), ripe);
                 this.tag = null;
                 this.publicDecryptionKey = Arrays.copyOfRange(checksum, 0, 32);
             } else {
-                checksum = security().doubleSha512(Arrays.copyOfRange(bytes, 0, counter.length()), ripe);
+                checksum = cryptography().doubleSha512(Arrays.copyOfRange(bytes, 0, counter.length()), ripe);
                 this.tag = Arrays.copyOfRange(checksum, 32, 64);
                 this.publicDecryptionKey = Arrays.copyOfRange(checksum, 0, 32);
             }
@@ -172,7 +173,7 @@ public class BitmessageAddress implements Serializable {
             Encode.varInt(version, out);
             Encode.varInt(stream, out);
             out.write(ripe);
-            return Arrays.copyOfRange(security().doubleSha512(out.toByteArray()), 32, 64);
+            return Arrays.copyOfRange(cryptography().doubleSha512(out.toByteArray()), 32, 64);
         } catch (IOException e) {
             throw new ApplicationException(e);
         }
@@ -265,5 +266,12 @@ public class BitmessageAddress implements Serializable {
 
     public void setChan(boolean chan) {
         this.chan = chan;
+    }
+
+    public boolean has(Feature feature) {
+        if (pubkey == null || feature == null) {
+            return false;
+        }
+        return feature.isActive(pubkey.getBehaviorBitfield());
     }
 }

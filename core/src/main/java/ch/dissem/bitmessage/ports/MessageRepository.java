@@ -30,7 +30,11 @@ public interface MessageRepository {
 
     int countUnread(Label label);
 
+    Plaintext getMessage(Object id);
+
     Plaintext getMessage(byte[] initialHash);
+
+    Plaintext getMessageForAck(byte[] ackData);
 
     List<Plaintext> findMessages(Label label);
 
@@ -39,6 +43,8 @@ public interface MessageRepository {
     List<Plaintext> findMessages(Status status, BitmessageAddress recipient);
 
     List<Plaintext> findMessages(BitmessageAddress sender);
+
+    List<Plaintext> findMessagesToResend();
 
     void save(Plaintext message);
 
