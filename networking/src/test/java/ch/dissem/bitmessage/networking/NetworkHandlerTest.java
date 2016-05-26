@@ -19,27 +19,21 @@ package ch.dissem.bitmessage.networking;
 import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import ch.dissem.bitmessage.entity.CustomMessage;
-import ch.dissem.bitmessage.entity.NetworkMessage;
+import ch.dissem.bitmessage.entity.MessagePayload;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
-import ch.dissem.bitmessage.factory.Factory;
-import ch.dissem.bitmessage.ports.AddressRepository;
-import ch.dissem.bitmessage.ports.MessageRepository;
-import ch.dissem.bitmessage.ports.NetworkHandler;
-import ch.dissem.bitmessage.ports.ProofOfWorkRepository;
+import ch.dissem.bitmessage.exception.NodeException;
+import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Property;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.concurrent.Future;
 
 import static ch.dissem.bitmessage.utils.Singleton.cryptography;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -85,6 +79,23 @@ public class NetworkHandlerTest {
                 .networkHandler(networkHandler)
                 .cryptography(new BouncyCryptography())
                 .listener(mock(BitmessageContext.Listener.class))
+                .customCommandHandler(new CustomCommandHandler() {
+                    @Override
+                    public MessagePayload handle(CustomMessage request) {
+                        byte[] data = request.getData();
+                        if (data.length > 0) {
+                            switch (data[0]) {
+                                case 0:
+                                    return null;
+                                case 1:
+                                    break;
+                                case 3:
+                                    data[0] = 0;
+                            }
+                        }
+                        return new CustomMessage("test response", request.getData());
+                    }
+                })
                 .build();
     }
 
@@ -118,28 +129,37 @@ public class NetworkHandlerTest {
         }
     }
 
-    @Test
+    @Test(timeout = 5_000)
     public void ensureCustomMessageIsSentAndResponseRetrieved() throws Exception {
-        final CustomMessage request = new CustomMessage("test request", cryptography().randomBytes(8));
-        try (TestServer server = new TestServer(new TestServer.ConnectionTester() {
-            @Override
-            public void test(InputStream in, OutputStream out) throws Exception {
-                NetworkMessage message = Factory.getNetworkMessage(3, in);
-                assertThat(message, notNullValue());
-                assertThat(message.getPayload(), instanceOf(CustomMessage.class));
-                CustomMessage payload = (CustomMessage) message.getPayload();
-                assertThat(payload.getCustomCommand(), is("test request"));
-                assertThat(payload.getData(), is(request.getData()));
-                new NetworkMessage(new CustomMessage("test response", payload.getData())).write(out);
-            }
-        })) {
-            CustomMessage response = networkHandler.send(InetAddress.getLocalHost(), server.getPort(), request);
+        byte[] data = cryptography().randomBytes(8);
+        data[0] = (byte) 1;
+        CustomMessage request = new CustomMessage("test request", data);
+        node.startup();
+
+        CustomMessage response = networkHandler.send(InetAddress.getLocalHost(), 6002, request);
+
+        assertThat(response, notNullValue());
+        assertThat(response.getCustomCommand(), is("test response"));
+        assertThat(response.getData(), is(data));
+
+        shutdown(node);
+    }
+
+    @Test(timeout = 5_000, expected = NodeException.class)
+    public void ensureCustomMessageWithoutResponsYieldsException() throws Exception {
+        try {
+            byte[] data = cryptography().randomBytes(8);
+            data[0] = (byte) 0;
+            CustomMessage request = new CustomMessage("test request", data);
+            node.startup();
+
+            CustomMessage response = networkHandler.send(InetAddress.getLocalHost(), 6002, request);
+
             assertThat(response, notNullValue());
             assertThat(response.getCustomCommand(), is("test response"));
             assertThat(response.getData(), is(request.getData()));
-            if (server.getException() != null) {
-                throw server.getException();
-            }
+        } finally {
+            shutdown(node);
         }
     }
 
@@ -204,42 +224,4 @@ public class NetworkHandlerTest {
         assertEquals(expected, inventory.getInventory().size());
     }
 
-    private static class TestServer implements AutoCloseable {
-        private final ServerSocket socket;
-        private Exception exception;
-
-        private TestServer(final ConnectionTester tester) throws Exception {
-            socket = new ServerSocket(0);
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    while (!socket.isClosed()) {
-                        try {
-                            Socket connection = socket.accept();
-                            tester.test(connection.getInputStream(), connection.getOutputStream());
-                        } catch (Exception e) {
-                            exception = e;
-                        }
-                    }
-                }
-            }).start();
-        }
-
-        int getPort() {
-            return socket.getLocalPort();
-        }
-
-        public Exception getException() {
-            return exception;
-        }
-
-        @Override
-        public void close() throws Exception {
-            socket.close();
-        }
-
-        private interface ConnectionTester {
-            void test(InputStream in, OutputStream out) throws Exception;
-        }
-    }
 }
