@@ -22,6 +22,7 @@ import ch.dissem.bitmessage.entity.Plaintext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
 /**
  * Users who are subscribed to the sending address will see the message appear in their inbox.
@@ -57,5 +58,10 @@ public class V4Broadcast extends Broadcast {
     @Override
     public void write(OutputStream out) throws IOException {
         encrypted.write(out);
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        encrypted.write(buffer);
     }
 }

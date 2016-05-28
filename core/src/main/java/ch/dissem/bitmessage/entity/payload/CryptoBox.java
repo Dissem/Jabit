@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import static ch.dissem.bitmessage.entity.valueobject.PrivateKey.PRIVATE_KEY_SIZE;
@@ -144,10 +145,27 @@ public class CryptoBox implements Streamable {
         out.write(x, offset, length);
     }
 
+    private void writeCoordinateComponent(ByteBuffer buffer, byte[] x) {
+        int offset = Bytes.numberOfLeadingZeros(x);
+        int length = x.length - offset;
+        Encode.int16(length, buffer);
+        buffer.put(x, offset, length);
+    }
+
     @Override
     public void write(OutputStream stream) throws IOException {
         writeWithoutMAC(stream);
         stream.write(mac);
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        buffer.put(initializationVector);
+        Encode.int16(curveType, buffer);
+        writeCoordinateComponent(buffer, Points.getX(R));
+        writeCoordinateComponent(buffer, Points.getY(R));
+        buffer.put(encrypted);
+        buffer.put(mac);
     }
 
     public static final class Builder {

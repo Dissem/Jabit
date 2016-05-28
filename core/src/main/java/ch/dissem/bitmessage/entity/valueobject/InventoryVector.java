@@ -22,6 +22,7 @@ import ch.dissem.bitmessage.utils.Strings;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class InventoryVector implements Streamable, Serializable {
@@ -56,8 +57,13 @@ public class InventoryVector implements Streamable, Serializable {
     }
 
     @Override
-    public void write(OutputStream stream) throws IOException {
-        stream.write(hash);
+    public void write(OutputStream out) throws IOException {
+        out.write(hash);
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        buffer.put(hash);
     }
 
     @Override

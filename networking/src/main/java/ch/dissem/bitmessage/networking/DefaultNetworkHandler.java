@@ -45,7 +45,6 @@ import static java.util.Collections.newSetFromMap;
  * Handles all the networky stuff.
  */
 public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
-    public final static int NETWORK_MAGIC_NUMBER = 8;
 
     final Collection<Connection> connections = new ConcurrentLinkedQueue<>();
     private final ExecutorService pool = Executors.newCachedThreadPool(

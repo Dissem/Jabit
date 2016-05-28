@@ -29,6 +29,8 @@ import java.util.concurrent.Future;
  * Handles incoming messages
  */
 public interface NetworkHandler {
+    int NETWORK_MAGIC_NUMBER = 8;
+
     /**
      * Connects to the trusted host, fetches and offers new messages and disconnects afterwards.
      * <p>

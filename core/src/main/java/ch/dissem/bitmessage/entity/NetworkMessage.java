@@ -22,6 +22,7 @@ import ch.dissem.bitmessage.utils.Encode;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
@@ -74,9 +75,7 @@ public class NetworkMessage implements Streamable {
             out.write('\0');
         }
 
-        ByteArrayOutputStream payloadStream = new ByteArrayOutputStream();
-        payload.write(payloadStream);
-        byte[] payloadBytes = payloadStream.toByteArray();
+        byte[] payloadBytes = Encode.bytes(payload);
 
         // Length of payload in number of bytes. Because of other restrictions, there is no reason why this length would
         // ever be larger than 1600003 bytes. Some clients include a sanity-check to avoid processing messages which are
@@ -92,5 +91,39 @@ public class NetworkMessage implements Streamable {
 
         // message payload
         out.write(payloadBytes);
+    }
+
+    @Override
+    public void write(ByteBuffer out) {
+        // magic
+        Encode.int32(MAGIC, out);
+
+        // ASCII string identifying the packet content, NULL padded (non-NULL padding results in packet rejected)
+        String command = payload.getCommand().name().toLowerCase();
+        try {
+            out.put(command.getBytes("ASCII"));
+        } catch (UnsupportedEncodingException e) {
+            throw new ApplicationException(e);
+        }
+        for (int i = command.length(); i < 12; i++) {
+            out.put((byte) 0);
+        }
+
+        byte[] payloadBytes = Encode.bytes(payload);
+
+        // Length of payload in number of bytes. Because of other restrictions, there is no reason why this length would
+        // ever be larger than 1600003 bytes. Some clients include a sanity-check to avoid processing messages which are
+        // larger than this.
+        Encode.int32(payloadBytes.length, out);
+
+        // checksum
+        try {
+            out.put(getChecksum(payloadBytes));
+        } catch (GeneralSecurityException e) {
+            throw new ApplicationException(e);
+        }
+
+        // message payload
+        out.put(payloadBytes);
     }
 }

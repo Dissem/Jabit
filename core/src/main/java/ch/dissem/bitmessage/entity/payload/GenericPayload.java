@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.utils.Decode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 /**
@@ -60,6 +61,11 @@ public class GenericPayload extends ObjectPayload {
     @Override
     public void write(OutputStream stream) throws IOException {
         stream.write(data);
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        buffer.put(data);
     }
 
     @Override

@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 /**
@@ -119,14 +120,29 @@ public class NetworkAddress implements Streamable {
         write(stream, false);
     }
 
-    public void write(OutputStream stream, boolean light) throws IOException {
+    public void write(OutputStream out, boolean light) throws IOException {
         if (!light) {
-            Encode.int64(time, stream);
-            Encode.int32(this.stream, stream);
+            Encode.int64(time, out);
+            Encode.int32(stream, out);
         }
-        Encode.int64(services, stream);
-        stream.write(ipv6);
-        Encode.int16(port, stream);
+        Encode.int64(services, out);
+        out.write(ipv6);
+        Encode.int16(port, out);
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        write(buffer, false);
+    }
+
+    public void write(ByteBuffer buffer, boolean light) {
+        if (!light) {
+            Encode.int64(time, buffer);
+            Encode.int32(stream, buffer);
+        }
+        Encode.int64(services, buffer);
+        buffer.put(ipv6);
+        Encode.int16(port, buffer);
     }
 
     public static final class Builder {

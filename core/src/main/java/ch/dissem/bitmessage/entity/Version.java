@@ -23,6 +23,7 @@ import ch.dissem.bitmessage.utils.UnixTime;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.Random;
 
 /**
@@ -132,6 +133,18 @@ public class Version implements MessagePayload {
         Encode.int64(nonce, stream);
         Encode.varString(userAgent, stream);
         Encode.varIntList(streams, stream);
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        Encode.int32(version, buffer);
+        Encode.int64(services, buffer);
+        Encode.int64(timestamp, buffer);
+        addrRecv.write(buffer, true);
+        addrFrom.write(buffer, true);
+        Encode.int64(nonce, buffer);
+        Encode.varString(userAgent, buffer);
+        Encode.varIntList(streams, buffer);
     }
 
 
