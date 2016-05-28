@@ -24,9 +24,7 @@ import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.exception.NodeException;
 import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Property;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import java.net.InetAddress;
 import java.util.concurrent.Future;
@@ -44,15 +42,15 @@ import static org.mockito.Mockito.mock;
 public class NetworkHandlerTest {
     private static NetworkAddress localhost = new NetworkAddress.Builder().ipv4(127, 0, 0, 1).port(6001).build();
 
-    private static TestInventory peerInventory;
-    private static TestInventory nodeInventory;
+    private TestInventory peerInventory;
+    private TestInventory nodeInventory;
 
-    private static BitmessageContext peer;
-    private static BitmessageContext node;
-    private static NetworkHandler networkHandler;
+    private BitmessageContext peer;
+    private BitmessageContext node;
+    private NetworkHandler networkHandler;
 
-    @BeforeClass
-    public static void setUp() {
+    @Before
+    public void setUp() {
         peerInventory = new TestInventory();
         peer = new BitmessageContext.Builder()
                 .addressRepo(mock(AddressRepository.class))
@@ -99,34 +97,33 @@ public class NetworkHandlerTest {
                 .build();
     }
 
-    @AfterClass
-    public static void cleanUp() {
+    @After
+    public void cleanUp() {
         shutdown(peer);
+        shutdown(node);
     }
 
-    private static void shutdown(BitmessageContext node) {
-        node.shutdown();
+    private static void shutdown(BitmessageContext ctx) {
+        if (!ctx.isRunning()) return;
+
+        ctx.shutdown();
         do {
             try {
                 Thread.sleep(100);
             } catch (InterruptedException ignore) {
             }
-        } while (node.isRunning());
+        } while (ctx.isRunning());
     }
 
     @Test(timeout = 5_000)
     public void ensureNodesAreConnecting() {
-        try {
-            node.startup();
-            Property status;
-            do {
-                Thread.yield();
-                status = node.status().getProperty("network", "connections", "stream 0");
-            } while (status == null);
-            assertEquals(1, status.getProperty("outgoing").getValue());
-        } finally {
-            shutdown(node);
-        }
+        node.startup();
+        Property status;
+        do {
+            Thread.yield();
+            status = node.status().getProperty("network", "connections", "stream 0");
+        } while (status == null);
+        assertEquals(1, status.getProperty("outgoing").getValue());
     }
 
     @Test(timeout = 5_000)
@@ -141,26 +138,20 @@ public class NetworkHandlerTest {
         assertThat(response, notNullValue());
         assertThat(response.getCustomCommand(), is("test response"));
         assertThat(response.getData(), is(data));
-
-        shutdown(node);
     }
 
     @Test(timeout = 5_000, expected = NodeException.class)
     public void ensureCustomMessageWithoutResponsYieldsException() throws Exception {
-        try {
-            byte[] data = cryptography().randomBytes(8);
-            data[0] = (byte) 0;
-            CustomMessage request = new CustomMessage("test request", data);
-            node.startup();
+        byte[] data = cryptography().randomBytes(8);
+        data[0] = (byte) 0;
+        CustomMessage request = new CustomMessage("test request", data);
+        node.startup();
 
-            CustomMessage response = networkHandler.send(InetAddress.getLocalHost(), 6002, request);
+        CustomMessage response = networkHandler.send(InetAddress.getLocalHost(), 6002, request);
 
-            assertThat(response, notNullValue());
-            assertThat(response.getCustomCommand(), is("test response"));
-            assertThat(response.getData(), is(request.getData()));
-        } finally {
-            shutdown(node);
-        }
+        assertThat(response, notNullValue());
+        assertThat(response.getCustomCommand(), is("test response"));
+        assertThat(response.getData(), is(request.getData()));
     }
 
     @Test(timeout = 5_000)
