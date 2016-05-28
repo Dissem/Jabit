@@ -27,7 +27,6 @@ import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.ports.AddressRepository;
 import ch.dissem.bitmessage.ports.MessageRepository;
 import ch.dissem.bitmessage.utils.UnixTime;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -212,14 +211,14 @@ public class JdbcMessageRepositoryTest extends TestBase {
                 .to(contactA)
                 .message("Subject", "Message")
                 .status(Plaintext.Status.SENT)
-                .ttl(1)
+                .ttl(2)
                 .build();
         message.updateNextTry();
         assertThat(message.getRetries(), is(1));
         assertThat(message.getNextTry(), greaterThan(UnixTime.now()));
-        assertThat(message.getNextTry(), lessThanOrEqualTo(UnixTime.now(+1)));
+        assertThat(message.getNextTry(), lessThanOrEqualTo(UnixTime.now(+2)));
         repo.save(message);
-        Thread.sleep(2100);
+        Thread.sleep(4100);
         List<Plaintext> messagesToResend = repo.findMessagesToResend();
         assertThat(messagesToResend, hasSize(1));
 
