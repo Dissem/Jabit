@@ -111,6 +111,10 @@ public class Decode {
         return stream.read() * 16777216L + stream.read() * 65536L + stream.read() * 256L + stream.read();
     }
 
+    public static long uint32(ByteBuffer buffer) {
+        return buffer.get() * 16777216L + buffer.get() * 65536L + buffer.get() * 256L + buffer.get();
+    }
+
     public static int int32(InputStream stream) throws IOException {
         return int32(stream, null);
     }

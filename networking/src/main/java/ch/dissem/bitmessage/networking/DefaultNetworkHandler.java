@@ -35,8 +35,8 @@ import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.*;
 
-import static ch.dissem.bitmessage.networking.Connection.Mode.SERVER;
-import static ch.dissem.bitmessage.networking.Connection.State.ACTIVE;
+import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.SERVER;
+import static ch.dissem.bitmessage.networking.AbstractConnection.State.ACTIVE;
 import static ch.dissem.bitmessage.utils.DebugUtils.inc;
 import static ch.dissem.bitmessage.utils.ThreadFactoryBuilder.pool;
 import static java.util.Collections.newSetFromMap;
@@ -107,9 +107,9 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
         try {
             running = true;
             connections.clear();
-            server = new ServerRunnable(ctx, this, listener, ctx.getClientNonce());
+            server = new ServerRunnable(ctx, this, listener);
             pool.execute(server);
-            pool.execute(new ConnectionOrganizer(ctx, this, listener, ctx.getClientNonce()));
+            pool.execute(new ConnectionOrganizer(ctx, this, listener));
         } catch (IOException e) {
             throw new ApplicationException(e);
         }
@@ -198,7 +198,8 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
         );
     }
 
-    void request(Set<InventoryVector> inventoryVectors) {
+    @Override
+    public void request(Collection<InventoryVector> inventoryVectors) {
         if (!running || inventoryVectors.isEmpty()) return;
 
         Map<Connection, List<InventoryVector>> distribution = new HashMap<>();

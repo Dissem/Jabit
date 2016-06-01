@@ -62,7 +62,7 @@ class V3MessageFactory {
         }
     }
 
-    private static MessagePayload getPayload(String command, InputStream stream, int length) throws IOException {
+    static MessagePayload getPayload(String command, InputStream stream, int length) throws IOException {
         switch (command) {
             case "version":
                 return parseVersion(stream);

@@ -61,6 +61,12 @@ public abstract class AbstractCryptography implements Cryptography, InternalCont
         this.context = context;
     }
 
+    public byte[] sha512(byte[] data, int offset, int length) {
+        MessageDigest mda = md("SHA-512");
+        mda.update(data, offset, length);
+        return mda.digest();
+    }
+
     public byte[] sha512(byte[]... data) {
         return hash("SHA-512", data);
     }

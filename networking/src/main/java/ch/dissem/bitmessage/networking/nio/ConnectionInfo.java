@@ -16,23 +16,41 @@
 
 package ch.dissem.bitmessage.networking.nio;
 
+import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.MessagePayload;
+import ch.dissem.bitmessage.entity.NetworkMessage;
+import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
+import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
+import ch.dissem.bitmessage.factory.V3MessageReader;
+import ch.dissem.bitmessage.networking.AbstractConnection;
+import ch.dissem.bitmessage.ports.NetworkHandler;
 
 import java.nio.ByteBuffer;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
+import static ch.dissem.bitmessage.ports.NetworkHandler.MAX_MESSAGE_SIZE;
+
 /**
- * Created by chrig on 27.05.2016.
+ * Represents the current state of a connection.
  */
-public class ConnectionInfo {
-    private State state;
-    private final Queue<MessagePayload> sendingQueue = new ConcurrentLinkedDeque<>();
-    private ByteBuffer in = ByteBuffer.allocate(10);
-    private ByteBuffer out = ByteBuffer.allocate(10);
+public class ConnectionInfo extends AbstractConnection {
+    private ByteBuffer in = ByteBuffer.allocate(MAX_MESSAGE_SIZE);
+    private ByteBuffer out = ByteBuffer.allocate(MAX_MESSAGE_SIZE);
+    private V3MessageReader reader = new V3MessageReader();
+
+    public ConnectionInfo(InternalContext context, Mode mode,
+                          NetworkAddress node, NetworkHandler.MessageListener listener,
+                          Set<InventoryVector> commonRequestedObjects) {
+        super(context, mode, node, listener, commonRequestedObjects, false);
+    }
 
     public State getState() {
         return state;
+    }
+
+    public boolean knowsOf(InventoryVector iv) {
+        return ivCache.containsKey(iv);
     }
 
     public Queue<MessagePayload> getSendingQueue() {
@@ -47,5 +65,24 @@ public class ConnectionInfo {
         return out;
     }
 
-    public enum State {CONNECTING, ACTIVE, DISCONNECTED}
+    public void updateReader() {
+        reader.update(in);
+        if (!reader.getMessages().isEmpty()) {
+            Iterator<NetworkMessage> iterator = reader.getMessages().iterator();
+            while (iterator.hasNext()) {
+                NetworkMessage msg = iterator.next();
+                handleMessage(msg.getPayload());
+                iterator.remove();
+            }
+        }
+    }
+
+    public List<NetworkMessage> getMessages() {
+        return reader.getMessages();
+    }
+
+    @Override
+    protected void send(MessagePayload payload) {
+        sendingQueue.addFirst(payload);
+    }
 }

@@ -35,6 +35,18 @@ public interface Cryptography {
      * each call (to ensure thread safety), so you shouldn't use this if you need to do many hash calculations in
      * success on the same thread.
      *
+     * @param data   to get hashed
+     * @param offset of the data to be hashed
+     * @param length of the data to be hashed
+     * @return SHA-512 hash of data within the given range
+     */
+    byte[] sha512(byte[] data, int offset, int length);
+
+    /**
+     * A helper method to calculate SHA-512 hashes. Please note that a new {@link MessageDigest} object is created at
+     * each call (to ensure thread safety), so you shouldn't use this if you need to do many hash calculations in
+     * success on the same thread.
+     *
      * @param data to get hashed
      * @return SHA-512 hash of data
      */

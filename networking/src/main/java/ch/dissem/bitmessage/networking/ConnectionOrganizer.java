@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Iterator;
 import java.util.List;
 
-import static ch.dissem.bitmessage.networking.Connection.Mode.CLIENT;
+import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.CLIENT;
 import static ch.dissem.bitmessage.networking.DefaultNetworkHandler.NETWORK_MAGIC_NUMBER;
 
 /**
@@ -38,17 +38,15 @@ public class ConnectionOrganizer implements Runnable {
     private final InternalContext ctx;
     private final DefaultNetworkHandler networkHandler;
     private final NetworkHandler.MessageListener listener;
-    private final long clientNonce;
 
     private Connection initialConnection;
 
     public ConnectionOrganizer(InternalContext ctx,
                                DefaultNetworkHandler networkHandler,
-                               NetworkHandler.MessageListener listener, long clientNonce) {
+                               NetworkHandler.MessageListener listener) {
         this.ctx = ctx;
         this.networkHandler = networkHandler;
         this.listener = listener;
-        this.clientNonce = clientNonce;
     }
 
     @Override
@@ -94,7 +92,7 @@ public class ConnectionOrganizer implements Runnable {
                         boolean first = active == 0 && initialConnection == null;
                         for (NetworkAddress address : addresses) {
                             Connection c = new Connection(ctx, CLIENT, address, listener,
-                                    networkHandler.requestedObjects, clientNonce);
+                                    networkHandler.requestedObjects);
                             if (first) {
                                 initialConnection = c;
                                 first = false;

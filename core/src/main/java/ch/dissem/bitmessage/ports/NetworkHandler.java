@@ -23,6 +23,7 @@ import ch.dissem.bitmessage.utils.Property;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.Collection;
 import java.util.concurrent.Future;
 
 /**
@@ -30,6 +31,8 @@ import java.util.concurrent.Future;
  */
 public interface NetworkHandler {
     int NETWORK_MAGIC_NUMBER = 8;
+    int MAX_PAYLOAD_SIZE = 1600003;
+    int MAX_MESSAGE_SIZE = 24 + MAX_PAYLOAD_SIZE;
 
     /**
      * Connects to the trusted host, fetches and offers new messages and disconnects afterwards.
@@ -64,6 +67,13 @@ public interface NetworkHandler {
      * Offer new objects to up to 8 random nodes.
      */
     void offer(InventoryVector iv);
+
+    /**
+     * Request each of those objects from a node that knows of the requested object.
+     *
+     * @param inventoryVectors of the objects to be requested
+     */
+    void request(Collection<InventoryVector> inventoryVectors);
 
     Property getNetworkStatus();
 

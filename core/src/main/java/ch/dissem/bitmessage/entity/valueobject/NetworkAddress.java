@@ -24,6 +24,8 @@ import ch.dissem.bitmessage.utils.UnixTime;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -212,6 +214,17 @@ public class NetworkAddress implements Streamable {
 
         public Builder port(final int port) {
             this.port = port;
+            return this;
+        }
+
+        public Builder address(SocketAddress address) {
+            if (address instanceof InetSocketAddress) {
+                InetSocketAddress inetAddress = (InetSocketAddress) address;
+                ip(inetAddress.getAddress());
+                port(inetAddress.getPort());
+            } else {
+                throw new IllegalArgumentException("Unknown type of address: " + address.getClass());
+            }
             return this;
         }
 
