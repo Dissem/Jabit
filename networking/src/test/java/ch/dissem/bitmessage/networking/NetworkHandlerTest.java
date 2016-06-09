@@ -27,8 +27,9 @@ import ch.dissem.bitmessage.utils.Property;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.net.InetAddress;
 import java.util.concurrent.Future;
 
 import static ch.dissem.bitmessage.utils.Singleton.cryptography;
@@ -42,7 +43,8 @@ import static org.mockito.Mockito.mock;
  * FIXME: there really should be sensible tests for the network handler
  */
 public class NetworkHandlerTest {
-    private static NetworkAddress localhost = new NetworkAddress.Builder().ipv4(127, 0, 0, 1).port(6001).build();
+    private static final Logger LOG = LoggerFactory.getLogger(NetworkHandlerTest.class);
+    private static NetworkAddress peerAddress = new NetworkAddress.Builder().ipv4(127, 0, 0, 1).port(6001).build();
 
     private TestInventory peerInventory;
     private TestInventory nodeInventory;
@@ -59,24 +61,9 @@ public class NetworkHandlerTest {
                 .inventory(peerInventory)
                 .messageRepo(mock(MessageRepository.class))
                 .powRepo(mock(ProofOfWorkRepository.class))
-                .port(6001)
+                .port(peerAddress.getPort())
                 .nodeRegistry(new TestNodeRegistry())
                 .networkHandler(new DefaultNetworkHandler())
-                .cryptography(new BouncyCryptography())
-                .listener(mock(BitmessageContext.Listener.class))
-                .build();
-        peer.startup();
-
-        nodeInventory = new TestInventory();
-        networkHandler = new DefaultNetworkHandler();
-        node = new BitmessageContext.Builder()
-                .addressRepo(mock(AddressRepository.class))
-                .inventory(nodeInventory)
-                .messageRepo(mock(MessageRepository.class))
-                .powRepo(mock(ProofOfWorkRepository.class))
-                .port(6002)
-                .nodeRegistry(new TestNodeRegistry(localhost))
-                .networkHandler(networkHandler)
                 .cryptography(new BouncyCryptography())
                 .listener(mock(BitmessageContext.Listener.class))
                 .customCommandHandler(new CustomCommandHandler() {
@@ -100,12 +87,28 @@ public class NetworkHandlerTest {
                     }
                 })
                 .build();
+        peer.startup();
+
+        nodeInventory = new TestInventory();
+        networkHandler = new DefaultNetworkHandler();
+        node = new BitmessageContext.Builder()
+                .addressRepo(mock(AddressRepository.class))
+                .inventory(nodeInventory)
+                .messageRepo(mock(MessageRepository.class))
+                .powRepo(mock(ProofOfWorkRepository.class))
+                .port(6002)
+                .nodeRegistry(new TestNodeRegistry(peerAddress))
+                .networkHandler(networkHandler)
+                .cryptography(new BouncyCryptography())
+                .listener(mock(BitmessageContext.Listener.class))
+                .build();
     }
 
     @After
     public void cleanUp() {
         shutdown(peer);
         shutdown(node);
+        shutdown(networkHandler);
     }
 
     private static void shutdown(BitmessageContext ctx) {
@@ -120,12 +123,29 @@ public class NetworkHandlerTest {
         } while (ctx.isRunning());
     }
 
-    @Test//(timeout = 5_000)
-    public void ensureNodesAreConnecting() {
+    private static void shutdown(NetworkHandler networkHandler) {
+        if (!networkHandler.isRunning()) return;
+
+        networkHandler.stop();
+        do {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ignore) {
+                if (networkHandler.isRunning()) {
+                    LOG.warn("Thread interrupted while waiting for network shutdown - " +
+                            "this could cause problems in subsequent tests.");
+                }
+                return;
+            }
+        } while (networkHandler.isRunning());
+    }
+
+    @Test(timeout = 5_000)
+    public void ensureNodesAreConnecting() throws Exception {
         node.startup();
         Property status;
         do {
-            Thread.yield();
+            Thread.sleep(100);
             status = node.status().getProperty("network", "connections", "stream 0");
         } while (status == null);
         assertEquals(1, status.getProperty("outgoing").getValue());
@@ -138,7 +158,7 @@ public class NetworkHandlerTest {
         CustomMessage request = new CustomMessage("test request", data);
         node.startup();
 
-        CustomMessage response = networkHandler.send(InetAddress.getLocalHost(), 6002, request);
+        CustomMessage response = networkHandler.send(peerAddress.toInetAddress(), peerAddress.getPort(), request);
 
         assertThat(response, notNullValue());
         assertThat(response.getCustomCommand(), is("test response"));
@@ -146,13 +166,13 @@ public class NetworkHandlerTest {
     }
 
     @Test(timeout = 5_000, expected = NodeException.class)
-    public void ensureCustomMessageWithoutResponsYieldsException() throws Exception {
+    public void ensureCustomMessageWithoutResponseYieldsException() throws Exception {
         byte[] data = cryptography().randomBytes(8);
         data[0] = (byte) 0;
         CustomMessage request = new CustomMessage("test request", data);
         node.startup();
 
-        CustomMessage response = networkHandler.send(InetAddress.getLocalHost(), 6002, request);
+        CustomMessage response = networkHandler.send(peerAddress.toInetAddress(), peerAddress.getPort(), request);
 
         assertThat(response, notNullValue());
         assertThat(response.getCustomCommand(), is("test response"));
@@ -171,7 +191,7 @@ public class NetworkHandlerTest {
                 "V4Pubkey.payload"
         );
 
-        Future<?> future = networkHandler.synchronize(InetAddress.getLocalHost(), 6001,
+        Future<?> future = networkHandler.synchronize(peerAddress.toInetAddress(), peerAddress.getPort(),
                 mock(NetworkHandler.MessageListener.class),
                 10);
         future.get();
@@ -188,7 +208,7 @@ public class NetworkHandlerTest {
 
         nodeInventory.init();
 
-        Future<?> future = networkHandler.synchronize(InetAddress.getLocalHost(), 6001,
+        Future<?> future = networkHandler.synchronize(peerAddress.toInetAddress(), peerAddress.getPort(),
                 mock(NetworkHandler.MessageListener.class),
                 10);
         future.get();
@@ -204,7 +224,7 @@ public class NetworkHandlerTest {
                 "V1Msg.payload"
         );
 
-        Future<?> future = networkHandler.synchronize(InetAddress.getLocalHost(), 6001,
+        Future<?> future = networkHandler.synchronize(peerAddress.toInetAddress(), peerAddress.getPort(),
                 mock(NetworkHandler.MessageListener.class),
                 10);
         future.get();
