@@ -27,30 +27,29 @@ import static ch.dissem.bitmessage.utils.AccessCounter.inc;
  * https://bitmessage.org/wiki/Protocol_specification#Common_structures
  */
 public class Decode {
-    public static byte[] shortVarBytes(InputStream stream, AccessCounter counter) throws IOException {
-        int length = uint16(stream, counter);
-        return bytes(stream, length, counter);
+    public static byte[] shortVarBytes(InputStream in, AccessCounter counter) throws IOException {
+        int length = uint16(in, counter);
+        return bytes(in, length, counter);
     }
 
-    public static byte[] varBytes(InputStream stream) throws IOException {
-        int length = (int) varInt(stream, null);
-        return bytes(stream, length, null);
+    public static byte[] varBytes(InputStream in) throws IOException {
+        return varBytes(in, null);
     }
 
-    public static byte[] varBytes(InputStream stream, AccessCounter counter) throws IOException {
-        int length = (int) varInt(stream, counter);
-        return bytes(stream, length, counter);
+    public static byte[] varBytes(InputStream in, AccessCounter counter) throws IOException {
+        int length = (int) varInt(in, counter);
+        return bytes(in, length, counter);
     }
 
-    public static byte[] bytes(InputStream stream, int count) throws IOException {
-        return bytes(stream, count, null);
+    public static byte[] bytes(InputStream in, int count) throws IOException {
+        return bytes(in, count, null);
     }
 
-    public static byte[] bytes(InputStream stream, int count, AccessCounter counter) throws IOException {
+    public static byte[] bytes(InputStream in, int count, AccessCounter counter) throws IOException {
         byte[] result = new byte[count];
         int off = 0;
         while (off < count) {
-            int read = stream.read(result, off, count - off);
+            int read = in.read(result, off, count - off);
             if (read < 0) {
                 throw new IOException("Unexpected end of stream, wanted to read " + count + " bytes but only got " + off);
             }
@@ -60,87 +59,94 @@ public class Decode {
         return result;
     }
 
-    public static long[] varIntList(InputStream stream) throws IOException {
-        int length = (int) varInt(stream);
+    public static long[] varIntList(InputStream in) throws IOException {
+        int length = (int) varInt(in);
         long[] result = new long[length];
 
         for (int i = 0; i < length; i++) {
-            result[i] = varInt(stream);
+            result[i] = varInt(in);
         }
         return result;
     }
 
-    public static long varInt(InputStream stream) throws IOException {
-        return varInt(stream, null);
+    public static long varInt(InputStream in) throws IOException {
+        return varInt(in, null);
     }
 
-    public static long varInt(InputStream stream, AccessCounter counter) throws IOException {
-        int first = stream.read();
+    public static long varInt(InputStream in, AccessCounter counter) throws IOException {
+        int first = in.read();
         inc(counter);
         switch (first) {
             case 0xfd:
-                return uint16(stream, counter);
+                return uint16(in, counter);
             case 0xfe:
-                return uint32(stream, counter);
+                return uint32(in, counter);
             case 0xff:
-                return int64(stream, counter);
+                return int64(in, counter);
             default:
                 return first;
         }
     }
 
-    public static int uint8(InputStream stream) throws IOException {
-        return stream.read();
+    public static int uint8(InputStream in) throws IOException {
+        return in.read();
     }
 
-    public static int uint16(InputStream stream) throws IOException {
-        return uint16(stream, null);
+    public static int uint16(InputStream in) throws IOException {
+        return uint16(in, null);
     }
 
-    public static int uint16(InputStream stream, AccessCounter counter) throws IOException {
+    public static int uint16(InputStream in, AccessCounter counter) throws IOException {
         inc(counter, 2);
-        return stream.read() * 256 + stream.read();
+        return in.read() << 8 | in.read();
     }
 
-    public static long uint32(InputStream stream) throws IOException {
-        return uint32(stream, null);
+    public static long uint32(InputStream in) throws IOException {
+        return uint32(in, null);
     }
 
-    public static long uint32(InputStream stream, AccessCounter counter) throws IOException {
+    public static long uint32(InputStream in, AccessCounter counter) throws IOException {
         inc(counter, 4);
-        return stream.read() * 16777216L + stream.read() * 65536L + stream.read() * 256L + stream.read();
+        return in.read() << 24 | in.read() << 16 | in.read() << 8 | in.read();
     }
 
-    public static long uint32(ByteBuffer buffer) {
-        return buffer.get() * 16777216L + buffer.get() * 65536L + buffer.get() * 256L + buffer.get();
+    public static long uint32(ByteBuffer in) {
+        return u(in.get()) << 24 | u(in.get()) << 16 | u(in.get()) << 8 | u(in.get());
     }
 
-    public static int int32(InputStream stream) throws IOException {
-        return int32(stream, null);
+    public static int int32(InputStream in) throws IOException {
+        return int32(in, null);
     }
 
-    public static int int32(InputStream stream, AccessCounter counter) throws IOException {
+    public static int int32(InputStream in, AccessCounter counter) throws IOException {
         inc(counter, 4);
-        return ByteBuffer.wrap(bytes(stream, 4)).getInt();
+        return ByteBuffer.wrap(bytes(in, 4)).getInt();
     }
 
-    public static long int64(InputStream stream) throws IOException {
-        return int64(stream, null);
+    public static long int64(InputStream in) throws IOException {
+        return int64(in, null);
     }
 
-    public static long int64(InputStream stream, AccessCounter counter) throws IOException {
+    public static long int64(InputStream in, AccessCounter counter) throws IOException {
         inc(counter, 8);
-        return ByteBuffer.wrap(bytes(stream, 8)).getLong();
+        return ByteBuffer.wrap(bytes(in, 8)).getLong();
     }
 
-    public static String varString(InputStream stream) throws IOException {
-        return varString(stream, null);
+    public static String varString(InputStream in) throws IOException {
+        return varString(in, null);
     }
 
-    public static String varString(InputStream stream, AccessCounter counter) throws IOException {
-        int length = (int) varInt(stream, counter);
+    public static String varString(InputStream in, AccessCounter counter) throws IOException {
+        int length = (int) varInt(in, counter);
         // FIXME: technically, it says the length in characters, but I think this one might be correct
         // otherwise it will get complicated, as we'll need to read UTF-8 char by char...
-        return new String(bytes(stream, length, counter), "utf-8");
+        return new String(bytes(in, length, counter), "utf-8");
+    }
+
+    /**
+     * Returns the given byte as if it were unsigned.
+     */
+    private static int u(byte b) {
+        return b & 0xFF;
     }
 }
