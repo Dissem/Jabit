@@ -52,23 +52,21 @@ public class V3MessageReader {
                     state = ReaderState.HEADER;
                 case HEADER:
                     if (buffer.remaining() < 20) {
-                        buffer.compact();
                         return;
                     }
                     command = getCommand(buffer);
                     length = (int) Decode.uint32(buffer);
                     if (length > MAX_PAYLOAD_SIZE) {
-                        throw new NodeException("Payload of " + length + " bytes received, no more than 1600003 was expected.");
+                        throw new NodeException("Payload of " + length + " bytes received, no more than " +
+                                MAX_PAYLOAD_SIZE + " was expected.");
                     }
                     checksum = new byte[4];
                     buffer.get(checksum);
                     state = ReaderState.DATA;
-                    if (buffer.remaining() < length) {
-                        // We need to compact the buffer to make sure the message fits even if it's really big.
-                        buffer.compact();
-                    }
                 case DATA:
-                    if (buffer.remaining() < length) return;
+                    if (buffer.remaining() < length) {
+                        return;
+                    }
                     if (!testChecksum(buffer)) {
                         throw new NodeException("Checksum failed for message '" + command + "'");
                     }
@@ -95,34 +93,35 @@ public class V3MessageReader {
     private boolean findMagicBytes(ByteBuffer buffer) {
         int i = 0;
         while (buffer.hasRemaining()) {
-            if (buffer.get() == MAGIC_BYTES[i]) {
+            if (i == 0) {
                 buffer.mark();
+            }
+            if (buffer.get() == MAGIC_BYTES[i]) {
                 i++;
-                if (i == MAGIC_BYTES.length) return true;
+                if (i == MAGIC_BYTES.length) {
+                    return true;
+                }
             } else {
                 i = 0;
             }
         }
         if (i > 0) {
             buffer.reset();
-            buffer.compact();
-        } else {
-            buffer.clear();
         }
         return false;
     }
 
     private static String getCommand(ByteBuffer buffer) {
         int start = buffer.position();
-        int i = 0;
-        while (i < 12 && buffer.get() != 0) i++;
-        int end = start + i;
+        int l = 0;
+        while (l < 12 && buffer.get() != 0) l++;
+        int i = l + 1;
         while (i < 12) {
             if (buffer.get() != 0) throw new NodeException("'\\0' padding expected for command");
             i++;
         }
         try {
-            return new String(buffer.array(), start, end, "ASCII");
+            return new String(buffer.array(), start, l, "ASCII");
         } catch (UnsupportedEncodingException e) {
             throw new ApplicationException(e);
         }

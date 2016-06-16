@@ -19,6 +19,7 @@ package ch.dissem.bitmessage.networking.nio;
 import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.MessagePayload;
 import ch.dissem.bitmessage.entity.NetworkMessage;
+import ch.dissem.bitmessage.entity.Version;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.factory.V3MessageReader;
@@ -26,9 +27,12 @@ import ch.dissem.bitmessage.networking.AbstractConnection;
 import ch.dissem.bitmessage.ports.NetworkHandler;
 
 import java.nio.ByteBuffer;
-import java.util.*;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.Iterator;
+import java.util.Queue;
+import java.util.Set;
 
+import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.CLIENT;
+import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.SYNC;
 import static ch.dissem.bitmessage.ports.NetworkHandler.MAX_MESSAGE_SIZE;
 
 /**
@@ -43,6 +47,10 @@ public class ConnectionInfo extends AbstractConnection {
                           NetworkAddress node, NetworkHandler.MessageListener listener,
                           Set<InventoryVector> commonRequestedObjects) {
         super(context, mode, node, listener, commonRequestedObjects, false);
+        out.flip();
+        if (mode == CLIENT || mode == SYNC) {
+            send(new Version.Builder().defaults(peerNonce).addrFrom(host).addrRecv(node).build());
+        }
     }
 
     public State getState() {
@@ -77,12 +85,8 @@ public class ConnectionInfo extends AbstractConnection {
         }
     }
 
-    public List<NetworkMessage> getMessages() {
-        return reader.getMessages();
-    }
-
     @Override
     protected void send(MessagePayload payload) {
-        sendingQueue.addFirst(payload);
+        sendingQueue.add(payload);
     }
 }

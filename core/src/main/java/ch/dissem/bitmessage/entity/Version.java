@@ -24,7 +24,6 @@ import ch.dissem.bitmessage.utils.UnixTime;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.util.Random;
 
 /**
  * The 'version' command advertises this node's latest supported protocol version upon initiation.

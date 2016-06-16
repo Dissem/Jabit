@@ -35,6 +35,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 
 import static ch.dissem.bitmessage.InternalContext.NETWORK_EXTRA_BYTES;
 import static ch.dissem.bitmessage.InternalContext.NETWORK_NONCE_TRIALS_PER_BYTE;
+import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.SERVER;
 import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.SYNC;
 import static ch.dissem.bitmessage.networking.AbstractConnection.State.*;
 import static ch.dissem.bitmessage.utils.Singleton.cryptography;
@@ -62,6 +63,8 @@ public abstract class AbstractConnection {
     protected long peerNonce;
     protected int version;
     protected long[] streams;
+    private boolean verackSent;
+    private boolean verackReceived;
 
     public AbstractConnection(InternalContext context, Mode mode,
                               NetworkAddress node,
@@ -198,7 +201,7 @@ public abstract class AbstractConnection {
         return ivCache.containsKey(iv);
     }
 
-    protected void cleanupIvCache() {
+    private void cleanupIvCache() {
         Long fiveMinutesAgo = UnixTime.now(-5 * MINUTE);
         for (Map.Entry<InventoryVector, Long> entry : ivCache.entrySet()) {
             if (entry.getValue() < fiveMinutesAgo) {
@@ -213,16 +216,10 @@ public abstract class AbstractConnection {
                 handleVersion((Version) payload);
                 break;
             case VERACK:
-                switch (mode) {
-                    case SERVER:
-                        activateConnection();
-                        break;
-                    case CLIENT:
-                    case SYNC:
-                    default:
-                        // NO OP
-                        break;
+                if (verackSent) {
+                    activateConnection();
                 }
+                verackReceived = true;
                 break;
             case CUSTOM:
                 MessagePayload response = ctx.getCustomCommandHandler().handle((CustomMessage) payload);
@@ -237,7 +234,7 @@ public abstract class AbstractConnection {
         }
     }
 
-    protected void activateConnection() {
+    private void activateConnection() {
         LOG.info("Successfully established connection with node " + node);
         state = ACTIVE;
         node.setTime(UnixTime.now());
@@ -272,17 +269,13 @@ public abstract class AbstractConnection {
 
             this.version = version.getVersion();
             this.streams = version.getStreams();
+            verackSent = true;
             send(new VerAck());
-            switch (mode) {
-                case SERVER:
-                    send(new Version.Builder().defaults(ctx.getClientNonce()).addrFrom(host).addrRecv(node).build());
-                    break;
-                case CLIENT:
-                case SYNC:
-                    activateConnection();
-                    break;
-                default:
-                    // NO OP
+            if (mode == SERVER) {
+                send(new Version.Builder().defaults(ctx.getClientNonce()).addrFrom(host).addrRecv(node).build());
+            }
+            if (verackReceived) {
+                activateConnection();
             }
         } else {
             LOG.info("Received unsupported version " + version.getVersion() + ", disconnecting.");

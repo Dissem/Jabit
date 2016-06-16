@@ -88,7 +88,7 @@ public class SystemTest {
         bob.shutdown();
     }
 
-    @Test
+    @Test(timeout = 60_000)
     public void ensureAliceCanSendMessageToBob() throws Exception {
         String originalMessage = UUID.randomUUID().toString();
         alice.send(aliceIdentity, new BitmessageAddress(bobIdentity.getAddress()), "Subject", originalMessage);
@@ -102,7 +102,7 @@ public class SystemTest {
                 .markAsAcknowledged(any());
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void ensureBobCanReceiveBroadcastFromAlice() throws Exception {
         String originalMessage = UUID.randomUUID().toString();
         bob.addSubscribtion(new BitmessageAddress(aliceIdentity.getAddress()));
