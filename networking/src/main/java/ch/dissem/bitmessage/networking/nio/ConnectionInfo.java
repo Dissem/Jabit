@@ -42,11 +42,12 @@ public class ConnectionInfo extends AbstractConnection {
     private ByteBuffer in = ByteBuffer.allocate(MAX_MESSAGE_SIZE);
     private ByteBuffer out = ByteBuffer.allocate(MAX_MESSAGE_SIZE);
     private V3MessageReader reader = new V3MessageReader();
+    private boolean syncFinished;
 
     public ConnectionInfo(InternalContext context, Mode mode,
                           NetworkAddress node, NetworkHandler.MessageListener listener,
-                          Set<InventoryVector> commonRequestedObjects) {
-        super(context, mode, node, listener, commonRequestedObjects, false);
+                          Set<InventoryVector> commonRequestedObjects, long syncTimeout) {
+        super(context, mode, node, listener, commonRequestedObjects, syncTimeout, false);
         out.flip();
         if (mode == CLIENT || mode == SYNC) {
             send(new Version.Builder().defaults(peerNonce).addrFrom(host).addrRecv(node).build());
@@ -77,12 +78,18 @@ public class ConnectionInfo extends AbstractConnection {
         reader.update(in);
         if (!reader.getMessages().isEmpty()) {
             Iterator<NetworkMessage> iterator = reader.getMessages().iterator();
+            NetworkMessage msg = null;
             while (iterator.hasNext()) {
-                NetworkMessage msg = iterator.next();
+                msg = iterator.next();
                 handleMessage(msg.getPayload());
                 iterator.remove();
             }
+            syncFinished = syncFinished(msg);
         }
+    }
+
+    public boolean isSyncFinished() {
+        return syncFinished;
     }
 
     @Override

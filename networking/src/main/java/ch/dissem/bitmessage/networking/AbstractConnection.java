@@ -60,6 +60,9 @@ public abstract class AbstractConnection {
     protected volatile State state;
     protected long lastObjectTime;
 
+    private final long syncTimeout;
+    private int readTimeoutCounter;
+
     protected long peerNonce;
     protected int version;
     protected long[] streams;
@@ -70,12 +73,13 @@ public abstract class AbstractConnection {
                               NetworkAddress node,
                               NetworkHandler.MessageListener listener,
                               Set<InventoryVector> commonRequestedObjects,
-                              boolean threadsafe) {
+                              long syncTimeout, boolean threadsafe) {
         this.ctx = context;
         this.mode = mode;
         this.host = new NetworkAddress.Builder().ipv6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0).port(0).build();
         this.node = node;
         this.listener = listener;
+        this.syncTimeout = (syncTimeout > 0 ? UnixTime.now(+syncTimeout) : 0);
         if (threadsafe) {
             this.ivCache = new ConcurrentHashMap<>();
             this.sendingQueue = new ConcurrentLinkedDeque<>();
@@ -105,6 +109,9 @@ public abstract class AbstractConnection {
         switch (state) {
             case ACTIVE:
                 receiveMessage(payload);
+                break;
+
+            case DISCONNECTED:
                 break;
 
             default:
@@ -280,6 +287,33 @@ public abstract class AbstractConnection {
         } else {
             LOG.info("Received unsupported version " + version.getVersion() + ", disconnecting.");
             disconnect();
+        }
+    }
+
+    @SuppressWarnings("RedundantIfStatement")
+    protected boolean syncFinished(NetworkMessage msg) {
+        if (mode != SYNC) {
+            return false;
+        }
+        if (Thread.interrupted()) {
+            return true;
+        }
+        if (state != ACTIVE) {
+            return false;
+        }
+        if (syncTimeout < UnixTime.now()) {
+            LOG.info("Synchronization timed out");
+            return true;
+        }
+        if (msg == null) {
+            if (requestedObjects.isEmpty() && sendingQueue.isEmpty())
+                return true;
+
+            readTimeoutCounter++;
+            return readTimeoutCounter > 1;
+        } else {
+            readTimeoutCounter = 0;
+            return false;
         }
     }
 

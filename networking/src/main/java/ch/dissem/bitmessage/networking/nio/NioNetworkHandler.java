@@ -43,6 +43,7 @@ import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.CLIENT;
 import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.SERVER;
 import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.SYNC;
 import static ch.dissem.bitmessage.networking.AbstractConnection.State.ACTIVE;
+import static ch.dissem.bitmessage.networking.AbstractConnection.State.DISCONNECTED;
 import static ch.dissem.bitmessage.utils.DebugUtils.inc;
 import static ch.dissem.bitmessage.utils.ThreadFactoryBuilder.pool;
 import static java.nio.channels.SelectionKey.OP_READ;
@@ -65,7 +66,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
     private ServerSocketChannel serverChannel;
 
     @Override
-    public Future<Void> synchronize(final InetAddress server, final int port, final MessageListener listener, long timeoutInSeconds) {
+    public Future<Void> synchronize(final InetAddress server, final int port, final MessageListener listener, final long timeoutInSeconds) {
         return pool.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
@@ -75,11 +76,9 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                     channel.configureBlocking(false);
                     ConnectionInfo connection = new ConnectionInfo(ctx, SYNC,
                             new NetworkAddress.Builder().ip(server).port(port).stream(1).build(),
-                            listener, new HashSet<InventoryVector>());
+                            listener, new HashSet<InventoryVector>(), timeoutInSeconds);
                     while (channel.isConnected() &&
-                            (connection.getState() != ACTIVE
-                                    || connection.getSendingQueue().isEmpty()
-                                    || requestedObjects.isEmpty())) {
+                            (connection.getState() != ACTIVE || connection.isSyncFinished())) {
                         write(requestedObjects, channel, connection);
                         read(channel, connection);
                         Thread.sleep(10);
@@ -138,7 +137,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
             throw new ApplicationException(e);
         }
         final Set<InventoryVector> requestedObjects = new HashSet<>();
-        start("connection listener", new Runnable() {
+        thread("connection listener", new Runnable() {
             @Override
             public void run() {
                 try {
@@ -152,9 +151,10 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                                     new ConnectionInfo(ctx, SERVER,
                                             new NetworkAddress.Builder().address(accepted.getRemoteAddress()).stream(1).build(),
                                             listener,
-                                            requestedObjects
+                                            requestedObjects, 0
                                     ));
                         } catch (AsynchronousCloseException ignore) {
+                            LOG.trace(ignore.getMessage());
                         } catch (IOException e) {
                             LOG.error(e.getMessage(), e);
                         }
@@ -169,7 +169,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
             }
         });
 
-        start("connection starter", new Runnable() {
+        thread("connection starter", new Runnable() {
             @Override
             public void run() {
                 while (selector.isOpen()) {
@@ -184,7 +184,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                                     new ConnectionInfo(ctx, CLIENT,
                                             address,
                                             listener,
-                                            requestedObjects
+                                            requestedObjects, 0
                                     ));
                         } catch (AsynchronousCloseException ignore) {
                         } catch (IOException e) {
@@ -200,7 +200,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
             }
         });
 
-        start("processor", new Runnable() {
+        thread("processor", new Runnable() {
             @Override
             public void run() {
                 try {
@@ -220,7 +220,12 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                                     read(channel, connection);
                                 }
                                 if (connection.getSendingQueue().isEmpty()) {
-                                    key.interestOps(OP_READ);
+                                    if (connection.getState() == DISCONNECTED) {
+                                        key.interestOps(0);
+                                        key.channel().close();
+                                    } else {
+                                        key.interestOps(OP_READ);
+                                    }
                                 } else {
                                     key.interestOps(OP_READ | OP_WRITE);
                                 }
@@ -269,7 +274,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
         }
     }
 
-    private void start(String threadName, Runnable runnable) {
+    private void thread(String threadName, Runnable runnable) {
         Thread thread = new Thread(runnable, threadName);
         thread.setDaemon(true);
         thread.setPriority(Thread.MIN_PRIORITY);

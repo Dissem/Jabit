@@ -194,12 +194,11 @@ public class NetworkHandlerTest {
         assertThat(response.getData(), is(data));
     }
 
-    @Test(timeout = 5_000, expected = NodeException.class)
+    @Test(expected = NodeException.class)
     public void ensureCustomMessageWithoutResponseYieldsException() throws Exception {
         byte[] data = cryptography().randomBytes(8);
         data[0] = (byte) 0;
         CustomMessage request = new CustomMessage("test request", data);
-        node.startup();
 
         CustomMessage response = nodeNetworkHandler.send(peerAddress.toInetAddress(), peerAddress.getPort(), request);
 

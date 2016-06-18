@@ -56,13 +56,11 @@ class Connection extends AbstractConnection {
 
     private final long startTime;
     private final Socket socket;
-    private final long syncTimeout;
     private final ReaderRunnable reader = new ReaderRunnable();
     private final WriterRunnable writer = new WriterRunnable();
 
     private InputStream in;
     private OutputStream out;
-    private int readTimeoutCounter;
     private boolean socketInitialized;
 
     public Connection(InternalContext context, Mode mode, Socket socket, MessageListener listener,
@@ -80,10 +78,9 @@ class Connection extends AbstractConnection {
 
     private Connection(InternalContext context, Mode mode, MessageListener listener, Socket socket,
                        Set<InventoryVector> commonRequestedObjects, NetworkAddress node, long syncTimeout) {
-        super(context, mode, node, listener, commonRequestedObjects, true);
+        super(context, mode, node, listener, commonRequestedObjects, syncTimeout, true);
         this.startTime = UnixTime.now();
         this.socket = socket;
-        this.syncTimeout = (syncTimeout > 0 ? UnixTime.now(+syncTimeout) : 0);
     }
 
     public static Connection sync(InternalContext ctx, InetAddress address, int port, MessageListener listener,
@@ -108,33 +105,6 @@ class Connection extends AbstractConnection {
 
     public NetworkAddress getNode() {
         return node;
-    }
-
-    @SuppressWarnings("RedundantIfStatement")
-    private boolean syncFinished(NetworkMessage msg) {
-        if (mode != SYNC) {
-            return false;
-        }
-        if (Thread.interrupted()) {
-            return true;
-        }
-        if (state != ACTIVE) {
-            return false;
-        }
-        if (syncTimeout < UnixTime.now()) {
-            LOG.info("Synchronization timed out");
-            return true;
-        }
-        if (msg == null) {
-            if (requestedObjects.isEmpty() && sendingQueue.isEmpty())
-                return true;
-
-            readTimeoutCounter++;
-            return readTimeoutCounter > 1;
-        } else {
-            readTimeoutCounter = 0;
-            return false;
-        }
     }
 
     @Override
