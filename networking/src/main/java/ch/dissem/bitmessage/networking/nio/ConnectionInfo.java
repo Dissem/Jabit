@@ -88,6 +88,12 @@ public class ConnectionInfo extends AbstractConnection {
         }
     }
 
+    public void updateSyncStatus() {
+        if (!syncFinished) {
+            syncFinished = reader.getMessages().isEmpty() && syncFinished(null);
+        }
+    }
+
     public boolean isSyncFinished() {
         return syncFinished;
     }

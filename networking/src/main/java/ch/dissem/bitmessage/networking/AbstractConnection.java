@@ -305,8 +305,11 @@ public abstract class AbstractConnection {
             LOG.info("Synchronization timed out");
             return true;
         }
+        if (!sendingQueue.isEmpty()) {
+            return false;
+        }
         if (msg == null) {
-            if (requestedObjects.isEmpty() && sendingQueue.isEmpty())
+            if (requestedObjects.isEmpty())
                 return true;
 
             readTimeoutCounter++;

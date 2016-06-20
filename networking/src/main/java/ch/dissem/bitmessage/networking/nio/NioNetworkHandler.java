@@ -77,12 +77,12 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                     ConnectionInfo connection = new ConnectionInfo(ctx, SYNC,
                             new NetworkAddress.Builder().ip(server).port(port).stream(1).build(),
                             listener, new HashSet<InventoryVector>(), timeoutInSeconds);
-                    while (channel.isConnected() &&
-                            (connection.getState() != ACTIVE || connection.isSyncFinished())) {
+                    while (channel.isConnected() && !connection.isSyncFinished()) {
                         write(requestedObjects, channel, connection);
                         read(channel, connection);
                         Thread.sleep(10);
                     }
+                    LOG.info("Synchronization finished");
                 }
                 return null;
             }
@@ -95,28 +95,34 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
             channel.configureBlocking(true);
             ByteBuffer buffer = ByteBuffer.allocate(MAX_MESSAGE_SIZE);
             new NetworkMessage(request).write(buffer);
+            buffer.flip();
             while (buffer.hasRemaining()) {
                 channel.write(buffer);
             }
             buffer.clear();
 
             V3MessageReader reader = new V3MessageReader();
-            while (reader.getMessages().isEmpty()) {
-                channel.read(buffer);
-                buffer.flip();
-                reader.update(buffer);
+            while (channel.isConnected() && reader.getMessages().isEmpty()) {
+                if (channel.read(buffer) > 0) {
+                    buffer.flip();
+                    reader.update(buffer);
+                    buffer.compact();
+                } else {
+                    throw new NodeException("No response from node " + server);
+                }
             }
-            NetworkMessage networkMessage = reader.getMessages().get(0);
+            NetworkMessage networkMessage;
+            if (reader.getMessages().isEmpty()) {
+                throw new NodeException("No response from node " + server);
+            } else {
+                networkMessage = reader.getMessages().get(0);
+            }
 
             if (networkMessage != null && networkMessage.getPayload() instanceof CustomMessage) {
                 return (CustomMessage) networkMessage.getPayload();
             } else {
-                if (networkMessage == null) {
-                    throw new NodeException("No response from node " + server);
-                } else {
-                    throw new NodeException("Unexpected response from node " +
-                            server + ": " + networkMessage.getPayload().getCommand());
-                }
+                throw new NodeException("Unexpected response from node " +
+                        server + ": " + networkMessage.getPayload().getCommand());
             }
         } catch (IOException e) {
             throw new ApplicationException(e);
@@ -272,6 +278,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
             connection.updateReader();
             buffer.compact();
         }
+        connection.updateSyncStatus();
     }
 
     private void thread(String threadName, Runnable runnable) {
@@ -285,8 +292,9 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
     public void stop() {
         try {
             serverChannel.socket().close();
-            for (SelectionKey key : selector.keys()) {
-                key.channel().close();
+            Iterator<SelectionKey> iterator = selector.keys().iterator();
+            while (iterator.hasNext()) {
+                iterator.next().channel().close();
             }
             selector.close();
         } catch (IOException e) {
