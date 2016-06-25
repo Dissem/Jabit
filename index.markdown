@@ -9,9 +9,9 @@ Please note that it still has its limitations, but the API should now be stable.
 
 [bitmessage]: https://bitmessage.org/wiki/Main_Page
 
-* [Quick Start](/quickstart): take this guide, add some great ideas, and you've got your Bitmessage app.
-* [Dependencies](/dependencies): want to know what all those dependencies are about? Read on.
-* [API](/api): want to create something more complicated? An [app for Android][abit] perhaps? You probably need this in-depth documentation. [Or plough through the source right away...][jabit]
+* [Quick Start]({{ site.baseurl }}/quickstart): take this guide, add some great ideas, and you've got your Bitmessage app.
+* [Dependencies]({{ site.baseurl }}/dependencies): want to know what all those dependencies are about? Read on.
+* [API]({{ site.baseurl }}/api): want to create something more complicated? An [app for Android][abit] perhaps? You probably need this in-depth documentation. [Or plough through the source right away...][jabit]
 
 [jabit]: https://github.com/Dissem/Jabit
 [abit]:  https://github.com/Dissem/Abit
