@@ -11,8 +11,8 @@ email: chrigu.meyer@gmail.com
 description: > # this means to ignore newlines until "baseurl:"
   You want to create an awesome Bitmessage app using Jabit? Then you've come
   to the right place!
-baseurl: "" # the subpath of your site, e.g. /blog
-url: "http://dissem.github.io/Jabit" # the base hostname & protocol for your site
+baseurl: "/Jabit" # the subpath of your site, e.g. /blog
+url: "http://dissem.github.io" # the base hostname & protocol for your site
 # twitter_username: jekyllrb
 github_username:  Dissem
 
