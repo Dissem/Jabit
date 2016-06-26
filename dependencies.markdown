@@ -2,6 +2,7 @@
 layout: page
 title:  "Dependencies"
 permalink: "/dependencies"
+order: 10
 categories: dependencies
 ---
 

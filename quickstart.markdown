@@ -2,6 +2,7 @@
 layout: page
 title:  "Quick Start"
 permalink: "/quickstart"
+order: 1
 categories: quick start
 ---
 

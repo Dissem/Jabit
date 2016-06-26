@@ -1,6 +1,7 @@
 ---
 layout: page
 title:  "Jabit"
+order: 0
 ---
 
 Jabit is a Java implementation for the Bitmessage protocol. If you visit this page, I assume you are a Java developer and already know about [Bitmessage][bitmessage].

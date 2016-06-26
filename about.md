@@ -2,6 +2,7 @@
 layout: page
 title: About
 permalink: /about/
+order: 100
 ---
 
 Jabit is a Bitmessage library for Java. It aims to be easy to use, so you can create great Bitmessage apps.
