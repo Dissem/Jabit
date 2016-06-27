@@ -2,7 +2,7 @@
 layout: page
 title:  "Dependencies"
 permalink: "/dependencies"
-order: 10
+order: 100
 categories: dependencies
 ---
 
@@ -24,29 +24,6 @@ library.
 `jabit-cryptography-spongy` is basically a copy of the spongy one, but using
 [Spongycastle](https://rtyley.github.io/spongycastle/) instead.
 
+`jabit-wif` lets you import from and export to the Wallet Import Format, which is used by PyBitmessage to store its identities.
 
-
-
-TODO
-
-Add Jabit as Gradle dependency:
-
-{% highlight groovy %}
-compile 'ch.dissem.jabit:jabit-core:1.0.0'
-{% endhighlight %}
-
-Unless you want to implement your own, also add the following:
-
-{% highlight groovy %}
-compile 'ch.dissem.jabit:jabit-networking:1.0.0'
-compile 'ch.dissem.jabit:jabit-repositories:1.0.0'
-compile 'ch.dissem.jabit:jabit-cryptography-bouncy:1.0.0'
-{% endhighlight %}
-
-And if you want to import from or export to the Wallet Import Format (used by PyBitmessage) you might also want to add:
-
-{% highlight groovy %}
-compile 'ch.dissem.jabit:jabit-wif:1.0.0'
-{% endhighlight %}
-
-For Android clients use `jabit-cryptography-spongy` instead of `jabit-cryptography-bouncy`.
+`jabit-extensions` you won't usually need, it contains a few helper classes for if you want to build protocol extensions.
