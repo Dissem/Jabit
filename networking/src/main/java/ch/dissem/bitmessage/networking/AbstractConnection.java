@@ -82,13 +82,12 @@ public abstract class AbstractConnection {
         this.syncTimeout = (syncTimeout > 0 ? UnixTime.now(+syncTimeout) : 0);
         if (threadsafe) {
             this.ivCache = new ConcurrentHashMap<>();
-            this.sendingQueue = new ConcurrentLinkedDeque<>();
             this.requestedObjects = Collections.newSetFromMap(new ConcurrentHashMap<InventoryVector, Boolean>(10_000));
         } else {
             this.ivCache = new HashMap<>();
-            this.sendingQueue = new LinkedList<>();
             this.requestedObjects = new HashSet<>();
         }
+        this.sendingQueue = new ConcurrentLinkedDeque<>();
         this.state = CONNECTING;
         this.commonRequestedObjects = commonRequestedObjects;
     }
