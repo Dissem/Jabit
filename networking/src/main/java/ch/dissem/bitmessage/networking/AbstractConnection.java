@@ -61,7 +61,7 @@ public abstract class AbstractConnection {
     protected long lastObjectTime;
 
     private final long syncTimeout;
-    private int readTimeoutCounter;
+    private long syncReadTimeout = Long.MAX_VALUE;
 
     protected long peerNonce;
     protected int version;
@@ -305,16 +305,13 @@ public abstract class AbstractConnection {
             return true;
         }
         if (!sendingQueue.isEmpty()) {
+            syncReadTimeout = System.currentTimeMillis() + 1000;
             return false;
         }
         if (msg == null) {
-            if (requestedObjects.isEmpty())
-                return true;
-
-            readTimeoutCounter++;
-            return readTimeoutCounter > 1;
+            return syncReadTimeout < System.currentTimeMillis();
         } else {
-            readTimeoutCounter = 0;
+            syncReadTimeout = System.currentTimeMillis() + 1000;
             return false;
         }
     }

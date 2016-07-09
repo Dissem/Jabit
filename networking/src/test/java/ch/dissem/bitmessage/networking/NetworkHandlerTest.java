@@ -254,7 +254,7 @@ public class NetworkHandlerTest {
 
         Future<?> future = nodeNetworkHandler.synchronize(peerAddress.toInetAddress(), peerAddress.getPort(),
                 mock(NetworkHandler.MessageListener.class),
-                100);
+                10);
         future.get();
         assertInventorySize(1, nodeInventory);
         assertInventorySize(1, peerInventory);

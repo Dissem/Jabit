@@ -77,7 +77,6 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
             public Void call() throws Exception {
                 Set<InventoryVector> requestedObjects = new HashSet<>();
                 try (SocketChannel channel = SocketChannel.open(new InetSocketAddress(server, port))) {
-                    channel.finishConnect();
                     channel.configureBlocking(false);
                     ConnectionInfo connection = new ConnectionInfo(ctx, SYNC,
                             new NetworkAddress.Builder().ip(server).port(port).stream(1).build(),
@@ -88,6 +87,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                         read(channel, connection);
                         Thread.sleep(10);
                     }
+                    connections.remove(connection);
                     LOG.info("Synchronization finished");
                 }
                 return null;
@@ -225,7 +225,6 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                     while (selector.isOpen()) {
                         selector.select(1000);
                         Iterator<SelectionKey> keyIterator = selector.selectedKeys().iterator();
-
                         while (keyIterator.hasNext()) {
                             SelectionKey key = keyIterator.next();
                             if (key.attachment() instanceof ConnectionInfo) {
@@ -252,6 +251,14 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                                 }
                             }
                             keyIterator.remove();
+                        }
+                        for (SelectionKey key : selector.keys()) {
+                            if ((key.interestOps() & OP_WRITE) == 0) {
+                                if (key.attachment() instanceof ConnectionInfo &&
+                                        !((ConnectionInfo) key.attachment()).getSendingQueue().isEmpty()) {
+                                    key.interestOps(OP_READ | OP_WRITE);
+                                }
+                            }
                         }
                     }
                     selector.close();
