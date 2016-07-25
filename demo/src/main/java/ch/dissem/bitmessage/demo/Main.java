@@ -18,7 +18,7 @@ package ch.dissem.bitmessage.demo;
 
 import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
-import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
+import ch.dissem.bitmessage.networking.nio.NioNetworkHandler;
 import ch.dissem.bitmessage.ports.MemoryNodeRegistry;
 import ch.dissem.bitmessage.repository.*;
 import ch.dissem.bitmessage.wif.WifExporter;
@@ -53,7 +53,7 @@ public class Main {
                     .nodeRegistry(new MemoryNodeRegistry())
                     .messageRepo(new JdbcMessageRepository(jdbcConfig))
                     .powRepo(new JdbcProofOfWorkRepository(jdbcConfig))
-                    .networkHandler(new DefaultNetworkHandler())
+                    .networkHandler(new NioNetworkHandler())
                     .cryptography(new BouncyCryptography())
                     .port(48444)
                     .build();

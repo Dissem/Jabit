@@ -87,7 +87,7 @@ public class MemoryNodeRegistry implements NodeRegistry {
                 }
             }
             if (result.isEmpty()) {
-                if (stableNodes.isEmpty()) {
+                if (stableNodes.isEmpty() || stableNodes.get(stream).isEmpty()) {
                     loadStableNodes();
                 }
                 Set<NetworkAddress> nodes = stableNodes.get(stream);
@@ -108,8 +108,8 @@ public class MemoryNodeRegistry implements NodeRegistry {
                     synchronized (knownNodes) {
                         if (!knownNodes.containsKey(node.getStream())) {
                             knownNodes.put(
-                                    node.getStream(),
-                                    newSetFromMap(new ConcurrentHashMap<NetworkAddress, Boolean>())
+                                node.getStream(),
+                                newSetFromMap(new ConcurrentHashMap<NetworkAddress, Boolean>())
                             );
                         }
                     }

@@ -22,7 +22,7 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.Label;
-import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
+import ch.dissem.bitmessage.networking.nio.NioNetworkHandler;
 import ch.dissem.bitmessage.ports.MemoryNodeRegistry;
 import ch.dissem.bitmessage.repository.*;
 import org.apache.commons.lang3.text.WordUtils;
@@ -53,7 +53,7 @@ public class Application {
                 .nodeRegistry(new MemoryNodeRegistry())
                 .messageRepo(new JdbcMessageRepository(jdbcConfig))
                 .powRepo(new JdbcProofOfWorkRepository(jdbcConfig))
-                .networkHandler(new DefaultNetworkHandler())
+                .networkHandler(new NioNetworkHandler())
                 .cryptography(new BouncyCryptography())
                 .port(48444)
                 .listener(plaintext -> System.out.println("New Message from " + plaintext.getFrom() + ": " + plaintext.getSubject()))

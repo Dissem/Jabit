@@ -17,11 +17,13 @@
 package ch.dissem.bitmessage.networking.nio;
 
 import ch.dissem.bitmessage.InternalContext;
+import ch.dissem.bitmessage.entity.GetData;
 import ch.dissem.bitmessage.entity.MessagePayload;
 import ch.dissem.bitmessage.entity.NetworkMessage;
 import ch.dissem.bitmessage.entity.Version;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
+import ch.dissem.bitmessage.exception.NodeException;
 import ch.dissem.bitmessage.factory.V3MessageReader;
 import ch.dissem.bitmessage.networking.AbstractConnection;
 import ch.dissem.bitmessage.ports.NetworkHandler;
@@ -39,15 +41,15 @@ import static ch.dissem.bitmessage.ports.NetworkHandler.MAX_MESSAGE_SIZE;
  * Represents the current state of a connection.
  */
 public class ConnectionInfo extends AbstractConnection {
-    private ByteBuffer in = ByteBuffer.allocate(MAX_MESSAGE_SIZE);
     private ByteBuffer out = ByteBuffer.allocate(MAX_MESSAGE_SIZE);
     private V3MessageReader reader = new V3MessageReader();
     private boolean syncFinished;
+    private long lastUpdate = Long.MAX_VALUE;
 
     public ConnectionInfo(InternalContext context, Mode mode,
                           NetworkAddress node, NetworkHandler.MessageListener listener,
                           Set<InventoryVector> commonRequestedObjects, long syncTimeout) {
-        super(context, mode, node, listener, commonRequestedObjects, syncTimeout, false);
+        super(context, mode, node, listener, commonRequestedObjects, syncTimeout);
         out.flip();
         if (mode == CLIENT || mode == SYNC) {
             send(new Version.Builder().defaults(peerNonce).addrFrom(host).addrRecv(node).build());
@@ -67,7 +69,20 @@ public class ConnectionInfo extends AbstractConnection {
     }
 
     public ByteBuffer getInBuffer() {
-        return in;
+        if (reader == null) {
+            throw new NodeException("Node is disconnected");
+        }
+        return reader.getActiveBuffer();
+    }
+
+    public void updateWriter() {
+        if ((out == null || !out.hasRemaining()) && !sendingQueue.isEmpty()) {
+            out.clear();
+            MessagePayload payload = sendingQueue.poll();
+            new NetworkMessage(payload).write(out);
+            out.flip();
+            lastUpdate = System.currentTimeMillis();
+        }
     }
 
     public ByteBuffer getOutBuffer() {
@@ -75,7 +90,7 @@ public class ConnectionInfo extends AbstractConnection {
     }
 
     public void updateReader() {
-        reader.update(in);
+        reader.update();
         if (!reader.getMessages().isEmpty()) {
             Iterator<NetworkMessage> iterator = reader.getMessages().iterator();
             NetworkMessage msg = null;
@@ -86,11 +101,34 @@ public class ConnectionInfo extends AbstractConnection {
             }
             syncFinished = syncFinished(msg);
         }
+        lastUpdate = System.currentTimeMillis();
     }
 
     public void updateSyncStatus() {
         if (!syncFinished) {
             syncFinished = reader.getMessages().isEmpty() && syncFinished(null);
+        }
+    }
+
+    public boolean isExpired() {
+        switch (state) {
+            case CONNECTING:
+                return lastUpdate < System.currentTimeMillis() - 30000;
+            case ACTIVE:
+                return lastUpdate < System.currentTimeMillis() - 30000;
+            case DISCONNECTED:
+                return true;
+            default:
+                throw new IllegalStateException("Unknown state: " + state);
+        }
+    }
+
+    @Override
+    public synchronized void disconnect() {
+        super.disconnect();
+        if (reader != null) {
+            reader.cleanup();
+            reader = null;
         }
     }
 
@@ -101,5 +139,9 @@ public class ConnectionInfo extends AbstractConnection {
     @Override
     protected void send(MessagePayload payload) {
         sendingQueue.add(payload);
+        if (payload instanceof GetData) {
+            requestedObjects.addAll(((GetData) payload).getInventory());
+            commonRequestedObjects.addAll(((GetData) payload).getInventory());
+        }
     }
 }

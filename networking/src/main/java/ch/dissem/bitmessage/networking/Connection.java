@@ -78,7 +78,7 @@ class Connection extends AbstractConnection {
 
     private Connection(InternalContext context, Mode mode, MessageListener listener, Socket socket,
                        Set<InventoryVector> commonRequestedObjects, NetworkAddress node, long syncTimeout) {
-        super(context, mode, node, listener, commonRequestedObjects, syncTimeout, true);
+        super(context, mode, node, listener, commonRequestedObjects, syncTimeout);
         this.startTime = UnixTime.now();
         this.socket = socket;
     }

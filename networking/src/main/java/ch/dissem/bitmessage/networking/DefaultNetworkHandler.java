@@ -48,10 +48,10 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
 
     final Collection<Connection> connections = new ConcurrentLinkedQueue<>();
     private final ExecutorService pool = Executors.newCachedThreadPool(
-            pool("network")
-                    .lowPrio()
-                    .daemon()
-                    .build());
+        pool("network")
+            .lowPrio()
+            .daemon()
+            .build());
     private InternalContext ctx;
     private ServerRunnable server;
     private volatile boolean running;
@@ -88,11 +88,11 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
                     throw new NodeException("No response from node " + server);
                 } else {
                     throw new NodeException("Unexpected response from node " +
-                            server + ": " + networkMessage.getPayload().getCommand());
+                        server + ": " + networkMessage.getPayload().getCommand());
                 }
             }
         } catch (IOException e) {
-            throw new ApplicationException(e);
+            throw new NodeException(e.getMessage(), e);
         }
     }
 
@@ -185,16 +185,16 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
             int incoming = incomingConnections.containsKey(stream) ? incomingConnections.get(stream) : 0;
             int outgoing = outgoingConnections.containsKey(stream) ? outgoingConnections.get(stream) : 0;
             streamProperties[i] = new Property("stream " + stream,
-                    null, new Property("nodes", incoming + outgoing),
-                    new Property("incoming", incoming),
-                    new Property("outgoing", outgoing)
+                null, new Property("nodes", incoming + outgoing),
+                new Property("incoming", incoming),
+                new Property("outgoing", outgoing)
             );
             i++;
         }
         return new Property("network", null,
-                new Property("connectionManager", running ? "running" : "stopped"),
-                new Property("connections", null, streamProperties),
-                new Property("requestedObjects", requestedObjects.size())
+            new Property("connectionManager", running ? "running" : "stopped"),
+            new Property("connections", null, streamProperties),
+            new Property("requestedObjects", requestedObjects.size())
         );
     }
 

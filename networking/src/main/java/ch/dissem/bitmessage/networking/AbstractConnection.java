@@ -73,20 +73,15 @@ public abstract class AbstractConnection {
                               NetworkAddress node,
                               NetworkHandler.MessageListener listener,
                               Set<InventoryVector> commonRequestedObjects,
-                              long syncTimeout, boolean threadsafe) {
+                              long syncTimeout) {
         this.ctx = context;
         this.mode = mode;
         this.host = new NetworkAddress.Builder().ipv6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0).port(0).build();
         this.node = node;
         this.listener = listener;
         this.syncTimeout = (syncTimeout > 0 ? UnixTime.now(+syncTimeout) : 0);
-        if (threadsafe) {
-            this.ivCache = new ConcurrentHashMap<>();
-            this.requestedObjects = Collections.newSetFromMap(new ConcurrentHashMap<InventoryVector, Boolean>(10_000));
-        } else {
-            this.ivCache = new HashMap<>();
-            this.requestedObjects = new HashSet<>();
-        }
+        this.requestedObjects = Collections.newSetFromMap(new ConcurrentHashMap<InventoryVector, Boolean>(10_000));
+        this.ivCache = new ConcurrentHashMap<>();
         this.sendingQueue = new ConcurrentLinkedDeque<>();
         this.state = CONNECTING;
         this.commonRequestedObjects = commonRequestedObjects;
@@ -177,7 +172,7 @@ public abstract class AbstractConnection {
         } catch (IOException e) {
             LOG.error("Stream " + objectMessage.getStream() + ", object type " + objectMessage.getType() + ": " + e.getMessage(), e);
         } finally {
-            if (commonRequestedObjects.remove(objectMessage.getInventoryVector())) {
+            if (!commonRequestedObjects.remove(objectMessage.getInventoryVector())) {
                 LOG.debug("Received object that wasn't requested.");
             }
         }
