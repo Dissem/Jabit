@@ -36,10 +36,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.*;
 import static ch.dissem.bitmessage.networking.AbstractConnection.State.ACTIVE;
@@ -66,7 +63,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
     private InternalContext ctx;
     private Selector selector;
     private ServerSocketChannel serverChannel;
-    private Map<ConnectionInfo, SelectionKey> connections = synchronizedMap(new WeakHashMap<ConnectionInfo, SelectionKey>());
+    private Map<ConnectionInfo, SelectionKey> connections = new ConcurrentHashMap<>();
     private int requestedObjectsCount;
 
     private Thread starter;
@@ -81,13 +78,11 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                     ConnectionInfo connection = new ConnectionInfo(ctx, SYNC,
                         new NetworkAddress.Builder().ip(server).port(port).stream(1).build(),
                         listener, new HashSet<InventoryVector>(), timeoutInSeconds);
-                    connections.put(connection, null);
                     while (channel.isConnected() && !connection.isSyncFinished()) {
                         write(channel, connection);
                         read(channel, connection);
                         Thread.sleep(10);
                     }
-                    connections.remove(connection);
                     LOG.info("Synchronization finished");
                 }
                 return null;
@@ -302,16 +297,21 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
 
     private static void write(SocketChannel channel, ConnectionInfo connection)
         throws IOException {
-        writeBuffer(connection.getOutBuffer(), channel);
+        writeBuffer(connection.getOutBuffers(), channel);
 
         connection.updateWriter();
 
-        writeBuffer(connection.getOutBuffer(), channel);
+        writeBuffer(connection.getOutBuffers(), channel);
+        connection.cleanupBuffers();
     }
 
-    private static void writeBuffer(ByteBuffer buffer, SocketChannel channel) throws IOException {
-        if (buffer != null && buffer.hasRemaining()) {
-            channel.write(buffer);
+    private static void writeBuffer(ByteBuffer[] buffers, SocketChannel channel) throws IOException {
+        if (buffers[1] == null) {
+            if (buffers[0].hasRemaining()) {
+                channel.write(buffers[0]);
+            }
+        } else if (buffers[1].hasRemaining() || buffers[0].hasRemaining()) {
+            channel.write(buffers);
         }
     }
 

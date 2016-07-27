@@ -35,13 +35,13 @@ import java.util.Set;
 
 import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.CLIENT;
 import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.SYNC;
-import static ch.dissem.bitmessage.ports.NetworkHandler.MAX_MESSAGE_SIZE;
 
 /**
  * Represents the current state of a connection.
  */
 public class ConnectionInfo extends AbstractConnection {
-    private ByteBuffer out = ByteBuffer.allocate(MAX_MESSAGE_SIZE);
+    private final ByteBuffer headerOut = ByteBuffer.allocate(24);
+    private ByteBuffer payloadOut;
     private V3MessageReader reader = new V3MessageReader();
     private boolean syncFinished;
     private long lastUpdate = Long.MAX_VALUE;
@@ -50,7 +50,7 @@ public class ConnectionInfo extends AbstractConnection {
                           NetworkAddress node, NetworkHandler.MessageListener listener,
                           Set<InventoryVector> commonRequestedObjects, long syncTimeout) {
         super(context, mode, node, listener, commonRequestedObjects, syncTimeout);
-        out.flip();
+        headerOut.flip();
         if (mode == CLIENT || mode == SYNC) {
             send(new Version.Builder().defaults(peerNonce).addrFrom(host).addrRecv(node).build());
         }
@@ -76,17 +76,23 @@ public class ConnectionInfo extends AbstractConnection {
     }
 
     public void updateWriter() {
-        if ((out == null || !out.hasRemaining()) && !sendingQueue.isEmpty()) {
-            out.clear();
+        if (!headerOut.hasRemaining() && !sendingQueue.isEmpty()) {
+            headerOut.clear();
             MessagePayload payload = sendingQueue.poll();
-            new NetworkMessage(payload).write(out);
-            out.flip();
+            payloadOut = new NetworkMessage(payload).writeHeaderAndGetPayloadBuffer(headerOut);
+            headerOut.flip();
             lastUpdate = System.currentTimeMillis();
         }
     }
 
-    public ByteBuffer getOutBuffer() {
-        return out;
+    public ByteBuffer[] getOutBuffers() {
+        return new ByteBuffer[]{headerOut, payloadOut};
+    }
+
+    public void cleanupBuffers() {
+        if (payloadOut != null && !payloadOut.hasRemaining()) {
+            payloadOut = null;
+        }
     }
 
     public void updateReader() {

@@ -19,7 +19,6 @@ package ch.dissem.bitmessage.entity;
 import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.utils.Encode;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -93,8 +92,31 @@ public class NetworkMessage implements Streamable {
         out.write(payloadBytes);
     }
 
+    /**
+     * A more efficient implementation of the write method, writing header data to the provided buffer and returning
+     * a new buffer containing the payload.
+     *
+     * @param headerBuffer where the header data is written to (24 bytes)
+     * @return a buffer containing the payload, ready to be read.
+     */
+    public ByteBuffer writeHeaderAndGetPayloadBuffer(ByteBuffer headerBuffer) {
+        return ByteBuffer.wrap(writeHeader(headerBuffer));
+    }
+
+    /**
+     * For improved memory efficiency, you should use {@link #writeHeaderAndGetPayloadBuffer(ByteBuffer)}
+     * and write the header buffer as well as the returned payload buffer into the channel.
+     *
+     * @param buffer where everything gets written to. Needs to be large enough for the whole message
+     *               to be written.
+     */
     @Override
-    public void write(ByteBuffer out) {
+    public void write(ByteBuffer buffer) {
+        byte[] payloadBytes = writeHeader(buffer);
+        buffer.put(payloadBytes);
+    }
+
+    private byte[] writeHeader(ByteBuffer out) {
         // magic
         Encode.int32(MAGIC, out);
 
@@ -124,6 +146,6 @@ public class NetworkMessage implements Streamable {
         }
 
         // message payload
-        out.put(payloadBytes);
+        return payloadBytes;
     }
 }
