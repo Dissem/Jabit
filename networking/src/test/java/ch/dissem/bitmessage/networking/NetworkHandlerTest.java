@@ -66,7 +66,7 @@ public class NetworkHandlerTest {
     private final NetworkHandler nodeNetworkHandler;
 
     @Rule
-    public final TestRule timeout = new DisableOnDebug(Timeout.seconds(20));
+    public final TestRule timeout = new DisableOnDebug(Timeout.seconds(60));
 
     public NetworkHandlerTest(NetworkHandler peer, NetworkHandler node) {
         this.peerNetworkHandler = peer;
