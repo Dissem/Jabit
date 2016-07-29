@@ -41,19 +41,19 @@ public class NetworkAddress implements Streamable {
     /**
      * Stream number for this node
      */
-    private long stream;
+    private final long stream;
 
     /**
      * same service(s) listed in version
      */
-    private long services;
+    private final long services;
 
     /**
      * IPv6 address. IPv4 addresses are written into the message as a 16 byte IPv4-mapped IPv6 address
      * (12 bytes 00 00 00 00 00 00 00 00 00 00 FF FF, followed by the 4 bytes of the IPv4 address).
      */
-    private byte[] ipv6;
-    private int port;
+    private final byte[] ipv6;
+    private final int port;
 
     private NetworkAddress(Builder builder) {
         time = builder.time;

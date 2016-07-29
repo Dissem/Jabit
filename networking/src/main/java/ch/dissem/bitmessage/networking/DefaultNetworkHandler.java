@@ -170,12 +170,13 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
 
         for (Connection connection : connections) {
             if (connection.getState() == ACTIVE) {
-                long stream = connection.getNode().getStream();
-                streams.add(stream);
-                if (connection.getMode() == SERVER) {
-                    inc(incomingConnections, stream);
-                } else {
-                    inc(outgoingConnections, stream);
+                for (long stream : connection.getStreams()) {
+                    streams.add(stream);
+                    if (connection.getMode() == SERVER) {
+                        inc(incomingConnections, stream);
+                    } else {
+                        inc(outgoingConnections, stream);
+                    }
                 }
             }
         }

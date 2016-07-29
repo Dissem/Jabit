@@ -31,8 +31,9 @@ import java.util.concurrent.Future;
  */
 public interface NetworkHandler {
     int NETWORK_MAGIC_NUMBER = 8;
+    int HEADER_SIZE = 24;
     int MAX_PAYLOAD_SIZE = 1600003;
-    int MAX_MESSAGE_SIZE = 24 + MAX_PAYLOAD_SIZE;
+    int MAX_MESSAGE_SIZE = HEADER_SIZE + MAX_PAYLOAD_SIZE;
 
     /**
      * Connects to the trusted host, fetches and offers new messages and disconnects afterwards.

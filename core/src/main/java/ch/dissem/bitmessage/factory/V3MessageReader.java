@@ -58,7 +58,7 @@ public class V3MessageReader {
     public ByteBuffer getActiveBuffer() {
         if (state != null && state != ReaderState.DATA) {
             if (headerBuffer == null) {
-                headerBuffer = bufferPool.allocate();
+                headerBuffer = bufferPool.allocateHeaderBuffer();
             }
         }
         return state == ReaderState.DATA ? dataBuffer : headerBuffer;

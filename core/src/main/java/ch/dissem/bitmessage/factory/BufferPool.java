@@ -16,12 +16,16 @@
 
 package ch.dissem.bitmessage.factory;
 
-import ch.dissem.bitmessage.ports.NetworkHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.Map;
+import java.util.Stack;
+import java.util.TreeMap;
+
+import static ch.dissem.bitmessage.ports.NetworkHandler.HEADER_SIZE;
+import static ch.dissem.bitmessage.ports.NetworkHandler.MAX_PAYLOAD_SIZE;
 
 /**
  * A pool for {@link ByteBuffer}s. As they may use up a lot of memory,
@@ -30,78 +34,58 @@ import java.util.*;
 class BufferPool {
     private static final Logger LOG = LoggerFactory.getLogger(BufferPool.class);
 
-    public static final BufferPool bufferPool = new BufferPool(256, 2048);
+    public static final BufferPool bufferPool = new BufferPool();
 
-    private final Map<Size, Integer> capacities = new EnumMap<>(Size.class);
-    private final Map<Size, Stack<ByteBuffer>> pools = new EnumMap<>(Size.class);
+    private final Map<Integer, Stack<ByteBuffer>> pools = new TreeMap<>();
 
-    private BufferPool(int small, int medium) {
-        capacities.put(Size.HEADER, 24);
-        capacities.put(Size.SMALL, small);
-        capacities.put(Size.MEDIUM, medium);
-        capacities.put(Size.LARGE, NetworkHandler.MAX_PAYLOAD_SIZE);
-        pools.put(Size.HEADER, new Stack<ByteBuffer>());
-        pools.put(Size.SMALL, new Stack<ByteBuffer>());
-        pools.put(Size.MEDIUM, new Stack<ByteBuffer>());
-        pools.put(Size.LARGE, new Stack<ByteBuffer>());
+    private BufferPool() {
+        pools.put(HEADER_SIZE, new Stack<ByteBuffer>());
+        pools.put(54, new Stack<ByteBuffer>());
+        pools.put(1000, new Stack<ByteBuffer>());
+        pools.put(60000, new Stack<ByteBuffer>());
+        pools.put(MAX_PAYLOAD_SIZE, new Stack<ByteBuffer>());
     }
 
     public synchronized ByteBuffer allocate(int capacity) {
-        Size targetSize = getTargetSize(capacity);
-        Size s = targetSize;
-        do {
-            Stack<ByteBuffer> pool = pools.get(s);
-            if (!pool.isEmpty()) {
-                return pool.pop();
+        for (Map.Entry<Integer, Stack<ByteBuffer>> e : pools.entrySet()) {
+            if (e.getKey() >= capacity && !e.getValue().isEmpty()) {
+                return e.getValue().pop();
             }
-            s = s.next();
-        } while (s != null);
+        }
+        Integer targetSize = getTargetSize(capacity);
         LOG.debug("Creating new buffer of size " + targetSize);
-        return ByteBuffer.allocate(capacities.get(targetSize));
+        return ByteBuffer.allocate(targetSize);
     }
 
-    public synchronized ByteBuffer allocate() {
-        Stack<ByteBuffer> pool = pools.get(Size.HEADER);
+    /**
+     * Returns a buffer that has the size of the Bitmessage network message header, 24 bytes.
+     *
+     * @return a buffer of size 24
+     */
+    public synchronized ByteBuffer allocateHeaderBuffer() {
+        Stack<ByteBuffer> pool = pools.get(HEADER_SIZE);
         if (!pool.isEmpty()) {
             return pool.pop();
         } else {
-            return ByteBuffer.allocate(capacities.get(Size.HEADER));
+            return ByteBuffer.allocate(HEADER_SIZE);
         }
     }
 
     public synchronized void deallocate(ByteBuffer buffer) {
         buffer.clear();
-        Size size = getTargetSize(buffer.capacity());
-        if (buffer.capacity() != capacities.get(size)) {
+
+        if (!pools.keySet().contains(buffer.capacity())) {
             throw new IllegalArgumentException("Illegal buffer capacity " + buffer.capacity() +
-                " one of " + capacities.values() + " expected.");
+                " one of " + pools.keySet() + " expected.");
         }
-        pools.get(size).push(buffer);
+        pools.get(buffer.capacity()).push(buffer);
     }
 
-    private Size getTargetSize(int capacity) {
-        for (Size s : Size.values()) {
-            if (capacity <= capacities.get(s)) {
-                return s;
-            }
+    private Integer getTargetSize(int capacity) {
+        for (Integer size : pools.keySet()) {
+            if (size >= capacity) return size;
         }
         throw new IllegalArgumentException("Requested capacity too large: " +
-            "requested=" + capacity + "; max=" + capacities.get(Size.LARGE));
-    }
-
-
-    private enum Size {
-        HEADER, SMALL, MEDIUM, LARGE;
-
-        public Size next() {
-            switch (this) {
-                case SMALL:
-                    return MEDIUM;
-                case MEDIUM:
-                    return LARGE;
-                default:
-                    return null;
-            }
-        }
+            "requested=" + capacity + "; max=" + MAX_PAYLOAD_SIZE);
     }
 }

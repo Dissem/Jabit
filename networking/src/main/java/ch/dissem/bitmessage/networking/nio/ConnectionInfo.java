@@ -44,7 +44,7 @@ public class ConnectionInfo extends AbstractConnection {
     private ByteBuffer payloadOut;
     private V3MessageReader reader = new V3MessageReader();
     private boolean syncFinished;
-    private long lastUpdate = Long.MAX_VALUE;
+    private long lastUpdate = System.currentTimeMillis();
 
     public ConnectionInfo(InternalContext context, Mode mode,
                           NetworkAddress node, NetworkHandler.MessageListener listener,

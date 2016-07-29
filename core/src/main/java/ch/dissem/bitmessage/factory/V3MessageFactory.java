@@ -107,12 +107,12 @@ class V3MessageFactory {
         }
 
         return new ObjectMessage.Builder()
-                .nonce(nonce)
-                .expiresTime(expiresTime)
-                .objectType(objectType)
-                .stream(stream)
-                .payload(payload)
-                .build();
+            .nonce(nonce)
+            .expiresTime(expiresTime)
+            .objectType(objectType)
+            .stream(stream)
+            .payload(payload)
+            .build();
     }
 
     private static GetData parseGetData(InputStream stream) throws IOException {
@@ -153,13 +153,13 @@ class V3MessageFactory {
         long[] streamNumbers = Decode.varIntList(stream);
 
         return new Version.Builder()
-                .version(version)
-                .services(services)
-                .timestamp(timestamp)
-                .addrRecv(addrRecv).addrFrom(addrFrom)
-                .nonce(nonce)
-                .userAgent(userAgent)
-                .streams(streamNumbers).build();
+            .version(version)
+            .services(services)
+            .timestamp(timestamp)
+            .addrRecv(addrRecv).addrFrom(addrFrom)
+            .nonce(nonce)
+            .userAgent(userAgent)
+            .streams(streamNumbers).build();
     }
 
     private static InventoryVector parseInventoryVector(InputStream stream) throws IOException {
@@ -179,7 +179,13 @@ class V3MessageFactory {
         long services = Decode.int64(stream);
         byte[] ipv6 = Decode.bytes(stream, 16);
         int port = Decode.uint16(stream);
-        return new NetworkAddress.Builder().time(time).stream(streamNumber).services(services).ipv6(ipv6).port(port).build();
+        return new NetworkAddress.Builder()
+            .time(time)
+            .stream(streamNumber)
+            .services(services)
+            .ipv6(ipv6)
+            .port(port)
+            .build();
     }
 
     private static boolean testChecksum(byte[] checksum, byte[] payload) {

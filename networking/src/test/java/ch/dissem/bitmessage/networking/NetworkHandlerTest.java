@@ -169,15 +169,24 @@ public class NetworkHandlerTest {
         } while (networkHandler.isRunning());
     }
 
-    @Test
-    public void ensureNodesAreConnecting() throws Exception {
-        node.startup();
+    private Property waitForNetworkStatus(BitmessageContext ctx) throws InterruptedException {
         Property status;
         do {
             Thread.sleep(100);
-            status = node.status().getProperty("network", "connections", "stream 0");
+            status = ctx.status().getProperty("network", "connections", "stream 1");
         } while (status == null);
-        assertEquals(1, status.getProperty("outgoing").getValue());
+        return status;
+    }
+
+    @Test
+    public void ensureNodesAreConnecting() throws Exception {
+        node.startup();
+
+        Property nodeStatus = waitForNetworkStatus(node);
+        Property peerStatus = waitForNetworkStatus(peer);
+
+        assertEquals(1, nodeStatus.getProperty("outgoing").getValue());
+        assertEquals(1, peerStatus.getProperty("incoming").getValue());
     }
 
     @Test

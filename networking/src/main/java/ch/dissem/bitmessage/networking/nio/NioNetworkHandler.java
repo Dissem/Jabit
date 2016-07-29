@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.NoRouteToHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.*;
@@ -46,7 +47,6 @@ import static ch.dissem.bitmessage.utils.DebugUtils.inc;
 import static ch.dissem.bitmessage.utils.ThreadFactoryBuilder.pool;
 import static java.nio.channels.SelectionKey.OP_READ;
 import static java.nio.channels.SelectionKey.OP_WRITE;
-import static java.util.Collections.synchronizedMap;
 
 /**
  * Network handler using java.nio, resulting in less threads.
@@ -209,7 +209,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                                     connection,
                                     channel.register(selector, OP_READ | OP_WRITE, connection)
                                 );
-                            } catch (AsynchronousCloseException ignore) {
+                            } catch (NoRouteToHostException | AsynchronousCloseException ignore) {
                             } catch (IOException e) {
                                 LOG.error(e.getMessage(), e);
                             }
@@ -268,7 +268,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                                     } else {
                                         key.interestOps(OP_READ | OP_WRITE);
                                     }
-                                } catch (NodeException | IOException e) {
+                                } catch (CancelledKeyException | NodeException | IOException e) {
                                     connection.disconnect();
                                 }
                                 if (connection.getState() == DISCONNECTED) {
@@ -413,12 +413,13 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
 
         for (ConnectionInfo connection : connections.keySet()) {
             if (connection.getState() == ACTIVE) {
-                long stream = connection.getNode().getStream();
-                streams.add(stream);
-                if (connection.getMode() == SERVER) {
-                    inc(incomingConnections, stream);
-                } else {
-                    inc(outgoingConnections, stream);
+                for (long stream : connection.getStreams()) {
+                    streams.add(stream);
+                    if (connection.getMode() == SERVER) {
+                        inc(incomingConnections, stream);
+                    } else {
+                        inc(outgoingConnections, stream);
+                    }
                 }
             }
         }

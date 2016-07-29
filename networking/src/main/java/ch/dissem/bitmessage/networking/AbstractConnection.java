@@ -99,6 +99,10 @@ public abstract class AbstractConnection {
         return state;
     }
 
+    public long[] getStreams() {
+        return streams;
+    }
+
     protected void handleMessage(MessagePayload payload) {
         switch (state) {
             case ACTIVE:
