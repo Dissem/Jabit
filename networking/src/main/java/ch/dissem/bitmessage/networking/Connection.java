@@ -162,7 +162,7 @@ class Connection extends AbstractConnection {
             try (Socket socket = Connection.this.socket) {
                 initSocket(socket);
                 if (mode == CLIENT || mode == SYNC) {
-                    send(new Version.Builder().defaults(peerNonce).addrFrom(host).addrRecv(node).build());
+                    send(new Version.Builder().defaults(ctx.getClientNonce()).addrFrom(host).addrRecv(node).build());
                 }
                 while (state != DISCONNECTED) {
                     if (mode != SYNC) {

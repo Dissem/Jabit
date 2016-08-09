@@ -52,7 +52,7 @@ public class ConnectionInfo extends AbstractConnection {
         super(context, mode, node, listener, commonRequestedObjects, syncTimeout);
         headerOut.flip();
         if (mode == CLIENT || mode == SYNC) {
-            send(new Version.Builder().defaults(peerNonce).addrFrom(host).addrRecv(node).build());
+            send(new Version.Builder().defaults(ctx.getClientNonce()).addrFrom(host).addrRecv(node).build());
         }
     }
 

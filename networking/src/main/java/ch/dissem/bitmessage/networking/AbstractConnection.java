@@ -146,7 +146,7 @@ public abstract class AbstractConnection {
         List<InventoryVector> missing = ctx.getInventory().getMissing(inv.getInventory(), streams);
         missing.removeAll(commonRequestedObjects);
         LOG.debug("Received inventory with " + originalSize + " elements, of which are "
-                + missing.size() + " missing.");
+            + missing.size() + " missing.");
         send(new GetData.Builder().inventory(missing).build());
     }
 
@@ -197,8 +197,8 @@ public abstract class AbstractConnection {
 
     public void offer(InventoryVector iv) {
         sendingQueue.offer(new Inv.Builder()
-                .addInventoryVector(iv)
-                .build());
+            .addInventoryVector(iv)
+            .build());
         updateIvCache(Collections.singletonList(iv));
     }
 
@@ -235,7 +235,7 @@ public abstract class AbstractConnection {
                 break;
             default:
                 throw new NodeException("Command 'version' or 'verack' expected, but was '"
-                        + payload.getCommand() + "'");
+                    + payload.getCommand() + "'");
         }
     }
 
@@ -259,8 +259,8 @@ public abstract class AbstractConnection {
         List<InventoryVector> inventory = ctx.getInventory().getInventory(streams);
         for (int i = 0; i < inventory.size(); i += 50000) {
             sendingQueue.offer(new Inv.Builder()
-                    .inventory(inventory.subList(i, Math.min(inventory.size(), i + 50000)))
-                    .build());
+                .inventory(inventory.subList(i, Math.min(inventory.size(), i + 50000)))
+                .build());
         }
     }
 
