@@ -3,12 +3,10 @@ subprojects {
     apply plugin: 'maven'
     apply plugin: 'signing'
     apply plugin: 'jacoco'
+    apply plugin: 'gitflow-version'
 
     sourceCompatibility = 1.7
     group = 'ch.dissem.jabit'
-    version = '1.1.0-SNAPSHOT'
-
-    ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
     repositories {
         mavenCentral()
@@ -35,7 +33,7 @@ subprojects {
     }
 
     signing {
-        required { isReleaseVersion && project.getProperties().get("signing.keyId")?.length() > 0 }
+        required { isRelease && project.getProperties().get("signing.keyId")?.length() > 0 }
         sign configurations.archives
     }
 
