@@ -393,7 +393,6 @@ public class BitmessageContext {
             nonNull("networkHandler", networkHandler);
             nonNull("addressRepo", addressRepo);
             nonNull("messageRepo", messageRepo);
-            nonNull("proofOfWorkRepo", proofOfWorkRepository);
             if (proofOfWorkEngine == null) {
                 proofOfWorkEngine = new MultiThreadedPOWEngine();
             }
