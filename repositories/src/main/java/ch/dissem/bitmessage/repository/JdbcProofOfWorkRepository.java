@@ -2,7 +2,6 @@ package ch.dissem.bitmessage.repository;
 
 import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.ObjectMessage;
-import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.ProofOfWorkRepository;
@@ -10,9 +9,7 @@ import ch.dissem.bitmessage.utils.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.sql.*;
 import java.util.LinkedList;
 import java.util.List;

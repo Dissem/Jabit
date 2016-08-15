@@ -70,7 +70,11 @@ public abstract class AbstractMessageRepository implements MessageRepository, In
 
     @Override
     public List<Plaintext> findMessages(Label label) {
-        return find("id IN (SELECT message_id FROM Message_Label WHERE label_id=" + label.getId() + ")");
+        if (label == null) {
+            return find("id NOT IN (SELECT message_id FROM Message_Label)");
+        } else {
+            return find("id IN (SELECT message_id FROM Message_Label WHERE label_id=" + label.getId() + ")");
+        }
     }
 
     @Override
