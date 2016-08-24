@@ -17,10 +17,7 @@
 package ch.dissem.bitmessage.networking.nio;
 
 import ch.dissem.bitmessage.InternalContext;
-import ch.dissem.bitmessage.entity.GetData;
-import ch.dissem.bitmessage.entity.MessagePayload;
-import ch.dissem.bitmessage.entity.NetworkMessage;
-import ch.dissem.bitmessage.entity.Version;
+import ch.dissem.bitmessage.entity.*;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.exception.NodeException;
@@ -112,16 +109,18 @@ public class ConnectionInfo extends AbstractConnection {
 
     public void updateSyncStatus() {
         if (!syncFinished) {
-            syncFinished = reader.getMessages().isEmpty() && syncFinished(null);
+            syncFinished = (reader == null || reader.getMessages().isEmpty()) && syncFinished(null);
         }
     }
 
     public boolean isExpired() {
         switch (state) {
             case CONNECTING:
-                return lastUpdate < System.currentTimeMillis() - 30000;
+                // the TCP timeout starts out at 20 seconds
+                return lastUpdate < System.currentTimeMillis() - 20_000;
             case ACTIVE:
-                return lastUpdate < System.currentTimeMillis() - 30000;
+                // after verack messages are exchanged, the timeout is raised to 10 minutes
+                return lastUpdate < System.currentTimeMillis() - 600_000;
             case DISCONNECTED:
                 return true;
             default:
@@ -149,5 +148,11 @@ public class ConnectionInfo extends AbstractConnection {
             requestedObjects.addAll(((GetData) payload).getInventory());
             commonRequestedObjects.addAll(((GetData) payload).getInventory());
         }
+    }
+
+    public boolean isWritePending() {
+        return !sendingQueue.isEmpty()
+            || headerOut != null && headerOut.hasRemaining()
+            || payloadOut != null && payloadOut.hasRemaining();
     }
 }

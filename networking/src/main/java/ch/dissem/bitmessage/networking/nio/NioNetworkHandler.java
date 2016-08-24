@@ -64,7 +64,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
     private Selector selector;
     private ServerSocketChannel serverChannel;
     private Map<ConnectionInfo, SelectionKey> connections = new ConcurrentHashMap<>();
-    private int requestedObjectsCount;
+    private volatile int requestedObjectsCount;
 
     private Thread starter;
 
@@ -94,13 +94,15 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
     public CustomMessage send(InetAddress server, int port, CustomMessage request) {
         try (SocketChannel channel = SocketChannel.open(new InetSocketAddress(server, port))) {
             channel.configureBlocking(true);
-            ByteBuffer buffer = ByteBuffer.allocate(MAX_MESSAGE_SIZE);
-            new NetworkMessage(request).write(buffer);
-            buffer.flip();
-            while (buffer.hasRemaining()) {
-                channel.write(buffer);
+            ByteBuffer headerBuffer = ByteBuffer.allocate(HEADER_SIZE);
+            ByteBuffer payloadBuffer = new NetworkMessage(request).writeHeaderAndGetPayloadBuffer(headerBuffer);
+            headerBuffer.flip();
+            while (headerBuffer.hasRemaining()) {
+                channel.write(headerBuffer);
             }
-            buffer.clear();
+            while (payloadBuffer.hasRemaining()) {
+                channel.write(payloadBuffer);
+            }
 
             V3MessageReader reader = new V3MessageReader();
             while (channel.isConnected() && reader.getMessages().isEmpty()) {
@@ -195,11 +197,25 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                     if (missing > 0) {
                         List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(missing, ctx.getStreams());
                         for (NetworkAddress address : addresses) {
+                            if (isConnectedTo(address)) {
+                                continue;
+                            }
                             try {
                                 SocketChannel channel = SocketChannel.open();
                                 channel.configureBlocking(false);
                                 channel.connect(new InetSocketAddress(address.toInetAddress(), address.getPort()));
-                                channel.finishConnect();
+                                long timeout = System.currentTimeMillis() + 20_000;
+                                while (!channel.finishConnect() && System.currentTimeMillis() < timeout) {
+                                    try {
+                                        Thread.sleep(100);
+                                    } catch (InterruptedException e) {
+                                        break;
+                                    }
+                                }
+                                if (!channel.finishConnect()) {
+                                    channel.close();
+                                    continue;
+                                }
                                 ConnectionInfo connection = new ConnectionInfo(ctx, CLIENT,
                                     address,
                                     listener,
@@ -248,6 +264,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                         Iterator<SelectionKey> keyIterator = selector.selectedKeys().iterator();
                         while (keyIterator.hasNext()) {
                             SelectionKey key = keyIterator.next();
+                            keyIterator.remove();
                             if (key.attachment() instanceof ConnectionInfo) {
                                 SocketChannel channel = (SocketChannel) key.channel();
                                 ConnectionInfo connection = (ConnectionInfo) key.attachment();
@@ -258,24 +275,18 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                                     if (key.isReadable()) {
                                         read(channel, connection);
                                     }
-                                    if (connection.getSendingQueue().isEmpty()) {
-                                        if (connection.getState() == DISCONNECTED) {
-                                            key.interestOps(0);
-                                            key.channel().close();
-                                        } else {
-                                            key.interestOps(OP_READ);
-                                        }
-                                    } else {
+                                    if (connection.getState() == DISCONNECTED) {
+                                        key.interestOps(0);
+                                        channel.close();
+                                    } else if (connection.isWritePending()) {
                                         key.interestOps(OP_READ | OP_WRITE);
+                                    } else {
+                                        key.interestOps(OP_READ);
                                     }
                                 } catch (CancelledKeyException | NodeException | IOException e) {
                                     connection.disconnect();
                                 }
-                                if (connection.getState() == DISCONNECTED) {
-                                    connections.remove(connection);
-                                }
                             }
-                            keyIterator.remove();
                             requestedObjectsCount = requestedObjects.size();
                         }
                         for (Map.Entry<ConnectionInfo, SelectionKey> e : connections.entrySet()) {
@@ -316,7 +327,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
     }
 
     private static void read(SocketChannel channel, ConnectionInfo connection) throws IOException {
-        while (channel.read(connection.getInBuffer()) > 0) {
+        if (channel.read(connection.getInBuffer()) > 0) {
             connection.updateReader();
         }
         connection.updateSyncStatus();
@@ -440,6 +451,15 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
             new Property("connections", null, streamProperties),
             new Property("requestedObjects", requestedObjectsCount)
         );
+    }
+
+    private boolean isConnectedTo(NetworkAddress address) {
+        for (ConnectionInfo c : connections.keySet()) {
+            if (c.getNode().equals(address)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

@@ -21,17 +21,13 @@ import ch.dissem.bitmessage.entity.NetworkMessage;
 import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.exception.NodeException;
 import ch.dissem.bitmessage.utils.Decode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 
 import static ch.dissem.bitmessage.entity.NetworkMessage.MAGIC_BYTES;
 import static ch.dissem.bitmessage.factory.BufferPool.bufferPool;
@@ -42,8 +38,6 @@ import static ch.dissem.bitmessage.utils.Singleton.cryptography;
  * Similar to the {@link V3MessageFactory}, but used for NIO buffers which may or may not contain a whole message.
  */
 public class V3MessageReader {
-    private static final Logger LOG = LoggerFactory.getLogger(V3MessageReader.class);
-
     private ByteBuffer headerBuffer;
     private ByteBuffer dataBuffer;
 
@@ -53,7 +47,6 @@ public class V3MessageReader {
     private byte[] checksum;
 
     private List<NetworkMessage> messages = new LinkedList<>();
-    private SizeInfo sizeInfo = new SizeInfo();
 
     public ByteBuffer getActiveBuffer() {
         if (state != null && state != ReaderState.DATA) {
@@ -88,7 +81,6 @@ public class V3MessageReader {
                     throw new NodeException("Payload of " + length + " bytes received, no more than " +
                         MAX_PAYLOAD_SIZE + " was expected.");
                 }
-                sizeInfo.add(length); // FIXME: remove this once we have some values to work with
                 checksum = new byte[4];
                 headerBuffer.get(checksum);
                 state = ReaderState.DATA;
@@ -194,37 +186,4 @@ public class V3MessageReader {
     }
 
     private enum ReaderState {MAGIC, HEADER, DATA}
-
-    private class SizeInfo {
-        private FileWriter file;
-        private long min = Long.MAX_VALUE;
-        private long avg = 0;
-        private long max = Long.MIN_VALUE;
-        private long count = 0;
-
-        private SizeInfo() {
-            try {
-                file = new FileWriter("D:/message_size_info-" + UUID.randomUUID() + ".csv");
-            } catch (IOException e) {
-                LOG.error(e.getMessage(), e);
-            }
-        }
-
-        private void add(long length) {
-            avg = (count * avg + length) / (count + 1);
-            if (length < min) {
-                min = length;
-            }
-            if (length > max) {
-                max = length;
-            }
-            count++;
-            LOG.info("Received message with data size " + length + "; Min: " + min + "; Max: " + max + "; Avg: " + avg);
-            try {
-                file.write(length + "\n");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 }

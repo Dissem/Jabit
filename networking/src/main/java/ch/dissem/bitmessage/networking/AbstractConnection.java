@@ -228,10 +228,11 @@ public abstract class AbstractConnection {
                 break;
             case CUSTOM:
                 MessagePayload response = ctx.getCustomCommandHandler().handle((CustomMessage) payload);
-                if (response != null) {
+                if (response == null) {
+                    disconnect();
+                } else {
                     send(response);
                 }
-                disconnect();
                 break;
             default:
                 throw new NodeException("Command 'version' or 'verack' expected, but was '"
