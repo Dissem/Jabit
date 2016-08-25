@@ -81,8 +81,7 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
         try (
                 Connection connection = config.getConnection();
                 Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT count(*) FROM Message WHERE " + where
-                        + " ORDER BY received DESC")
+                ResultSet rs = stmt.executeQuery("SELECT count(*) FROM Message WHERE " + where)
         ) {
             if (rs.next()) {
                 return rs.getInt(1);
