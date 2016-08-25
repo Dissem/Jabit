@@ -64,7 +64,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
     private Selector selector;
     private ServerSocketChannel serverChannel;
     private Map<ConnectionInfo, SelectionKey> connections = new ConcurrentHashMap<>();
-    private volatile int requestedObjectsCount;
+    private final Set<InventoryVector> requestedObjects = Collections.newSetFromMap(new ConcurrentHashMap<InventoryVector, Boolean>(10_000));
 
     private Thread starter;
 
@@ -147,7 +147,6 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
         } catch (IOException e) {
             throw new ApplicationException(e);
         }
-        final Set<InventoryVector> requestedObjects = new HashSet<>();
         thread("connection listener", new Runnable() {
             @Override
             public void run() {
@@ -287,7 +286,6 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                                     connection.disconnect();
                                 }
                             }
-                            requestedObjectsCount = requestedObjects.size();
                         }
                         for (Map.Entry<ConnectionInfo, SelectionKey> e : connections.entrySet()) {
                             if (e.getValue().isValid() && (e.getValue().interestOps() & OP_WRITE) == 0) {
@@ -370,7 +368,10 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
 
     @Override
     public void request(Collection<InventoryVector> inventoryVectors) {
-        if (!isRunning()) return;
+        if (!isRunning()) {
+            requestedObjects.clear();
+            return;
+        }
         Iterator<InventoryVector> iterator = inventoryVectors.iterator();
         if (!iterator.hasNext()) {
             return;
@@ -407,6 +408,9 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                 }
             }
         } while (iterator.hasNext());
+
+        // remove objects nobody knows of
+        requestedObjects.removeAll(inventoryVectors);
 
         for (ConnectionInfo connection : distribution.keySet()) {
             List<InventoryVector> ivs = distribution.get(connection);
@@ -449,7 +453,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
         return new Property("network", null,
             new Property("connectionManager", isRunning() ? "running" : "stopped"),
             new Property("connections", null, streamProperties),
-            new Property("requestedObjects", requestedObjectsCount)
+            new Property("requestedObjects", requestedObjects.size())
         );
     }
 

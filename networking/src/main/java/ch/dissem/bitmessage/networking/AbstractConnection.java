@@ -183,7 +183,7 @@ public abstract class AbstractConnection {
     }
 
     private void receiveMessage(Addr addr) {
-        LOG.debug("Received " + addr.getAddresses().size() + " addresses.");
+        LOG.trace("Received " + addr.getAddresses().size() + " addresses.");
         ctx.getNodeRegistry().offerAddresses(addr.getAddresses());
     }
 
