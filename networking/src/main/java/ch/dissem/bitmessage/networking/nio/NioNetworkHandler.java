@@ -45,8 +45,7 @@ import static ch.dissem.bitmessage.networking.AbstractConnection.State.DISCONNEC
 import static ch.dissem.bitmessage.utils.Collections.selectRandom;
 import static ch.dissem.bitmessage.utils.DebugUtils.inc;
 import static ch.dissem.bitmessage.utils.ThreadFactoryBuilder.pool;
-import static java.nio.channels.SelectionKey.OP_READ;
-import static java.nio.channels.SelectionKey.OP_WRITE;
+import static java.nio.channels.SelectionKey.*;
 
 /**
  * Network handler using java.nio, resulting in less threads.
@@ -203,18 +202,6 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                                 SocketChannel channel = SocketChannel.open();
                                 channel.configureBlocking(false);
                                 channel.connect(new InetSocketAddress(address.toInetAddress(), address.getPort()));
-                                long timeout = System.currentTimeMillis() + 20_000;
-                                while (!channel.finishConnect() && System.currentTimeMillis() < timeout) {
-                                    try {
-                                        Thread.sleep(100);
-                                    } catch (InterruptedException e) {
-                                        break;
-                                    }
-                                }
-                                if (!channel.finishConnect()) {
-                                    channel.close();
-                                    continue;
-                                }
                                 ConnectionInfo connection = new ConnectionInfo(ctx, CLIENT,
                                     address,
                                     listener,
@@ -222,9 +209,18 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                                 );
                                 connections.put(
                                     connection,
-                                    channel.register(selector, OP_READ | OP_WRITE, connection)
+                                    channel.register(selector, OP_CONNECT, connection)
                                 );
-                            } catch (NoRouteToHostException | AsynchronousCloseException ignore) {
+                            } catch (NoRouteToHostException ignore) {
+                                // We'll try to connect to many offline nodes, so
+                                // this is expected to happen quite a lot.
+                            } catch (AsynchronousCloseException e) {
+                                // The exception is expected if the network is being
+                                // shut down, as we actually do asynchronously close
+                                // the connections.
+                                if (isRunning()) {
+                                    LOG.error(e.getMessage(), e);
+                                }
                             } catch (IOException e) {
                                 LOG.error(e.getMessage(), e);
                             }
@@ -268,6 +264,11 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                                 SocketChannel channel = (SocketChannel) key.channel();
                                 ConnectionInfo connection = (ConnectionInfo) key.attachment();
                                 try {
+                                    if (key.isConnectable()) {
+                                        if (!channel.finishConnect()) {
+                                            continue;
+                                        }
+                                    }
                                     if (key.isWritable()) {
                                         write(channel, connection);
                                     }
@@ -288,10 +289,11 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                             }
                         }
                         for (Map.Entry<ConnectionInfo, SelectionKey> e : connections.entrySet()) {
-                            if (e.getValue().isValid() && (e.getValue().interestOps() & OP_WRITE) == 0) {
-                                if (!e.getKey().getSendingQueue().isEmpty()) {
-                                    e.getValue().interestOps(OP_READ | OP_WRITE);
-                                }
+                            if (e.getValue().isValid()
+                                && (e.getValue().interestOps() & OP_WRITE) == 0
+                                && (e.getValue().interestOps() & OP_CONNECT) == 0
+                                && !e.getKey().getSendingQueue().isEmpty()) {
+                                e.getValue().interestOps(OP_READ | OP_WRITE);
                             }
                         }
                     }
