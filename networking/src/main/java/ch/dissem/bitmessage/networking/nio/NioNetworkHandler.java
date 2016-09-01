@@ -26,7 +26,7 @@ import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.exception.NodeException;
 import ch.dissem.bitmessage.factory.V3MessageReader;
 import ch.dissem.bitmessage.ports.NetworkHandler;
-import ch.dissem.bitmessage.utils.Property;
+import ch.dissem.bitmessage.utils.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +37,7 @@ import java.net.NoRouteToHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.*;
+import java.util.Collections;
 import java.util.concurrent.*;
 
 import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.*;
@@ -193,7 +194,8 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                         }
                     }
                     if (missing > 0) {
-                        List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(missing, ctx.getStreams());
+                        List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(100, ctx.getStreams());
+                        addresses = selectRandom(missing, addresses);
                         for (NetworkAddress address : addresses) {
                             if (isConnectedTo(address)) {
                                 continue;
@@ -389,7 +391,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
         ConnectionInfo previous = null;
         do {
             for (ConnectionInfo connection : distribution.keySet()) {
-                if (connection == previous) {
+                if (connection == previous || previous == null) {
                     next = iterator.next();
                 }
                 if (connection.knowsOf(next)) {

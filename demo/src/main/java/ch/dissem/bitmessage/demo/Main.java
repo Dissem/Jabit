@@ -20,7 +20,6 @@ import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.networking.nio.NioNetworkHandler;
-import ch.dissem.bitmessage.ports.MemoryNodeRegistry;
 import ch.dissem.bitmessage.ports.NodeRegistry;
 import ch.dissem.bitmessage.repository.*;
 import ch.dissem.bitmessage.wif.WifExporter;
@@ -82,7 +81,7 @@ public class Main {
                 }
             });
         } else {
-            ctxBuilder.nodeRegistry(new MemoryNodeRegistry());
+            ctxBuilder.nodeRegistry(new JdbcNodeRegistry(jdbcConfig));
         }
 
         if (options.exportWIF != null || options.importWIF != null) {

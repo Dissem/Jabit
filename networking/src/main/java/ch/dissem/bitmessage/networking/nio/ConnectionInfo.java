@@ -129,7 +129,7 @@ public class ConnectionInfo extends AbstractConnection {
     }
 
     @Override
-    public synchronized void disconnect() {
+    public void disconnect() {
         super.disconnect();
         if (reader != null) {
             reader.cleanup();
