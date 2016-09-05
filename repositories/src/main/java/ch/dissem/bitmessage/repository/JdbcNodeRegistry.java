@@ -117,7 +117,7 @@ public class JdbcNodeRegistry extends JdbcHelper implements NodeRegistry {
     public void offerAddresses(List<NetworkAddress> nodes) {
         cleanUp();
         nodes.stream()
-            .filter(node -> node.getTime() < now(+24 * HOUR) && node.getTime() > now(-28 * DAY))
+            .filter(node -> node.getTime() < now(+2 * MINUTE) && node.getTime() > now(-28 * DAY))
             .forEach(node -> {
                 synchronized (this) {
                     NetworkAddress existing = loadExisting(node);

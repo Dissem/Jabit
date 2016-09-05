@@ -135,6 +135,7 @@ public class ConnectionInfo extends AbstractConnection {
             reader.cleanup();
             reader = null;
         }
+        payloadOut = null;
     }
 
     public boolean isSyncFinished() {

@@ -47,14 +47,14 @@ class BufferPool {
     }
 
     public synchronized ByteBuffer allocate(int capacity) {
-        for (Map.Entry<Integer, Stack<ByteBuffer>> e : pools.entrySet()) {
-            if (e.getKey() >= capacity && !e.getValue().isEmpty()) {
-                return e.getValue().pop();
-            }
-        }
         Integer targetSize = getTargetSize(capacity);
-        LOG.debug("Creating new buffer of size " + targetSize);
-        return ByteBuffer.allocate(targetSize);
+        Stack<ByteBuffer> pool = pools.get(targetSize);
+        if (pool.isEmpty()) {
+            LOG.trace("Creating new buffer of size " + targetSize);
+            return ByteBuffer.allocate(targetSize);
+        } else {
+            return pool.pop();
+        }
     }
 
     /**
@@ -64,21 +64,22 @@ class BufferPool {
      */
     public synchronized ByteBuffer allocateHeaderBuffer() {
         Stack<ByteBuffer> pool = pools.get(HEADER_SIZE);
-        if (!pool.isEmpty()) {
-            return pool.pop();
-        } else {
+        if (pool.isEmpty()) {
             return ByteBuffer.allocate(HEADER_SIZE);
+        } else {
+            return pool.pop();
         }
     }
 
     public synchronized void deallocate(ByteBuffer buffer) {
         buffer.clear();
-
-        if (!pools.keySet().contains(buffer.capacity())) {
+        Stack<ByteBuffer> pool = pools.get(buffer.capacity());
+        if (pool == null) {
             throw new IllegalArgumentException("Illegal buffer capacity " + buffer.capacity() +
                 " one of " + pools.keySet() + " expected.");
+        } else {
+            pool.push(buffer);
         }
-        pools.get(buffer.capacity()).push(buffer);
     }
 
     private Integer getTargetSize(int capacity) {

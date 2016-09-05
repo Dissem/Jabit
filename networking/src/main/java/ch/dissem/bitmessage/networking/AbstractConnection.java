@@ -145,7 +145,7 @@ public abstract class AbstractConnection {
         updateIvCache(inv.getInventory());
         List<InventoryVector> missing = ctx.getInventory().getMissing(inv.getInventory(), streams);
         missing.removeAll(commonRequestedObjects);
-        LOG.debug("Received inventory with " + originalSize + " elements, of which are "
+        LOG.trace("Received inventory with " + originalSize + " elements, of which are "
             + missing.size() + " missing.");
         send(new GetData.Builder().inventory(missing).build());
     }

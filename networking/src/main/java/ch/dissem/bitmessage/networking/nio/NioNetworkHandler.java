@@ -239,8 +239,8 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                             }
                             e.getValue().cancel();
                             e.getValue().attach(null);
-                            it.remove();
                             e.getKey().disconnect();
+                            it.remove();
                         }
                     }
                     try {
@@ -387,12 +387,20 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                 distribution.put(connection, new LinkedList<InventoryVector>());
             }
         }
+        if (distribution.isEmpty()){
+            return;
+        }
         InventoryVector next = iterator.next();
         ConnectionInfo previous = null;
         do {
             for (ConnectionInfo connection : distribution.keySet()) {
                 if (connection == previous || previous == null) {
-                    next = iterator.next();
+                    if (iterator.hasNext()) {
+                        previous = connection;
+                        next = iterator.next();
+                    } else {
+                        break;
+                    }
                 }
                 if (connection.knowsOf(next)) {
                     List<InventoryVector> ivs = distribution.get(connection);
