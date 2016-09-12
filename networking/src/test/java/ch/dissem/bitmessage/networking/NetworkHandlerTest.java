@@ -86,7 +86,7 @@ public class NetworkHandlerTest {
     }
 
     @Before
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         peerInventory = new TestInventory();
         peer = new BitmessageContext.Builder()
             .addressRepo(mock(AddressRepository.class))
@@ -120,6 +120,7 @@ public class NetworkHandlerTest {
             })
             .build();
         peer.startup();
+        Thread.sleep(100);
 
         nodeInventory = new TestInventory();
         node = new BitmessageContext.Builder()
