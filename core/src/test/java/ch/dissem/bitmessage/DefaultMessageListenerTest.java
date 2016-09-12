@@ -69,6 +69,8 @@ public class DefaultMessageListenerTest extends TestBase {
         when(ctx.getLabeler()).thenReturn(mock(Labeler.class));
 
         listener = new DefaultMessageListener(mock(Labeler.class), mock(BitmessageContext.Listener.class));
+        when(ctx.getNetworkListener()).thenReturn(listener);
+        listener.setContext(ctx);
     }
 
     @Test
