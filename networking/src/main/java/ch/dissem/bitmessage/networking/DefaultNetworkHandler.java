@@ -64,9 +64,9 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
     }
 
     @Override
-    public Future<?> synchronize(InetAddress server, int port, MessageListener listener, long timeoutInSeconds) {
+    public Future<?> synchronize(InetAddress server, int port, long timeoutInSeconds) {
         try {
-            Connection connection = Connection.sync(ctx, server, port, listener, timeoutInSeconds);
+            Connection connection = Connection.sync(ctx, server, port, ctx.getNetworkListener(), timeoutInSeconds);
             Future<?> reader = pool.submit(connection.getReader());
             pool.execute(connection.getWriter());
             return reader;
@@ -97,19 +97,16 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
     }
 
     @Override
-    public void start(final MessageListener listener) {
-        if (listener == null) {
-            throw new IllegalStateException("Listener must be set at start");
-        }
+    public void start() {
         if (running) {
             throw new IllegalStateException("Network already running - you need to stop first.");
         }
         try {
             running = true;
             connections.clear();
-            server = new ServerRunnable(ctx, this, listener);
+            server = new ServerRunnable(ctx, this);
             pool.execute(server);
-            pool.execute(new ConnectionOrganizer(ctx, this, listener));
+            pool.execute(new ConnectionOrganizer(ctx, this));
         } catch (IOException e) {
             throw new ApplicationException(e);
         }

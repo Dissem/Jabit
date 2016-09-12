@@ -71,14 +71,13 @@ public abstract class AbstractConnection {
 
     public AbstractConnection(InternalContext context, Mode mode,
                               NetworkAddress node,
-                              NetworkHandler.MessageListener listener,
                               Set<InventoryVector> commonRequestedObjects,
                               long syncTimeout) {
         this.ctx = context;
         this.mode = mode;
         this.host = new NetworkAddress.Builder().ipv6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0).port(0).build();
         this.node = node;
-        this.listener = listener;
+        this.listener = context.getNetworkListener();
         this.syncTimeout = (syncTimeout > 0 ? UnixTime.now(+syncTimeout) : 0);
         this.requestedObjects = Collections.newSetFromMap(new ConcurrentHashMap<InventoryVector, Boolean>(10_000));
         this.ivCache = new ConcurrentHashMap<>();

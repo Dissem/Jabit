@@ -11,6 +11,7 @@ import ch.dissem.bitmessage.ports.ProofOfWorkRepository.Item;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -42,7 +43,7 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
                 for (byte[] initialHash : items) {
                     Item item = powRepo.getItem(initialHash);
                     cryptography.doProofOfWork(item.object, item.nonceTrialsPerByte, item.extraBytes,
-                            ProofOfWorkService.this);
+                        ProofOfWorkService.this);
                 }
             }
         }, delayInMilliseconds);
@@ -71,7 +72,7 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
         final ObjectMessage ack = plaintext.getAckMessage();
         messageRepo.save(plaintext);
         Item item = new Item(ack, NETWORK_NONCE_TRIALS_PER_BYTE, NETWORK_EXTRA_BYTES,
-                expirationTime, plaintext);
+            expirationTime, plaintext);
         powRepo.putObject(item);
         cryptography.doProofOfWork(ack, NETWORK_NONCE_TRIALS_PER_BYTE, NETWORK_EXTRA_BYTES, this);
     }
@@ -89,15 +90,20 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
                 ctx.getLabeler().markAsSent(plaintext);
                 messageRepo.save(plaintext);
             }
+            try {
+                ctx.getNetworkListener().receive(object);
+            } catch (IOException e) {
+                LOG.debug(e.getMessage(), e);
+            }
             ctx.getInventory().storeObject(object);
             ctx.getNetworkHandler().offer(object.getInventoryVector());
         } else {
             item.message.getAckMessage().setNonce(nonce);
             final ObjectMessage object = new ObjectMessage.Builder()
-                    .stream(item.message.getStream())
-                    .expiresTime(item.expirationTime)
-                    .payload(new Msg(item.message))
-                    .build();
+                .stream(item.message.getStream())
+                .expiresTime(item.expirationTime)
+                .payload(new Msg(item.message))
+                .build();
             if (object.isSigned()) {
                 object.sign(item.message.getFrom().getPrivateKey());
             }

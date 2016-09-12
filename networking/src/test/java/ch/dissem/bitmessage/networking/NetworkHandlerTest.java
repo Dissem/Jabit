@@ -230,9 +230,7 @@ public class NetworkHandlerTest {
             "V4Pubkey.payload"
         );
 
-        Future<?> future = nodeNetworkHandler.synchronize(peerAddress.toInetAddress(), peerAddress.getPort(),
-            mock(NetworkHandler.MessageListener.class),
-            10);
+        Future<?> future = nodeNetworkHandler.synchronize(peerAddress.toInetAddress(), peerAddress.getPort(), 10);
         future.get();
         assertInventorySize(3, nodeInventory);
         assertInventorySize(3, peerInventory);
@@ -247,9 +245,7 @@ public class NetworkHandlerTest {
 
         nodeInventory.init();
 
-        Future<?> future = nodeNetworkHandler.synchronize(peerAddress.toInetAddress(), peerAddress.getPort(),
-            mock(NetworkHandler.MessageListener.class),
-            10);
+        Future<?> future = nodeNetworkHandler.synchronize(peerAddress.toInetAddress(), peerAddress.getPort(), 10);
         future.get();
         assertInventorySize(2, nodeInventory);
         assertInventorySize(2, peerInventory);
@@ -263,9 +259,7 @@ public class NetworkHandlerTest {
             "V1Msg.payload"
         );
 
-        Future<?> future = nodeNetworkHandler.synchronize(peerAddress.toInetAddress(), peerAddress.getPort(),
-            mock(NetworkHandler.MessageListener.class),
-            10);
+        Future<?> future = nodeNetworkHandler.synchronize(peerAddress.toInetAddress(), peerAddress.getPort(), 10);
         future.get();
         assertInventorySize(1, nodeInventory);
         assertInventorySize(1, peerInventory);

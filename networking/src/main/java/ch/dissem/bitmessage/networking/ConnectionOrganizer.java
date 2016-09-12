@@ -42,11 +42,10 @@ public class ConnectionOrganizer implements Runnable {
     private Connection initialConnection;
 
     public ConnectionOrganizer(InternalContext ctx,
-                               DefaultNetworkHandler networkHandler,
-                               NetworkHandler.MessageListener listener) {
+                               DefaultNetworkHandler networkHandler) {
         this.ctx = ctx;
         this.networkHandler = networkHandler;
-        this.listener = listener;
+        this.listener = ctx.getNetworkListener();
     }
 
     @Override
@@ -91,8 +90,7 @@ public class ConnectionOrganizer implements Runnable {
                                 NETWORK_MAGIC_NUMBER - active, ctx.getStreams());
                         boolean first = active == 0 && initialConnection == null;
                         for (NetworkAddress address : addresses) {
-                            Connection c = new Connection(ctx, CLIENT, address, listener,
-                                    networkHandler.requestedObjects);
+                            Connection c = new Connection(ctx, CLIENT, address, networkHandler.requestedObjects);
                             if (first) {
                                 initialConnection = c;
                                 first = false;

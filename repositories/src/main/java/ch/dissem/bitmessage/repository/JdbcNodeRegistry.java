@@ -105,7 +105,7 @@ public class JdbcNodeRegistry extends JdbcHelper implements NodeRegistry {
             }
             for (long stream : streams) {
                 Set<NetworkAddress> nodes = stableNodes.get(stream);
-                if (nodes != null) {
+                if (nodes != null && !nodes.isEmpty()) {
                     result.add(Collections.selectRandom(nodes));
                 }
             }

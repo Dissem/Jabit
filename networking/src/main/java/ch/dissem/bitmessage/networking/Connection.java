@@ -63,29 +63,29 @@ class Connection extends AbstractConnection {
     private OutputStream out;
     private boolean socketInitialized;
 
-    public Connection(InternalContext context, Mode mode, Socket socket, MessageListener listener,
+    public Connection(InternalContext context, Mode mode, Socket socket,
                       Set<InventoryVector> requestedObjectsMap) throws IOException {
-        this(context, mode, listener, socket, requestedObjectsMap,
+        this(context, mode, socket, requestedObjectsMap,
                 new NetworkAddress.Builder().ip(socket.getInetAddress()).port(socket.getPort()).stream(1).build(),
                 0);
     }
 
-    public Connection(InternalContext context, Mode mode, NetworkAddress node, MessageListener listener,
+    public Connection(InternalContext context, Mode mode, NetworkAddress node,
                       Set<InventoryVector> requestedObjectsMap) {
-        this(context, mode, listener, new Socket(), requestedObjectsMap,
+        this(context, mode, new Socket(), requestedObjectsMap,
                 node, 0);
     }
 
-    private Connection(InternalContext context, Mode mode, MessageListener listener, Socket socket,
+    private Connection(InternalContext context, Mode mode, Socket socket,
                        Set<InventoryVector> commonRequestedObjects, NetworkAddress node, long syncTimeout) {
-        super(context, mode, node, listener, commonRequestedObjects, syncTimeout);
+        super(context, mode, node, commonRequestedObjects, syncTimeout);
         this.startTime = UnixTime.now();
         this.socket = socket;
     }
 
     public static Connection sync(InternalContext ctx, InetAddress address, int port, MessageListener listener,
                                   long timeoutInSeconds) throws IOException {
-        return new Connection(ctx, SYNC, listener, new Socket(address, port),
+        return new Connection(ctx, SYNC, new Socket(address, port),
                 new HashSet<InventoryVector>(),
                 new NetworkAddress.Builder().ip(address).port(port).stream(1).build(),
                 timeoutInSeconds);

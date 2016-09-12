@@ -56,6 +56,7 @@ public class InternalContext {
     private final CustomCommandHandler customCommandHandler;
     private final ProofOfWorkService proofOfWorkService;
     private final Labeler labeler;
+    private final NetworkHandler.MessageListener networkListener;
 
     private final TreeSet<Long> streams = new TreeSet<>();
     private final int port;
@@ -79,6 +80,7 @@ public class InternalContext {
         this.connectionLimit = builder.connectionLimit;
         this.connectionTTL = builder.connectionTTL;
         this.labeler = builder.labeler;
+        this.networkListener = new DefaultMessageListener(labeler, builder.listener);
 
         Singleton.initialize(cryptography);
 
@@ -94,7 +96,8 @@ public class InternalContext {
         }
 
         init(cryptography, inventory, nodeRegistry, networkHandler, addressRepository, messageRepository,
-                proofOfWorkRepository, proofOfWorkService, proofOfWorkEngine, customCommandHandler, builder.labeler);
+            proofOfWorkRepository, proofOfWorkService, proofOfWorkEngine, customCommandHandler, builder.labeler,
+            networkListener);
         for (BitmessageAddress identity : addressRepository.getIdentities()) {
             streams.add(identity.getStream());
         }
@@ -148,6 +151,10 @@ public class InternalContext {
         return labeler;
     }
 
+    public NetworkHandler.MessageListener getNetworkListener() {
+        return networkListener;
+    }
+
     public long[] getStreams() {
         long[] result = new long[streams.size()];
         int i = 0;
@@ -178,10 +185,10 @@ public class InternalContext {
             long expires = UnixTime.now(+timeToLive);
             LOG.info("Expires at " + expires);
             final ObjectMessage object = new ObjectMessage.Builder()
-                    .stream(recipient.getStream())
-                    .expiresTime(expires)
-                    .payload(payload)
-                    .build();
+                .stream(recipient.getStream())
+                .expiresTime(expires)
+                .payload(payload)
+                .build();
             if (object.isSigned()) {
                 object.sign(from.getPrivateKey());
             }
@@ -201,10 +208,10 @@ public class InternalContext {
             long expires = UnixTime.now(TTL.pubkey());
             LOG.info("Expires at " + expires);
             final ObjectMessage response = new ObjectMessage.Builder()
-                    .stream(targetStream)
-                    .expiresTime(expires)
-                    .payload(identity.getPubkey())
-                    .build();
+                .stream(targetStream)
+                .expiresTime(expires)
+                .payload(identity.getPubkey())
+                .build();
             response.sign(identity.getPrivateKey());
             response.encrypt(cryptography.createPublicKey(identity.getPublicDecryptionKey()));
             // TODO: remember that the pubkey is just about to be sent, and on which stream!
@@ -239,10 +246,10 @@ public class InternalContext {
         long expires = UnixTime.now(TTL.getpubkey());
         LOG.info("Expires at " + expires);
         final ObjectMessage request = new ObjectMessage.Builder()
-                .stream(contact.getStream())
-                .expiresTime(expires)
-                .payload(new GetPubkey(contact))
-                .build();
+            .stream(contact.getStream())
+            .expiresTime(expires)
+            .payload(new GetPubkey(contact))
+            .build();
         proofOfWorkService.doProofOfWork(request);
     }
 

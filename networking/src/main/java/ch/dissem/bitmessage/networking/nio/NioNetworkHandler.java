@@ -26,7 +26,7 @@ import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.exception.NodeException;
 import ch.dissem.bitmessage.factory.V3MessageReader;
 import ch.dissem.bitmessage.ports.NetworkHandler;
-import ch.dissem.bitmessage.utils.*;
+import ch.dissem.bitmessage.utils.Property;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +37,6 @@ import java.net.NoRouteToHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.*;
-import java.util.Collections;
 import java.util.concurrent.*;
 
 import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.*;
@@ -47,6 +46,7 @@ import static ch.dissem.bitmessage.utils.Collections.selectRandom;
 import static ch.dissem.bitmessage.utils.DebugUtils.inc;
 import static ch.dissem.bitmessage.utils.ThreadFactoryBuilder.pool;
 import static java.nio.channels.SelectionKey.*;
+import static java.util.Collections.newSetFromMap;
 
 /**
  * Network handler using java.nio, resulting in less threads.
@@ -63,13 +63,14 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
     private InternalContext ctx;
     private Selector selector;
     private ServerSocketChannel serverChannel;
+    private Queue<NetworkAddress> connectionQueue = new ConcurrentLinkedQueue<>();
     private Map<ConnectionInfo, SelectionKey> connections = new ConcurrentHashMap<>();
-    private final Set<InventoryVector> requestedObjects = Collections.newSetFromMap(new ConcurrentHashMap<InventoryVector, Boolean>(10_000));
+    private final Set<InventoryVector> requestedObjects = newSetFromMap(new ConcurrentHashMap<InventoryVector, Boolean>(10_000));
 
     private Thread starter;
 
     @Override
-    public Future<Void> synchronize(final InetAddress server, final int port, final MessageListener listener, final long timeoutInSeconds) {
+    public Future<Void> synchronize(final InetAddress server, final int port, final long timeoutInSeconds) {
         return threadPool.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
@@ -77,7 +78,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                     channel.configureBlocking(false);
                     ConnectionInfo connection = new ConnectionInfo(ctx, SYNC,
                         new NetworkAddress.Builder().ip(server).port(port).stream(1).build(),
-                        listener, new HashSet<InventoryVector>(), timeoutInSeconds);
+                        new HashSet<InventoryVector>(), timeoutInSeconds);
                     while (channel.isConnected() && !connection.isSyncFinished()) {
                         write(channel, connection);
                         read(channel, connection);
@@ -135,10 +136,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
     }
 
     @Override
-    public void start(final MessageListener listener) {
-        if (listener == null) {
-            throw new IllegalStateException("Listener must be set at start");
-        }
+    public void start() {
         if (selector != null && selector.isOpen()) {
             throw new IllegalStateException("Network already running - you need to stop first.");
         }
@@ -147,42 +145,8 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
         } catch (IOException e) {
             throw new ApplicationException(e);
         }
-        thread("connection listener", new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    serverChannel = ServerSocketChannel.open();
-                    serverChannel.socket().bind(new InetSocketAddress(ctx.getPort()));
-                    while (selector.isOpen() && serverChannel.isOpen()) {
-                        try {
-                            SocketChannel accepted = serverChannel.accept();
-                            accepted.configureBlocking(false);
-                            ConnectionInfo connection = new ConnectionInfo(ctx, SERVER,
-                                new NetworkAddress.Builder().address(accepted.getRemoteAddress()).stream(1).build(),
-                                listener,
-                                requestedObjects, 0
-                            );
-                            connections.put(
-                                connection,
-                                accepted.register(selector, OP_READ | OP_WRITE, connection)
-                            );
-                        } catch (AsynchronousCloseException ignore) {
-                            LOG.trace(ignore.getMessage());
-                        } catch (IOException e) {
-                            LOG.error(e.getMessage(), e);
-                        }
-                    }
-                } catch (ClosedSelectorException | AsynchronousCloseException ignore) {
-                } catch (IOException e) {
-                    throw new ApplicationException(e);
-                } catch (RuntimeException e) {
-                    e.printStackTrace();
-                    throw e;
-                }
-            }
-        });
 
-        starter = thread("connection starter", new Runnable() {
+        starter = thread("connection manager", new Runnable() {
             @Override
             public void run() {
                 while (selector.isOpen()) {
@@ -197,34 +161,8 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                         List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(100, ctx.getStreams());
                         addresses = selectRandom(missing, addresses);
                         for (NetworkAddress address : addresses) {
-                            if (isConnectedTo(address)) {
-                                continue;
-                            }
-                            try {
-                                SocketChannel channel = SocketChannel.open();
-                                channel.configureBlocking(false);
-                                channel.connect(new InetSocketAddress(address.toInetAddress(), address.getPort()));
-                                ConnectionInfo connection = new ConnectionInfo(ctx, CLIENT,
-                                    address,
-                                    listener,
-                                    requestedObjects, 0
-                                );
-                                connections.put(
-                                    connection,
-                                    channel.register(selector, OP_CONNECT, connection)
-                                );
-                            } catch (NoRouteToHostException ignore) {
-                                // We'll try to connect to many offline nodes, so
-                                // this is expected to happen quite a lot.
-                            } catch (AsynchronousCloseException e) {
-                                // The exception is expected if the network is being
-                                // shut down, as we actually do asynchronously close
-                                // the connections.
-                                if (isRunning()) {
-                                    LOG.error(e.getMessage(), e);
-                                }
-                            } catch (IOException e) {
-                                LOG.error(e.getMessage(), e);
+                            if (!isConnectedTo(address)) {
+                                connectionQueue.offer(address);
                             }
                         }
                     }
@@ -252,17 +190,47 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
             }
         });
 
-        thread("processor", new Runnable() {
+        thread("selector worker", new Runnable() {
             @Override
             public void run() {
                 try {
+                    serverChannel = ServerSocketChannel.open();
+                    serverChannel.configureBlocking(false);
+                    serverChannel.socket().bind(new InetSocketAddress(ctx.getPort()));
+                    serverChannel.register(selector, OP_ACCEPT, null);
+
                     while (selector.isOpen()) {
                         selector.select(1000);
                         Iterator<SelectionKey> keyIterator = selector.selectedKeys().iterator();
                         while (keyIterator.hasNext()) {
                             SelectionKey key = keyIterator.next();
                             keyIterator.remove();
-                            if (key.attachment() instanceof ConnectionInfo) {
+                            if (key.attachment() == null) {
+                                try {
+                                    if (key.isAcceptable()) {
+                                        // handle accept
+                                        try {
+                                            SocketChannel accepted = ((ServerSocketChannel) key.channel()).accept();
+                                            accepted.configureBlocking(false);
+                                            ConnectionInfo connection = new ConnectionInfo(ctx, SERVER,
+                                                new NetworkAddress.Builder().address(accepted.getRemoteAddress()).stream(1).build(),
+                                                requestedObjects, 0
+                                            );
+                                            connections.put(
+                                                connection,
+                                                accepted.register(selector, OP_READ | OP_WRITE, connection)
+                                            );
+                                        } catch (AsynchronousCloseException e) {
+                                            LOG.trace(e.getMessage());
+                                        } catch (IOException e) {
+                                            LOG.error(e.getMessage(), e);
+                                        }
+                                    }
+                                } catch (CancelledKeyException e) {
+                                    LOG.error(e.getMessage(), e);
+                                }
+                            } else {
+                                // handle read/write
                                 SocketChannel channel = (SocketChannel) key.channel();
                                 ConnectionInfo connection = (ConnectionInfo) key.attachment();
                                 try {
@@ -290,12 +258,42 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                                 }
                             }
                         }
+                        // set interest ops
                         for (Map.Entry<ConnectionInfo, SelectionKey> e : connections.entrySet()) {
                             if (e.getValue().isValid()
                                 && (e.getValue().interestOps() & OP_WRITE) == 0
                                 && (e.getValue().interestOps() & OP_CONNECT) == 0
                                 && !e.getKey().getSendingQueue().isEmpty()) {
                                 e.getValue().interestOps(OP_READ | OP_WRITE);
+                            }
+                        }
+                        // start new connections
+                        if (!connectionQueue.isEmpty()) {
+                            NetworkAddress address = connectionQueue.poll();
+                            try {
+                                SocketChannel channel = SocketChannel.open();
+                                channel.configureBlocking(false);
+                                channel.connect(new InetSocketAddress(address.toInetAddress(), address.getPort()));
+                                ConnectionInfo connection = new ConnectionInfo(ctx, CLIENT,
+                                    address,
+                                    requestedObjects, 0
+                                );
+                                connections.put(
+                                    connection,
+                                    channel.register(selector, OP_CONNECT, connection)
+                                );
+                            } catch (NoRouteToHostException ignore) {
+                                // We'll try to connect to many offline nodes, so
+                                // this is expected to happen quite a lot.
+                            } catch (AsynchronousCloseException e) {
+                                // The exception is expected if the network is being
+                                // shut down, as we actually do asynchronously close
+                                // the connections.
+                                if (isRunning()) {
+                                    LOG.error(e.getMessage(), e);
+                                }
+                            } catch (IOException e) {
+                                LOG.error(e.getMessage(), e);
                             }
                         }
                     }
@@ -387,7 +385,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                 distribution.put(connection, new LinkedList<InventoryVector>());
             }
         }
-        if (distribution.isEmpty()){
+        if (distribution.isEmpty()) {
             return;
         }
         InventoryVector next = iterator.next();

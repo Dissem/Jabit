@@ -17,13 +17,15 @@
 package ch.dissem.bitmessage.networking.nio;
 
 import ch.dissem.bitmessage.InternalContext;
-import ch.dissem.bitmessage.entity.*;
+import ch.dissem.bitmessage.entity.GetData;
+import ch.dissem.bitmessage.entity.MessagePayload;
+import ch.dissem.bitmessage.entity.NetworkMessage;
+import ch.dissem.bitmessage.entity.Version;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.exception.NodeException;
 import ch.dissem.bitmessage.factory.V3MessageReader;
 import ch.dissem.bitmessage.networking.AbstractConnection;
-import ch.dissem.bitmessage.ports.NetworkHandler;
 
 import java.nio.ByteBuffer;
 import java.util.Iterator;
@@ -43,10 +45,9 @@ public class ConnectionInfo extends AbstractConnection {
     private boolean syncFinished;
     private long lastUpdate = System.currentTimeMillis();
 
-    public ConnectionInfo(InternalContext context, Mode mode,
-                          NetworkAddress node, NetworkHandler.MessageListener listener,
+    public ConnectionInfo(InternalContext context, Mode mode, NetworkAddress node,
                           Set<InventoryVector> commonRequestedObjects, long syncTimeout) {
-        super(context, mode, node, listener, commonRequestedObjects, syncTimeout);
+        super(context, mode, node, commonRequestedObjects, syncTimeout);
         headerOut.flip();
         if (mode == CLIENT || mode == SYNC) {
             send(new Version.Builder().defaults(ctx.getClientNonce()).addrFrom(host).addrRecv(node).build());

@@ -41,7 +41,7 @@ public interface NetworkHandler {
      * An implementation should disconnect if either the timeout is reached or the returned thread is interrupted.
      * </p>
      */
-    Future<?> synchronize(InetAddress server, int port, MessageListener listener, long timeoutInSeconds);
+    Future<?> synchronize(InetAddress server, int port, long timeoutInSeconds);
 
     /**
      * Send a custom message to a specific node (that should implement handling for this message type) and returns
@@ -57,7 +57,7 @@ public interface NetworkHandler {
     /**
      * Start a full network node, accepting incoming connections and relaying objects.
      */
-    void start(MessageListener listener);
+    void start();
 
     /**
      * Stop the full network node.
