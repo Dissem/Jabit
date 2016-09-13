@@ -37,7 +37,11 @@ class GitFlowVersion implements Plugin<Project> {
         if (project.ext.isRelease) {
             return getTag(project)
         } else {
-            return getBranch(project).replaceAll("/", "-") + "-SNAPSHOT"
+            def branch = getBranch(project)
+            if ("develop" == branch) {
+                return "development-SNAPSHOT"
+            }
+            return branch.replaceAll("/", "-") + "-SNAPSHOT"
         }
     }
 
