@@ -43,7 +43,10 @@ import static java.util.Collections.newSetFromMap;
 
 /**
  * Handles all the networky stuff.
+ *
+ * @deprecated use {@link ch.dissem.bitmessage.networking.nio.NioNetworkHandler NioNetworkHandler} instead.
  */
+@Deprecated
 public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
 
     final Collection<Connection> connections = new ConcurrentLinkedQueue<>();
