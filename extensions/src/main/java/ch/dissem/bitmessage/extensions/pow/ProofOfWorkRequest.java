@@ -24,6 +24,7 @@ import ch.dissem.bitmessage.utils.Encode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import static ch.dissem.bitmessage.utils.Decode.*;
@@ -81,6 +82,13 @@ public class ProofOfWorkRequest implements Streamable {
         out.write(initialHash);
         Encode.varString(request.name(), out);
         Encode.varBytes(data, out);
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        buffer.put(initialHash);
+        Encode.varString(request.name(), buffer);
+        Encode.varBytes(data, buffer);
     }
 
     @Override

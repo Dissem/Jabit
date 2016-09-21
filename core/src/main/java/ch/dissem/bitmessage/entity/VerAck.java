@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.entity;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
 /**
  * The 'verack' command answers a 'version' command, accepting the other node's version.
@@ -32,6 +33,11 @@ public class VerAck implements MessagePayload {
 
     @Override
     public void write(OutputStream stream) throws IOException {
+        // 'verack' doesn't have any payload, so there is nothing to write
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
         // 'verack' doesn't have any payload, so there is nothing to write
     }
 }

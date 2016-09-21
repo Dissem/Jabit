@@ -4,17 +4,23 @@ import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
+import ch.dissem.bitmessage.networking.nio.NioNetworkHandler;
 import ch.dissem.bitmessage.ports.DefaultLabeler;
 import ch.dissem.bitmessage.ports.Labeler;
+import ch.dissem.bitmessage.ports.NetworkHandler;
 import ch.dissem.bitmessage.repository.*;
 import ch.dissem.bitmessage.utils.TTL;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -27,8 +33,11 @@ import static org.mockito.Matchers.any;
 /**
  * @author Christian Basler
  */
+@RunWith(Parameterized.class)
 public class SystemTest {
     private static int port = 6000;
+    private final NetworkHandler aliceNetworkHandler;
+    private final NetworkHandler bobNetworkHandler;
 
     private BitmessageContext alice;
     private TestListener aliceListener = new TestListener();
@@ -38,6 +47,19 @@ public class SystemTest {
     private BitmessageContext bob;
     private TestListener bobListener = new TestListener();
     private BitmessageAddress bobIdentity;
+
+    public SystemTest(NetworkHandler peer, NetworkHandler node) {
+        this.aliceNetworkHandler = peer;
+        this.bobNetworkHandler = node;
+    }
+
+    @Parameterized.Parameters
+    public static List<Object[]> parameters() {
+        return Arrays.asList(new Object[][]{
+                {new NioNetworkHandler(), new DefaultNetworkHandler()},
+                {new NioNetworkHandler(), new NioNetworkHandler()}
+        });
+    }
 
     @Before
     public void setUp() {
@@ -54,7 +76,7 @@ public class SystemTest {
                 .powRepo(new JdbcProofOfWorkRepository(aliceDB))
                 .port(alicePort)
                 .nodeRegistry(new TestNodeRegistry(bobPort))
-                .networkHandler(new DefaultNetworkHandler())
+                .networkHandler(aliceNetworkHandler)
                 .cryptography(new BouncyCryptography())
                 .listener(aliceListener)
                 .labeler(aliceLabeler)
@@ -70,7 +92,7 @@ public class SystemTest {
                 .powRepo(new JdbcProofOfWorkRepository(bobDB))
                 .port(bobPort)
                 .nodeRegistry(new TestNodeRegistry(alicePort))
-                .networkHandler(new DefaultNetworkHandler())
+                .networkHandler(bobNetworkHandler)
                 .cryptography(new BouncyCryptography())
                 .listener(bobListener)
                 .labeler(new DebugLabeler("Bob"))
@@ -88,7 +110,7 @@ public class SystemTest {
         bob.shutdown();
     }
 
-    @Test
+    @Test(timeout = 60_000)
     public void ensureAliceCanSendMessageToBob() throws Exception {
         String originalMessage = UUID.randomUUID().toString();
         alice.send(aliceIdentity, new BitmessageAddress(bobIdentity.getAddress()), "Subject", originalMessage);
@@ -102,7 +124,7 @@ public class SystemTest {
                 .markAsAcknowledged(any());
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void ensureBobCanReceiveBroadcastFromAlice() throws Exception {
         String originalMessage = UUID.randomUUID().toString();
         bob.addSubscribtion(new BitmessageAddress(aliceIdentity.getAddress()));

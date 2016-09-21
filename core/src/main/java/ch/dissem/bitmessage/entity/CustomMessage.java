@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.utils.AccessCounter;
 import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 
 import static ch.dissem.bitmessage.utils.Decode.bytes;
 import static ch.dissem.bitmessage.utils.Decode.varString;
@@ -79,6 +80,17 @@ public class CustomMessage implements MessagePayload {
         if (data != null) {
             Encode.varString(command, out);
             out.write(data);
+        } else {
+            throw new ApplicationException("Tried to write custom message without data. " +
+                    "Programmer: did you forget to override #write()?");
+        }
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        if (data != null) {
+            Encode.varString(command, buffer);
+            buffer.put(data);
         } else {
             throw new ApplicationException("Tried to write custom message without data. " +
                     "Programmer: did you forget to override #write()?");

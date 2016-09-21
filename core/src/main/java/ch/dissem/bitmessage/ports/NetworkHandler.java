@@ -23,19 +23,25 @@ import ch.dissem.bitmessage.utils.Property;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.Collection;
 import java.util.concurrent.Future;
 
 /**
  * Handles incoming messages
  */
 public interface NetworkHandler {
+    int NETWORK_MAGIC_NUMBER = 8;
+    int HEADER_SIZE = 24;
+    int MAX_PAYLOAD_SIZE = 1600003;
+    int MAX_MESSAGE_SIZE = HEADER_SIZE + MAX_PAYLOAD_SIZE;
+
     /**
      * Connects to the trusted host, fetches and offers new messages and disconnects afterwards.
      * <p>
      * An implementation should disconnect if either the timeout is reached or the returned thread is interrupted.
      * </p>
      */
-    Future<?> synchronize(InetAddress server, int port, MessageListener listener, long timeoutInSeconds);
+    Future<?> synchronize(InetAddress server, int port, long timeoutInSeconds);
 
     /**
      * Send a custom message to a specific node (that should implement handling for this message type) and returns
@@ -51,7 +57,7 @@ public interface NetworkHandler {
     /**
      * Start a full network node, accepting incoming connections and relaying objects.
      */
-    void start(MessageListener listener);
+    void start();
 
     /**
      * Stop the full network node.
@@ -62,6 +68,13 @@ public interface NetworkHandler {
      * Offer new objects to up to 8 random nodes.
      */
     void offer(InventoryVector iv);
+
+    /**
+     * Request each of those objects from a node that knows of the requested object.
+     *
+     * @param inventoryVectors of the objects to be requested
+     */
+    void request(Collection<InventoryVector> inventoryVectors);
 
     Property getNetworkStatus();
 

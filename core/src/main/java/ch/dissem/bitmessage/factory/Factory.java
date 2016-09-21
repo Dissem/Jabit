@@ -40,7 +40,7 @@ import static ch.dissem.bitmessage.utils.Singleton.cryptography;
  * Creates {@link NetworkMessage} objects from {@link InputStream InputStreams}
  */
 public class Factory {
-    public static final Logger LOG = LoggerFactory.getLogger(Factory.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Factory.class);
 
     public static NetworkMessage getNetworkMessage(int version, InputStream stream) throws SocketTimeoutException {
         try {

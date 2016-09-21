@@ -24,6 +24,7 @@ import ch.dissem.bitmessage.utils.Decode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 /**
@@ -86,8 +87,19 @@ public class V4Pubkey extends Pubkey implements Encrypted {
     }
 
     @Override
+    public void write(ByteBuffer buffer) {
+        buffer.put(tag);
+        encrypted.write(buffer);
+    }
+
+    @Override
     public void writeUnencrypted(OutputStream out) throws IOException {
         decrypted.write(out);
+    }
+
+    @Override
+    public void writeUnencrypted(ByteBuffer buffer) {
+        decrypted.write(buffer);
     }
 
     @Override

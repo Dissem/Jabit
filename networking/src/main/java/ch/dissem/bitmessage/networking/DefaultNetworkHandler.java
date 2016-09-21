@@ -35,24 +35,26 @@ import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.*;
 
-import static ch.dissem.bitmessage.networking.Connection.Mode.SERVER;
-import static ch.dissem.bitmessage.networking.Connection.State.ACTIVE;
+import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.SERVER;
+import static ch.dissem.bitmessage.networking.AbstractConnection.State.ACTIVE;
 import static ch.dissem.bitmessage.utils.DebugUtils.inc;
 import static ch.dissem.bitmessage.utils.ThreadFactoryBuilder.pool;
 import static java.util.Collections.newSetFromMap;
 
 /**
  * Handles all the networky stuff.
+ *
+ * @deprecated use {@link ch.dissem.bitmessage.networking.nio.NioNetworkHandler NioNetworkHandler} instead.
  */
+@Deprecated
 public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
-    public final static int NETWORK_MAGIC_NUMBER = 8;
 
     final Collection<Connection> connections = new ConcurrentLinkedQueue<>();
     private final ExecutorService pool = Executors.newCachedThreadPool(
-            pool("network")
-                    .lowPrio()
-                    .daemon()
-                    .build());
+        pool("network")
+            .lowPrio()
+            .daemon()
+            .build());
     private InternalContext ctx;
     private ServerRunnable server;
     private volatile boolean running;
@@ -65,9 +67,9 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
     }
 
     @Override
-    public Future<?> synchronize(InetAddress server, int port, MessageListener listener, long timeoutInSeconds) {
+    public Future<?> synchronize(InetAddress server, int port, long timeoutInSeconds) {
         try {
-            Connection connection = Connection.sync(ctx, server, port, listener, timeoutInSeconds);
+            Connection connection = Connection.sync(ctx, server, port, ctx.getNetworkListener(), timeoutInSeconds);
             Future<?> reader = pool.submit(connection.getReader());
             pool.execute(connection.getWriter());
             return reader;
@@ -89,28 +91,25 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
                     throw new NodeException("No response from node " + server);
                 } else {
                     throw new NodeException("Unexpected response from node " +
-                            server + ": " + networkMessage.getPayload().getCommand());
+                        server + ": " + networkMessage.getPayload().getCommand());
                 }
             }
         } catch (IOException e) {
-            throw new ApplicationException(e);
+            throw new NodeException(e.getMessage(), e);
         }
     }
 
     @Override
-    public void start(final MessageListener listener) {
-        if (listener == null) {
-            throw new IllegalStateException("Listener must be set at start");
-        }
+    public void start() {
         if (running) {
             throw new IllegalStateException("Network already running - you need to stop first.");
         }
         try {
             running = true;
             connections.clear();
-            server = new ServerRunnable(ctx, this, listener, ctx.getClientNonce());
+            server = new ServerRunnable(ctx, this);
             pool.execute(server);
-            pool.execute(new ConnectionOrganizer(ctx, this, listener, ctx.getClientNonce()));
+            pool.execute(new ConnectionOrganizer(ctx, this));
         } catch (IOException e) {
             throw new ApplicationException(e);
         }
@@ -171,12 +170,13 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
 
         for (Connection connection : connections) {
             if (connection.getState() == ACTIVE) {
-                long stream = connection.getNode().getStream();
-                streams.add(stream);
-                if (connection.getMode() == SERVER) {
-                    inc(incomingConnections, stream);
-                } else {
-                    inc(outgoingConnections, stream);
+                for (long stream : connection.getStreams()) {
+                    streams.add(stream);
+                    if (connection.getMode() == SERVER) {
+                        inc(incomingConnections, stream);
+                    } else {
+                        inc(outgoingConnections, stream);
+                    }
                 }
             }
         }
@@ -186,20 +186,21 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
             int incoming = incomingConnections.containsKey(stream) ? incomingConnections.get(stream) : 0;
             int outgoing = outgoingConnections.containsKey(stream) ? outgoingConnections.get(stream) : 0;
             streamProperties[i] = new Property("stream " + stream,
-                    null, new Property("nodes", incoming + outgoing),
-                    new Property("incoming", incoming),
-                    new Property("outgoing", outgoing)
+                null, new Property("nodes", incoming + outgoing),
+                new Property("incoming", incoming),
+                new Property("outgoing", outgoing)
             );
             i++;
         }
         return new Property("network", null,
-                new Property("connectionManager", running ? "running" : "stopped"),
-                new Property("connections", null, streamProperties),
-                new Property("requestedObjects", requestedObjects.size())
+            new Property("connectionManager", running ? "running" : "stopped"),
+            new Property("connections", null, streamProperties),
+            new Property("requestedObjects", requestedObjects.size())
         );
     }
 
-    void request(Set<InventoryVector> inventoryVectors) {
+    @Override
+    public void request(Collection<InventoryVector> inventoryVectors) {
         if (!running || inventoryVectors.isEmpty()) return;
 
         Map<Connection, List<InventoryVector>> distribution = new HashMap<>();

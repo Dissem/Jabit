@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import static ch.dissem.bitmessage.networking.Connection.Mode.SERVER;
+import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.SERVER;
 
 /**
  * @author Christian Basler
@@ -37,15 +37,12 @@ public class ServerRunnable implements Runnable, Closeable {
     private final ServerSocket serverSocket;
     private final DefaultNetworkHandler networkHandler;
     private final NetworkHandler.MessageListener listener;
-    private final long clientNonce;
 
-    public ServerRunnable(InternalContext ctx, DefaultNetworkHandler networkHandler,
-                          NetworkHandler.MessageListener listener, long clientNonce) throws IOException {
+    public ServerRunnable(InternalContext ctx, DefaultNetworkHandler networkHandler) throws IOException {
         this.ctx = ctx;
         this.networkHandler = networkHandler;
-        this.listener = listener;
+        this.listener = ctx.getNetworkListener();
         this.serverSocket = new ServerSocket(ctx.getPort());
-        this.clientNonce = clientNonce;
     }
 
     @Override
@@ -54,8 +51,7 @@ public class ServerRunnable implements Runnable, Closeable {
             try {
                 Socket socket = serverSocket.accept();
                 socket.setSoTimeout(Connection.READ_TIMEOUT);
-                networkHandler.startConnection(new Connection(ctx, SERVER, socket, listener,
-                        networkHandler.requestedObjects, clientNonce));
+                networkHandler.startConnection(new Connection(ctx, SERVER, socket, networkHandler.requestedObjects));
             } catch (IOException e) {
                 LOG.debug(e.getMessage(), e);
             }

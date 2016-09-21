@@ -24,7 +24,6 @@ import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.ports.Labeler;
 import ch.dissem.bitmessage.ports.NetworkHandler;
-import ch.dissem.bitmessage.utils.TTL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,19 +31,22 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
-import static ch.dissem.bitmessage.utils.UnixTime.DAY;
+import static ch.dissem.bitmessage.entity.Plaintext.Status.PUBKEY_REQUESTED;
 
-class DefaultMessageListener implements NetworkHandler.MessageListener {
+class DefaultMessageListener implements NetworkHandler.MessageListener, InternalContext.ContextHolder {
     private final static Logger LOG = LoggerFactory.getLogger(DefaultMessageListener.class);
-    private final InternalContext ctx;
     private final Labeler labeler;
     private final BitmessageContext.Listener listener;
+    private InternalContext ctx;
 
-    public DefaultMessageListener(InternalContext context, Labeler labeler, BitmessageContext.Listener listener) {
-        this.ctx = context;
+    public DefaultMessageListener(Labeler labeler, BitmessageContext.Listener listener) {
         this.labeler = labeler;
         this.listener = listener;
+    }
+
+    @Override
+    public void setContext(InternalContext context) {
+        this.ctx = context;
     }
 
     @Override

@@ -24,6 +24,7 @@ import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.Objects;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
@@ -109,6 +110,12 @@ public class Msg extends ObjectPayload implements Encrypted, PlaintextHolder {
     public void write(OutputStream out) throws IOException {
         if (encrypted == null) throw new IllegalStateException("Msg must be signed and encrypted before writing it.");
         encrypted.write(out);
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        if (encrypted == null) throw new IllegalStateException("Msg must be signed and encrypted before writing it.");
+        encrypted.write(buffer);
     }
 
     @Override

@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.entity.payload;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 import static ch.dissem.bitmessage.utils.Singleton.cryptography;
@@ -58,6 +59,10 @@ public abstract class Pubkey extends ObjectPayload {
 
     public void writeUnencrypted(OutputStream out) throws IOException {
         write(out);
+    }
+
+    public void writeUnencrypted(ByteBuffer buffer){
+        write(buffer);
     }
 
     protected byte[] add0x04(byte[] key) {

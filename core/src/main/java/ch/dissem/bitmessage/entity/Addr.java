@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -47,10 +48,18 @@ public class Addr implements MessagePayload {
     }
 
     @Override
-    public void write(OutputStream stream) throws IOException {
-        Encode.varInt(addresses.size(), stream);
+    public void write(OutputStream out) throws IOException {
+        Encode.varInt(addresses.size(), out);
         for (NetworkAddress address : addresses) {
-            address.write(stream);
+            address.write(out);
+        }
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        Encode.varInt(addresses.size(), buffer);
+        for (NetworkAddress address : addresses) {
+            address.write(buffer);
         }
     }
 

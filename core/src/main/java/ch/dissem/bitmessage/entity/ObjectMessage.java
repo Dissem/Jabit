@@ -29,6 +29,7 @@ import ch.dissem.bitmessage.utils.Encode;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -166,6 +167,16 @@ public class ObjectMessage implements MessagePayload {
             out.write(nonce);
         }
         out.write(getPayloadBytesWithoutNonce());
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        if (nonce == null) {
+            buffer.put(new byte[8]);
+        } else {
+            buffer.put(nonce);
+        }
+        buffer.put(getPayloadBytesWithoutNonce());
     }
 
     private void writeHeaderWithoutNonce(OutputStream out) throws IOException {

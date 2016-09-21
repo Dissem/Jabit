@@ -25,6 +25,7 @@ import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.*;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.Collections;
 
@@ -197,10 +198,47 @@ public class Plaintext implements Streamable {
             }
         }
     }
+    public void write(ByteBuffer buffer, boolean includeSignature) {
+        Encode.varInt(from.getVersion(), buffer);
+        Encode.varInt(from.getStream(), buffer);
+        Encode.int32(from.getPubkey().getBehaviorBitfield(), buffer);
+        buffer.put(from.getPubkey().getSigningKey(), 1, 64);
+        buffer.put(from.getPubkey().getEncryptionKey(), 1, 64);
+        if (from.getVersion() >= 3) {
+            Encode.varInt(from.getPubkey().getNonceTrialsPerByte(), buffer);
+            Encode.varInt(from.getPubkey().getExtraBytes(), buffer);
+        }
+        if (type == Type.MSG) {
+            buffer.put(to.getRipe());
+        }
+        Encode.varInt(encoding, buffer);
+        Encode.varInt(message.length, buffer);
+        buffer.put(message);
+        if (type == Type.MSG) {
+            if (to.has(Feature.DOES_ACK) && getAckMessage() != null) {
+                Encode.varBytes(Encode.bytes(getAckMessage()), buffer);
+            } else {
+                Encode.varInt(0, buffer);
+            }
+        }
+        if (includeSignature) {
+            if (signature == null) {
+                Encode.varInt(0, buffer);
+            } else {
+                Encode.varInt(signature.length, buffer);
+                buffer.put(signature);
+            }
+        }
+    }
 
     @Override
     public void write(OutputStream out) throws IOException {
         write(out, true);
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        write(buffer, true);
     }
 
     public Object getId() {

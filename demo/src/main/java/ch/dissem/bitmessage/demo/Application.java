@@ -17,14 +17,10 @@
 package ch.dissem.bitmessage.demo;
 
 import ch.dissem.bitmessage.BitmessageContext;
-import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.Label;
-import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
-import ch.dissem.bitmessage.ports.MemoryNodeRegistry;
-import ch.dissem.bitmessage.repository.*;
 import org.apache.commons.lang3.text.WordUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,19 +41,10 @@ public class Application {
 
     private BitmessageContext ctx;
 
-    public Application(InetAddress syncServer, int syncPort) {
-        JdbcConfig jdbcConfig = new JdbcConfig();
-        ctx = new BitmessageContext.Builder()
-                .addressRepo(new JdbcAddressRepository(jdbcConfig))
-                .inventory(new JdbcInventory(jdbcConfig))
-                .nodeRegistry(new MemoryNodeRegistry())
-                .messageRepo(new JdbcMessageRepository(jdbcConfig))
-                .powRepo(new JdbcProofOfWorkRepository(jdbcConfig))
-                .networkHandler(new DefaultNetworkHandler())
-                .cryptography(new BouncyCryptography())
-                .port(48444)
-                .listener(plaintext -> System.out.println("New Message from " + plaintext.getFrom() + ": " + plaintext.getSubject()))
-                .build();
+    public Application(BitmessageContext.Builder ctxBuilder, InetAddress syncServer, int syncPort) {
+        ctx = ctxBuilder
+            .listener(plaintext -> System.out.println("New Message from " + plaintext.getFrom() + ": " + plaintext.getSubject()))
+            .build();
 
         if (syncServer == null) {
             ctx.startup();
@@ -392,7 +379,7 @@ public class Application {
         System.out.println(WordUtils.wrap(message.getText(), 120));
         System.out.println();
         System.out.println(message.getLabels().stream().map(Label::toString).collect(
-                Collectors.joining(", ", "Labels: ", "")));
+            Collectors.joining(", ", "Labels: ", "")));
         System.out.println();
         ctx.labeler().markAsRead(message);
         ctx.messages().save(message);

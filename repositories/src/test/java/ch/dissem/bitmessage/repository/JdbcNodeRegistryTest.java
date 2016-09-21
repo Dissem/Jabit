@@ -17,8 +17,8 @@
 package ch.dissem.bitmessage.repository;
 
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
-import ch.dissem.bitmessage.ports.MemoryNodeRegistry;
 import ch.dissem.bitmessage.ports.NodeRegistry;
+import ch.dissem.bitmessage.utils.UnixTime;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -27,8 +27,15 @@ import java.util.Collections;
 import java.util.List;
 
 import static ch.dissem.bitmessage.utils.UnixTime.now;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
+/**
+ * Please note that some tests fail if there is no internet connection,
+ * as the initial nodes' IP addresses are determined by DNS lookup.
+ */
 public class JdbcNodeRegistryTest extends TestBase {
     private TestJdbcConfig config;
     private NodeRegistry registry;
@@ -37,21 +44,26 @@ public class JdbcNodeRegistryTest extends TestBase {
     public void setUp() throws Exception {
         config = new TestJdbcConfig();
         config.reset();
-        registry = new MemoryNodeRegistry();
+        registry = new JdbcNodeRegistry(config);
 
         registry.offerAddresses(Arrays.asList(
-                createAddress(1, 8444, 1, now()),
-                createAddress(2, 8444, 1, now()),
-                createAddress(3, 8444, 1, now()),
-                createAddress(4, 8444, 2, now())
+            createAddress(1, 8444, 1, now()),
+            createAddress(2, 8444, 1, now()),
+            createAddress(3, 8444, 1, now()),
+            createAddress(4, 8444, 2, now())
         ));
     }
 
     @Test
-    public void testInitNodes() throws Exception {
+    public void ensureGetKnownNodesWithoutStreamsYieldsEmpty() {
+        assertThat(registry.getKnownAddresses(10), empty());
+    }
+
+    @Test
+    public void ensurePredefinedNodeIsReturnedWhenDatabaseIsEmpty() throws Exception {
         config.reset();
         List<NetworkAddress> knownAddresses = registry.getKnownAddresses(2, 1);
-        assertEquals(2, knownAddresses.size());
+        assertEquals(1, knownAddresses.size());
     }
 
     @Test
@@ -66,16 +78,16 @@ public class JdbcNodeRegistryTest extends TestBase {
     @Test
     public void testOfferAddresses() throws Exception {
         registry.offerAddresses(Arrays.asList(
-                createAddress(1, 8444, 1, now()),
-                createAddress(10, 8444, 1, now()),
-                createAddress(11, 8444, 1, now())
+            createAddress(1, 8444, 1, now()),
+            createAddress(10, 8444, 1, now()),
+            createAddress(11, 8444, 1, now())
         ));
 
         List<NetworkAddress> knownAddresses = registry.getKnownAddresses(1000, 1);
         assertEquals(5, knownAddresses.size());
 
         registry.offerAddresses(Collections.singletonList(
-                createAddress(1, 8445, 1, now())
+            createAddress(1, 8445, 1, now())
         ));
 
         knownAddresses = registry.getKnownAddresses(1000, 1);
@@ -84,10 +96,10 @@ public class JdbcNodeRegistryTest extends TestBase {
 
     private NetworkAddress createAddress(int lastByte, int port, long stream, long time) {
         return new NetworkAddress.Builder()
-                .ipv6(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, lastByte)
-                .port(port)
-                .stream(stream)
-                .time(time)
-                .build();
+            .ipv6(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, lastByte)
+            .port(port)
+            .stream(stream)
+            .time(time)
+            .build();
     }
 }

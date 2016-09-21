@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -50,6 +51,14 @@ public class Inv implements MessagePayload {
         Encode.varInt(inventory.size(), out);
         for (InventoryVector iv : inventory) {
             iv.write(out);
+        }
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        Encode.varInt(inventory.size(), buffer);
+        for (InventoryVector iv : inventory) {
+            iv.write(buffer);
         }
     }
 

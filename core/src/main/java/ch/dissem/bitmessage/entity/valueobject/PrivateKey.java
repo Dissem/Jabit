@@ -27,6 +27,7 @@ import ch.dissem.bitmessage.utils.Decode;
 import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -113,24 +114,20 @@ public class PrivateKey implements Streamable {
         }
 
         Builder generate() {
-            try {
-                long signingKeyNonce = nextNonce;
-                long encryptionKeyNonce = nextNonce + 1;
-                byte[] ripe;
-                do {
-                    privEK = Bytes.truncate(cryptography().sha512(seed, Encode.varInt(encryptionKeyNonce)), 32);
-                    privSK = Bytes.truncate(cryptography().sha512(seed, Encode.varInt(signingKeyNonce)), 32);
-                    pubSK = cryptography().createPublicKey(privSK);
-                    pubEK = cryptography().createPublicKey(privEK);
-                    ripe = cryptography().ripemd160(cryptography().sha512(pubSK, pubEK));
+            long signingKeyNonce = nextNonce;
+            long encryptionKeyNonce = nextNonce + 1;
+            byte[] ripe;
+            do {
+                privEK = Bytes.truncate(cryptography().sha512(seed, Encode.varInt(encryptionKeyNonce)), 32);
+                privSK = Bytes.truncate(cryptography().sha512(seed, Encode.varInt(signingKeyNonce)), 32);
+                pubSK = cryptography().createPublicKey(privSK);
+                pubEK = cryptography().createPublicKey(privEK);
+                ripe = cryptography().ripemd160(cryptography().sha512(pubSK, pubEK));
 
-                    signingKeyNonce += 2;
-                    encryptionKeyNonce += 2;
-                } while (ripe[0] != 0 || (shorter && ripe[1] != 0));
-                nextNonce = signingKeyNonce;
-            } catch (IOException e) {
-                throw new ApplicationException(e);
-            }
+                signingKeyNonce += 2;
+                encryptionKeyNonce += 2;
+            } while (ripe[0] != 0 || (shorter && ripe[1] != 0));
+            nextNonce = signingKeyNonce;
             return this;
         }
     }
@@ -181,5 +178,21 @@ public class PrivateKey implements Streamable {
         out.write(privateSigningKey);
         Encode.varInt(privateEncryptionKey.length, out);
         out.write(privateEncryptionKey);
+    }
+
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        Encode.varInt(pubkey.getVersion(), buffer);
+        Encode.varInt(pubkey.getStream(), buffer);
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            pubkey.writeUnencrypted(baos);
+            Encode.varBytes(baos.toByteArray(), buffer);
+        } catch (IOException e) {
+            throw new ApplicationException(e);
+        }
+        Encode.varBytes(privateSigningKey, buffer);
+        Encode.varBytes(privateEncryptionKey, buffer);
     }
 }

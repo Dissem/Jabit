@@ -22,6 +22,7 @@ import ch.dissem.bitmessage.utils.Encode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
 /**
  * A version 2 public key.
@@ -86,10 +87,17 @@ public class V2Pubkey extends Pubkey {
     }
 
     @Override
-    public void write(OutputStream os) throws IOException {
-        Encode.int32(behaviorBitfield, os);
-        os.write(publicSigningKey, 1, 64);
-        os.write(publicEncryptionKey, 1, 64);
+    public void write(OutputStream out) throws IOException {
+        Encode.int32(behaviorBitfield, out);
+        out.write(publicSigningKey, 1, 64);
+        out.write(publicEncryptionKey, 1, 64);
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        Encode.int32(behaviorBitfield, buffer);
+        buffer.put(publicSigningKey, 1, 64);
+        buffer.put(publicEncryptionKey, 1, 64);
     }
 
     public static class Builder {

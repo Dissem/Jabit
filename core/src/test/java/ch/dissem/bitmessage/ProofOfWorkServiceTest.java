@@ -66,6 +66,7 @@ public class ProofOfWorkServiceTest {
         when(ctx.getNetworkHandler()).thenReturn(networkHandler);
         when(ctx.getMessageRepository()).thenReturn(messageRepo);
         when(ctx.getLabeler()).thenReturn(mock(Labeler.class));
+        when(ctx.getNetworkListener()).thenReturn(mock(NetworkHandler.MessageListener.class));
 
         proofOfWorkService = new ProofOfWorkService();
         proofOfWorkService.setContext(ctx);
@@ -80,7 +81,7 @@ public class ProofOfWorkServiceTest {
         proofOfWorkService.doMissingProofOfWork(10);
 
         verify(cryptography, timeout(1000)).doProofOfWork((ObjectMessage) isNull(), eq(1001L), eq(1002L),
-                any(ProofOfWorkEngine.Callback.class));
+            any(ProofOfWorkEngine.Callback.class));
     }
 
     @Test
@@ -89,8 +90,8 @@ public class ProofOfWorkServiceTest {
         BitmessageAddress address = TestUtils.loadContact();
         Plaintext plaintext = new Plaintext.Builder(MSG).from(identity).to(address).message("", "").build();
         ObjectMessage object = new ObjectMessage.Builder()
-                .payload(new Msg(plaintext))
-                .build();
+            .payload(new Msg(plaintext))
+            .build();
         object.sign(identity.getPrivateKey());
         object.encrypt(address.getPubkey());
         byte[] initialHash = new byte[64];

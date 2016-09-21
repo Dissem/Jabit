@@ -13,5 +13,5 @@ uploadArchives {
 dependencies {
     compile project(':core')
     compile 'com.madgag.spongycastle:prov:1.52.0.0'
-    testCompile 'junit:junit:4.11'
+    testCompile 'junit:junit:4.12'
 }

@@ -81,8 +81,7 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
         try (
                 Connection connection = config.getConnection();
                 Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT count(*) FROM Message WHERE " + where
-                        + " ORDER BY received DESC")
+                ResultSet rs = stmt.executeQuery("SELECT count(*) FROM Message WHERE " + where)
         ) {
             if (rs.next()) {
                 return rs.getInt(1);
@@ -121,7 +120,7 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
                 builder.retries(rs.getInt("retries"));
                 builder.nextTry(rs.getLong("next_try"));
                 builder.labels(findLabels(connection,
-                        "WHERE id IN (SELECT label_id FROM Message_Label WHERE message_id=" + id + ") ORDER BY ord"));
+                        "id IN (SELECT label_id FROM Message_Label WHERE message_id=" + id + ") ORDER BY ord"));
                 Plaintext message = builder.build();
                 message.setInitialHash(rs.getBytes("initial_hash"));
                 result.add(message);

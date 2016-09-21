@@ -24,7 +24,10 @@ import ch.dissem.bitmessage.utils.UnixTime;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 /**
@@ -38,19 +41,19 @@ public class NetworkAddress implements Streamable {
     /**
      * Stream number for this node
      */
-    private long stream;
+    private final long stream;
 
     /**
      * same service(s) listed in version
      */
-    private long services;
+    private final long services;
 
     /**
      * IPv6 address. IPv4 addresses are written into the message as a 16 byte IPv4-mapped IPv6 address
      * (12 bytes 00 00 00 00 00 00 00 00 00 00 FF FF, followed by the 4 bytes of the IPv4 address).
      */
-    private byte[] ipv6;
-    private int port;
+    private final byte[] ipv6;
+    private final int port;
 
     private NetworkAddress(Builder builder) {
         time = builder.time;
@@ -119,14 +122,29 @@ public class NetworkAddress implements Streamable {
         write(stream, false);
     }
 
-    public void write(OutputStream stream, boolean light) throws IOException {
+    public void write(OutputStream out, boolean light) throws IOException {
         if (!light) {
-            Encode.int64(time, stream);
-            Encode.int32(this.stream, stream);
+            Encode.int64(time, out);
+            Encode.int32(stream, out);
         }
-        Encode.int64(services, stream);
-        stream.write(ipv6);
-        Encode.int16(port, stream);
+        Encode.int64(services, out);
+        out.write(ipv6);
+        Encode.int16(port, out);
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        write(buffer, false);
+    }
+
+    public void write(ByteBuffer buffer, boolean light) {
+        if (!light) {
+            Encode.int64(time, buffer);
+            Encode.int32(stream, buffer);
+        }
+        Encode.int64(services, buffer);
+        buffer.put(ipv6);
+        Encode.int16(port, buffer);
     }
 
     public static final class Builder {
@@ -196,6 +214,17 @@ public class NetworkAddress implements Streamable {
 
         public Builder port(final int port) {
             this.port = port;
+            return this;
+        }
+
+        public Builder address(SocketAddress address) {
+            if (address instanceof InetSocketAddress) {
+                InetSocketAddress inetAddress = (InetSocketAddress) address;
+                ip(inetAddress.getAddress());
+                port(inetAddress.getPort());
+            } else {
+                throw new IllegalArgumentException("Unknown type of address: " + address.getClass());
+            }
             return this;
         }
 

@@ -23,6 +23,8 @@ package ch.dissem.bitmessage.utils;
  * situations.
  */
 public class Bytes {
+    public static final byte BYTE_0x80 = (byte) 0x80;
+
     public static void inc(byte[] nonce) {
         for (int i = nonce.length - 1; i >= 0; i--) {
             nonce[i]++;
@@ -82,11 +84,7 @@ public class Bytes {
     }
 
     private static boolean lt(byte a, byte b) {
-        if (a < 0) return b < 0 && a < b;
-        if (b < 0) return a >= 0 || a < b;
-        return a < b;
-        // This would be easier to understand, but is (slightly) slower:
-        // return (a & 0xff) < (b & 0xff);
+        return (a ^ BYTE_0x80) < (b ^ BYTE_0x80);
     }
 
     /**

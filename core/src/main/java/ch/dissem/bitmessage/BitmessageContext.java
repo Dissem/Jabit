@@ -62,16 +62,16 @@ public class BitmessageContext {
     private final InternalContext ctx;
 
     private final Labeler labeler;
-    private final NetworkHandler.MessageListener networkListener;
 
     private final boolean sendPubkeyOnIdentityCreation;
 
     private BitmessageContext(Builder builder) {
+        if (builder.listener instanceof Listener.WithContext) {
+            ((Listener.WithContext) builder.listener).setContext(this);
+        }
         ctx = new InternalContext(builder);
         labeler = builder.labeler;
         ctx.getProofOfWorkService().doMissingProofOfWork(30_000); // TODO: this should be configurable
-
-        networkListener = new DefaultMessageListener(ctx, labeler, builder.listener);
         sendPubkeyOnIdentityCreation = builder.sendPubkeyOnIdentityCreation;
     }
 
@@ -89,11 +89,11 @@ public class BitmessageContext {
 
     public BitmessageAddress createIdentity(boolean shorter, Feature... features) {
         final BitmessageAddress identity = new BitmessageAddress(new PrivateKey(
-                shorter,
-                ctx.getStreams()[0],
-                NETWORK_NONCE_TRIALS_PER_BYTE,
-                NETWORK_EXTRA_BYTES,
-                features
+            shorter,
+            ctx.getStreams()[0],
+            NETWORK_NONCE_TRIALS_PER_BYTE,
+            NETWORK_EXTRA_BYTES,
+            features
         ));
         ctx.getAddressRepository().save(identity);
         if (sendPubkeyOnIdentityCreation) {
@@ -117,9 +117,9 @@ public class BitmessageContext {
     }
 
     public List<BitmessageAddress> createDeterministicAddresses(
-            String passphrase, int numberOfAddresses, long version, long stream, boolean shorter) {
+        String passphrase, int numberOfAddresses, long version, long stream, boolean shorter) {
         List<BitmessageAddress> result = BitmessageAddress.deterministic(
-                passphrase, numberOfAddresses, version, stream, shorter);
+            passphrase, numberOfAddresses, version, stream, shorter);
         for (int i = 0; i < result.size(); i++) {
             BitmessageAddress address = result.get(i);
             address.setAlias("deterministic (" + (i + 1) + ")");
@@ -130,9 +130,9 @@ public class BitmessageContext {
 
     public void broadcast(final BitmessageAddress from, final String subject, final String message) {
         Plaintext msg = new Plaintext.Builder(BROADCAST)
-                .from(from)
-                .message(subject, message)
-                .build();
+            .from(from)
+            .message(subject, message)
+            .build();
         send(msg);
     }
 
@@ -141,10 +141,10 @@ public class BitmessageContext {
             throw new IllegalArgumentException("'From' must be an identity, i.e. have a private key.");
         }
         Plaintext msg = new Plaintext.Builder(MSG)
-                .from(from)
-                .to(to)
-                .message(subject, message)
-                .build();
+            .from(from)
+            .to(to)
+            .message(subject, message)
+            .build();
         send(msg);
     }
 
@@ -170,17 +170,17 @@ public class BitmessageContext {
                 ctx.send(msg);
             } else {
                 ctx.send(
-                        msg.getFrom(),
-                        to,
-                        Factory.getBroadcast(msg),
-                        msg.getTTL()
+                    msg.getFrom(),
+                    to,
+                    Factory.getBroadcast(msg),
+                    msg.getTTL()
                 );
             }
         }
     }
 
     public void startup() {
-        ctx.getNetworkHandler().start(networkListener);
+        ctx.getNetworkHandler().start();
     }
 
     public void shutdown() {
@@ -195,7 +195,7 @@ public class BitmessageContext {
      * @param wait             waits for the synchronization thread to finish
      */
     public void synchronize(InetAddress host, int port, long timeoutInSeconds, boolean wait) {
-        Future<?> future = ctx.getNetworkHandler().synchronize(host, port, networkListener, timeoutInSeconds);
+        Future<?> future = ctx.getNetworkHandler().synchronize(host, port, timeoutInSeconds);
         if (wait) {
             try {
                 future.get();
@@ -271,7 +271,7 @@ public class BitmessageContext {
                 broadcast.decrypt(address);
                 // This decrypts it twice, but on the other hand it doesn't try to decrypt the objects with
                 // other subscriptions and the interface stays as simple as possible.
-                networkListener.receive(object);
+                ctx.getNetworkListener().receive(object);
             } catch (DecryptionFailedException ignore) {
             } catch (Exception e) {
                 LOG.debug(e.getMessage(), e);
@@ -281,8 +281,8 @@ public class BitmessageContext {
 
     public Property status() {
         return new Property("status", null,
-                ctx.getNetworkHandler().getNetworkStatus(),
-                new Property("unacknowledged", ctx.getMessageRepository().findMessagesToResend().size())
+            ctx.getNetworkHandler().getNetworkStatus(),
+            new Property("unacknowledged", ctx.getMessageRepository().findMessagesToResend().size())
         );
     }
 
@@ -296,6 +296,13 @@ public class BitmessageContext {
 
     public interface Listener {
         void receive(Plaintext plaintext);
+
+        /**
+         * A message listener that needs a {@link BitmessageContext}, i.e. for implementing some sort of chat bot.
+         */
+        interface WithContext extends Listener {
+            void setContext(BitmessageContext ctx);
+        }
     }
 
     public static final class Builder {
@@ -429,7 +436,7 @@ public class BitmessageContext {
                     @Override
                     public MessagePayload handle(CustomMessage request) {
                         throw new IllegalStateException(
-                                "Received custom request, but no custom command handler configured.");
+                            "Received custom request, but no custom command handler configured.");
                     }
                 };
             }
