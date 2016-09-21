@@ -53,6 +53,7 @@ import static java.util.Collections.newSetFromMap;
  */
 public class NioNetworkHandler implements NetworkHandler, InternalContext.ContextHolder {
     private static final Logger LOG = LoggerFactory.getLogger(NioNetworkHandler.class);
+    private static final long REQUESTED_OBJECTS_MAX_TIME = 30 * 60_000; // 30 minutes
 
     private final ExecutorService threadPool = Executors.newCachedThreadPool(
         pool("network")
@@ -66,6 +67,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
     private Queue<NetworkAddress> connectionQueue = new ConcurrentLinkedQueue<>();
     private Map<ConnectionInfo, SelectionKey> connections = new ConcurrentHashMap<>();
     private final Set<InventoryVector> requestedObjects = newSetFromMap(new ConcurrentHashMap<InventoryVector, Boolean>(10_000));
+    private long requestedObjectsTimeout = 0;
 
     private Thread starter;
 
@@ -145,6 +147,8 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
         } catch (IOException e) {
             throw new ApplicationException(e);
         }
+        requestedObjectsTimeout = System.currentTimeMillis() + REQUESTED_OBJECTS_MAX_TIME;
+        requestedObjects.clear();
 
         starter = thread("connection manager", new Runnable() {
             @Override
@@ -181,6 +185,20 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                             it.remove();
                         }
                     }
+
+                    // The list 'requested objects' helps to prevent downloading an object
+                    // twice. From time to time there is an error though, and an object is
+                    // never downloaded. To prevent a large list of failed objects and give
+                    // them a chance to get downloaded again, let's clear the list from time
+                    // to time. The timeout should be such that most of the initial object
+                    // sync should be done by then, but small enough to prevent objects with
+                    // a normal time out from not being downloaded at all.
+                    long now = System.currentTimeMillis();
+                    if (now > requestedObjectsTimeout) {
+                        requestedObjectsTimeout = now + REQUESTED_OBJECTS_MAX_TIME;
+                        requestedObjects.clear();
+                    }
+
                     try {
                         Thread.sleep(30_000);
                     } catch (InterruptedException e) {
