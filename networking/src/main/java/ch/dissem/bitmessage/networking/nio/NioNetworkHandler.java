@@ -231,7 +231,11 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                                             SocketChannel accepted = ((ServerSocketChannel) key.channel()).accept();
                                             accepted.configureBlocking(false);
                                             ConnectionInfo connection = new ConnectionInfo(ctx, SERVER,
-                                                new NetworkAddress.Builder().address(accepted.getRemoteAddress()).stream(1).build(),
+                                                new NetworkAddress.Builder()
+                                                    .ip(accepted.socket().getInetAddress())
+                                                    .port(accepted.socket().getPort())
+                                                    .stream(1)
+                                                    .build(),
                                                 requestedObjects, 0
                                             );
                                             connections.put(
