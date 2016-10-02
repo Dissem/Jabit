@@ -21,6 +21,13 @@ Be aware though that this doesn't necessarily applies for SNAPSHOT builds and th
 [![Code Quality](https://img.shields.io/codacy/e9938d2adbb74a0db553115bef692ff3/develop.svg)](https://www.codacy.com/app/chrigu-meyer/Jabit/dashboard?bid=3144279)
 [![Test Coverage](https://codecov.io/github/Dissem/Jabit/coverage.svg?branch=develop)](https://codecov.io/github/Dissem/Jabit?branch=develop)
 
+Upgrading
+---------
+
+Please be aware that Version 2.0.0 has some breaking changes, most notably in the repository implementations -- please take special care when upgrading them. If you don't implement your own repositories, you should be able to quickly find and fix any compilation errors caused by the few other breaking changes. 
+
+There is also a new network handler which comes highly recommended. If you're having any network problems, please make sure you use `NioNetworkHandler` instead of the now deprecated `DefaultNetworkHandler`.
+
 Security
 --------
 
@@ -43,19 +50,23 @@ Basically, everything needed for a working Bitmessage client is there:
 Setup
 -----
 
+It is recommended to define the version like this:
+```Gradle
+ext.jabitVersion = '2.0.0'
+```
 Add Jabit as Gradle dependency:
 ```Gradle
-compile 'ch.dissem.jabit:jabit-core:1.0.0'
+compile "ch.dissem.jabit:jabit-core:$jabitVersion"
 ```
 Unless you want to implement your own, also add the following:
 ```Gradle
-compile 'ch.dissem.jabit:jabit-networking:1.0.0'
-compile 'ch.dissem.jabit:jabit-repositories:1.0.0'
-compile 'ch.dissem.jabit:jabit-cryptography-bouncy:1.0.0'
+compile "ch.dissem.jabit:jabit-networking:$jabitVersion"
+compile "ch.dissem.jabit:jabit-repositories:$jabitVersion"
+compile "ch.dissem.jabit:jabit-cryptography-bouncy:$jabitVersion"
 ```
 And if you want to import from or export to the Wallet Import Format (used by PyBitmessage) you might also want to add:
 ```Gradle
-compile 'ch.dissem.jabit:jabit-wif:1.0.0'
+compile "ch.dissem.jabit:jabit-wif:$jabitVersion"
 ```
 
 For Android clients use `jabit-cryptography-spongy` instead of `jabit-cryptography-bouncy`.
@@ -70,8 +81,9 @@ BitmessageContext ctx = new BitmessageContext.Builder()
         .addressRepo(new JdbcAddressRepository(jdbcConfig))
         .inventory(new JdbcInventory(jdbcConfig))
         .messageRepo(new JdbcMessageRepository(jdbcConfig))
-        .nodeRegistry(new MemoryNodeRegistry())
-        .networkHandler(new NetworkNode())
+        .powRepo(new JdbcProofOfWorkRepository(jdbcConfig))
+        .nodeRegistry(new JdbcNodeRegistry(jdbcConfig))
+        .networkHandler(new NioNetworkHandler())
         .cryptography(new BouncyCryptography())
         .listener(System.out::println)
         .build();
