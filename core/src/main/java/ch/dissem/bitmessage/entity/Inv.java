@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -28,6 +29,8 @@ import java.util.List;
  * The 'inv' command holds up to 50000 inventory vectors, i.e. hashes of inventory items.
  */
 public class Inv implements MessagePayload {
+    private static final long serialVersionUID = 3662992522956947145L;
+
     private List<InventoryVector> inventory;
 
     private Inv(Builder builder) {
@@ -51,11 +54,16 @@ public class Inv implements MessagePayload {
         }
     }
 
+    @Override
+    public void write(ByteBuffer buffer) {
+        Encode.varInt(inventory.size(), buffer);
+        for (InventoryVector iv : inventory) {
+            iv.write(buffer);
+        }
+    }
+
     public static final class Builder {
         private List<InventoryVector> inventory = new LinkedList<>();
-
-        public Builder() {
-        }
 
         public Builder addInventoryVector(InventoryVector inventoryVector) {
             this.inventory.add(inventoryVector);

@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -29,6 +30,8 @@ import java.util.List;
  * The 'addr' command holds a list of known active Bitmessage nodes.
  */
 public class Addr implements MessagePayload {
+    private static final long serialVersionUID = -5117688017050138720L;
+
     private final List<NetworkAddress> addresses;
 
     private Addr(Builder builder) {
@@ -45,18 +48,23 @@ public class Addr implements MessagePayload {
     }
 
     @Override
-    public void write(OutputStream stream) throws IOException {
-        Encode.varInt(addresses.size(), stream);
+    public void write(OutputStream out) throws IOException {
+        Encode.varInt(addresses.size(), out);
         for (NetworkAddress address : addresses) {
-            address.write(stream);
+            address.write(out);
+        }
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        Encode.varInt(addresses.size(), buffer);
+        for (NetworkAddress address : addresses) {
+            address.write(buffer);
         }
     }
 
     public static final class Builder {
-        private List<NetworkAddress> addresses = new ArrayList<NetworkAddress>();
-
-        public Builder() {
-        }
+        private List<NetworkAddress> addresses = new ArrayList<>();
 
         public Builder addresses(Collection<NetworkAddress> addresses){
             this.addresses.addAll(addresses);

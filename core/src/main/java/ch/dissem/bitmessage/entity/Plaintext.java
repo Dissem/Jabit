@@ -16,25 +16,33 @@
 
 package ch.dissem.bitmessage.entity;
 
+import ch.dissem.bitmessage.entity.payload.Msg;
+import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.factory.Factory;
-import ch.dissem.bitmessage.utils.Decode;
-import ch.dissem.bitmessage.utils.Encode;
-import ch.dissem.bitmessage.utils.UnixTime;
+import ch.dissem.bitmessage.utils.*;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.Collections;
+
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * The unencrypted message to be sent by 'msg' or 'broadcast'.
  */
 public class Plaintext implements Streamable {
+    private static final long serialVersionUID = -5325729856394951079L;
+
     private final Type type;
     private final BitmessageAddress from;
     private final long encoding;
     private final byte[] message;
-    private final byte[] ack;
+    private final byte[] ackData;
+    private ObjectMessage ackMessage;
     private Object id;
     private InventoryVector inventoryVector;
     private BitmessageAddress to;
@@ -46,6 +54,10 @@ public class Plaintext implements Streamable {
     private Set<Label> labels;
     private byte[] initialHash;
 
+    private long ttl;
+    private int retries;
+    private Long nextTry;
+
     private Plaintext(Builder builder) {
         id = builder.id;
         inventoryVector = builder.inventoryVector;
@@ -54,12 +66,21 @@ public class Plaintext implements Streamable {
         to = builder.to;
         encoding = builder.encoding;
         message = builder.message;
-        ack = builder.ack;
+        ackData = builder.ackData;
+        if (builder.ackMessage != null && builder.ackMessage.length > 0) {
+            ackMessage = Factory.getObjectMessage(
+                    3,
+                    new ByteArrayInputStream(builder.ackMessage),
+                    builder.ackMessage.length);
+        }
         signature = builder.signature;
         status = builder.status;
         sent = builder.sent;
         received = builder.received;
         labels = builder.labels;
+        ttl = builder.ttl;
+        retries = builder.retries;
+        nextTry = builder.nextTry;
     }
 
     public static Plaintext read(Type type, InputStream in) throws IOException {
@@ -82,7 +103,7 @@ public class Plaintext implements Streamable {
                 .destinationRipe(type == Type.MSG ? Decode.bytes(in, 20) : null)
                 .encoding(Decode.varInt(in))
                 .message(Decode.varBytes(in))
-                .ack(type == Type.MSG ? Decode.varBytes(in) : null);
+                .ackMessage(type == Type.MSG ? Decode.varBytes(in) : null);
     }
 
     public InventoryVector getInventoryVector() {
@@ -111,9 +132,9 @@ public class Plaintext implements Streamable {
 
     public void setTo(BitmessageAddress to) {
         if (this.to.getVersion() != 0)
-            throw new RuntimeException("Correct address already set");
+            throw new IllegalStateException("Correct address already set");
         if (!Arrays.equals(this.to.getRipe(), to.getRipe())) {
-            throw new RuntimeException("RIPEs don't match");
+            throw new IllegalArgumentException("RIPEs don't match");
         }
         this.to = to;
     }
@@ -160,8 +181,13 @@ public class Plaintext implements Streamable {
         Encode.varInt(message.length, out);
         out.write(message);
         if (type == Type.MSG) {
-            Encode.varInt(ack.length, out);
-            out.write(ack);
+            if (to.has(Feature.DOES_ACK) && getAckMessage() != null) {
+                ByteArrayOutputStream ack = new ByteArrayOutputStream();
+                getAckMessage().write(ack);
+                Encode.varBytes(ack.toByteArray(), out);
+            } else {
+                Encode.varInt(0, out);
+            }
         }
         if (includeSignature) {
             if (signature == null) {
@@ -172,10 +198,47 @@ public class Plaintext implements Streamable {
             }
         }
     }
+    public void write(ByteBuffer buffer, boolean includeSignature) {
+        Encode.varInt(from.getVersion(), buffer);
+        Encode.varInt(from.getStream(), buffer);
+        Encode.int32(from.getPubkey().getBehaviorBitfield(), buffer);
+        buffer.put(from.getPubkey().getSigningKey(), 1, 64);
+        buffer.put(from.getPubkey().getEncryptionKey(), 1, 64);
+        if (from.getVersion() >= 3) {
+            Encode.varInt(from.getPubkey().getNonceTrialsPerByte(), buffer);
+            Encode.varInt(from.getPubkey().getExtraBytes(), buffer);
+        }
+        if (type == Type.MSG) {
+            buffer.put(to.getRipe());
+        }
+        Encode.varInt(encoding, buffer);
+        Encode.varInt(message.length, buffer);
+        buffer.put(message);
+        if (type == Type.MSG) {
+            if (to.has(Feature.DOES_ACK) && getAckMessage() != null) {
+                Encode.varBytes(Encode.bytes(getAckMessage()), buffer);
+            } else {
+                Encode.varInt(0, buffer);
+            }
+        }
+        if (includeSignature) {
+            if (signature == null) {
+                Encode.varInt(0, buffer);
+            } else {
+                Encode.varInt(signature.length, buffer);
+                buffer.put(signature);
+            }
+        }
+    }
 
     @Override
     public void write(OutputStream out) throws IOException {
         write(out, true);
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        write(buffer, true);
     }
 
     public Object getId() {
@@ -203,6 +266,30 @@ public class Plaintext implements Streamable {
         this.status = status;
     }
 
+    public long getTTL() {
+        return ttl;
+    }
+
+    public int getRetries() {
+        return retries;
+    }
+
+    public Long getNextTry() {
+        return nextTry;
+    }
+
+    public void updateNextTry() {
+        if (nextTry == null) {
+            if (sent != null && to.has(Feature.DOES_ACK)) {
+                nextTry = UnixTime.now(+ttl);
+                retries++;
+            }
+        } else {
+            nextTry = nextTry + (1 << retries) * ttl;
+            retries++;
+        }
+    }
+
     public String getSubject() {
         Scanner s = new Scanner(new ByteArrayInputStream(message), "UTF-8");
         String firstLine = s.nextLine();
@@ -223,7 +310,7 @@ public class Plaintext implements Streamable {
             }
             return text;
         } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 
@@ -235,7 +322,7 @@ public class Plaintext implements Streamable {
         return Objects.equals(encoding, plaintext.encoding) &&
                 Objects.equals(from, plaintext.from) &&
                 Arrays.equals(message, plaintext.message) &&
-                Arrays.equals(ack, plaintext.ack) &&
+                Objects.equals(getAckMessage(), plaintext.getAckMessage()) &&
                 Arrays.equals(to.getRipe(), plaintext.to.getRipe()) &&
                 Arrays.equals(signature, plaintext.signature) &&
                 Objects.equals(status, plaintext.status) &&
@@ -246,7 +333,7 @@ public class Plaintext implements Streamable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(from, encoding, message, ack, to, signature, status, sent, received, labels);
+        return Objects.hash(from, encoding, message, ackData, to, signature, status, sent, received, labels);
     }
 
     public void addLabels(Label... labels) {
@@ -257,8 +344,31 @@ public class Plaintext implements Streamable {
 
     public void addLabels(Collection<Label> labels) {
         if (labels != null) {
-            this.labels.addAll(labels);
+            for (Label label : labels) {
+                this.labels.add(label);
+            }
         }
+    }
+
+    public void removeLabel(Label.Type type) {
+        Iterator<Label> iterator = labels.iterator();
+        while (iterator.hasNext()) {
+            Label label = iterator.next();
+            if (label.getType() == type) {
+                iterator.remove();
+            }
+        }
+    }
+
+    public byte[] getAckData() {
+        return ackData;
+    }
+
+    public ObjectMessage getAckMessage() {
+        if (ackMessage == null) {
+            ackMessage = Factory.createAck(this);
+        }
+        return ackMessage;
     }
 
     public void setInitialHash(byte[] initialHash) {
@@ -313,12 +423,16 @@ public class Plaintext implements Streamable {
         private byte[] destinationRipe;
         private long encoding;
         private byte[] message = new byte[0];
-        private byte[] ack = new byte[0];
+        private byte[] ackData;
+        private byte[] ackMessage;
         private byte[] signature;
         private long sent;
         private long received;
         private Status status;
         private Set<Label> labels = new HashSet<>();
+        private long ttl;
+        private int retries;
+        private Long nextTry;
 
         public Builder(Type type) {
             this.type = type;
@@ -402,7 +516,7 @@ public class Plaintext implements Streamable {
                 this.encoding = Encoding.SIMPLE.getCode();
                 this.message = ("Subject:" + subject + '\n' + "Body:" + message).getBytes("UTF-8");
             } catch (UnsupportedEncodingException e) {
-                throw new RuntimeException(e);
+                throw new ApplicationException(e);
             }
             return this;
         }
@@ -412,9 +526,16 @@ public class Plaintext implements Streamable {
             return this;
         }
 
-        public Builder ack(byte[] ack) {
-            if (type != Type.MSG && ack != null) throw new IllegalArgumentException("ack only allowed for msg");
-            this.ack = ack;
+        public Builder ackMessage(byte[] ack) {
+            if (type != Type.MSG && ack != null) throw new IllegalArgumentException("ackMessage only allowed for msg");
+            this.ackMessage = ack;
+            return this;
+        }
+
+        public Builder ackData(byte[] ackData) {
+            if (type != Type.MSG && ackData != null)
+                throw new IllegalArgumentException("ackMessage only allowed for msg");
+            this.ackData = ackData;
             return this;
         }
 
@@ -443,6 +564,21 @@ public class Plaintext implements Streamable {
             return this;
         }
 
+        public Builder ttl(long ttl) {
+            this.ttl = ttl;
+            return this;
+        }
+
+        public Builder retries(int retries) {
+            this.retries = retries;
+            return this;
+        }
+
+        public Builder nextTry(Long nextTry) {
+            this.nextTry = nextTry;
+            return this;
+        }
+
         public Plaintext build() {
             if (from == null) {
                 from = new BitmessageAddress(Factory.createPubkey(
@@ -455,8 +591,14 @@ public class Plaintext implements Streamable {
                         behaviorBitfield
                 ));
             }
-            if (to == null && type != Type.BROADCAST) {
+            if (to == null && type != Type.BROADCAST && destinationRipe != null) {
                 to = new BitmessageAddress(0, 0, destinationRipe);
+            }
+            if (type == Type.MSG && ackMessage == null && ackData == null) {
+                ackData = cryptography().randomBytes(Msg.ACK_LENGTH);
+            }
+            if (ttl <= 0) {
+                ttl = TTL.msg();
             }
             return new Plaintext(this);
         }

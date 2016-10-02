@@ -28,7 +28,7 @@ import ch.dissem.bitmessage.utils.Encode;
 import java.io.*;
 
 import static ch.dissem.bitmessage.utils.Decode.*;
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * A {@link CustomMessage} implementation that contains signed and encrypted data.
@@ -36,7 +36,10 @@ import static ch.dissem.bitmessage.utils.Singleton.security;
  * @author Christian Basler
  */
 public class CryptoCustomMessage<T extends Streamable> extends CustomMessage {
+    private static final long serialVersionUID = 7395193565986284426L;
+
     public static final String COMMAND = "ENCRYPTED";
+
     private final Reader<T> dataReader;
     private CryptoBox container;
     private BitmessageAddress sender;
@@ -77,7 +80,7 @@ public class CryptoCustomMessage<T extends Streamable> extends CustomMessage {
         }
 
         data.write(out);
-        Encode.varBytes(security().getSignature(out.toByteArray(), identity.getPrivateKey()), out);
+        Encode.varBytes(cryptography().getSignature(out.toByteArray(), identity.getPrivateKey()), out);
         container = new CryptoBox(out.toByteArray(), publicKey);
     }
 
@@ -134,9 +137,9 @@ public class CryptoCustomMessage<T extends Streamable> extends CustomMessage {
             return read;
         }
 
-        public void checkSignature(Pubkey pubkey) throws IOException, RuntimeException {
-            if (!security().isSignatureValid(out.toByteArray(), varBytes(wrapped), pubkey)) {
-                throw new RuntimeException("Signature check failed");
+        public void checkSignature(Pubkey pubkey) throws IOException, IllegalStateException {
+            if (!cryptography().isSignatureValid(out.toByteArray(), varBytes(wrapped), pubkey)) {
+                throw new IllegalStateException("Signature check failed");
             }
         }
     }

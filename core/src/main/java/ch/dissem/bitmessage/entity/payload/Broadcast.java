@@ -23,15 +23,18 @@ import ch.dissem.bitmessage.entity.PlaintextHolder;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST;
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * Users who are subscribed to the sending address will see the message appear in their inbox.
  * Broadcasts are version 4 or 5.
  */
 public abstract class Broadcast extends ObjectPayload implements Encrypted, PlaintextHolder {
+    private static final long serialVersionUID = 4064521827582239069L;
+
     protected final long stream;
     protected CryptoBox encrypted;
     protected Plaintext plaintext;
@@ -78,7 +81,7 @@ public abstract class Broadcast extends ObjectPayload implements Encrypted, Plai
     }
 
     public void encrypt() throws IOException {
-        encrypt(security().createPublicKey(plaintext.getFrom().getPublicDecryptionKey()));
+        encrypt(cryptography().createPublicKey(plaintext.getFrom().getPublicDecryptionKey()));
     }
 
     @Override
@@ -93,5 +96,19 @@ public abstract class Broadcast extends ObjectPayload implements Encrypted, Plai
     @Override
     public boolean isDecrypted() {
         return plaintext != null;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Broadcast broadcast = (Broadcast) o;
+        return stream == broadcast.stream &&
+                (Objects.equals(encrypted, broadcast.encrypted) || Objects.equals(plaintext, broadcast.plaintext));
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(stream);
     }
 }

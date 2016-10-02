@@ -23,12 +23,14 @@ import ch.dissem.bitmessage.utils.UnixTime;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Random;
+import java.nio.ByteBuffer;
 
 /**
  * The 'version' command advertises this node's latest supported protocol version upon initiation.
  */
 public class Version implements MessagePayload {
+    private static final long serialVersionUID = 7219240857343176567L;
+
     /**
      * Identifies protocol version being used by the node. Should equal 3. Nodes should disconnect if the remote node's
      * version is lower but continue with the connection if it is higher.
@@ -132,6 +134,18 @@ public class Version implements MessagePayload {
         Encode.varIntList(streams, stream);
     }
 
+    @Override
+    public void write(ByteBuffer buffer) {
+        Encode.int32(version, buffer);
+        Encode.int64(services, buffer);
+        Encode.int64(timestamp, buffer);
+        addrRecv.write(buffer, true);
+        addrFrom.write(buffer, true);
+        Encode.int64(nonce, buffer);
+        Encode.varString(userAgent, buffer);
+        Encode.varIntList(streams, buffer);
+    }
+
 
     public static final class Builder {
         private int version;
@@ -143,16 +157,13 @@ public class Version implements MessagePayload {
         private String userAgent;
         private long[] streamNumbers;
 
-        public Builder() {
-        }
-
-        public Builder defaults() {
+        public Builder defaults(long clientNonce) {
             version = BitmessageContext.CURRENT_VERSION;
             services = 1;
             timestamp = UnixTime.now();
-            nonce = new Random().nextInt();
             userAgent = "/Jabit:0.0.1/";
             streamNumbers = new long[]{1};
+            nonce = clientNonce;
             return this;
         }
 

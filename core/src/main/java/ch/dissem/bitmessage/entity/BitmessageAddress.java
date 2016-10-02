@@ -17,8 +17,10 @@
 package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.Pubkey;
+import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
 import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.utils.AccessCounter;
 import ch.dissem.bitmessage.utils.Base58;
 import ch.dissem.bitmessage.utils.Bytes;
@@ -28,18 +30,22 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 import static ch.dissem.bitmessage.utils.Decode.bytes;
 import static ch.dissem.bitmessage.utils.Decode.varInt;
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * A Bitmessage address. Can be a user's private address, an address string without public keys or a recipient's address
  * holding private keys.
  */
 public class BitmessageAddress implements Serializable {
+    private static final long serialVersionUID = 2386328540805994064L;
+
     private final long version;
     private final long stream;
     private final byte[] ripe;
@@ -56,6 +62,7 @@ public class BitmessageAddress implements Serializable {
 
     private String alias;
     private boolean subscribed;
+    private boolean chan;
 
     BitmessageAddress(long version, long stream, byte[] ripe) {
         try {
@@ -67,29 +74,61 @@ public class BitmessageAddress implements Serializable {
             Encode.varInt(version, os);
             Encode.varInt(stream, os);
             if (version < 4) {
-                byte[] checksum = security().sha512(os.toByteArray(), ripe);
+                byte[] checksum = cryptography().sha512(os.toByteArray(), ripe);
                 this.tag = null;
                 this.publicDecryptionKey = Arrays.copyOfRange(checksum, 0, 32);
             } else {
                 // for tag and decryption key, the checksum has to be created with 0x00 padding
-                byte[] checksum = security().doubleSha512(os.toByteArray(), ripe);
+                byte[] checksum = cryptography().doubleSha512(os.toByteArray(), ripe);
                 this.tag = Arrays.copyOfRange(checksum, 32, 64);
                 this.publicDecryptionKey = Arrays.copyOfRange(checksum, 0, 32);
             }
             // but for the address and its checksum they need to be stripped
             int offset = Bytes.numberOfLeadingZeros(ripe);
             os.write(ripe, offset, ripe.length - offset);
-            byte[] checksum = security().doubleSha512(os.toByteArray());
+            byte[] checksum = cryptography().doubleSha512(os.toByteArray());
             os.write(checksum, 0, 4);
             this.address = "BM-" + Base58.encode(os.toByteArray());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 
     public BitmessageAddress(Pubkey publicKey) {
         this(publicKey.getVersion(), publicKey.getStream(), publicKey.getRipe());
         this.pubkey = publicKey;
+    }
+
+    public BitmessageAddress(String address, String passphrase) {
+        this(address);
+        this.privateKey = new PrivateKey(this, passphrase);
+        this.pubkey = this.privateKey.getPubkey();
+        if (!Arrays.equals(ripe, privateKey.getPubkey().getRipe())) {
+            throw new IllegalArgumentException("Wrong address or passphrase");
+        }
+    }
+
+    public static BitmessageAddress chan(String address, String passphrase) {
+        BitmessageAddress result = new BitmessageAddress(address, passphrase);
+        result.chan = true;
+        return result;
+    }
+
+    public static BitmessageAddress chan(long stream, String passphrase) {
+        PrivateKey privateKey = new PrivateKey(Pubkey.LATEST_VERSION, stream, passphrase);
+        BitmessageAddress result = new BitmessageAddress(privateKey);
+        result.chan = true;
+        return result;
+    }
+
+    public static List<BitmessageAddress> deterministic(String passphrase, int numberOfAddresses,
+                                                        long version, long stream, boolean shorter) {
+        List<BitmessageAddress> result = new ArrayList<>(numberOfAddresses);
+        List<PrivateKey> privateKeys = PrivateKey.deterministic(passphrase, numberOfAddresses, version, stream, shorter);
+        for (PrivateKey pk : privateKeys) {
+            result.add(new BitmessageAddress(pk));
+        }
+        return result;
     }
 
     public BitmessageAddress(PrivateKey privateKey) {
@@ -108,23 +147,23 @@ public class BitmessageAddress implements Serializable {
             this.ripe = Bytes.expand(bytes(in, bytes.length - counter.length() - 4), 20);
 
             // test checksum
-            byte[] checksum = security().doubleSha512(bytes, bytes.length - 4);
+            byte[] checksum = cryptography().doubleSha512(bytes, bytes.length - 4);
             byte[] expectedChecksum = bytes(in, 4);
             for (int i = 0; i < 4; i++) {
                 if (expectedChecksum[i] != checksum[i])
                     throw new IllegalArgumentException("Checksum of address failed");
             }
             if (version < 4) {
-                checksum = security().sha512(Arrays.copyOfRange(bytes, 0, counter.length()), ripe);
+                checksum = cryptography().sha512(Arrays.copyOfRange(bytes, 0, counter.length()), ripe);
                 this.tag = null;
                 this.publicDecryptionKey = Arrays.copyOfRange(checksum, 0, 32);
             } else {
-                checksum = security().doubleSha512(Arrays.copyOfRange(bytes, 0, counter.length()), ripe);
+                checksum = cryptography().doubleSha512(Arrays.copyOfRange(bytes, 0, counter.length()), ripe);
                 this.tag = Arrays.copyOfRange(checksum, 32, 64);
                 this.publicDecryptionKey = Arrays.copyOfRange(checksum, 0, 32);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 
@@ -134,9 +173,9 @@ public class BitmessageAddress implements Serializable {
             Encode.varInt(version, out);
             Encode.varInt(stream, out);
             out.write(ripe);
-            return Arrays.copyOfRange(security().doubleSha512(out.toByteArray()), 32, 64);
+            return Arrays.copyOfRange(cryptography().doubleSha512(out.toByteArray()), 32, 64);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 
@@ -187,7 +226,7 @@ public class BitmessageAddress implements Serializable {
 
     @Override
     public String toString() {
-        return alias != null ? alias : address;
+        return alias == null ? address : alias;
     }
 
     public byte[] getRipe() {
@@ -219,5 +258,20 @@ public class BitmessageAddress implements Serializable {
 
     public void setSubscribed(boolean subscribed) {
         this.subscribed = subscribed;
+    }
+
+    public boolean isChan() {
+        return chan;
+    }
+
+    public void setChan(boolean chan) {
+        this.chan = chan;
+    }
+
+    public boolean has(Feature feature) {
+        if (pubkey == null || feature == null) {
+            return false;
+        }
+        return feature.isActive(pubkey.getBehaviorBitfield());
     }
 }

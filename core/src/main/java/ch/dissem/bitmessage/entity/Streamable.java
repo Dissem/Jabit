@@ -19,10 +19,13 @@ package ch.dissem.bitmessage.entity;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 
 /**
  * An object that can be written to an {@link OutputStream}
  */
 public interface Streamable extends Serializable {
     void write(OutputStream stream) throws IOException;
+
+    void write(ByteBuffer buffer);
 }

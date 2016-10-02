@@ -30,12 +30,17 @@ public interface AddressRepository {
      */
     List<BitmessageAddress> getIdentities();
 
+    /**
+     * @return all subscribed chans.
+     */
+    List<BitmessageAddress> getChans();
+
     List<BitmessageAddress> getSubscriptions();
 
     List<BitmessageAddress> getSubscriptions(long broadcastVersion);
 
     /**
-     * @return all Bitmessage addresses that have no private key.
+     * @return all Bitmessage addresses that have no private key or are chans.
      */
     List<BitmessageAddress> getContacts();
 

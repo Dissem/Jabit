@@ -17,10 +17,13 @@
 package ch.dissem.bitmessage.utils;
 
 import ch.dissem.bitmessage.entity.Streamable;
+import ch.dissem.bitmessage.exception.ApplicationException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
 import static ch.dissem.bitmessage.utils.AccessCounter.inc;
@@ -37,34 +40,52 @@ public class Encode {
         }
     }
 
+    public static void varIntList(long[] values, ByteBuffer buffer) {
+        varInt(values.length, buffer);
+        for (long value : values) {
+            varInt(value, buffer);
+        }
+    }
+
     public static void varInt(long value, OutputStream stream) throws IOException {
         varInt(value, stream, null);
     }
 
-    public static void varInt(long value, OutputStream stream, AccessCounter counter) throws IOException {
+    public static void varInt(long value, ByteBuffer buffer) {
         if (value < 0) {
             // This is due to the fact that Java doesn't really support unsigned values.
             // Please be aware that this might be an error due to a smaller negative value being cast to long.
-            // Normally, negative values shouldn't occur within the protocol, and I large enough longs
-            // to being recognized as negatives aren't realistic.
-            stream.write(0xff);
-            inc(counter);
-            int64(value, stream, counter);
+            // Normally, negative values shouldn't occur within the protocol, and longs large enough for being
+            // recognized as negatives aren't realistic.
+            buffer.put((byte) 0xff);
+            buffer.putLong(value);
         } else if (value < 0xfd) {
-            int8(value, stream, counter);
+            buffer.put((byte) value);
         } else if (value <= 0xffffL) {
-            stream.write(0xfd);
-            inc(counter);
-            int16(value, stream, counter);
+            buffer.put((byte) 0xfd);
+            buffer.putShort((short) value);
         } else if (value <= 0xffffffffL) {
-            stream.write(0xfe);
-            inc(counter);
-            int32(value, stream, counter);
+            buffer.put((byte) 0xfe);
+            buffer.putInt((int) value);
         } else {
-            stream.write(0xff);
-            inc(counter);
-            int64(value, stream, counter);
+            buffer.put((byte) 0xff);
+            buffer.putLong(value);
         }
+    }
+
+    public static byte[] varInt(long value) {
+        ByteBuffer buffer = ByteBuffer.allocate(9);
+        varInt(value, buffer);
+        buffer.flip();
+        return Bytes.truncate(buffer.array(), buffer.limit());
+    }
+
+    public static void varInt(long value, OutputStream stream, AccessCounter counter) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(9);
+        varInt(value, buffer);
+        buffer.flip();
+        stream.write(buffer.array(), 0, buffer.limit());
+        inc(counter, buffer.limit());
     }
 
     public static void int8(long value, OutputStream stream) throws IOException {
@@ -81,8 +102,12 @@ public class Encode {
     }
 
     public static void int16(long value, OutputStream stream, AccessCounter counter) throws IOException {
-        stream.write(ByteBuffer.allocate(4).putInt((int) value).array(), 2, 2);
+        stream.write(ByteBuffer.allocate(2).putShort((short) value).array());
         inc(counter, 2);
+    }
+
+    public static void int16(long value, ByteBuffer buffer) {
+        buffer.putShort((short) value);
     }
 
     public static void int32(long value, OutputStream stream) throws IOException {
@@ -94,6 +119,10 @@ public class Encode {
         inc(counter, 4);
     }
 
+    public static void int32(long value, ByteBuffer buffer) {
+        buffer.putInt((int) value);
+    }
+
     public static void int64(long value, OutputStream stream) throws IOException {
         int64(value, stream, null);
     }
@@ -101,6 +130,10 @@ public class Encode {
     public static void int64(long value, OutputStream stream, AccessCounter counter) throws IOException {
         stream.write(ByteBuffer.allocate(8).putLong(value).array());
         inc(counter, 8);
+    }
+
+    public static void int64(long value, ByteBuffer buffer) {
+        buffer.putLong(value);
     }
 
     public static void varString(String value, OutputStream out) throws IOException {
@@ -112,9 +145,27 @@ public class Encode {
         out.write(bytes);
     }
 
+    public static void varString(String value, ByteBuffer buffer) {
+        try {
+            byte[] bytes = value.getBytes("utf-8");
+            // Technically, it says the length in characters, but I think this one might be correct.
+            // It doesn't really matter, as only ASCII characters are being used.
+            // see also Decode#varString()
+            buffer.put(varInt(bytes.length));
+            buffer.put(bytes);
+        } catch (UnsupportedEncodingException e) {
+            throw new ApplicationException(e);
+        }
+    }
+
     public static void varBytes(byte[] data, OutputStream out) throws IOException {
         varInt(data.length, out);
         out.write(data);
+    }
+
+    public static void varBytes(byte[] data, ByteBuffer buffer) {
+        varInt(data.length, buffer);
+        buffer.put(data);
     }
 
     /**
@@ -122,13 +173,16 @@ public class Encode {
      *
      * @param streamable the object to be serialized
      * @return an array of bytes representing the given streamable object.
-     * @throws IOException if an I/O error occurs.
      */
-    public static byte[] bytes(Streamable streamable) throws IOException {
+    public static byte[] bytes(Streamable streamable) {
         if (streamable == null) return null;
 
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        streamable.write(stream);
+        try {
+            streamable.write(stream);
+        } catch (IOException e) {
+            throw new ApplicationException(e);
+        }
         return stream.toByteArray();
     }
 
@@ -136,11 +190,14 @@ public class Encode {
      * @param streamable the object to be serialized
      * @param padding    the result will be padded such that its length is a multiple of <em>padding</em>
      * @return the bytes of the given {@link Streamable} object, 0-padded such that the final length is x*padding.
-     * @throws IOException if an I/O error occurs.
      */
-    public static byte[] bytes(Streamable streamable, int padding) throws IOException {
+    public static byte[] bytes(Streamable streamable, int padding) {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        streamable.write(stream);
+        try {
+            streamable.write(stream);
+        } catch (IOException e) {
+            throw new ApplicationException(e);
+        }
         int offset = padding - stream.size() % padding;
         int length = stream.size() + offset;
         byte[] result = new byte[length];

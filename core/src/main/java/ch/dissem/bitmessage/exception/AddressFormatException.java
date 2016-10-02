@@ -20,6 +20,8 @@ package ch.dissem.bitmessage.exception;
  * Indicates an illegal Bitmessage address
  */
 public class AddressFormatException extends RuntimeException {
+    private static final long serialVersionUID = 6943764578672021573L;
+
     public AddressFormatException(String message) {
         super(message);
     }

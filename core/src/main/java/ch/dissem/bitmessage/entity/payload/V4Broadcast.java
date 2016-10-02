@@ -22,12 +22,15 @@ import ch.dissem.bitmessage.entity.Plaintext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
 /**
  * Users who are subscribed to the sending address will see the message appear in their inbox.
  * Broadcasts are version 4 or 5.
  */
 public class V4Broadcast extends Broadcast {
+    private static final long serialVersionUID = 195663108282762711L;
+
     protected V4Broadcast(long version, long stream, CryptoBox encrypted, Plaintext plaintext) {
         super(version, stream, encrypted, plaintext);
     }
@@ -55,5 +58,10 @@ public class V4Broadcast extends Broadcast {
     @Override
     public void write(OutputStream out) throws IOException {
         encrypted.write(out);
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        encrypted.write(buffer);
     }
 }

@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.wif;
 
 import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.utils.Base58;
 import org.ini4j.Ini;
 import org.ini4j.Profile;
@@ -26,7 +27,7 @@ import java.io.*;
 import java.util.Collection;
 
 import static ch.dissem.bitmessage.entity.valueobject.PrivateKey.PRIVATE_KEY_SIZE;
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * @author Christian Basler
@@ -59,6 +60,9 @@ public class WifExporter {
         section.add("label", identity.getAlias());
         section.add("enabled", true);
         section.add("decoy", false);
+        if (identity.isChan()) {
+            section.add("chan", identity.isChan());
+        }
         section.add("noncetrialsperbyte", identity.getPubkey().getNonceTrialsPerByte());
         section.add("payloadlengthextrabytes", identity.getPubkey().getExtraBytes());
         section.add("privsigningkey", exportSecret(identity.getPrivateKey().getPrivateSigningKey()));
@@ -73,7 +77,7 @@ public class WifExporter {
         byte[] result = new byte[37];
         result[0] = (byte) 0x80;
         System.arraycopy(privateKey, 0, result, 1, PRIVATE_KEY_SIZE);
-        byte[] hash = security().doubleSha256(result, PRIVATE_KEY_SIZE + 1);
+        byte[] hash = cryptography().doubleSha256(result, PRIVATE_KEY_SIZE + 1);
         System.arraycopy(hash, 0, result, PRIVATE_KEY_SIZE + 1, 4);
         return Base58.encode(result);
     }
@@ -95,7 +99,7 @@ public class WifExporter {
         try {
             ini.store(writer);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
         return writer.toString();
     }

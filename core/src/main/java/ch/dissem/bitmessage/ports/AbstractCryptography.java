@@ -19,6 +19,7 @@ package ch.dissem.bitmessage.ports;
 import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.exception.InsufficientProofOfWorkException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.Bytes;
@@ -34,13 +35,15 @@ import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 
+import static ch.dissem.bitmessage.InternalContext.NETWORK_EXTRA_BYTES;
+import static ch.dissem.bitmessage.InternalContext.NETWORK_NONCE_TRIALS_PER_BYTE;
 import static ch.dissem.bitmessage.utils.Numbers.max;
 
 /**
  * Implements everything that isn't directly dependent on either Spongy- or Bouncycastle.
  */
 public abstract class AbstractCryptography implements Cryptography, InternalContext.ContextHolder {
-    public static final Logger LOG = LoggerFactory.getLogger(Cryptography.class);
+    protected static final Logger LOG = LoggerFactory.getLogger(Cryptography.class);
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final BigInteger TWO = BigInteger.valueOf(2);
     private static final BigInteger TWO_POW_64 = TWO.pow(64);
@@ -56,6 +59,12 @@ public abstract class AbstractCryptography implements Cryptography, InternalCont
     @Override
     public void setContext(InternalContext context) {
         this.context = context;
+    }
+
+    public byte[] sha512(byte[] data, int offset, int length) {
+        MessageDigest mda = md("SHA-512");
+        mda.update(data, offset, length);
+        return mda.digest();
     }
 
     public byte[] sha512(byte[]... data) {
@@ -98,8 +107,8 @@ public abstract class AbstractCryptography implements Cryptography, InternalCont
 
     public void doProofOfWork(ObjectMessage object, long nonceTrialsPerByte,
                               long extraBytes, ProofOfWorkEngine.Callback callback) {
-        nonceTrialsPerByte = max(nonceTrialsPerByte, context.getNetworkNonceTrialsPerByte());
-        extraBytes = max(extraBytes, context.getNetworkExtraBytes());
+        nonceTrialsPerByte = max(nonceTrialsPerByte, NETWORK_NONCE_TRIALS_PER_BYTE);
+        extraBytes = max(extraBytes, NETWORK_EXTRA_BYTES);
 
         byte[] initialHash = getInitialHash(object);
 
@@ -124,8 +133,8 @@ public abstract class AbstractCryptography implements Cryptography, InternalCont
 
     @Override
     public byte[] getProofOfWorkTarget(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) {
-        if (nonceTrialsPerByte == 0) nonceTrialsPerByte = context.getNetworkNonceTrialsPerByte();
-        if (extraBytes == 0) extraBytes = context.getNetworkExtraBytes();
+        if (nonceTrialsPerByte == 0) nonceTrialsPerByte = NETWORK_NONCE_TRIALS_PER_BYTE;
+        if (extraBytes == 0) extraBytes = NETWORK_EXTRA_BYTES;
 
         BigInteger TTL = BigInteger.valueOf(object.getExpiresTime() - UnixTime.now());
         BigInteger numerator = TWO_POW_64;
@@ -151,7 +160,7 @@ public abstract class AbstractCryptography implements Cryptography, InternalCont
         try {
             return MessageDigest.getInstance(algorithm, provider);
         } catch (GeneralSecurityException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 
@@ -161,7 +170,7 @@ public abstract class AbstractCryptography implements Cryptography, InternalCont
             mac.init(new SecretKeySpec(key_m, "HmacSHA256"));
             return mac.doFinal(data);
         } catch (GeneralSecurityException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
     }
 

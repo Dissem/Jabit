@@ -29,6 +29,8 @@ import java.util.Objects;
  * A version 3 public key.
  */
 public class V3Pubkey extends V2Pubkey {
+    private static final long serialVersionUID = 6958853116648528319L;
+
     long nonceTrialsPerByte;
     long extraBytes;
     byte[] signature;
@@ -122,9 +124,6 @@ public class V3Pubkey extends V2Pubkey {
         private long nonceTrialsPerByte;
         private long extraBytes;
         private byte[] signature = new byte[0];
-
-        public Builder() {
-        }
 
         public Builder stream(long streamNumber) {
             this.streamNumber = streamNumber;

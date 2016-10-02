@@ -22,11 +22,14 @@ import ch.dissem.bitmessage.utils.Decode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
 /**
  * Request for a public key.
  */
 public class GetPubkey extends ObjectPayload {
+    private static final long serialVersionUID = -3634516646972610180L;
+
     private long stream;
     private byte[] ripeTag;
 
@@ -70,5 +73,10 @@ public class GetPubkey extends ObjectPayload {
     @Override
     public void write(OutputStream stream) throws IOException {
         stream.write(ripeTag);
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        buffer.put(ripeTag);
     }
 }

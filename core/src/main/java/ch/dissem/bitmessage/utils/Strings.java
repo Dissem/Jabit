@@ -16,8 +16,6 @@
 
 package ch.dissem.bitmessage.utils;
 
-import ch.dissem.bitmessage.entity.payload.ObjectType;
-
 /**
  * Some utilities to handle strings.
  * TODO: Probably this should be split in a GUI related and an SQL related utility class.

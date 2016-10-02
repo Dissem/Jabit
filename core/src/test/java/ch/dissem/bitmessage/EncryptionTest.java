@@ -30,19 +30,19 @@ import org.junit.Test;
 
 import java.io.IOException;
 
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class EncryptionTest extends TestBase {
     @Test
     public void ensureDecryptedDataIsSameAsBeforeEncryption() throws IOException, DecryptionFailedException {
-        GenericPayload before = new GenericPayload(0, 1, security().randomBytes(100));
+        GenericPayload before = new GenericPayload(0, 1, cryptography().randomBytes(100));
 
         PrivateKey privateKey = new PrivateKey(false, 1, 1000, 1000);
         CryptoBox cryptoBox = new CryptoBox(before, privateKey.getPubkey().getEncryptionKey());
 
-        GenericPayload after = GenericPayload.read(0, cryptoBox.decrypt(privateKey.getPrivateEncryptionKey()), 1, 100);
+        GenericPayload after = GenericPayload.read(0, 1, cryptoBox.decrypt(privateKey.getPrivateEncryptionKey()), 100);
 
         assertEquals(before, after);
     }

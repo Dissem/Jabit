@@ -22,7 +22,6 @@ import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.Msg;
 import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
-import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.utils.TestBase;
@@ -30,7 +29,6 @@ import ch.dissem.bitmessage.utils.TestUtils;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Date;
 
 import static org.junit.Assert.*;
 

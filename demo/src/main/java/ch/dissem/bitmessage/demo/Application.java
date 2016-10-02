@@ -20,55 +20,37 @@ import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
-import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
-import ch.dissem.bitmessage.ports.MemoryNodeRegistry;
-import ch.dissem.bitmessage.repository.*;
-import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
+import ch.dissem.bitmessage.entity.valueobject.Label;
+import org.apache.commons.lang3.text.WordUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.util.List;
-import java.util.Scanner;
+import java.util.stream.Collectors;
+
+import static ch.dissem.bitmessage.demo.CommandLine.COMMAND_BACK;
+import static ch.dissem.bitmessage.demo.CommandLine.ERROR_UNKNOWN_COMMAND;
 
 /**
  * A simple command line Bitmessage application
  */
 public class Application {
     private final static Logger LOG = LoggerFactory.getLogger(Application.class);
-    private final Scanner scanner;
+    private final CommandLine commandLine;
 
     private BitmessageContext ctx;
 
-    public Application(String syncServer, int syncPort) {
-        JdbcConfig jdbcConfig = new JdbcConfig();
-        ctx = new BitmessageContext.Builder()
-                .addressRepo(new JdbcAddressRepository(jdbcConfig))
-                .inventory(new JdbcInventory(jdbcConfig))
-                .nodeRegistry(new MemoryNodeRegistry())
-                .messageRepo(new JdbcMessageRepository(jdbcConfig))
-                .powRepo(new JdbcProofOfWorkRepository(jdbcConfig))
-                .networkHandler(new DefaultNetworkHandler())
-                .cryptography(new BouncyCryptography())
-                .port(48444)
-                .listener(new BitmessageContext.Listener() {
-                    @Override
-                    public void receive(Plaintext plaintext) {
-                        try {
-                            System.out.println(new String(plaintext.getMessage(), "UTF-8"));
-                        } catch (UnsupportedEncodingException e) {
-                            LOG.error(e.getMessage(), e);
-                        }
-                    }
-                })
-                .build();
+    public Application(BitmessageContext.Builder ctxBuilder, InetAddress syncServer, int syncPort) {
+        ctx = ctxBuilder
+            .listener(plaintext -> System.out.println("New Message from " + plaintext.getFrom() + ": " + plaintext.getSubject()))
+            .build();
 
         if (syncServer == null) {
             ctx.startup();
         }
 
-        scanner = new Scanner(System.in);
+        commandLine = new CommandLine();
 
         String command;
         do {
@@ -84,7 +66,7 @@ public class Application {
             System.out.println("?) info");
             System.out.println("e) exit");
 
-            command = nextCommand();
+            command = commandLine.nextCommand();
             try {
                 switch (command) {
                     case "i": {
@@ -98,7 +80,7 @@ public class Application {
                         subscriptions();
                         break;
                     case "m":
-                        messages();
+                        labels();
                         break;
                     case "?":
                         info();
@@ -106,10 +88,12 @@ public class Application {
                     case "e":
                         break;
                     case "y":
-                        ctx.synchronize(InetAddress.getByName(syncServer), syncPort, 120, true);
+                        if (syncServer != null) {
+                            ctx.synchronize(syncServer, syncPort, 120, true);
+                        }
                         break;
                     default:
-                        System.out.println("Unknown command. Please try again.");
+                        System.out.println(ERROR_UNKNOWN_COMMAND);
                 }
             } catch (Exception e) {
                 LOG.debug(e.getMessage());
@@ -121,12 +105,27 @@ public class Application {
     }
 
     private void info() {
-        System.out.println();
-        System.out.println(ctx.status());
-    }
+        String command;
+        do {
+            System.out.println();
+            System.out.println(ctx.status());
+            System.out.println();
+            System.out.println("c) cleanup inventory");
+            System.out.println("r) resend unacknowledged messages");
+            System.out.println(COMMAND_BACK);
 
-    private String nextCommand() {
-        return scanner.nextLine().trim().toLowerCase();
+            command = commandLine.nextCommand();
+            switch (command) {
+                case "c":
+                    ctx.cleanup();
+                    break;
+                case "r":
+                    ctx.resendUnacknowledgedMessages();
+                    break;
+                case "b":
+                    return;
+            }
+        } while (!"b".equals(command));
     }
 
     private void identities() {
@@ -134,26 +133,19 @@ public class Application {
         List<BitmessageAddress> identities = ctx.addresses().getIdentities();
         do {
             System.out.println();
-            int i = 0;
-            for (BitmessageAddress identity : identities) {
-                i++;
-                System.out.print(i + ") ");
-                if (identity.getAlias() != null) {
-                    System.out.println(identity.getAlias() + " (" + identity.getAddress() + ")");
-                } else {
-                    System.out.println(identity.getAddress());
-                }
-            }
-            if (i == 0) {
-                System.out.println("You have no identities yet.");
-            }
+            commandLine.listAddresses(identities, "identities");
             System.out.println("a) create identity");
-            System.out.println("b) back");
+            System.out.println("c) join chan");
+            System.out.println(COMMAND_BACK);
 
-            command = nextCommand();
+            command = commandLine.nextCommand();
             switch (command) {
                 case "a":
                     addIdentity();
+                    identities = ctx.addresses().getIdentities();
+                    break;
+                case "c":
+                    joinChan();
                     identities = ctx.addresses().getIdentities();
                     break;
                 case "b":
@@ -163,7 +155,7 @@ public class Application {
                         int index = Integer.parseInt(command) - 1;
                         address(identities.get(index));
                     } catch (NumberFormatException e) {
-                        System.out.println("Unknown command. Please try again.");
+                        System.out.println(ERROR_UNKNOWN_COMMAND);
                     }
             }
         } while (!"b".equals(command));
@@ -171,13 +163,22 @@ public class Application {
 
     private void addIdentity() {
         System.out.println();
-        BitmessageAddress identity = ctx.createIdentity(yesNo("would you like a shorter address? This will take some time to calculate."), Pubkey.Feature.DOES_ACK);
+        BitmessageAddress identity = ctx.createIdentity(commandLine.yesNo("would you like a shorter address? This will take some time to calculate."), Pubkey.Feature.DOES_ACK);
         System.out.println("Please enter an alias for this identity, or an empty string for none");
-        String alias = scanner.nextLine().trim();
+        String alias = commandLine.nextLineTrimmed();
         if (alias.length() > 0) {
             identity.setAlias(alias);
         }
         ctx.addresses().save(identity);
+    }
+
+    private void joinChan() {
+        System.out.println();
+        System.out.print("Passphrase: ");
+        String passphrase = commandLine.nextLine();
+        System.out.print("Address: ");
+        String address = commandLine.nextLineTrimmed();
+        ctx.joinChan(passphrase, address);
     }
 
     private void contacts() {
@@ -185,24 +186,12 @@ public class Application {
         List<BitmessageAddress> contacts = ctx.addresses().getContacts();
         do {
             System.out.println();
-            int i = 0;
-            for (BitmessageAddress contact : contacts) {
-                i++;
-                System.out.print(i + ") ");
-                if (contact.getAlias() != null) {
-                    System.out.println(contact.getAlias() + " (" + contact.getAddress() + ")");
-                } else {
-                    System.out.println(contact.getAddress());
-                }
-            }
-            if (i == 0) {
-                System.out.println("You have no contacts yet.");
-            }
+            commandLine.listAddresses(contacts, "contacts");
             System.out.println();
             System.out.println("a) add contact");
-            System.out.println("b) back");
+            System.out.println(COMMAND_BACK);
 
-            command = nextCommand();
+            command = commandLine.nextCommand();
             switch (command) {
                 case "a":
                     addContact(false);
@@ -215,7 +204,7 @@ public class Application {
                         int index = Integer.parseInt(command) - 1;
                         address(contacts.get(index));
                     } catch (NumberFormatException e) {
-                        System.out.println("Unknown command. Please try again.");
+                        System.out.println(ERROR_UNKNOWN_COMMAND);
                     }
             }
         } while (!"b".equals(command));
@@ -225,9 +214,9 @@ public class Application {
         System.out.println();
         System.out.println("Please enter the Bitmessage address you want to add");
         try {
-            BitmessageAddress address = new BitmessageAddress(scanner.nextLine().trim());
+            BitmessageAddress address = new BitmessageAddress(commandLine.nextLineTrimmed());
             System.out.println("Please enter an alias for this address, or an empty string for none");
-            String alias = scanner.nextLine().trim();
+            String alias = commandLine.nextLineTrimmed();
             if (alias.length() > 0) {
                 address.setAlias(alias);
             }
@@ -245,24 +234,12 @@ public class Application {
         List<BitmessageAddress> subscriptions = ctx.addresses().getSubscriptions();
         do {
             System.out.println();
-            int i = 0;
-            for (BitmessageAddress contact : subscriptions) {
-                i++;
-                System.out.print(i + ") ");
-                if (contact.getAlias() != null) {
-                    System.out.println(contact.getAlias() + " (" + contact.getAddress() + ")");
-                } else {
-                    System.out.println(contact.getAddress());
-                }
-            }
-            if (i == 0) {
-                System.out.println("You have no subscriptions yet.");
-            }
+            commandLine.listAddresses(subscriptions, "subscriptions");
             System.out.println();
             System.out.println("a) add subscription");
-            System.out.println("b) back");
+            System.out.println(COMMAND_BACK);
 
-            command = nextCommand();
+            command = commandLine.nextCommand();
             switch (command) {
                 case "a":
                     addContact(true);
@@ -275,7 +252,7 @@ public class Application {
                         int index = Integer.parseInt(command) - 1;
                         address(subscriptions.get(index));
                     } catch (NumberFormatException e) {
-                        System.out.println("Unknown command. Please try again.");
+                        System.out.println(ERROR_UNKNOWN_COMMAND);
                     }
             }
         } while (!"b".equals(command));
@@ -289,34 +266,47 @@ public class Application {
         System.out.println("Stream:  " + address.getStream());
         System.out.println("Version: " + address.getVersion());
         if (address.getPrivateKey() == null) {
-            if (address.getPubkey() != null) {
-                System.out.println("Public key available");
-            } else {
+            if (address.getPubkey() == null) {
                 System.out.println("Public key still missing");
+            } else {
+                System.out.println("Public key available");
+            }
+        } else {
+            if (address.isChan()) {
+                System.out.println("Chan");
+            } else {
+                System.out.println("Identity");
             }
         }
     }
 
-    private void messages() {
+    private void labels() {
+        List<Label> labels = ctx.messages().getLabels();
         String command;
-        List<Plaintext> messages = ctx.messages().findMessages(Plaintext.Status.RECEIVED);
         do {
             System.out.println();
             int i = 0;
-            for (Plaintext message : messages) {
+            for (Label label : labels) {
                 i++;
-                System.out.println(i + ") From: " + message.getFrom() + "; Subject: " + message.getSubject());
+                System.out.print(i + ") " + label);
+                int unread = ctx.messages().countUnread(label);
+                if (unread > 0) {
+                    System.out.println(" [" + unread + "]");
+                } else {
+                    System.out.println();
+                }
             }
-            if (i == 0) {
-                System.out.println("You have no messages.");
-            }
+            System.out.println("a) Archive");
             System.out.println();
             System.out.println("c) compose message");
             System.out.println("s) compose broadcast");
-            System.out.println("b) back");
+            System.out.println(COMMAND_BACK);
 
-            command = scanner.nextLine().trim();
+            command = commandLine.nextCommand();
             switch (command) {
+                case "a":
+                    messages(null);
+                    break;
                 case "c":
                     compose(false);
                     break;
@@ -328,9 +318,53 @@ public class Application {
                 default:
                     try {
                         int index = Integer.parseInt(command) - 1;
+                        messages(labels.get(index));
+                    } catch (NumberFormatException | IndexOutOfBoundsException e) {
+                        System.out.println(ERROR_UNKNOWN_COMMAND);
+                    }
+            }
+        } while (!"b".equalsIgnoreCase(command));
+    }
+
+    private void messages(Label label) {
+        String command;
+        do {
+            List<Plaintext> messages = ctx.messages().findMessages(label);
+            System.out.println();
+            int i = 0;
+            for (Plaintext message : messages) {
+                i++;
+                System.out.println(i + (message.isUnread() ? ">" : ")") + " From: " + message.getFrom() + "; Subject: " + message.getSubject());
+            }
+            if (i == 0) {
+                System.out.println("There are no messages.");
+            }
+            System.out.println();
+            System.out.println("c) compose message");
+            System.out.println("s) compose broadcast");
+            if (label.getType() == Label.Type.TRASH) {
+                System.out.println("e) empty trash");
+            }
+            System.out.println(COMMAND_BACK);
+
+            command = commandLine.nextCommand();
+            switch (command) {
+                case "c":
+                    compose(false);
+                    break;
+                case "s":
+                    compose(true);
+                    break;
+                case "e":
+                    messages.forEach(ctx.messages()::remove);
+                case "b":
+                    return;
+                default:
+                    try {
+                        int index = Integer.parseInt(command) - 1;
                         show(messages.get(index));
                     } catch (NumberFormatException | IndexOutOfBoundsException e) {
-                        System.out.println("Unknown command. Please try again.");
+                        System.out.println(ERROR_UNKNOWN_COMMAND);
                     }
             }
         } while (!"b".equalsIgnoreCase(command));
@@ -342,37 +376,47 @@ public class Application {
         System.out.println("To:      " + message.getTo());
         System.out.println("Subject: " + message.getSubject());
         System.out.println();
-        System.out.println(message.getText());
+        System.out.println(WordUtils.wrap(message.getText(), 120));
         System.out.println();
-        System.out.println("Labels: " + message.getLabels());
+        System.out.println(message.getLabels().stream().map(Label::toString).collect(
+            Collectors.joining(", ", "Labels: ", "")));
         System.out.println();
+        ctx.labeler().markAsRead(message);
+        ctx.messages().save(message);
         String command;
         do {
             System.out.println("r) reply");
             System.out.println("d) delete");
-            System.out.println("b) back");
-            command = nextCommand();
+            System.out.println("a) archive");
+            System.out.println(COMMAND_BACK);
+            command = commandLine.nextCommand();
             switch (command) {
                 case "r":
                     compose(message.getTo(), message.getFrom(), "RE: " + message.getSubject());
                     break;
                 case "d":
-                    ctx.messages().remove(message);
+                    ctx.labeler().delete(message);
+                    ctx.messages().save(message);
+                    return;
+                case "a":
+                    ctx.labeler().archive(message);
+                    ctx.messages().save(message);
+                    return;
                 case "b":
                     return;
                 default:
-                    System.out.println("Unknown command. Please try again.");
+                    System.out.println(ERROR_UNKNOWN_COMMAND);
             }
         } while (!"b".equalsIgnoreCase(command));
     }
 
     private void compose(boolean broadcast) {
         System.out.println();
-        BitmessageAddress from = selectAddress(true);
+        BitmessageAddress from = selectIdentity();
         if (from == null) {
             return;
         }
-        BitmessageAddress to = (broadcast ? null : selectAddress(false));
+        BitmessageAddress to = (broadcast ? null : selectContact());
         if (!broadcast && to == null) {
             return;
         }
@@ -380,58 +424,22 @@ public class Application {
         compose(from, to, null);
     }
 
-    private BitmessageAddress selectAddress(boolean id) {
-        List<BitmessageAddress> addresses = (id ? ctx.addresses().getIdentities() : ctx.addresses().getContacts());
+    private BitmessageAddress selectIdentity() {
+        List<BitmessageAddress> addresses = ctx.addresses().getIdentities();
         while (addresses.size() == 0) {
-            if (id) {
-                addIdentity();
-                addresses = ctx.addresses().getIdentities();
-            } else {
-                addContact(false);
-                addresses = ctx.addresses().getContacts();
-            }
+            addIdentity();
+            addresses = ctx.addresses().getIdentities();
         }
-        if (addresses.size() == 1) {
-            return addresses.get(0);
+        return commandLine.selectAddress(addresses, "From:");
+    }
+
+    private BitmessageAddress selectContact() {
+        List<BitmessageAddress> addresses = ctx.addresses().getContacts();
+        while (addresses.size() == 0) {
+            addContact(false);
+            addresses = ctx.addresses().getContacts();
         }
-
-        String command;
-        do {
-            System.out.println();
-            if (id) {
-                System.out.println("From:");
-            } else {
-                System.out.println("To:");
-            }
-
-            int i = 0;
-            for (BitmessageAddress identity : addresses) {
-                i++;
-                System.out.print(i + ") ");
-                if (identity.getAlias() != null) {
-                    System.out.println(identity.getAlias() + " (" + identity.getAddress() + ")");
-                } else {
-                    System.out.println(identity.getAddress());
-                }
-            }
-            System.out.println("b) back");
-
-            command = nextCommand();
-            switch (command) {
-                case "b":
-                    return null;
-                default:
-                    try {
-                        int index = Integer.parseInt(command) - 1;
-                        if (addresses.get(index) != null) {
-                            return addresses.get(index);
-                        }
-                    } catch (NumberFormatException e) {
-                        System.out.println("Unknown command. Please try again.");
-                    }
-            }
-        } while (!"b".equals(command));
-        return null;
+        return commandLine.selectAddress(addresses, "To:");
     }
 
     private void compose(BitmessageAddress from, BitmessageAddress to, String subject) {
@@ -445,29 +453,19 @@ public class Application {
             System.out.println("Subject: " + subject);
         } else {
             System.out.print("Subject: ");
-            subject = scanner.nextLine().trim();
+            subject = commandLine.nextLineTrimmed();
         }
         System.out.println("Message:");
         StringBuilder message = new StringBuilder();
         String line;
         do {
-            line = scanner.nextLine();
+            line = commandLine.nextLine();
             message.append(line).append('\n');
-        } while (line.length() > 0 || !yesNo("Send message?"));
+        } while (line.length() > 0 || !commandLine.yesNo("Send message?"));
         if (broadcast) {
             ctx.broadcast(from, subject, message.toString());
         } else {
             ctx.send(from, to, subject, message.toString());
         }
-    }
-
-    private boolean yesNo(String question) {
-        String answer;
-        do {
-            System.out.println(question + " (y/n)");
-            answer = scanner.nextLine();
-            if ("y".equalsIgnoreCase(answer)) return true;
-            if ("n".equalsIgnoreCase(answer)) return false;
-        } while (true);
     }
 }

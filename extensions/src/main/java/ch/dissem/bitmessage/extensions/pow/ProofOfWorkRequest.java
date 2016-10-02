@@ -24,6 +24,7 @@ import ch.dissem.bitmessage.utils.Encode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import static ch.dissem.bitmessage.utils.Decode.*;
@@ -32,6 +33,8 @@ import static ch.dissem.bitmessage.utils.Decode.*;
  * @author Christian Basler
  */
 public class ProofOfWorkRequest implements Streamable {
+    private static final long serialVersionUID = 4729003751499662713L;
+
     private final BitmessageAddress sender;
     private final byte[] initialHash;
     private final Request request;
@@ -79,6 +82,13 @@ public class ProofOfWorkRequest implements Streamable {
         out.write(initialHash);
         Encode.varString(request.name(), out);
         Encode.varBytes(data, out);
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        buffer.put(initialHash);
+        Encode.varString(request.name(), buffer);
+        Encode.varBytes(data, buffer);
     }
 
     @Override

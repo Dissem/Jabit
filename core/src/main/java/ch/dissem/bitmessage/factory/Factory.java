@@ -23,6 +23,8 @@ import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.NodeException;
+import ch.dissem.bitmessage.utils.TTL;
+import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,13 +33,14 @@ import java.io.InputStream;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.entity.payload.ObjectType.MSG;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * Creates {@link NetworkMessage} objects from {@link InputStream InputStreams}
  */
 public class Factory {
-    public static final Logger LOG = LoggerFactory.getLogger(Factory.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Factory.class);
 
     public static NetworkMessage getNetworkMessage(int version, InputStream stream) throws SocketTimeoutException {
         try {
@@ -116,8 +119,8 @@ public class Factory {
         BitmessageAddress temp = new BitmessageAddress(address);
         PrivateKey privateKey = new PrivateKey(privateSigningKey, privateEncryptionKey,
                 createPubkey(temp.getVersion(), temp.getStream(),
-                        security().createPublicKey(privateSigningKey),
-                        security().createPublicKey(privateEncryptionKey),
+                        cryptography().createPublicKey(privateSigningKey),
+                        cryptography().createPublicKey(privateEncryptionKey),
                         nonceTrialsPerByte, extraBytes, behaviourBitfield));
         BitmessageAddress result = new BitmessageAddress(privateKey);
         if (!result.getAddress().equals(address)) {
@@ -155,7 +158,7 @@ public class Factory {
         }
         // fallback: just store the message - we don't really care what it is
         LOG.trace("Unexpected object type: " + objectType);
-        return GenericPayload.read(version, stream, streamNumber, length);
+        return GenericPayload.read(version, streamNumber, stream, length);
     }
 
     private static ObjectPayload parseGetPubkey(long version, long streamNumber, InputStream stream, int length) throws IOException {
@@ -177,7 +180,7 @@ public class Factory {
 
     private static ObjectPayload parsePubkey(long version, long streamNumber, InputStream stream, int length) throws IOException {
         Pubkey pubkey = readPubkey(version, streamNumber, stream, length, true);
-        return pubkey != null ? pubkey : GenericPayload.read(version, stream, streamNumber, length);
+        return pubkey != null ? pubkey : GenericPayload.read(version, streamNumber, stream, length);
     }
 
     private static ObjectPayload parseMsg(long version, long streamNumber, InputStream stream, int length) throws IOException {
@@ -192,15 +195,23 @@ public class Factory {
                 return V5Broadcast.read(stream, streamNumber, length);
             default:
                 LOG.debug("Encountered unknown broadcast version " + version);
-                return GenericPayload.read(version, stream, streamNumber, length);
+                return GenericPayload.read(version, streamNumber, stream, length);
         }
     }
 
-    public static ObjectPayload getBroadcast(BitmessageAddress sendingAddress, Plaintext plaintext) {
+    public static Broadcast getBroadcast(Plaintext plaintext) {
+        BitmessageAddress sendingAddress = plaintext.getFrom();
         if (sendingAddress.getVersion() < 4) {
             return new V4Broadcast(sendingAddress, plaintext);
         } else {
             return new V5Broadcast(sendingAddress, plaintext);
         }
+    }
+
+    public static ObjectMessage createAck(Plaintext plaintext) {
+        if (plaintext == null || plaintext.getAckData() == null)
+            return null;
+        GenericPayload ack = new GenericPayload(3, plaintext.getFrom().getStream(), plaintext.getAckData());
+        return new ObjectMessage.Builder().objectType(MSG).payload(ack).expiresTime(UnixTime.now(plaintext.getTTL())).build();
     }
 }

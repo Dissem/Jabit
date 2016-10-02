@@ -18,14 +18,11 @@ package ch.dissem.bitmessage;
 
 import ch.dissem.bitmessage.entity.*;
 import ch.dissem.bitmessage.entity.payload.Broadcast;
-import ch.dissem.bitmessage.entity.payload.Msg;
-import ch.dissem.bitmessage.entity.payload.ObjectPayload;
 import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
-import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
-import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
+import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Property;
 import ch.dissem.bitmessage.utils.TTL;
@@ -33,11 +30,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.*;
+import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
-import static ch.dissem.bitmessage.entity.Plaintext.Status.*;
+import static ch.dissem.bitmessage.InternalContext.NETWORK_EXTRA_BYTES;
+import static ch.dissem.bitmessage.InternalContext.NETWORK_NONCE_TRIALS_PER_BYTE;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
 import static ch.dissem.bitmessage.utils.UnixTime.*;
@@ -60,32 +59,20 @@ public class BitmessageContext {
     public static final int CURRENT_VERSION = 3;
     private final static Logger LOG = LoggerFactory.getLogger(BitmessageContext.class);
 
-    private final ExecutorService pool;
-
     private final InternalContext ctx;
 
-    private final Listener listener;
-    private final NetworkHandler.MessageListener networkListener;
+    private final Labeler labeler;
 
     private final boolean sendPubkeyOnIdentityCreation;
 
     private BitmessageContext(Builder builder) {
+        if (builder.listener instanceof Listener.WithContext) {
+            ((Listener.WithContext) builder.listener).setContext(this);
+        }
         ctx = new InternalContext(builder);
-        listener = builder.listener;
-        networkListener = new DefaultMessageListener(ctx, listener);
-
-        // As this thread is used for parts that do POW, which itself uses parallel threads, only
-        // one should be executed at any time.
-        pool = Executors.newFixedThreadPool(1);
-
+        labeler = builder.labeler;
+        ctx.getProofOfWorkService().doMissingProofOfWork(30_000); // TODO: this should be configurable
         sendPubkeyOnIdentityCreation = builder.sendPubkeyOnIdentityCreation;
-
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                ctx.getProofOfWorkService().doMissingProofOfWork();
-            }
-        }, 30_000); // After 30 seconds
     }
 
     public AddressRepository addresses() {
@@ -96,36 +83,56 @@ public class BitmessageContext {
         return ctx.getMessageRepository();
     }
 
+    public Labeler labeler() {
+        return labeler;
+    }
+
     public BitmessageAddress createIdentity(boolean shorter, Feature... features) {
         final BitmessageAddress identity = new BitmessageAddress(new PrivateKey(
-                shorter,
-                ctx.getStreams()[0],
-                ctx.getNetworkNonceTrialsPerByte(),
-                ctx.getNetworkExtraBytes(),
-                features
+            shorter,
+            ctx.getStreams()[0],
+            NETWORK_NONCE_TRIALS_PER_BYTE,
+            NETWORK_EXTRA_BYTES,
+            features
         ));
         ctx.getAddressRepository().save(identity);
         if (sendPubkeyOnIdentityCreation) {
-            pool.submit(new Runnable() {
-                @Override
-                public void run() {
-                    ctx.sendPubkey(identity, identity.getStream());
-                }
-            });
+            ctx.sendPubkey(identity, identity.getStream());
         }
         return identity;
     }
 
-    public void addDistributedMailingList(String address, String alias) {
-        // TODO
-        throw new RuntimeException("not implemented");
+    public BitmessageAddress joinChan(String passphrase, String address) {
+        BitmessageAddress chan = BitmessageAddress.chan(address, passphrase);
+        chan.setAlias(passphrase);
+        ctx.getAddressRepository().save(chan);
+        return chan;
+    }
+
+    public BitmessageAddress createChan(String passphrase) {
+        // FIXME: hardcoded stream number
+        BitmessageAddress chan = BitmessageAddress.chan(1, passphrase);
+        ctx.getAddressRepository().save(chan);
+        return chan;
+    }
+
+    public List<BitmessageAddress> createDeterministicAddresses(
+        String passphrase, int numberOfAddresses, long version, long stream, boolean shorter) {
+        List<BitmessageAddress> result = BitmessageAddress.deterministic(
+            passphrase, numberOfAddresses, version, stream, shorter);
+        for (int i = 0; i < result.size(); i++) {
+            BitmessageAddress address = result.get(i);
+            address.setAlias("deterministic (" + (i + 1) + ")");
+            ctx.getAddressRepository().save(address);
+        }
+        return result;
     }
 
     public void broadcast(final BitmessageAddress from, final String subject, final String message) {
         Plaintext msg = new Plaintext.Builder(BROADCAST)
-                .from(from)
-                .message(subject, message)
-                .build();
+            .from(from)
+            .message(subject, message)
+            .build();
         send(msg);
     }
 
@@ -134,11 +141,10 @@ public class BitmessageContext {
             throw new IllegalArgumentException("'From' must be an identity, i.e. have a private key.");
         }
         Plaintext msg = new Plaintext.Builder(MSG)
-                .from(from)
-                .to(to)
-                .message(subject, message)
-                .labels(messages().getLabels(Label.Type.SENT))
-                .build();
+            .from(from)
+            .to(to)
+            .message(subject, message)
+            .build();
         send(msg);
     }
 
@@ -146,41 +152,35 @@ public class BitmessageContext {
         if (msg.getFrom() == null || msg.getFrom().getPrivateKey() == null) {
             throw new IllegalArgumentException("'From' must be an identity, i.e. have a private key.");
         }
-        pool.submit(new Runnable() {
-            @Override
-            public void run() {
-                BitmessageAddress to = msg.getTo();
-                if (to != null) {
-                    if (to.getPubkey() == null) {
-                        LOG.info("Public key is missing from recipient. Requesting.");
-                        ctx.requestPubkey(to);
-                    }
-                    if (to.getPubkey() == null) {
-                        msg.setStatus(PUBKEY_REQUESTED);
-                        msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.OUTBOX));
-                        ctx.getMessageRepository().save(msg);
-                    }
-                }
-                if (to == null || to.getPubkey() != null) {
-                    LOG.info("Sending message.");
-                    msg.setStatus(DOING_PROOF_OF_WORK);
-                    ctx.getMessageRepository().save(msg);
-                    ctx.send(
-                            msg.getFrom(),
-                            to,
-                            new Msg(msg),
-                            TTL.msg()
-                    );
-                    msg.setStatus(SENT);
-                    msg.addLabels(ctx.getMessageRepository().getLabels(Label.Type.SENT));
-                    ctx.getMessageRepository().save(msg);
-                }
+        labeler().markAsSending(msg);
+        BitmessageAddress to = msg.getTo();
+        if (to != null) {
+            if (to.getPubkey() == null) {
+                LOG.info("Public key is missing from recipient. Requesting.");
+                ctx.requestPubkey(to);
             }
-        });
+            if (to.getPubkey() == null) {
+                ctx.getMessageRepository().save(msg);
+            }
+        }
+        if (to == null || to.getPubkey() != null) {
+            LOG.info("Sending message.");
+            ctx.getMessageRepository().save(msg);
+            if (msg.getType() == MSG) {
+                ctx.send(msg);
+            } else {
+                ctx.send(
+                    msg.getFrom(),
+                    to,
+                    Factory.getBroadcast(msg),
+                    msg.getTTL()
+                );
+            }
+        }
     }
 
     public void startup() {
-        ctx.getNetworkHandler().start(networkListener);
+        ctx.getNetworkHandler().start();
     }
 
     public void shutdown() {
@@ -195,7 +195,7 @@ public class BitmessageContext {
      * @param wait             waits for the synchronization thread to finish
      */
     public void synchronize(InetAddress host, int port, long timeoutInSeconds, boolean wait) {
-        Future<?> future = ctx.getNetworkHandler().synchronize(host, port, networkListener, timeoutInSeconds);
+        Future<?> future = ctx.getNetworkHandler().synchronize(host, port, timeoutInSeconds);
         if (wait) {
             try {
                 future.get();
@@ -221,8 +221,30 @@ public class BitmessageContext {
         return ctx.getNetworkHandler().send(server, port, request);
     }
 
+    /**
+     * Removes expired objects from the inventory. You should call this method regularly,
+     * e.g. daily and on each shutdown.
+     */
     public void cleanup() {
         ctx.getInventory().cleanup();
+    }
+
+    /**
+     * Sends messages again whose time to live expired without being acknowledged. (And whose
+     * recipient is expected to send acknowledgements.
+     * <p>
+     * You should call this method regularly, but be aware of the following:
+     * <ul>
+     * <li>As messages might be sent, POW will be done. It is therefore not advised to
+     * call it on shutdown.</li>
+     * <li>It shouldn't be called right after startup, as it's possible the missing
+     * acknowledgement was sent while the client was offline.</li>
+     * <li>Other than that, the call isn't expensive as long as there is no message
+     * to send, so it might be a good idea to just call it every few minutes.</li>
+     * </ul>
+     */
+    public void resendUnacknowledgedMessages() {
+        ctx.resendUnacknowledged();
     }
 
     public boolean isRunning() {
@@ -247,7 +269,9 @@ public class BitmessageContext {
             try {
                 Broadcast broadcast = (Broadcast) object.getPayload();
                 broadcast.decrypt(address);
-                listener.receive(broadcast.getPlaintext());
+                // This decrypts it twice, but on the other hand it doesn't try to decrypt the objects with
+                // other subscriptions and the interface stays as simple as possible.
+                ctx.getNetworkListener().receive(object);
             } catch (DecryptionFailedException ignore) {
             } catch (Exception e) {
                 LOG.debug(e.getMessage(), e);
@@ -257,7 +281,8 @@ public class BitmessageContext {
 
     public Property status() {
         return new Property("status", null,
-                ctx.getNetworkHandler().getNetworkStatus()
+            ctx.getNetworkHandler().getNetworkStatus(),
+            new Property("unacknowledged", ctx.getMessageRepository().findMessagesToResend().size())
         );
     }
 
@@ -271,6 +296,13 @@ public class BitmessageContext {
 
     public interface Listener {
         void receive(Plaintext plaintext);
+
+        /**
+         * A message listener that needs a {@link BitmessageContext}, i.e. for implementing some sort of chat bot.
+         */
+        interface WithContext extends Listener {
+            void setContext(BitmessageContext ctx);
+        }
     }
 
     public static final class Builder {
@@ -283,15 +315,12 @@ public class BitmessageContext {
         ProofOfWorkRepository proofOfWorkRepository;
         ProofOfWorkEngine proofOfWorkEngine;
         Cryptography cryptography;
-        MessageCallback messageCallback;
         CustomCommandHandler customCommandHandler;
+        Labeler labeler;
         Listener listener;
         int connectionLimit = 150;
         long connectionTTL = 30 * MINUTE;
         boolean sendPubkeyOnIdentityCreation = true;
-
-        public Builder() {
-        }
 
         public Builder port(int port) {
             this.port = port;
@@ -333,11 +362,6 @@ public class BitmessageContext {
             return this;
         }
 
-        public Builder messageCallback(MessageCallback callback) {
-            this.messageCallback = callback;
-            return this;
-        }
-
         public Builder customCommandHandler(CustomCommandHandler handler) {
             this.customCommandHandler = handler;
             return this;
@@ -345,6 +369,11 @@ public class BitmessageContext {
 
         public Builder proofOfWorkEngine(ProofOfWorkEngine proofOfWorkEngine) {
             this.proofOfWorkEngine = proofOfWorkEngine;
+            return this;
+        }
+
+        public Builder labeler(Labeler labeler) {
+            this.labeler = labeler;
             return this;
         }
 
@@ -380,6 +409,8 @@ public class BitmessageContext {
          * sender can't receive your public key) in some special situations. Also note that it's probably
          * not a good idea to set it too low.
          * </p>
+         *
+         * @deprecated use {@link TTL#pubkey(long)} instead.
          */
         public Builder pubkeyTTL(long days) {
             if (days < 0 || days > 28 * DAY) throw new IllegalArgumentException("TTL must be between 1 and 28 days");
@@ -397,30 +428,15 @@ public class BitmessageContext {
             if (proofOfWorkEngine == null) {
                 proofOfWorkEngine = new MultiThreadedPOWEngine();
             }
-            if (messageCallback == null) {
-                messageCallback = new MessageCallback() {
-                    @Override
-                    public void proofOfWorkStarted(ObjectPayload message) {
-                    }
-
-                    @Override
-                    public void proofOfWorkCompleted(ObjectPayload message) {
-                    }
-
-                    @Override
-                    public void messageOffered(ObjectPayload message, InventoryVector iv) {
-                    }
-
-                    @Override
-                    public void messageAcknowledged(InventoryVector iv) {
-                    }
-                };
+            if (labeler == null) {
+                labeler = new DefaultLabeler();
             }
             if (customCommandHandler == null) {
                 customCommandHandler = new CustomCommandHandler() {
                     @Override
                     public MessagePayload handle(CustomMessage request) {
-                        throw new RuntimeException("Received custom request, but no custom command handler configured.");
+                        throw new IllegalStateException(
+                            "Received custom request, but no custom command handler configured.");
                     }
                 };
             }

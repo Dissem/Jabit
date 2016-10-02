@@ -25,9 +25,7 @@ import org.junit.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 public class WifImporterTest {
@@ -69,6 +67,7 @@ public class WifImporterTest {
         assertNotNull("Private key", identity.getPrivateKey());
         assertEquals(32, identity.getPrivateKey().getPrivateEncryptionKey().length);
         assertEquals(32, identity.getPrivateKey().getPrivateSigningKey().length);
+        assertFalse(identity.isChan());
     }
 
     @Test
@@ -97,5 +96,21 @@ public class WifImporterTest {
         List<BitmessageAddress> identities = importer.getIdentities();
         importer.importIdentity(identities.get(0));
         verify(repo, times(1)).save(identities.get(0));
+    }
+
+    @Test
+    public void ensureChanIsImported() throws Exception {
+        importer = new WifImporter(ctx, "[BM-2cW67GEKkHGonXKZLCzouLLxnLym3azS8r]\n" +
+                "label = [chan] general\n" +
+                "enabled = true\n" +
+                "decoy = false\n" +
+                "chan = true\n" +
+                "noncetrialsperbyte = 1000\n" +
+                "payloadlengthextrabytes = 1000\n" +
+                "privsigningkey = 5Jnbdwc4u4DG9ipJxYLznXSvemkRFueQJNHujAQamtDDoX3N1eQ\n" +
+                "privencryptionkey = 5JrDcFtQDv5ydcHRW6dfGUEvThoxCCLNEUaxQfy8LXXgTJzVAcq\n");
+        assertEquals(1, importer.getIdentities().size());
+        BitmessageAddress chan = importer.getIdentities().get(0);
+        assertTrue(chan.isChan());
     }
 }

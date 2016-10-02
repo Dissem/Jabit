@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.utils.Encode;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -28,6 +29,10 @@ import java.util.List;
  * The 'getdata' command is used to request objects from a node.
  */
 public class GetData implements MessagePayload {
+    private static final long serialVersionUID = 1433878785969631061L;
+
+    public static final int MAX_INVENTORY_SIZE = 50_000;
+
     List<InventoryVector> inventory;
 
     private GetData(Builder builder) {
@@ -51,11 +56,16 @@ public class GetData implements MessagePayload {
         }
     }
 
+    @Override
+    public void write(ByteBuffer buffer) {
+        Encode.varInt(inventory.size(), buffer);
+        for (InventoryVector iv : inventory) {
+            iv.write(buffer);
+        }
+    }
+
     public static final class Builder {
         private List<InventoryVector> inventory = new LinkedList<>();
-
-        public Builder() {
-        }
 
         public Builder addInventoryVector(InventoryVector inventoryVector) {
             this.inventory.add(inventoryVector);

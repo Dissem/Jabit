@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.utils.Decode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 /**
@@ -28,6 +29,8 @@ import java.util.Arrays;
  * have to know what it is.
  */
 public class GenericPayload extends ObjectPayload {
+    private static final long serialVersionUID = -912314085064185940L;
+
     private long stream;
     private byte[] data;
 
@@ -37,7 +40,7 @@ public class GenericPayload extends ObjectPayload {
         this.data = data;
     }
 
-    public static GenericPayload read(long version, InputStream is, long stream, int length) throws IOException {
+    public static GenericPayload read(long version, long stream, InputStream is, int length) throws IOException {
         return new GenericPayload(version, stream, Decode.bytes(is, length));
     }
 
@@ -51,9 +54,18 @@ public class GenericPayload extends ObjectPayload {
         return stream;
     }
 
+    public byte[] getData() {
+        return data;
+    }
+
     @Override
     public void write(OutputStream stream) throws IOException {
         stream.write(data);
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        buffer.put(data);
     }
 
     @Override

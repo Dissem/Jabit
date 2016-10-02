@@ -19,20 +19,18 @@ package ch.dissem.bitmessage.utils;
 import ch.dissem.bitmessage.ports.Cryptography;
 
 /**
- * Created by chris on 20.07.15.
+ * @author Christian Basler
  */
 public class Singleton {
     private static Cryptography cryptography;
 
     public static void initialize(Cryptography cryptography) {
         synchronized (Singleton.class) {
-            if (Singleton.cryptography == null) {
-                Singleton.cryptography = cryptography;
-            }
+            Singleton.cryptography = cryptography;
         }
     }
 
-    public static Cryptography security() {
+    public static Cryptography cryptography() {
         return cryptography;
     }
 }

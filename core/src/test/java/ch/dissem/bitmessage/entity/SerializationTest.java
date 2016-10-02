@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 import static org.junit.Assert.*;
 
 public class SerializationTest extends TestBase {
@@ -82,7 +82,7 @@ public class SerializationTest extends TestBase {
                 .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
                 .to(TestUtils.loadContact())
                 .message("Subject", "Message")
-                .ack("ack".getBytes())
+                .ackData("ackMessage".getBytes())
                 .signature(new byte[0])
                 .build();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -99,10 +99,36 @@ public class SerializationTest extends TestBase {
     }
 
     @Test
+    public void ensurePlaintextWithAckMessageIsSerializedAndDeserializedCorrectly() throws Exception {
+        Plaintext p1 = new Plaintext.Builder(MSG)
+                .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
+                .to(TestUtils.loadContact())
+                .message("Subject", "Message")
+                .ackData("ackMessage".getBytes())
+                .signature(new byte[0])
+                .build();
+        ObjectMessage ackMessage1 = p1.getAckMessage();
+        assertNotNull(ackMessage1);
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        p1.write(out);
+        ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+        Plaintext p2 = Plaintext.read(MSG, in);
+
+        // Received is automatically set on deserialization, so we'll need to set it to 0
+        Field received = Plaintext.class.getDeclaredField("received");
+        received.setAccessible(true);
+        received.set(p2, 0L);
+
+        assertEquals(p1, p2);
+        assertEquals(ackMessage1, p2.getAckMessage());
+    }
+
+    @Test
     public void ensureNetworkMessageIsSerializedAndDeserializedCorrectly() throws Exception {
         ArrayList<InventoryVector> ivs = new ArrayList<>(50000);
         for (int i = 0; i < 50000; i++) {
-            ivs.add(new InventoryVector(security().randomBytes(32)));
+            ivs.add(new InventoryVector(cryptography().randomBytes(32)));
         }
 
         Inv inv = new Inv.Builder().inventory(ivs).build();
@@ -111,6 +137,7 @@ public class SerializationTest extends TestBase {
         before.write(out);
 
         NetworkMessage after = Factory.getNetworkMessage(3, new ByteArrayInputStream(out.toByteArray()));
+        assertNotNull(after);
         Inv invAfter = (Inv) after.getPayload();
         assertEquals(ivs, invAfter.getInventory());
     }

@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.cryptography.bc;
 
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.ports.AbstractCryptography;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.BufferedBlockCipher;
@@ -37,6 +38,7 @@ import org.bouncycastle.jce.spec.ECPublicKeySpec;
 import org.bouncycastle.math.ec.ECPoint;
 
 import java.math.BigInteger;
+import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.Signature;
@@ -49,19 +51,23 @@ import java.util.Arrays;
  */
 public class BouncyCryptography extends AbstractCryptography {
     private static final X9ECParameters EC_CURVE_PARAMETERS = CustomNamedCurves.getByName("secp256k1");
+    private static final String ALGORITHM_ECDSA = "ECDSA";
+    private static final String PROVIDER = "BC";
 
     static {
         java.security.Security.addProvider(new BouncyCastleProvider());
     }
 
     public BouncyCryptography() {
-        super("BC");
+        super(PROVIDER);
     }
 
     @Override
     public byte[] crypt(boolean encrypt, byte[] data, byte[] key_e, byte[] initializationVector) {
-        BufferedBlockCipher cipher = new PaddedBufferedBlockCipher(new CBCBlockCipher(new AESEngine()), new PKCS7Padding());
-
+        BufferedBlockCipher cipher = new PaddedBufferedBlockCipher(
+                new CBCBlockCipher(new AESEngine()),
+                new PKCS7Padding()
+        );
         CipherParameters params = new ParametersWithIV(new KeyParameter(key_e), initializationVector);
 
         cipher.init(encrypt, params);
@@ -103,14 +109,14 @@ public class BouncyCryptography extends AbstractCryptography {
 
             ECPoint Q = keyToPoint(pubkey.getSigningKey());
             KeySpec keySpec = new ECPublicKeySpec(Q, spec);
-            PublicKey publicKey = KeyFactory.getInstance("ECDSA", "BC").generatePublic(keySpec);
+            PublicKey publicKey = KeyFactory.getInstance(ALGORITHM_ECDSA, PROVIDER).generatePublic(keySpec);
 
-            Signature sig = Signature.getInstance("ECDSA", "BC");
+            Signature sig = Signature.getInstance(ALGORITHM_ECDSA, PROVIDER);
             sig.initVerify(publicKey);
             sig.update(data);
             return sig.verify(signature);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        } catch (GeneralSecurityException e) {
+            throw new ApplicationException(e);
         }
     }
 
@@ -127,14 +133,15 @@ public class BouncyCryptography extends AbstractCryptography {
 
             BigInteger d = keyToBigInt(privateKey.getPrivateSigningKey());
             KeySpec keySpec = new ECPrivateKeySpec(d, spec);
-            java.security.PrivateKey privKey = KeyFactory.getInstance("ECDSA", "BC").generatePrivate(keySpec);
+            java.security.PrivateKey privKey = KeyFactory.getInstance(ALGORITHM_ECDSA, PROVIDER)
+                    .generatePrivate(keySpec);
 
-            Signature sig = Signature.getInstance("ECDSA", "BC");
+            Signature sig = Signature.getInstance(ALGORITHM_ECDSA, PROVIDER);
             sig.initSign(privKey);
             sig.update(data);
             return sig.sign();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        } catch (GeneralSecurityException e) {
+            throw new ApplicationException(e);
         }
     }
 

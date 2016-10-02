@@ -57,7 +57,7 @@ public class EncodeTest {
         checkBytes(stream, 4, 3, 2, 1);
 
         stream = new ByteArrayOutputStream();
-        Encode.int32(3355443201l, stream);
+        Encode.int32(3355443201L, stream);
         checkBytes(stream, 200, 0, 0, 1);
     }
 

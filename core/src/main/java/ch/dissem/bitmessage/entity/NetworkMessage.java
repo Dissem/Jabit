@@ -16,22 +16,25 @@
 
 package ch.dissem.bitmessage.entity;
 
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.utils.Encode;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 
-import static ch.dissem.bitmessage.utils.Singleton.security;
+import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
  * A network message is exchanged between two nodes.
  */
 public class NetworkMessage implements Streamable {
+    private static final long serialVersionUID = 702708857104464809L;
+
     /**
      * Magic value indicating message origin network, and used to seek to next message when stream state is unknown
      */
@@ -48,7 +51,7 @@ public class NetworkMessage implements Streamable {
      * First 4 bytes of sha512(payload)
      */
     private byte[] getChecksum(byte[] bytes) throws NoSuchProviderException, NoSuchAlgorithmException {
-        byte[] d = security().sha512(bytes);
+        byte[] d = cryptography().sha512(bytes);
         return new byte[]{d[0], d[1], d[2], d[3]};
     }
 
@@ -71,9 +74,7 @@ public class NetworkMessage implements Streamable {
             out.write('\0');
         }
 
-        ByteArrayOutputStream payloadStream = new ByteArrayOutputStream();
-        payload.write(payloadStream);
-        byte[] payloadBytes = payloadStream.toByteArray();
+        byte[] payloadBytes = Encode.bytes(payload);
 
         // Length of payload in number of bytes. Because of other restrictions, there is no reason why this length would
         // ever be larger than 1600003 bytes. Some clients include a sanity-check to avoid processing messages which are
@@ -84,10 +85,67 @@ public class NetworkMessage implements Streamable {
         try {
             out.write(getChecksum(payloadBytes));
         } catch (GeneralSecurityException e) {
-            throw new RuntimeException(e);
+            throw new ApplicationException(e);
         }
 
         // message payload
         out.write(payloadBytes);
+    }
+
+    /**
+     * A more efficient implementation of the write method, writing header data to the provided buffer and returning
+     * a new buffer containing the payload.
+     *
+     * @param headerBuffer where the header data is written to (24 bytes)
+     * @return a buffer containing the payload, ready to be read.
+     */
+    public ByteBuffer writeHeaderAndGetPayloadBuffer(ByteBuffer headerBuffer) {
+        return ByteBuffer.wrap(writeHeader(headerBuffer));
+    }
+
+    /**
+     * For improved memory efficiency, you should use {@link #writeHeaderAndGetPayloadBuffer(ByteBuffer)}
+     * and write the header buffer as well as the returned payload buffer into the channel.
+     *
+     * @param buffer where everything gets written to. Needs to be large enough for the whole message
+     *               to be written.
+     */
+    @Override
+    public void write(ByteBuffer buffer) {
+        byte[] payloadBytes = writeHeader(buffer);
+        buffer.put(payloadBytes);
+    }
+
+    private byte[] writeHeader(ByteBuffer out) {
+        // magic
+        Encode.int32(MAGIC, out);
+
+        // ASCII string identifying the packet content, NULL padded (non-NULL padding results in packet rejected)
+        String command = payload.getCommand().name().toLowerCase();
+        try {
+            out.put(command.getBytes("ASCII"));
+        } catch (UnsupportedEncodingException e) {
+            throw new ApplicationException(e);
+        }
+        for (int i = command.length(); i < 12; i++) {
+            out.put((byte) 0);
+        }
+
+        byte[] payloadBytes = Encode.bytes(payload);
+
+        // Length of payload in number of bytes. Because of other restrictions, there is no reason why this length would
+        // ever be larger than 1600003 bytes. Some clients include a sanity-check to avoid processing messages which are
+        // larger than this.
+        Encode.int32(payloadBytes.length, out);
+
+        // checksum
+        try {
+            out.put(getChecksum(payloadBytes));
+        } catch (GeneralSecurityException e) {
+            throw new ApplicationException(e);
+        }
+
+        // message payload
+        return payloadBytes;
     }
 }

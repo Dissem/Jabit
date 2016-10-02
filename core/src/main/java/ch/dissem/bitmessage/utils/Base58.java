@@ -18,6 +18,7 @@
 package ch.dissem.bitmessage.utils;
 
 import ch.dissem.bitmessage.exception.AddressFormatException;
+import ch.dissem.bitmessage.exception.ApplicationException;
 
 import java.io.UnsupportedEncodingException;
 
@@ -30,7 +31,7 @@ import static java.util.Arrays.copyOfRange;
  */
 public class Base58 {
     private static final int[] INDEXES = new int[128];
-    private static char[] ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
+    private static final char[] ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
 
     static {
         for (int i = 0; i < INDEXES.length; i++) {
@@ -44,27 +45,27 @@ public class Base58 {
     /**
      * Encodes the given bytes in base58. No checksum is appended.
      *
-     * @param input to encode
+     * @param data to encode
      * @return base58 encoded input
      */
-    public static String encode(byte[] input) {
-        if (input.length == 0) {
+    public static String encode(byte[] data) {
+        if (data.length == 0) {
             return "";
         }
-        input = copyOfRange(input, 0, input.length);
+        final byte[] bytes = copyOfRange(data, 0, data.length);
         // Count leading zeroes.
         int zeroCount = 0;
-        while (zeroCount < input.length && input[zeroCount] == 0) {
+        while (zeroCount < bytes.length && bytes[zeroCount] == 0) {
             ++zeroCount;
         }
         // The actual encoding.
-        byte[] temp = new byte[input.length * 2];
+        byte[] temp = new byte[bytes.length * 2];
         int j = temp.length;
 
         int startAt = zeroCount;
-        while (startAt < input.length) {
-            byte mod = divmod58(input, startAt);
-            if (input[startAt] == 0) {
+        while (startAt < bytes.length) {
+            byte mod = divmod58(bytes, startAt);
+            if (bytes[startAt] == 0) {
                 ++startAt;
             }
             temp[--j] = (byte) ALPHABET[mod];
@@ -83,7 +84,7 @@ public class Base58 {
         try {
             return new String(output, "US-ASCII");
         } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);  // Cannot happen.
+            throw new ApplicationException(e);  // Cannot happen.
         }
     }
 
@@ -97,7 +98,7 @@ public class Base58 {
             char c = input.charAt(i);
 
             int digit58 = -1;
-            if (c >= 0 && c < 128) {
+            if (c < 128) {
                 digit58 = INDEXES[c];
             }
             if (digit58 < 0) {

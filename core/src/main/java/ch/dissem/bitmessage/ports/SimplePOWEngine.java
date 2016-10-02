@@ -16,9 +16,11 @@
 
 package ch.dissem.bitmessage.ports;
 
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.utils.Bytes;
 
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import static ch.dissem.bitmessage.utils.Bytes.inc;
 
@@ -32,18 +34,17 @@ import static ch.dissem.bitmessage.utils.Bytes.inc;
 public class SimplePOWEngine implements ProofOfWorkEngine {
     @Override
     public void calculateNonce(byte[] initialHash, byte[] target, Callback callback) {
-        byte[] nonce = new byte[8];
-        MessageDigest mda;
         try {
-            mda = MessageDigest.getInstance("SHA-512");
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            MessageDigest mda = MessageDigest.getInstance("SHA-512");
+            byte[] nonce = new byte[8];
+            do {
+                inc(nonce);
+                mda.update(nonce);
+                mda.update(initialHash);
+            } while (Bytes.lt(target, mda.digest(mda.digest()), 8));
+            callback.onNonceCalculated(initialHash, nonce);
+        } catch (NoSuchAlgorithmException e) {
+            throw new ApplicationException(e);
         }
-        do {
-            inc(nonce);
-            mda.update(nonce);
-            mda.update(initialHash);
-        } while (Bytes.lt(target, mda.digest(mda.digest()), 8));
-        callback.onNonceCalculated(initialHash, nonce);
     }
 }

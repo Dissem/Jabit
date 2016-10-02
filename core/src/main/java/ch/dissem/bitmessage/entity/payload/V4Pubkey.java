@@ -24,6 +24,7 @@ import ch.dissem.bitmessage.utils.Decode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 /**
@@ -33,6 +34,8 @@ import java.util.Arrays;
  * to create messages to be used in spam or in flooding attacks.
  */
 public class V4Pubkey extends Pubkey implements Encrypted {
+    private static final long serialVersionUID = 1556710353694033093L;
+
     private long stream;
     private byte[] tag;
     private CryptoBox encrypted;
@@ -84,8 +87,19 @@ public class V4Pubkey extends Pubkey implements Encrypted {
     }
 
     @Override
+    public void write(ByteBuffer buffer) {
+        buffer.put(tag);
+        encrypted.write(buffer);
+    }
+
+    @Override
     public void writeUnencrypted(OutputStream out) throws IOException {
         decrypted.write(out);
+    }
+
+    @Override
+    public void writeUnencrypted(ByteBuffer buffer) {
+        decrypted.write(buffer);
     }
 
     @Override

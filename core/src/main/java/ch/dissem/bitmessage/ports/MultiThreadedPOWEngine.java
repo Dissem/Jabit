@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage.ports;
 
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.utils.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,16 +25,18 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.*;
 
 import static ch.dissem.bitmessage.utils.Bytes.inc;
+import static ch.dissem.bitmessage.utils.ThreadFactoryBuilder.pool;
 
 /**
  * A POW engine using all available CPU cores.
  */
 public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
     private static final Logger LOG = LoggerFactory.getLogger(MultiThreadedPOWEngine.class);
-    private static final Semaphore semaphore = new Semaphore(1, true);
+    private final ExecutorService waiterPool = Executors.newSingleThreadExecutor(pool("POW-waiter").daemon().build());
+    private final ExecutorService workerPool = Executors.newCachedThreadPool(pool("POW-worker").daemon().build());
 
     /**
      * This method will block until all pending nonce calculations are done, but not wait for its own calculation
@@ -45,42 +48,59 @@ public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
      * @param callback    called with the calculated nonce as argument. The ProofOfWorkEngine implementation must make
      */
     @Override
-    public void calculateNonce(byte[] initialHash, byte[] target, Callback callback) {
-        try {
-            semaphore.acquire();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        callback = new CallbackWrapper(callback);
-        int cores = Runtime.getRuntime().availableProcessors();
-        if (cores > 255) cores = 255;
-        LOG.info("Doing POW using " + cores + " cores");
-        List<Worker> workers = new ArrayList<>(cores);
-        for (int i = 0; i < cores; i++) {
-            Worker w = new Worker(workers, (byte) cores, i, initialHash, target, callback);
-            workers.add(w);
-        }
-        for (Worker w : workers) {
-            // Doing this in the previous loop might cause a ConcurrentModificationException in the worker
-            // if a worker finds a nonce while new ones are still being added.
-            w.start();
-        }
+    public void calculateNonce(final byte[] initialHash, final byte[] target, final Callback callback) {
+        waiterPool.execute(new Runnable() {
+            @Override
+            public void run() {
+                long startTime = System.currentTimeMillis();
+
+                int cores = Runtime.getRuntime().availableProcessors();
+                if (cores > 255) cores = 255;
+                LOG.info("Doing POW using " + cores + " cores");
+                List<Worker> workers = new ArrayList<>(cores);
+                for (int i = 0; i < cores; i++) {
+                    Worker w = new Worker((byte) cores, i, initialHash, target);
+                    workers.add(w);
+                }
+                List<Future<byte[]>> futures = new ArrayList<>(cores);
+                for (Worker w : workers) {
+                    // Doing this in the previous loop might cause a ConcurrentModificationException in the worker
+                    // if a worker finds a nonce while new ones are still being added.
+                    futures.add(workerPool.submit(w));
+                }
+                try {
+                    while (!Thread.interrupted()) {
+                        for (Future<byte[]> future : futures) {
+                            if (future.isDone()) {
+                                callback.onNonceCalculated(initialHash, future.get());
+                                LOG.info("Nonce calculated in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds");
+                                for (Future<byte[]> f : futures) {
+                                    f.cancel(true);
+                                }
+                                return;
+                            }
+                        }
+                        Thread.sleep(100);
+                    }
+                    LOG.error("POW waiter thread interrupted - this should not happen!");
+                } catch (ExecutionException e) {
+                    LOG.error(e.getMessage(), e);
+                } catch (InterruptedException e) {
+                    LOG.error("POW waiter thread interrupted - this should not happen!", e);
+                }
+            }
+        });
     }
 
-    private static class Worker extends Thread {
-        private final Callback callback;
+    private class Worker implements Callable<byte[]> {
         private final byte numberOfCores;
-        private final List<Worker> workers;
         private final byte[] initialHash;
         private final byte[] target;
         private final MessageDigest mda;
         private final byte[] nonce = new byte[8];
 
-        public Worker(List<Worker> workers, byte numberOfCores, int core, byte[] initialHash, byte[] target,
-                      Callback callback) {
-            this.callback = callback;
+        Worker(byte numberOfCores, int core, byte[] initialHash, byte[] target) {
             this.numberOfCores = numberOfCores;
-            this.workers = workers;
             this.initialHash = initialHash;
             this.target = target;
             this.nonce[7] = (byte) core;
@@ -88,54 +108,21 @@ public class MultiThreadedPOWEngine implements ProofOfWorkEngine {
                 mda = MessageDigest.getInstance("SHA-512");
             } catch (NoSuchAlgorithmException e) {
                 LOG.error(e.getMessage(), e);
-                throw new RuntimeException(e);
+                throw new ApplicationException(e);
             }
         }
 
         @Override
-        public void run() {
+        public byte[] call() throws Exception {
             do {
                 inc(nonce, numberOfCores);
                 mda.update(nonce);
                 mda.update(initialHash);
                 if (!Bytes.lt(target, mda.digest(mda.digest()), 8)) {
-                    synchronized (callback) {
-                        if (!Thread.interrupted()) {
-                            for (Worker w : workers) {
-                                w.interrupt();
-                            }
-                            // Clear interrupted flag for callback
-                            Thread.interrupted();
-                            callback.onNonceCalculated(initialHash, nonce);
-                        }
-                    }
-                    return;
+                    return nonce;
                 }
             } while (!Thread.interrupted());
-        }
-    }
-
-    public static class CallbackWrapper implements Callback {
-        private final Callback callback;
-        private final long startTime;
-        private boolean waiting = true;
-
-        public CallbackWrapper(Callback callback) {
-            this.startTime = System.currentTimeMillis();
-            this.callback = callback;
-        }
-
-        @Override
-        public void onNonceCalculated(byte[] initialHash, byte[] nonce) {
-            // Prevents the callback from being called twice if two nonces are found simultaneously
-            synchronized (this) {
-                if (waiting) {
-                    semaphore.release();
-                    LOG.info("Nonce calculated in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds");
-                    waiting = false;
-                    callback.onNonceCalculated(initialHash, nonce);
-                }
-            }
+            return null;
         }
     }
 }
