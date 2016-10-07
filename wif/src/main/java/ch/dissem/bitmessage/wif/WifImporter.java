@@ -63,15 +63,15 @@ public class WifImporter {
 
             Profile.Section section = entry.getValue();
             BitmessageAddress address = Factory.createIdentityFromPrivateKey(
-                    entry.getKey(),
-                    getSecret(section.get("privsigningkey")),
-                    getSecret(section.get("privencryptionkey")),
-                    section.get("noncetrialsperbyte", long.class),
-                    section.get("payloadlengthextrabytes", long.class),
-                    Pubkey.Feature.bitfield(features)
+                entry.getKey(),
+                getSecret(section.get("privsigningkey")),
+                getSecret(section.get("privencryptionkey")),
+                Long.parseLong(section.get("noncetrialsperbyte")),
+                Long.parseLong(section.get("payloadlengthextrabytes")),
+                Pubkey.Feature.bitfield(features)
             );
             if (section.containsKey("chan")) {
-                address.setChan(section.get("chan", boolean.class));
+                address.setChan(Boolean.parseBoolean(section.get("chan")));
             }
             address.setAlias(section.get("label"));
             identities.add(address);
@@ -82,10 +82,10 @@ public class WifImporter {
         byte[] bytes = Base58.decode(walletImportFormat);
         if (bytes[0] != WIF_FIRST_BYTE)
             throw new IOException("Unknown format: 0x80 expected as first byte, but secret " + walletImportFormat +
-                    " was " + bytes[0]);
+                " was " + bytes[0]);
         if (bytes.length != WIF_SECRET_LENGTH)
             throw new IOException("Unknown format: " + WIF_SECRET_LENGTH +
-                    " bytes expected, but secret " + walletImportFormat + " was " + bytes.length + " long");
+                " bytes expected, but secret " + walletImportFormat + " was " + bytes.length + " long");
 
         byte[] hash = cryptography().doubleSha256(bytes, 33);
         for (int i = 0; i < 4; i++) {
