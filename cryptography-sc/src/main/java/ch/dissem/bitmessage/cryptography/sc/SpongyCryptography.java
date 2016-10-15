@@ -52,21 +52,16 @@ import java.util.Arrays;
 public class SpongyCryptography extends AbstractCryptography {
     private static final X9ECParameters EC_CURVE_PARAMETERS = CustomNamedCurves.getByName("secp256k1");
     private static final String ALGORITHM_ECDSA = "ECDSA";
-    private static final String PROVIDER = "SC";
-
-    static {
-        java.security.Security.addProvider(new BouncyCastleProvider());
-    }
 
     public SpongyCryptography() {
-        super(PROVIDER);
+        super(new BouncyCastleProvider());
     }
 
     @Override
     public byte[] crypt(boolean encrypt, byte[] data, byte[] key_e, byte[] initializationVector) {
         BufferedBlockCipher cipher = new PaddedBufferedBlockCipher(
-                new CBCBlockCipher(new AESEngine()),
-                new PKCS7Padding()
+            new CBCBlockCipher(new AESEngine()),
+            new PKCS7Padding()
         );
         CipherParameters params = new ParametersWithIV(new KeyParameter(key_e), initializationVector);
 
@@ -100,18 +95,18 @@ public class SpongyCryptography extends AbstractCryptography {
     public boolean isSignatureValid(byte[] data, byte[] signature, Pubkey pubkey) {
         try {
             ECParameterSpec spec = new ECParameterSpec(
-                    EC_CURVE_PARAMETERS.getCurve(),
-                    EC_CURVE_PARAMETERS.getG(),
-                    EC_CURVE_PARAMETERS.getN(),
-                    EC_CURVE_PARAMETERS.getH(),
-                    EC_CURVE_PARAMETERS.getSeed()
+                EC_CURVE_PARAMETERS.getCurve(),
+                EC_CURVE_PARAMETERS.getG(),
+                EC_CURVE_PARAMETERS.getN(),
+                EC_CURVE_PARAMETERS.getH(),
+                EC_CURVE_PARAMETERS.getSeed()
             );
 
             ECPoint Q = keyToPoint(pubkey.getSigningKey());
             KeySpec keySpec = new ECPublicKeySpec(Q, spec);
-            PublicKey publicKey = KeyFactory.getInstance(ALGORITHM_ECDSA, PROVIDER).generatePublic(keySpec);
+            PublicKey publicKey = KeyFactory.getInstance(ALGORITHM_ECDSA, provider).generatePublic(keySpec);
 
-            Signature sig = Signature.getInstance(ALGORITHM_ECDSA, PROVIDER);
+            Signature sig = Signature.getInstance(ALGORITHM_ECDSA, provider);
             sig.initVerify(publicKey);
             sig.update(data);
             return sig.verify(signature);
@@ -124,19 +119,19 @@ public class SpongyCryptography extends AbstractCryptography {
     public byte[] getSignature(byte[] data, PrivateKey privateKey) {
         try {
             ECParameterSpec spec = new ECParameterSpec(
-                    EC_CURVE_PARAMETERS.getCurve(),
-                    EC_CURVE_PARAMETERS.getG(),
-                    EC_CURVE_PARAMETERS.getN(),
-                    EC_CURVE_PARAMETERS.getH(),
-                    EC_CURVE_PARAMETERS.getSeed()
+                EC_CURVE_PARAMETERS.getCurve(),
+                EC_CURVE_PARAMETERS.getG(),
+                EC_CURVE_PARAMETERS.getN(),
+                EC_CURVE_PARAMETERS.getH(),
+                EC_CURVE_PARAMETERS.getSeed()
             );
 
             BigInteger d = keyToBigInt(privateKey.getPrivateSigningKey());
             KeySpec keySpec = new ECPrivateKeySpec(d, spec);
-            java.security.PrivateKey privKey = KeyFactory.getInstance(ALGORITHM_ECDSA, PROVIDER)
-                    .generatePrivate(keySpec);
+            java.security.PrivateKey privKey = KeyFactory.getInstance(ALGORITHM_ECDSA, provider)
+                .generatePrivate(keySpec);
 
-            Signature sig = Signature.getInstance(ALGORITHM_ECDSA, PROVIDER);
+            Signature sig = Signature.getInstance(ALGORITHM_ECDSA, provider);
             sig.initSign(privKey);
             sig.update(data);
             return sig.sign();
@@ -153,8 +148,8 @@ public class SpongyCryptography extends AbstractCryptography {
     @Override
     public byte[] createPoint(byte[] x, byte[] y) {
         return EC_CURVE_PARAMETERS.getCurve().createPoint(
-                new BigInteger(1, x),
-                new BigInteger(1, y)
+            new BigInteger(1, x),
+            new BigInteger(1, y)
         ).getEncoded(false);
     }
 }
