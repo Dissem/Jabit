@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
+import java.security.Provider;
 import java.security.SecureRandom;
 
 import static ch.dissem.bitmessage.InternalContext.NETWORK_EXTRA_BYTES;
@@ -49,10 +50,10 @@ public abstract class AbstractCryptography implements Cryptography, InternalCont
     private static final BigInteger TWO_POW_64 = TWO.pow(64);
     private static final BigInteger TWO_POW_16 = TWO.pow(16);
 
-    private final String provider;
+    protected final Provider provider;
     private InternalContext context;
 
-    protected AbstractCryptography(String provider) {
+    protected AbstractCryptography(Provider provider) {
         this.provider = provider;
     }
 
@@ -137,7 +138,6 @@ public abstract class AbstractCryptography implements Cryptography, InternalCont
         if (extraBytes == 0) extraBytes = NETWORK_EXTRA_BYTES;
 
         BigInteger TTL = BigInteger.valueOf(object.getExpiresTime() - UnixTime.now());
-        BigInteger numerator = TWO_POW_64;
         BigInteger powLength = BigInteger.valueOf(object.getPayloadBytesWithoutNonce().length + extraBytes);
         BigInteger denominator = BigInteger.valueOf(nonceTrialsPerByte)
                 .multiply(
@@ -145,7 +145,7 @@ public abstract class AbstractCryptography implements Cryptography, InternalCont
                                 powLength.multiply(TTL).divide(TWO_POW_16)
                         )
                 );
-        return Bytes.expand(numerator.divide(denominator).toByteArray(), 8);
+        return Bytes.expand(TWO_POW_64.divide(denominator).toByteArray(), 8);
     }
 
     private byte[] hash(String algorithm, byte[]... data) {
