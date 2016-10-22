@@ -69,9 +69,9 @@ public class Plaintext implements Streamable {
         ackData = builder.ackData;
         if (builder.ackMessage != null && builder.ackMessage.length > 0) {
             ackMessage = Factory.getObjectMessage(
-                    3,
-                    new ByteArrayInputStream(builder.ackMessage),
-                    builder.ackMessage.length);
+                3,
+                new ByteArrayInputStream(builder.ackMessage),
+                builder.ackMessage.length);
         }
         signature = builder.signature;
         status = builder.status;
@@ -85,25 +85,25 @@ public class Plaintext implements Streamable {
 
     public static Plaintext read(Type type, InputStream in) throws IOException {
         return readWithoutSignature(type, in)
-                .signature(Decode.varBytes(in))
-                .received(UnixTime.now())
-                .build();
+            .signature(Decode.varBytes(in))
+            .received(UnixTime.now())
+            .build();
     }
 
     public static Plaintext.Builder readWithoutSignature(Type type, InputStream in) throws IOException {
         long version = Decode.varInt(in);
         return new Builder(type)
-                .addressVersion(version)
-                .stream(Decode.varInt(in))
-                .behaviorBitfield(Decode.int32(in))
-                .publicSigningKey(Decode.bytes(in, 64))
-                .publicEncryptionKey(Decode.bytes(in, 64))
-                .nonceTrialsPerByte(version >= 3 ? Decode.varInt(in) : 0)
-                .extraBytes(version >= 3 ? Decode.varInt(in) : 0)
-                .destinationRipe(type == Type.MSG ? Decode.bytes(in, 20) : null)
-                .encoding(Decode.varInt(in))
-                .message(Decode.varBytes(in))
-                .ackMessage(type == Type.MSG ? Decode.varBytes(in) : null);
+            .addressVersion(version)
+            .stream(Decode.varInt(in))
+            .behaviorBitfield(Decode.int32(in))
+            .publicSigningKey(Decode.bytes(in, 64))
+            .publicEncryptionKey(Decode.bytes(in, 64))
+            .nonceTrialsPerByte(version >= 3 ? Decode.varInt(in) : 0)
+            .extraBytes(version >= 3 ? Decode.varInt(in) : 0)
+            .destinationRipe(type == Type.MSG ? Decode.bytes(in, 20) : null)
+            .encoding(Decode.varInt(in))
+            .message(Decode.varBytes(in))
+            .ackMessage(type == Type.MSG ? Decode.varBytes(in) : null);
     }
 
     public InventoryVector getInventoryVector() {
@@ -198,6 +198,7 @@ public class Plaintext implements Streamable {
             }
         }
     }
+
     public void write(ByteBuffer buffer, boolean includeSignature) {
         Encode.varInt(from.getVersion(), buffer);
         Encode.varInt(from.getStream(), buffer);
@@ -279,14 +280,16 @@ public class Plaintext implements Streamable {
     }
 
     public void updateNextTry() {
-        if (nextTry == null) {
-            if (sent != null && to.has(Feature.DOES_ACK)) {
-                nextTry = UnixTime.now(+ttl);
+        if (to != null) {
+            if (nextTry == null) {
+                if (sent != null && to.has(Feature.DOES_ACK)) {
+                    nextTry = UnixTime.now(+ttl);
+                    retries++;
+                }
+            } else {
+                nextTry = nextTry + (1 << retries) * ttl;
                 retries++;
             }
-        } else {
-            nextTry = nextTry + (1 << retries) * ttl;
-            retries++;
         }
     }
 
@@ -320,15 +323,15 @@ public class Plaintext implements Streamable {
         if (o == null || getClass() != o.getClass()) return false;
         Plaintext plaintext = (Plaintext) o;
         return Objects.equals(encoding, plaintext.encoding) &&
-                Objects.equals(from, plaintext.from) &&
-                Arrays.equals(message, plaintext.message) &&
-                Objects.equals(getAckMessage(), plaintext.getAckMessage()) &&
-                Arrays.equals(to.getRipe(), plaintext.to.getRipe()) &&
-                Arrays.equals(signature, plaintext.signature) &&
-                Objects.equals(status, plaintext.status) &&
-                Objects.equals(sent, plaintext.sent) &&
-                Objects.equals(received, plaintext.received) &&
-                Objects.equals(labels, plaintext.labels);
+            Objects.equals(from, plaintext.from) &&
+            Arrays.equals(message, plaintext.message) &&
+            Objects.equals(getAckMessage(), plaintext.getAckMessage()) &&
+            Arrays.equals(to == null ? null : to.getRipe(), plaintext.to == null ? null : plaintext.to.getRipe()) &&
+            Arrays.equals(signature, plaintext.signature) &&
+            Objects.equals(status, plaintext.status) &&
+            Objects.equals(sent, plaintext.sent) &&
+            Objects.equals(received, plaintext.received) &&
+            Objects.equals(labels, plaintext.labels);
     }
 
     @Override
@@ -582,13 +585,13 @@ public class Plaintext implements Streamable {
         public Plaintext build() {
             if (from == null) {
                 from = new BitmessageAddress(Factory.createPubkey(
-                        addressVersion,
-                        stream,
-                        publicSigningKey,
-                        publicEncryptionKey,
-                        nonceTrialsPerByte,
-                        extraBytes,
-                        behaviorBitfield
+                    addressVersion,
+                    stream,
+                    publicSigningKey,
+                    publicEncryptionKey,
+                    nonceTrialsPerByte,
+                    extraBytes,
+                    behaviorBitfield
                 ));
             }
             if (to == null && type != Type.BROADCAST && destinationRipe != null) {
