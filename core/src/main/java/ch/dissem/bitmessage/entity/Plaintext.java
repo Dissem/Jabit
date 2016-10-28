@@ -264,6 +264,9 @@ public class Plaintext implements Streamable {
     }
 
     public void setStatus(Status status) {
+        if (status != Status.RECEIVED && sent == null && status != Status.DRAFT) {
+            sent = UnixTime.now();
+        }
         this.status = status;
     }
 
