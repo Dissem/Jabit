@@ -46,14 +46,14 @@ import static ch.dissem.bitmessage.utils.Collections.selectRandom;
 import static ch.dissem.bitmessage.utils.DebugUtils.inc;
 import static ch.dissem.bitmessage.utils.ThreadFactoryBuilder.pool;
 import static java.nio.channels.SelectionKey.*;
-import static java.util.Collections.newSetFromMap;
 
 /**
  * Network handler using java.nio, resulting in less threads.
  */
 public class NioNetworkHandler implements NetworkHandler, InternalContext.ContextHolder {
     private static final Logger LOG = LoggerFactory.getLogger(NioNetworkHandler.class);
-    private static final long REQUESTED_OBJECTS_MAX_TIME = 30 * 60_000; // 30 minutes
+    private static final long REQUESTED_OBJECTS_MAX_TIME = 2 * 60_000; // 2 minutes
+    private static final Long DELAYED = Long.MIN_VALUE;
 
     private final ExecutorService threadPool = Executors.newCachedThreadPool(
         pool("network")
@@ -66,8 +66,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
     private ServerSocketChannel serverChannel;
     private Queue<NetworkAddress> connectionQueue = new ConcurrentLinkedQueue<>();
     private Map<ConnectionInfo, SelectionKey> connections = new ConcurrentHashMap<>();
-    private final Set<InventoryVector> requestedObjects = newSetFromMap(new ConcurrentHashMap<InventoryVector, Boolean>(10_000));
-    private long requestedObjectsTimeout = 0;
+    private final Map<InventoryVector, Long> requestedObjects = new ConcurrentHashMap<>(10_000);
 
     private Thread starter;
 
@@ -80,7 +79,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                     channel.configureBlocking(false);
                     ConnectionInfo connection = new ConnectionInfo(ctx, SYNC,
                         new NetworkAddress.Builder().ip(server).port(port).stream(1).build(),
-                        new HashSet<InventoryVector>(), timeoutInSeconds);
+                        new HashMap<InventoryVector, Long>(), timeoutInSeconds);
                     while (channel.isConnected() && !connection.isSyncFinished()) {
                         write(channel, connection);
                         read(channel, connection);
@@ -147,7 +146,6 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
         } catch (IOException e) {
             throw new ApplicationException(e);
         }
-        requestedObjectsTimeout = System.currentTimeMillis() + REQUESTED_OBJECTS_MAX_TIME;
         requestedObjects.clear();
 
         starter = thread("connection manager", new Runnable() {
@@ -189,15 +187,22 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                     // The list 'requested objects' helps to prevent downloading an object
                     // twice. From time to time there is an error though, and an object is
                     // never downloaded. To prevent a large list of failed objects and give
-                    // them a chance to get downloaded again, let's clear the list from time
-                    // to time. The timeout should be such that most of the initial object
-                    // sync should be done by then, but small enough to prevent objects with
-                    // a normal time out from not being downloaded at all.
-                    long now = System.currentTimeMillis();
-                    if (now > requestedObjectsTimeout) {
-                        requestedObjectsTimeout = now + REQUESTED_OBJECTS_MAX_TIME;
-                        requestedObjects.clear();
+                    // them a chance to get downloaded again, we will attempt to download an
+                    // object from another node after some time out.
+                    long timedOut = System.currentTimeMillis() - REQUESTED_OBJECTS_MAX_TIME;
+                    List<InventoryVector> delayed = new LinkedList<>();
+                    Iterator<Map.Entry<InventoryVector, Long>> iterator = requestedObjects.entrySet().iterator();
+                    while (iterator.hasNext()) {
+                        Map.Entry<InventoryVector, Long> e = iterator.next();
+                        //noinspection NumberEquality
+                        if (e.getValue() == DELAYED) {
+                            iterator.remove();
+                        } else if (e.getValue() < timedOut) {
+                            delayed.add(e.getKey());
+                            e.setValue(DELAYED);
+                        }
                     }
+                    request(delayed);
 
                     try {
                         Thread.sleep(30_000);
@@ -422,7 +427,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                         break;
                     }
                 }
-                if (connection.knowsOf(next)) {
+                if (connection.knowsOf(next) && !connection.requested(next)) {
                     List<InventoryVector> ivs = distribution.get(connection);
                     if (ivs.size() == GetData.MAX_INVENTORY_SIZE) {
                         connection.send(new GetData.Builder().inventory(ivs).build());
@@ -442,7 +447,9 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
         } while (iterator.hasNext());
 
         // remove objects nobody knows of
-        requestedObjects.removeAll(inventoryVectors);
+        for (InventoryVector iv : inventoryVectors) {
+            requestedObjects.remove(iv);
+        }
 
         for (ConnectionInfo connection : distribution.keySet()) {
             List<InventoryVector> ivs = distribution.get(connection);

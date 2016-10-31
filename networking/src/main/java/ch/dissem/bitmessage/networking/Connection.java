@@ -36,9 +36,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.CLIENT;
 import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.SYNC;
@@ -64,20 +64,20 @@ class Connection extends AbstractConnection {
     private boolean socketInitialized;
 
     public Connection(InternalContext context, Mode mode, Socket socket,
-                      Set<InventoryVector> requestedObjectsMap) throws IOException {
+                      Map<InventoryVector, Long> requestedObjectsMap) throws IOException {
         this(context, mode, socket, requestedObjectsMap,
-                new NetworkAddress.Builder().ip(socket.getInetAddress()).port(socket.getPort()).stream(1).build(),
-                0);
+            new NetworkAddress.Builder().ip(socket.getInetAddress()).port(socket.getPort()).stream(1).build(),
+            0);
     }
 
     public Connection(InternalContext context, Mode mode, NetworkAddress node,
-                      Set<InventoryVector> requestedObjectsMap) {
+                      Map<InventoryVector, Long> requestedObjectsMap) {
         this(context, mode, new Socket(), requestedObjectsMap,
-                node, 0);
+            node, 0);
     }
 
     private Connection(InternalContext context, Mode mode, Socket socket,
-                       Set<InventoryVector> commonRequestedObjects, NetworkAddress node, long syncTimeout) {
+                       Map<InventoryVector, Long> commonRequestedObjects, NetworkAddress node, long syncTimeout) {
         super(context, mode, node, commonRequestedObjects, syncTimeout);
         this.startTime = UnixTime.now();
         this.socket = socket;
@@ -86,9 +86,9 @@ class Connection extends AbstractConnection {
     public static Connection sync(InternalContext ctx, InetAddress address, int port, MessageListener listener,
                                   long timeoutInSeconds) throws IOException {
         return new Connection(ctx, SYNC, new Socket(address, port),
-                new HashSet<InventoryVector>(),
-                new NetworkAddress.Builder().ip(address).port(port).stream(1).build(),
-                timeoutInSeconds);
+            new HashMap<InventoryVector, Long>(),
+            new NetworkAddress.Builder().ip(address).port(port).stream(1).build(),
+            timeoutInSeconds);
     }
 
     public long getStartTime() {

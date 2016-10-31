@@ -18,7 +18,6 @@ package ch.dissem.bitmessage.networking;
 
 import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
-import ch.dissem.bitmessage.ports.NetworkHandler;
 import ch.dissem.bitmessage.utils.UnixTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,12 +31,13 @@ import static ch.dissem.bitmessage.networking.DefaultNetworkHandler.NETWORK_MAGI
 /**
  * @author Christian Basler
  */
+@Deprecated
+@SuppressWarnings("deprecation")
 public class ConnectionOrganizer implements Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(ConnectionOrganizer.class);
 
     private final InternalContext ctx;
     private final DefaultNetworkHandler networkHandler;
-    private final NetworkHandler.MessageListener listener;
 
     private Connection initialConnection;
 
@@ -45,7 +45,6 @@ public class ConnectionOrganizer implements Runnable {
                                DefaultNetworkHandler networkHandler) {
         this.ctx = ctx;
         this.networkHandler = networkHandler;
-        this.listener = ctx.getNetworkListener();
     }
 
     @Override
@@ -87,7 +86,7 @@ public class ConnectionOrganizer implements Runnable {
 
                     if (active < NETWORK_MAGIC_NUMBER) {
                         List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(
-                                NETWORK_MAGIC_NUMBER - active, ctx.getStreams());
+                            NETWORK_MAGIC_NUMBER - active, ctx.getStreams());
                         boolean first = active == 0 && initialConnection == null;
                         for (NetworkAddress address : addresses) {
                             Connection c = new Connection(ctx, CLIENT, address, networkHandler.requestedObjects);
