@@ -31,6 +31,7 @@ import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.SERVER;
 /**
  * @author Christian Basler
  */
+@Deprecated
 public class ServerRunnable implements Runnable, Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(ServerRunnable.class);
     private final InternalContext ctx;

@@ -76,6 +76,7 @@ public class NetworkHandlerTest {
     }
 
     @Parameterized.Parameters
+    @SuppressWarnings("deprecation")
     public static List<Object[]> parameters() {
         return Arrays.asList(new Object[][]{
             {new DefaultNetworkHandler(), new DefaultNetworkHandler()},

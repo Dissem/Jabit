@@ -54,7 +54,7 @@ public abstract class AbstractConnection {
     protected final NetworkHandler.MessageListener listener;
     protected final Map<InventoryVector, Long> ivCache;
     protected final Deque<MessagePayload> sendingQueue;
-    protected final Set<InventoryVector> commonRequestedObjects;
+    protected final Map<InventoryVector, Long> commonRequestedObjects;
     protected final Set<InventoryVector> requestedObjects;
 
     protected volatile State state;
@@ -71,7 +71,7 @@ public abstract class AbstractConnection {
 
     public AbstractConnection(InternalContext context, Mode mode,
                               NetworkAddress node,
-                              Set<InventoryVector> commonRequestedObjects,
+                              Map<InventoryVector, Long> commonRequestedObjects,
                               long syncTimeout) {
         this.ctx = context;
         this.mode = mode;
@@ -143,7 +143,7 @@ public abstract class AbstractConnection {
         int originalSize = inv.getInventory().size();
         updateIvCache(inv.getInventory());
         List<InventoryVector> missing = ctx.getInventory().getMissing(inv.getInventory(), streams);
-        missing.removeAll(commonRequestedObjects);
+        missing.removeAll(commonRequestedObjects.keySet());
         LOG.trace("Received inventory with " + originalSize + " elements, of which are "
             + missing.size() + " missing.");
         send(new GetData.Builder().inventory(missing).build());
@@ -175,7 +175,7 @@ public abstract class AbstractConnection {
         } catch (IOException e) {
             LOG.error("Stream " + objectMessage.getStream() + ", object type " + objectMessage.getType() + ": " + e.getMessage(), e);
         } finally {
-            if (!commonRequestedObjects.remove(objectMessage.getInventoryVector())) {
+            if (commonRequestedObjects.remove(objectMessage.getInventoryVector()) == null) {
                 LOG.debug("Received object that wasn't requested.");
             }
         }
@@ -203,6 +203,10 @@ public abstract class AbstractConnection {
 
     public boolean knowsOf(InventoryVector iv) {
         return ivCache.containsKey(iv);
+    }
+
+    public boolean requested(InventoryVector iv) {
+        return requestedObjects.contains(iv);
     }
 
     private void cleanupIvCache() {

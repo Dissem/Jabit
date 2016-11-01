@@ -26,11 +26,10 @@ import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.exception.NodeException;
 import ch.dissem.bitmessage.factory.V3MessageReader;
 import ch.dissem.bitmessage.networking.AbstractConnection;
+import ch.dissem.bitmessage.utils.UnixTime;
 
 import java.nio.ByteBuffer;
-import java.util.Iterator;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 
 import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.CLIENT;
 import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.SYNC;
@@ -46,7 +45,7 @@ public class ConnectionInfo extends AbstractConnection {
     private long lastUpdate = System.currentTimeMillis();
 
     public ConnectionInfo(InternalContext context, Mode mode, NetworkAddress node,
-                          Set<InventoryVector> commonRequestedObjects, long syncTimeout) {
+                          Map<InventoryVector, Long> commonRequestedObjects, long syncTimeout) {
         super(context, mode, node, commonRequestedObjects, syncTimeout);
         headerOut.flip();
         if (mode == CLIENT || mode == SYNC) {
@@ -147,8 +146,12 @@ public class ConnectionInfo extends AbstractConnection {
     protected void send(MessagePayload payload) {
         sendingQueue.add(payload);
         if (payload instanceof GetData) {
-            requestedObjects.addAll(((GetData) payload).getInventory());
-            commonRequestedObjects.addAll(((GetData) payload).getInventory());
+            Long now = UnixTime.now();
+            List<InventoryVector> inventory = ((GetData) payload).getInventory();
+            requestedObjects.addAll(inventory);
+            for (InventoryVector iv : inventory) {
+                commonRequestedObjects.put(iv, now);
+            }
         }
     }
 

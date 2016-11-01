@@ -39,7 +39,6 @@ import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.SERVER;
 import static ch.dissem.bitmessage.networking.AbstractConnection.State.ACTIVE;
 import static ch.dissem.bitmessage.utils.DebugUtils.inc;
 import static ch.dissem.bitmessage.utils.ThreadFactoryBuilder.pool;
-import static java.util.Collections.newSetFromMap;
 
 /**
  * Handles all the networky stuff.
@@ -59,7 +58,7 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
     private ServerRunnable server;
     private volatile boolean running;
 
-    final Set<InventoryVector> requestedObjects = newSetFromMap(new ConcurrentHashMap<InventoryVector, Boolean>(50_000));
+    final Map<InventoryVector, Long> requestedObjects = new ConcurrentHashMap<>(50_000);
 
     @Override
     public void setContext(InternalContext context) {
