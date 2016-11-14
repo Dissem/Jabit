@@ -21,6 +21,14 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 import java.util.List;
 
 public interface AddressRepository {
+    /**
+     * Returns a matching BitmessageAddress if there is one with the given ripe or tag, that
+     * has no public key yet. If it doesn't exist or already has a public key, null is returned.
+     *
+     * @param ripeOrTag Either ripe or tag (depending of address version) of an address with
+     *                  missing public key.
+     * @return the matching address if there is one without public key, or null otherwise.
+     */
     BitmessageAddress findContact(byte[] ripeOrTag);
 
     BitmessageAddress findIdentity(byte[] ripeOrTag);
