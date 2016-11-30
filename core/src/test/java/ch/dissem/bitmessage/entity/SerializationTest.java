@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.*;
+import ch.dissem.bitmessage.entity.valueobject.ExtendedEncoding;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.factory.Factory;
@@ -79,12 +80,37 @@ public class SerializationTest extends TestBase {
     @Test
     public void ensurePlaintextIsSerializedAndDeserializedCorrectly() throws Exception {
         Plaintext p1 = new Plaintext.Builder(MSG)
-                .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
-                .to(TestUtils.loadContact())
-                .message("Subject", "Message")
-                .ackData("ackMessage".getBytes())
-                .signature(new byte[0])
-                .build();
+            .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
+            .to(TestUtils.loadContact())
+            .message("Subject", "Message")
+            .ackData("ackMessage".getBytes())
+            .signature(new byte[0])
+            .build();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        p1.write(out);
+        ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+        Plaintext p2 = Plaintext.read(MSG, in);
+
+        // Received is automatically set on deserialization, so we'll need to set it to 0
+        Field received = Plaintext.class.getDeclaredField("received");
+        received.setAccessible(true);
+        received.set(p2, 0L);
+
+        assertEquals(p1, p2);
+    }
+
+    @Test
+    public void ensurePlaintextWithExtendedEncodingIsSerializedAndDeserializedCorrectly() throws Exception {
+        Plaintext p1 = new Plaintext.Builder(MSG)
+            .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
+            .to(TestUtils.loadContact())
+            .message(new ExtendedEncoding.Builder().message()
+                .subject("Subject")
+                .body("Message")
+                .build())
+            .ackData("ackMessage".getBytes())
+            .signature(new byte[0])
+            .build();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         p1.write(out);
         ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
@@ -101,12 +127,12 @@ public class SerializationTest extends TestBase {
     @Test
     public void ensurePlaintextWithAckMessageIsSerializedAndDeserializedCorrectly() throws Exception {
         Plaintext p1 = new Plaintext.Builder(MSG)
-                .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
-                .to(TestUtils.loadContact())
-                .message("Subject", "Message")
-                .ackData("ackMessage".getBytes())
-                .signature(new byte[0])
-                .build();
+            .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
+            .to(TestUtils.loadContact())
+            .message("Subject", "Message")
+            .ackData("ackMessage".getBytes())
+            .signature(new byte[0])
+            .build();
         ObjectMessage ackMessage1 = p1.getAckMessage();
         assertNotNull(ackMessage1);
 
@@ -156,11 +182,11 @@ public class SerializationTest extends TestBase {
     @Test
     public void ensureSystemSerializationWorks() throws Exception {
         Plaintext plaintext = new Plaintext.Builder(MSG)
-                .from(TestUtils.loadContact())
-                .to(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
-                .labels(Collections.singletonList(new Label("Test", Label.Type.INBOX, 0)))
-                .message("Test", "Test Test.\nTest")
-                .build();
+            .from(TestUtils.loadContact())
+            .to(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
+            .labels(Collections.singletonList(new Label("Test", Label.Type.INBOX, 0)))
+            .message("Test", "Test Test.\nTest")
+            .build();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(out);
         oos.writeObject(plaintext);

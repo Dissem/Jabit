@@ -18,17 +18,23 @@ package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.Msg;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
+import ch.dissem.bitmessage.entity.valueobject.Attachment;
+import ch.dissem.bitmessage.entity.valueobject.ExtendedEncoding;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.factory.Factory;
-import ch.dissem.bitmessage.utils.*;
+import ch.dissem.bitmessage.utils.Decode;
+import ch.dissem.bitmessage.utils.Encode;
+import ch.dissem.bitmessage.utils.TTL;
+import ch.dissem.bitmessage.utils.UnixTime;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.Collections;
 
+import static ch.dissem.bitmessage.entity.Plaintext.Encoding.EXTENDED;
+import static ch.dissem.bitmessage.entity.Plaintext.Encoding.SIMPLE;
 import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
@@ -42,6 +48,7 @@ public class Plaintext implements Streamable {
     private final long encoding;
     private final byte[] message;
     private final byte[] ackData;
+    private ExtendedEncoding extendedData;
     private ObjectMessage ackMessage;
     private Object id;
     private InventoryVector inventoryVector;
@@ -141,6 +148,10 @@ public class Plaintext implements Streamable {
 
     public Set<Label> getLabels() {
         return labels;
+    }
+
+    public Encoding getEncoding() {
+        return Encoding.fromCode(encoding);
     }
 
     public long getStream() {
@@ -299,7 +310,13 @@ public class Plaintext implements Streamable {
     public String getSubject() {
         Scanner s = new Scanner(new ByteArrayInputStream(message), "UTF-8");
         String firstLine = s.nextLine();
-        if (encoding == 2) {
+        if (encoding == EXTENDED.code) {
+            if (getExtendedData().getMessage() == null) {
+                return null;
+            } else {
+                return extendedData.getMessage().getSubject();
+            }
+        } else if (encoding == SIMPLE.code) {
             return firstLine.substring("Subject:".length()).trim();
         } else if (firstLine.length() > 50) {
             return firstLine.substring(0, 50).trim() + "...";
@@ -309,14 +326,46 @@ public class Plaintext implements Streamable {
     }
 
     public String getText() {
-        try {
-            String text = new String(message, "UTF-8");
-            if (encoding == 2) {
-                return text.substring(text.indexOf("\nBody:") + 6);
+        if (encoding == EXTENDED.code) {
+            if (getExtendedData().getMessage() == null) {
+                return null;
+            } else {
+                return extendedData.getMessage().getBody();
             }
-            return text;
-        } catch (UnsupportedEncodingException e) {
-            throw new ApplicationException(e);
+        } else {
+            try {
+                String text = new String(message, "UTF-8");
+                if (encoding == SIMPLE.code) {
+                    return text.substring(text.indexOf("\nBody:") + 6);
+                }
+                return text;
+            } catch (UnsupportedEncodingException e) {
+                throw new ApplicationException(e);
+            }
+        }
+    }
+
+    protected ExtendedEncoding getExtendedData() {
+        if (extendedData == null && encoding == EXTENDED.code) {
+            // TODO: make sure errors are properly handled
+            extendedData = ExtendedEncoding.unzip(message);
+        }
+        return extendedData;
+    }
+
+    public List<InventoryVector> getParents() {
+        if (getExtendedData() == null || extendedData.getMessage() == null) {
+            return Collections.emptyList();
+        } else {
+            return extendedData.getMessage().getParents();
+        }
+    }
+
+    public List<Attachment> getFiles() {
+        if (getExtendedData() == null || extendedData.getMessage() == null) {
+            return Collections.emptyList();
+        } else {
+            return extendedData.getMessage().getFiles();
         }
     }
 
@@ -386,7 +435,7 @@ public class Plaintext implements Streamable {
     }
 
     public enum Encoding {
-        IGNORE(0), TRIVIAL(1), SIMPLE(2);
+        IGNORE(0), TRIVIAL(1), SIMPLE(2), EXTENDED(3);
 
         long code;
 
@@ -396,6 +445,15 @@ public class Plaintext implements Streamable {
 
         public long getCode() {
             return code;
+        }
+
+        public static Encoding fromCode(long code) {
+            for (Encoding e : values()) {
+                if (e.getCode() == code) {
+                    return e;
+                }
+            }
+            return null;
         }
     }
 
@@ -517,9 +575,15 @@ public class Plaintext implements Streamable {
             return this;
         }
 
+        public Builder message(ExtendedEncoding message) {
+            this.encoding = EXTENDED.getCode();
+            this.message = message.zip();
+            return this;
+        }
+
         public Builder message(String subject, String message) {
             try {
-                this.encoding = Encoding.SIMPLE.getCode();
+                this.encoding = SIMPLE.getCode();
                 this.message = ("Subject:" + subject + '\n' + "Body:" + message).getBytes("UTF-8");
             } catch (UnsupportedEncodingException e) {
                 throw new ApplicationException(e);
