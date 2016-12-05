@@ -178,12 +178,23 @@ public class Plaintext implements Streamable {
     public void write(OutputStream out, boolean includeSignature) throws IOException {
         Encode.varInt(from.getVersion(), out);
         Encode.varInt(from.getStream(), out);
-        Encode.int32(from.getPubkey().getBehaviorBitfield(), out);
-        out.write(from.getPubkey().getSigningKey(), 1, 64);
-        out.write(from.getPubkey().getEncryptionKey(), 1, 64);
-        if (from.getVersion() >= 3) {
-            Encode.varInt(from.getPubkey().getNonceTrialsPerByte(), out);
-            Encode.varInt(from.getPubkey().getExtraBytes(), out);
+        if (from.getPubkey() == null) {
+            Encode.int32(0, out);
+            byte[] empty = new byte[64];
+            out.write(empty);
+            out.write(empty);
+            if (from.getVersion() >= 3) {
+                Encode.varInt(0, out);
+                Encode.varInt(0, out);
+            }
+        } else {
+            Encode.int32(from.getPubkey().getBehaviorBitfield(), out);
+            out.write(from.getPubkey().getSigningKey(), 1, 64);
+            out.write(from.getPubkey().getEncryptionKey(), 1, 64);
+            if (from.getVersion() >= 3) {
+                Encode.varInt(from.getPubkey().getNonceTrialsPerByte(), out);
+                Encode.varInt(from.getPubkey().getExtraBytes(), out);
+            }
         }
         if (type == Type.MSG) {
             out.write(to.getRipe());
@@ -213,12 +224,23 @@ public class Plaintext implements Streamable {
     public void write(ByteBuffer buffer, boolean includeSignature) {
         Encode.varInt(from.getVersion(), buffer);
         Encode.varInt(from.getStream(), buffer);
-        Encode.int32(from.getPubkey().getBehaviorBitfield(), buffer);
-        buffer.put(from.getPubkey().getSigningKey(), 1, 64);
-        buffer.put(from.getPubkey().getEncryptionKey(), 1, 64);
-        if (from.getVersion() >= 3) {
-            Encode.varInt(from.getPubkey().getNonceTrialsPerByte(), buffer);
-            Encode.varInt(from.getPubkey().getExtraBytes(), buffer);
+        if (from.getPubkey() == null) {
+            Encode.int32(0, buffer);
+            byte[] empty = new byte[64];
+            buffer.put(empty);
+            buffer.put(empty);
+            if (from.getVersion() >= 3) {
+                Encode.varInt(0, buffer);
+                Encode.varInt(0, buffer);
+            }
+        } else {
+            Encode.int32(from.getPubkey().getBehaviorBitfield(), buffer);
+            buffer.put(from.getPubkey().getSigningKey(), 1, 64);
+            buffer.put(from.getPubkey().getEncryptionKey(), 1, 64);
+            if (from.getVersion() >= 3) {
+                Encode.varInt(from.getPubkey().getNonceTrialsPerByte(), buffer);
+                Encode.varInt(from.getPubkey().getExtraBytes(), buffer);
+            }
         }
         if (type == Type.MSG) {
             buffer.put(to.getRipe());
