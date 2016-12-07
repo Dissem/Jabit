@@ -30,6 +30,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.TreeSet;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 /**
  * The internal context should normally only be used for port implementations. If you need it in your client
@@ -44,6 +46,8 @@ public class InternalContext {
 
     public final static long NETWORK_NONCE_TRIALS_PER_BYTE = 1000;
     public final static long NETWORK_EXTRA_BYTES = 1000;
+
+    private final Executor threadPool = Executors.newCachedThreadPool();
 
     private final Cryptography cryptography;
     private final Inventory inventory;
@@ -226,31 +230,36 @@ public class InternalContext {
      * for freshly received pubkeys will not be called. Instead the pubkey is added to the contact and stored on DB.
      */
     public void requestPubkey(final BitmessageAddress contact) {
-        BitmessageAddress stored = addressRepository.getAddress(contact.getAddress());
+        threadPool.execute(new Runnable() {
+            @Override
+            public void run() {
+                BitmessageAddress stored = addressRepository.getAddress(contact.getAddress());
 
-        tryToFindMatchingPubkey(contact);
-        if (contact.getPubkey() != null) {
-            if (stored != null) {
-                stored.setPubkey(contact.getPubkey());
-                addressRepository.save(stored);
-            } else {
-                addressRepository.save(contact);
+                tryToFindMatchingPubkey(contact);
+                if (contact.getPubkey() != null) {
+                    if (stored != null) {
+                        stored.setPubkey(contact.getPubkey());
+                        addressRepository.save(stored);
+                    } else {
+                        addressRepository.save(contact);
+                    }
+                    return;
+                }
+
+                if (stored == null) {
+                    addressRepository.save(contact);
+                }
+
+                long expires = UnixTime.now(TTL.getpubkey());
+                LOG.info("Expires at " + expires);
+                final ObjectMessage request = new ObjectMessage.Builder()
+                    .stream(contact.getStream())
+                    .expiresTime(expires)
+                    .payload(new GetPubkey(contact))
+                    .build();
+                proofOfWorkService.doProofOfWork(request);
             }
-            return;
-        }
-
-        if (stored == null) {
-            addressRepository.save(contact);
-        }
-
-        long expires = UnixTime.now(TTL.getpubkey());
-        LOG.info("Expires at " + expires);
-        final ObjectMessage request = new ObjectMessage.Builder()
-            .stream(contact.getStream())
-            .expiresTime(expires)
-            .payload(new GetPubkey(contact))
-            .build();
-        proofOfWorkService.doProofOfWork(request);
+        });
     }
 
     private void tryToFindMatchingPubkey(BitmessageAddress address) {
