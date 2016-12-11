@@ -84,7 +84,7 @@ public class Message implements ExtendedEncoding.ExtendedType {
         }
         packer.packMapHeader(size);
         packer.packString("");
-        packer.packString("message");
+        packer.packString(TYPE);
         packer.packString("subject");
         packer.packString(subject);
         packer.packString("body");

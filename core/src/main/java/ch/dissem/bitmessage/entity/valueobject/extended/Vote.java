@@ -58,7 +58,7 @@ public class Vote implements ExtendedEncoding.ExtendedType {
     public void pack(MessagePacker packer) throws IOException {
         packer.packMapHeader(3);
         packer.packString("");
-        packer.packString("vote");
+        packer.packString(TYPE);
         packer.packString("msgId");
         packer.packBinaryHeader(msgId.getHash().length);
         packer.writePayload(msgId.getHash());

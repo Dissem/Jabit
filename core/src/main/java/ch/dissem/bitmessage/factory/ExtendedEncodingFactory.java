@@ -22,6 +22,7 @@ import java.util.zip.InflaterInputStream;
 public class ExtendedEncodingFactory {
     private static final Logger LOG = LoggerFactory.getLogger(ExtendedEncodingFactory.class);
     private static final ExtendedEncodingFactory INSTANCE = new ExtendedEncodingFactory();
+    private static final String KEY_MESSAGE_TYPE = "";
     private Map<String, ExtendedEncoding.Unpacker<?>> factories = new HashMap<>();
 
     private ExtendedEncodingFactory() {
@@ -39,7 +40,7 @@ public class ExtendedEncodingFactory {
             MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(unzipper);
             int mapSize = unpacker.unpackMapHeader();
             String key = unpacker.unpackString();
-            if (!"".equals(key)) {
+            if (!KEY_MESSAGE_TYPE.equals(key)) {
                 LOG.error("Unexpected content: " + key);
                 return null;
             }

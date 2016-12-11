@@ -16,11 +16,6 @@
 
 package ch.dissem.bitmessage.utils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.file.Files;
-
 /**
  * A helper class for working with byte arrays interpreted as unsigned big endian integers.
  * This is one part due to the fact that Java doesn't support unsigned numbers, and another
