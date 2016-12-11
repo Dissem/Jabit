@@ -18,11 +18,13 @@ package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.Msg;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
-import ch.dissem.bitmessage.entity.valueobject.Attachment;
+import ch.dissem.bitmessage.entity.valueobject.extended.Attachment;
 import ch.dissem.bitmessage.entity.valueobject.ExtendedEncoding;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
+import ch.dissem.bitmessage.entity.valueobject.extended.Message;
 import ch.dissem.bitmessage.exception.ApplicationException;
+import ch.dissem.bitmessage.factory.ExtendedEncodingFactory;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.Decode;
 import ch.dissem.bitmessage.utils.Encode;
@@ -333,10 +335,10 @@ public class Plaintext implements Streamable {
         Scanner s = new Scanner(new ByteArrayInputStream(message), "UTF-8");
         String firstLine = s.nextLine();
         if (encoding == EXTENDED.code) {
-            if (getExtendedData().getMessage() == null) {
-                return null;
+            if (Message.TYPE.equals(getExtendedData().getType())) {
+                return ((Message) extendedData.getContent()).getSubject();
             } else {
-                return extendedData.getMessage().getSubject();
+                return null;
             }
         } else if (encoding == SIMPLE.code) {
             return firstLine.substring("Subject:".length()).trim();
@@ -349,10 +351,10 @@ public class Plaintext implements Streamable {
 
     public String getText() {
         if (encoding == EXTENDED.code) {
-            if (getExtendedData().getMessage() == null) {
-                return null;
+            if (Message.TYPE.equals(getExtendedData().getType())) {
+                return ((Message) extendedData.getContent()).getBody();
             } else {
-                return extendedData.getMessage().getBody();
+                return null;
             }
         } else {
             try {
@@ -370,24 +372,24 @@ public class Plaintext implements Streamable {
     protected ExtendedEncoding getExtendedData() {
         if (extendedData == null && encoding == EXTENDED.code) {
             // TODO: make sure errors are properly handled
-            extendedData = ExtendedEncoding.unzip(message);
+            extendedData = ExtendedEncodingFactory.getInstance().unzip(message);
         }
         return extendedData;
     }
 
     public List<InventoryVector> getParents() {
-        if (getExtendedData() == null || extendedData.getMessage() == null) {
-            return Collections.emptyList();
+        if (Message.TYPE.equals(getExtendedData().getType())) {
+            return ((Message) extendedData.getContent()).getParents();
         } else {
-            return extendedData.getMessage().getParents();
+            return Collections.emptyList();
         }
     }
 
     public List<Attachment> getFiles() {
-        if (getExtendedData() == null || extendedData.getMessage() == null) {
-            return Collections.emptyList();
+        if (Message.TYPE.equals(getExtendedData().getType())) {
+            return ((Message) extendedData.getContent()).getFiles();
         } else {
-            return extendedData.getMessage().getFiles();
+            return Collections.emptyList();
         }
     }
 

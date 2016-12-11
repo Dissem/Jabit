@@ -17,9 +17,9 @@
 package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.*;
-import ch.dissem.bitmessage.entity.valueobject.ExtendedEncoding;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
+import ch.dissem.bitmessage.entity.valueobject.extended.Message;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.TestBase;
 import ch.dissem.bitmessage.utils.TestUtils;
@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
-import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 import static org.junit.Assert.*;
 
 public class SerializationTest extends TestBase {
@@ -104,7 +103,7 @@ public class SerializationTest extends TestBase {
         Plaintext p1 = new Plaintext.Builder(MSG)
             .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
             .to(TestUtils.loadContact())
-            .message(new ExtendedEncoding.Builder().message()
+            .message(new Message.Builder()
                 .subject("Subject")
                 .body("Message")
                 .build())
@@ -154,7 +153,7 @@ public class SerializationTest extends TestBase {
     public void ensureNetworkMessageIsSerializedAndDeserializedCorrectly() throws Exception {
         ArrayList<InventoryVector> ivs = new ArrayList<>(50000);
         for (int i = 0; i < 50000; i++) {
-            ivs.add(new InventoryVector(cryptography().randomBytes(32)));
+            ivs.add(TestUtils.randomInventoryVector());
         }
 
         Inv inv = new Inv.Builder().inventory(ivs).build();

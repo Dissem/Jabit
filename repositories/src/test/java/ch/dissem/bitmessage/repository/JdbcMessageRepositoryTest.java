@@ -26,6 +26,7 @@ import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.ports.AddressRepository;
 import ch.dissem.bitmessage.ports.MessageRepository;
+import ch.dissem.bitmessage.utils.TestUtils;
 import ch.dissem.bitmessage.utils.UnixTime;
 import org.junit.Before;
 import org.junit.Test;
@@ -162,7 +163,7 @@ public class JdbcMessageRepositoryTest extends TestBase {
     @Test
     public void testSave() throws Exception {
         Plaintext message = new Plaintext.Builder(MSG)
-                .IV(new InventoryVector(cryptography().randomBytes(32)))
+                .IV(TestUtils.randomInventoryVector())
                 .from(identity)
                 .to(contactA)
                 .message("Subject", "Message")
@@ -185,7 +186,7 @@ public class JdbcMessageRepositoryTest extends TestBase {
     public void testUpdate() throws Exception {
         List<Plaintext> messages = repo.findMessages(Plaintext.Status.DRAFT, contactA);
         Plaintext message = messages.get(0);
-        message.setInventoryVector(new InventoryVector(cryptography().randomBytes(32)));
+        message.setInventoryVector(TestUtils.randomInventoryVector());
         repo.save(message);
 
         messages = repo.findMessages(Plaintext.Status.DRAFT, contactA);
@@ -206,7 +207,7 @@ public class JdbcMessageRepositoryTest extends TestBase {
     @Test
     public void ensureUnacknowledgedMessagesAreFoundForResend() throws Exception {
         Plaintext message = new Plaintext.Builder(MSG)
-                .IV(new InventoryVector(cryptography().randomBytes(32)))
+                .IV(TestUtils.randomInventoryVector())
                 .from(identity)
                 .to(contactA)
                 .message("Subject", "Message")

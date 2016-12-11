@@ -1,4 +1,4 @@
-package ch.dissem.bitmessage.entity.valueobject;
+package ch.dissem.bitmessage.entity.valueobject.extended;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -48,7 +48,7 @@ public class Attachment implements Serializable {
         return Objects.hash(name, data, type, disposition);
     }
 
-    private enum Disposition {
+    public enum Disposition {
         inline, attachment
     }
 
@@ -80,6 +80,11 @@ public class Attachment implements Serializable {
 
         public Builder attachment() {
             this.disposition = Disposition.attachment;
+            return this;
+        }
+
+        public Builder disposition(Disposition disposition) {
+            this.disposition = disposition;
             return this;
         }
 
