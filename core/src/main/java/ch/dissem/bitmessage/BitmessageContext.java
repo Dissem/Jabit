@@ -435,8 +435,8 @@ public class BitmessageContext {
                 customCommandHandler = new CustomCommandHandler() {
                     @Override
                     public MessagePayload handle(CustomMessage request) {
-                        throw new IllegalStateException(
-                            "Received custom request, but no custom command handler configured.");
+                        LOG.debug("Received custom request, but no custom command handler configured.");
+                        return null;
                     }
                 };
             }
