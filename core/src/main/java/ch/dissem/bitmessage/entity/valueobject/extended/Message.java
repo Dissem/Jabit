@@ -132,31 +132,44 @@ public class Message implements ExtendedEncoding.ExtendedType {
         }
 
         public Builder addParent(Plaintext parent) {
-            parents.add(parent.getInventoryVector());
+            if (parent != null) {
+                InventoryVector iv = parent.getInventoryVector();
+                if (iv == null) {
+                    LOG.debug("Ignored parent without IV");
+                } else {
+                    parents.add(iv);
+                }
+            }
             return this;
         }
 
         public Builder addParent(InventoryVector iv) {
-            parents.add(iv);
+            if (iv != null) {
+                parents.add(iv);
+            }
             return this;
         }
 
         public Builder addFile(File file, Attachment.Disposition disposition) {
-            try {
-                files.add(new Attachment.Builder()
-                    .name(file.getName())
-                    .disposition(disposition)
-                    .type(URLConnection.guessContentTypeFromStream(new FileInputStream(file)))
-                    .data(Files.readAllBytes(file.toPath()))
-                    .build());
-            } catch (IOException e) {
-                LOG.error(e.getMessage(), e);
+            if (file != null) {
+                try {
+                    files.add(new Attachment.Builder()
+                        .name(file.getName())
+                        .disposition(disposition)
+                        .type(URLConnection.guessContentTypeFromStream(new FileInputStream(file)))
+                        .data(Files.readAllBytes(file.toPath()))
+                        .build());
+                } catch (IOException e) {
+                    LOG.error(e.getMessage(), e);
+                }
             }
             return this;
         }
 
         public Builder addFile(Attachment file) {
-            files.add(file);
+            if (file != null) {
+                files.add(file);
+            }
             return this;
         }
 
