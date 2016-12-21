@@ -57,64 +57,65 @@ public class BitmessageContextTest {
         Singleton.initialize(null);
         listener = mock(BitmessageContext.Listener.class);
         ctx = new BitmessageContext.Builder()
-                .addressRepo(mock(AddressRepository.class))
-                .cryptography(new BouncyCryptography())
-                .inventory(mock(Inventory.class))
-                .listener(listener)
-                .messageRepo(mock(MessageRepository.class))
-                .networkHandler(mock(NetworkHandler.class))
-                .nodeRegistry(mock(NodeRegistry.class))
-                .labeler(spy(new DefaultLabeler()))
-                .powRepo(spy(new ProofOfWorkRepository() {
-                    Map<InventoryVector, Item> items = new HashMap<>();
+            .addressRepo(mock(AddressRepository.class))
+            .cryptography(new BouncyCryptography())
+            .inventory(mock(Inventory.class))
+            .listener(listener)
+            .messageRepo(mock(MessageRepository.class))
+            .networkHandler(mock(NetworkHandler.class))
+            .nodeRegistry(mock(NodeRegistry.class))
+            .labeler(spy(new DefaultLabeler()))
+            .powRepo(spy(new ProofOfWorkRepository() {
+                Map<InventoryVector, Item> items = new HashMap<>();
 
-                    @Override
-                    public Item getItem(byte[] initialHash) {
-                        return items.get(new InventoryVector(initialHash));
-                    }
+                @Override
+                public Item getItem(byte[] initialHash) {
+                    return items.get(new InventoryVector(initialHash));
+                }
 
-                    @Override
-                    public List<byte[]> getItems() {
-                        List<byte[]> result = new LinkedList<>();
-                        for (InventoryVector iv : items.keySet()) {
-                            result.add(iv.getHash());
-                        }
-                        return result;
+                @Override
+                public List<byte[]> getItems() {
+                    List<byte[]> result = new LinkedList<>();
+                    for (InventoryVector iv : items.keySet()) {
+                        result.add(iv.getHash());
                     }
+                    return result;
+                }
 
-                    @Override
-                    public void putObject(Item item) {
-                        items.put(new InventoryVector(cryptography().getInitialHash(item.object)), item);
-                    }
+                @Override
+                public void putObject(Item item) {
+                    items.put(new InventoryVector(cryptography().getInitialHash(item.object)), item);
+                }
 
-                    @Override
-                    public void putObject(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) {
-                        items.put(new InventoryVector(cryptography().getInitialHash(object)), new Item(object, nonceTrialsPerByte, extraBytes));
-                    }
+                @Override
+                public void putObject(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) {
+                    items.put(new InventoryVector(cryptography().getInitialHash(object)), new Item(object, nonceTrialsPerByte, extraBytes));
+                }
 
-                    @Override
-                    public void removeObject(byte[] initialHash) {
-                        items.remove(initialHash);
-                    }
-                }))
-                .proofOfWorkEngine(spy(new ProofOfWorkEngine() {
-                    @Override
-                    public void calculateNonce(byte[] initialHash, byte[] target, Callback callback) {
-                        callback.onNonceCalculated(initialHash, new byte[8]);
-                    }
-                }))
-                .build();
+                @Override
+                public void removeObject(byte[] initialHash) {
+                    items.remove(initialHash);
+                }
+            }))
+            .proofOfWorkEngine(spy(new ProofOfWorkEngine() {
+                @Override
+                public void calculateNonce(byte[] initialHash, byte[] target, Callback callback) {
+                    callback.onNonceCalculated(initialHash, new byte[8]);
+                }
+            }))
+            .build();
         TTL.msg(2 * MINUTE);
     }
 
     @Test
     public void ensureContactIsSavedAndPubkeyRequested() {
         BitmessageAddress contact = new BitmessageAddress("BM-opWQhvk9xtMFvQA2Kvetedpk8LkbraWHT");
+        when(ctx.addresses().getAddress(contact.getAddress())).thenReturn(contact);
         ctx.addContact(contact);
 
-        verify(ctx.addresses(), times(2)).save(contact);
-        verify(ctx.internals().getProofOfWorkEngine())
-                .calculateNonce(any(byte[].class), any(byte[].class), any(ProofOfWorkEngine.Callback.class));
+        verify(ctx.addresses(), timeout(1000).atLeastOnce()).save(contact);
+        verify(ctx.internals().getProofOfWorkEngine(), timeout(1000))
+            .calculateNonce(any(byte[].class), any(byte[].class), any(ProofOfWorkEngine.Callback.class));
     }
 
     @Test
@@ -128,52 +129,41 @@ public class BitmessageContextTest {
 
         verify(ctx.addresses(), times(1)).save(contact);
         verify(ctx.internals().getProofOfWorkEngine(), never())
-                .calculateNonce(any(byte[].class), any(byte[].class), any(ProofOfWorkEngine.Callback.class));
+            .calculateNonce(any(byte[].class), any(byte[].class), any(ProofOfWorkEngine.Callback.class));
     }
 
     @Test
     public void ensureV2PubkeyIsNotRequestedIfItExistsInInventory() throws Exception {
         BitmessageAddress contact = new BitmessageAddress("BM-opWQhvk9xtMFvQA2Kvetedpk8LkbraWHT");
         when(ctx.internals().getInventory().getObjects(anyLong(), anyLong(), any(ObjectType.class)))
-                .thenReturn(Collections.singletonList(
-                        TestUtils.loadObjectMessage(2, "V2Pubkey.payload")
-                ));
+            .thenReturn(Collections.singletonList(
+                TestUtils.loadObjectMessage(2, "V2Pubkey.payload")
+            ));
+        when(ctx.addresses().getAddress(contact.getAddress())).thenReturn(contact);
 
         ctx.addContact(contact);
 
         verify(ctx.addresses(), atLeastOnce()).save(contact);
         verify(ctx.internals().getProofOfWorkEngine(), never())
-                .calculateNonce(any(byte[].class), any(byte[].class), any(ProofOfWorkEngine.Callback.class));
+            .calculateNonce(any(byte[].class), any(byte[].class), any(ProofOfWorkEngine.Callback.class));
     }
 
     @Test
     public void ensureV4PubkeyIsNotRequestedIfItExistsInInventory() throws Exception {
         BitmessageAddress contact = new BitmessageAddress("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h");
         when(ctx.internals().getInventory().getObjects(anyLong(), anyLong(), any(ObjectType.class)))
-                .thenReturn(Collections.singletonList(
-                        TestUtils.loadObjectMessage(2, "V4Pubkey.payload")
-                ));
+            .thenReturn(Collections.singletonList(
+                TestUtils.loadObjectMessage(2, "V4Pubkey.payload")
+            ));
         final BitmessageAddress stored = new BitmessageAddress(contact.getAddress());
         stored.setAlias("Test");
         when(ctx.addresses().getAddress(contact.getAddress())).thenReturn(stored);
 
         ctx.addContact(contact);
 
-        verify(ctx.addresses(), atLeastOnce()).save(argThat(new BaseMatcher<BitmessageAddress>() {
-            @Override
-            public boolean matches(Object item) {
-                return item instanceof BitmessageAddress
-                        && ((BitmessageAddress) item).getPubkey() != null
-                        && stored.getAlias().equals(((BitmessageAddress) item).getAlias());
-            }
-
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("pubkey must not be null and alias must be ").appendValue(stored.getAlias());
-            }
-        }));
+        verify(ctx.addresses(), atLeastOnce()).save(any(BitmessageAddress.class));
         verify(ctx.internals().getProofOfWorkEngine(), never())
-                .calculateNonce(any(byte[].class), any(byte[].class), any(ProofOfWorkEngine.Callback.class));
+            .calculateNonce(any(byte[].class), any(byte[].class), any(ProofOfWorkEngine.Callback.class));
     }
 
     @Test
@@ -184,7 +174,7 @@ public class BitmessageContextTest {
         objects.add(TestUtils.loadObjectMessage(4, "V4Broadcast.payload"));
         objects.add(TestUtils.loadObjectMessage(5, "V5Broadcast.payload"));
         when(ctx.internals().getInventory().getObjects(eq(address.getStream()), anyLong(), any(ObjectType.class)))
-                .thenReturn(objects);
+            .thenReturn(objects);
         when(ctx.addresses().getSubscriptions(anyLong())).thenReturn(Collections.singletonList(address));
 
         ctx.addSubscribtion(address);
@@ -203,48 +193,48 @@ public class BitmessageContextTest {
     @Test
     public void ensureMessageIsSent() throws Exception {
         ctx.send(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"), TestUtils.loadContact(),
-                "Subject", "Message");
+            "Subject", "Message");
         assertEquals(2, ctx.internals().getProofOfWorkRepository().getItems().size());
         verify(ctx.internals().getProofOfWorkRepository(), timeout(10000).atLeastOnce())
-                .putObject(object(MSG), eq(1000L), eq(1000L));
+            .putObject(object(MSG), eq(1000L), eq(1000L));
         verify(ctx.messages(), timeout(10000).atLeastOnce()).save(MessageMatchers.plaintext(Type.MSG));
     }
 
     @Test
     public void ensurePubkeyIsRequestedIfItIsMissing() throws Exception {
         ctx.send(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"),
-                new BitmessageAddress("BM-opWQhvk9xtMFvQA2Kvetedpk8LkbraWHT"),
-                "Subject", "Message");
+            new BitmessageAddress("BM-opWQhvk9xtMFvQA2Kvetedpk8LkbraWHT"),
+            "Subject", "Message");
         verify(ctx.internals().getProofOfWorkRepository(), timeout(10000).atLeastOnce())
-                .putObject(object(GET_PUBKEY), eq(1000L), eq(1000L));
+            .putObject(object(GET_PUBKEY), eq(1000L), eq(1000L));
         verify(ctx.messages(), timeout(10000).atLeastOnce()).save(MessageMatchers.plaintext(Type.MSG));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void ensureSenderMustBeIdentity() {
         ctx.send(new BitmessageAddress("BM-opWQhvk9xtMFvQA2Kvetedpk8LkbraWHT"),
-                new BitmessageAddress("BM-opWQhvk9xtMFvQA2Kvetedpk8LkbraWHT"),
-                "Subject", "Message");
+            new BitmessageAddress("BM-opWQhvk9xtMFvQA2Kvetedpk8LkbraWHT"),
+            "Subject", "Message");
     }
 
     @Test
     public void ensureBroadcastIsSent() throws Exception {
         ctx.broadcast(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"),
-                "Subject", "Message");
+            "Subject", "Message");
         verify(ctx.internals().getProofOfWorkRepository(), timeout(10000).atLeastOnce())
-                .putObject(object(BROADCAST), eq(1000L), eq(1000L));
+            .putObject(object(BROADCAST), eq(1000L), eq(1000L));
         verify(ctx.internals().getProofOfWorkEngine())
-                .calculateNonce(any(byte[].class), any(byte[].class), any(ProofOfWorkEngine.Callback.class));
+            .calculateNonce(any(byte[].class), any(byte[].class), any(ProofOfWorkEngine.Callback.class));
         verify(ctx.messages(), timeout(10000).atLeastOnce())
-                .save(MessageMatchers.plaintext(Type.BROADCAST));
+            .save(MessageMatchers.plaintext(Type.BROADCAST));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void ensureSenderWithoutPrivateKeyThrowsException() {
         Plaintext msg = new Plaintext.Builder(Type.BROADCAST)
-                .from(new BitmessageAddress("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
-                .message("Subject", "Message")
-                .build();
+            .from(new BitmessageAddress("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
+            .message("Subject", "Message")
+            .build();
         ctx.send(msg);
     }
 
@@ -301,11 +291,11 @@ public class BitmessageContextTest {
     @Test
     public void ensureUnacknowledgedMessageIsResent() throws Exception {
         Plaintext plaintext = new Plaintext.Builder(Type.MSG)
-                .ttl(1)
-                .message("subject", "message")
-                .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
-                .to(TestUtils.loadContact())
-                .build();
+            .ttl(1)
+            .message("subject", "message")
+            .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
+            .to(TestUtils.loadContact())
+            .build();
         assertTrue(plaintext.getTo().has(Pubkey.Feature.DOES_ACK));
         when(ctx.messages().findMessagesToResend()).thenReturn(Collections.singletonList(plaintext));
         when(ctx.messages().getMessage(any(byte[].class))).thenReturn(plaintext);

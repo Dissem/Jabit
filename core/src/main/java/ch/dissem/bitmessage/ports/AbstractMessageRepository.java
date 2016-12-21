@@ -37,14 +37,27 @@ public abstract class AbstractMessageRepository implements MessageRepository, In
         this.ctx = context;
     }
 
+    /**
+     * @deprecated use {@link #saveContactIfNecessary(BitmessageAddress)} instead.
+     */
+    @Deprecated
     protected void safeSenderIfNecessary(Plaintext message) {
         if (message.getId() == null) {
-            BitmessageAddress savedAddress = ctx.getAddressRepository().getAddress(message.getFrom().getAddress());
+            saveContactIfNecessary(message.getFrom());
+        }
+    }
+
+    protected void saveContactIfNecessary(BitmessageAddress contact) {
+        if (contact != null) {
+            BitmessageAddress savedAddress = ctx.getAddressRepository().getAddress(contact.getAddress());
             if (savedAddress == null) {
-                ctx.getAddressRepository().save(message.getFrom());
-            } else if (savedAddress.getPubkey() == null && message.getFrom().getPubkey() != null) {
-                savedAddress.setPubkey(message.getFrom().getPubkey());
+                ctx.getAddressRepository().save(contact);
+            } else if (savedAddress.getPubkey() == null && contact.getPubkey() != null) {
+                savedAddress.setPubkey(contact.getPubkey());
                 ctx.getAddressRepository().save(savedAddress);
+            }
+            if (savedAddress != null) {
+                contact.setAlias(savedAddress.getAlias());
             }
         }
     }
@@ -95,7 +108,7 @@ public abstract class AbstractMessageRepository implements MessageRepository, In
     @Override
     public List<Plaintext> findMessagesToResend() {
         return find("status='" + Plaintext.Status.SENT.name() + "'" +
-                " AND next_try < " + UnixTime.now());
+            " AND next_try < " + UnixTime.now());
     }
 
     @Override
@@ -119,7 +132,7 @@ public abstract class AbstractMessageRepository implements MessageRepository, In
                 return collection.iterator().next();
             default:
                 throw new ApplicationException("This shouldn't happen, found " + collection.size() +
-                        " items, one or none was expected");
+                    " items, one or none was expected");
         }
     }
 

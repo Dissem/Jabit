@@ -377,6 +377,18 @@ public class Plaintext implements Streamable {
         return extendedData;
     }
 
+    @SuppressWarnings("unchecked")
+    public <T extends ExtendedEncoding.ExtendedType> T getExtendedData(Class<T> type) {
+        ExtendedEncoding extendedData = getExtendedData();
+        if (extendedData == null) {
+            return null;
+        }
+        if (type == null || type.isInstance(extendedData.getContent())) {
+            return (T) extendedData.getContent();
+        }
+        return null;
+    }
+
     public List<InventoryVector> getParents() {
         if (Message.TYPE.equals(getExtendedData().getType())) {
             return ((Message) extendedData.getContent()).getParents();

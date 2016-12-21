@@ -46,7 +46,7 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
     @Override
     protected List<Label> findLabels(String where) {
         try (
-                Connection connection = config.getConnection()
+            Connection connection = config.getConnection()
         ) {
             return findLabels(connection, where);
         } catch (SQLException e) {
@@ -76,12 +76,12 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
             where = "id IN (SELECT message_id FROM Message_Label WHERE label_id=" + label.getId() + ") AND ";
         }
         where += "id IN (SELECT message_id FROM Message_Label WHERE label_id IN (" +
-                "SELECT id FROM Label WHERE type = '" + Label.Type.UNREAD.name() + "'))";
+            "SELECT id FROM Label WHERE type = '" + Label.Type.UNREAD.name() + "'))";
 
         try (
-                Connection connection = config.getConnection();
-                Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT count(*) FROM Message WHERE " + where)
+            Connection connection = config.getConnection();
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT count(*) FROM Message WHERE " + where)
         ) {
             if (rs.next()) {
                 return rs.getInt(1);
@@ -96,11 +96,11 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
     protected List<Plaintext> find(String where) {
         List<Plaintext> result = new LinkedList<>();
         try (
-                Connection connection = config.getConnection();
-                Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery(
-                        "SELECT id, iv, type, sender, recipient, data, ack_data, sent, received, initial_hash, status, ttl, retries, next_try " +
-                                "FROM Message WHERE " + where)
+            Connection connection = config.getConnection();
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(
+                "SELECT id, iv, type, sender, recipient, data, ack_data, sent, received, initial_hash, status, ttl, retries, next_try " +
+                    "FROM Message WHERE " + where)
         ) {
             while (rs.next()) {
                 byte[] iv = rs.getBytes("iv");
@@ -120,7 +120,7 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
                 builder.retries(rs.getInt("retries"));
                 builder.nextTry(rs.getLong("next_try"));
                 builder.labels(findLabels(connection,
-                        "id IN (SELECT label_id FROM Message_Label WHERE message_id=" + id + ") ORDER BY ord"));
+                    "id IN (SELECT label_id FROM Message_Label WHERE message_id=" + id + ") ORDER BY ord"));
                 Plaintext message = builder.build();
                 message.setInitialHash(rs.getBytes("initial_hash"));
                 result.add(message);
@@ -134,8 +134,8 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
     private List<Label> findLabels(Connection connection, String where) {
         List<Label> result = new ArrayList<>();
         try (
-                Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label WHERE " + where)
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT id, label, type, color FROM Label WHERE " + where)
         ) {
             while (rs.next()) {
                 result.add(getLabel(rs));
@@ -148,7 +148,8 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
 
     @Override
     public void save(Plaintext message) {
-        safeSenderIfNecessary(message);
+        saveContactIfNecessary(message.getFrom());
+        saveContactIfNecessary(message.getTo());
 
         try (Connection connection = config.getConnection()) {
             try {
@@ -180,7 +181,7 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
         }
         // save new labels
         try (PreparedStatement ps = connection.prepareStatement("INSERT INTO Message_Label VALUES (" +
-                message.getId() + ", ?)")) {
+            message.getId() + ", ?)")) {
             for (Label label : message.getLabels()) {
                 ps.setLong(1, (Long) label.getId());
                 ps.executeUpdate();
@@ -190,10 +191,10 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
 
     private void insert(Connection connection, Plaintext message) throws SQLException, IOException {
         try (PreparedStatement ps = connection.prepareStatement(
-                "INSERT INTO Message (iv, type, sender, recipient, data, ack_data, sent, received, " +
-                        "status, initial_hash, ttl, retries, next_try) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                Statement.RETURN_GENERATED_KEYS)
+            "INSERT INTO Message (iv, type, sender, recipient, data, ack_data, sent, received, " +
+                "status, initial_hash, ttl, retries, next_try) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            Statement.RETURN_GENERATED_KEYS)
         ) {
             ps.setBytes(1, message.getInventoryVector() == null ? null : message.getInventoryVector().getHash());
             ps.setString(2, message.getType().name());
@@ -220,9 +221,9 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
 
     private void update(Connection connection, Plaintext message) throws SQLException, IOException {
         try (PreparedStatement ps = connection.prepareStatement(
-                "UPDATE Message SET iv=?, type=?, sender=?, recipient=?, data=?, ack_data=?, sent=?, received=?, " +
-                        "status=?, initial_hash=?, ttl=?, retries=?, next_try=? " +
-                        "WHERE id=?")) {
+            "UPDATE Message SET iv=?, type=?, sender=?, recipient=?, data=?, ack_data=?, sent=?, received=?, " +
+                "status=?, initial_hash=?, ttl=?, retries=?, next_try=? " +
+                "WHERE id=?")) {
             ps.setBytes(1, message.getInventoryVector() == null ? null : message.getInventoryVector().getHash());
             ps.setString(2, message.getType().name());
             ps.setString(3, message.getFrom().getAddress());

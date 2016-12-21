@@ -254,7 +254,10 @@ public class BitmessageContext {
     public void addContact(BitmessageAddress contact) {
         ctx.getAddressRepository().save(contact);
         if (contact.getPubkey() == null) {
-            ctx.requestPubkey(contact);
+            BitmessageAddress stored = ctx.getAddressRepository().getAddress(contact.getAddress());
+            if (stored.getPubkey() == null) {
+                ctx.requestPubkey(contact);
+            }
         }
     }
 

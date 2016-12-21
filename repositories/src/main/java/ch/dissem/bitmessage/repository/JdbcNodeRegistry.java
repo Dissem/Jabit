@@ -109,6 +109,11 @@ public class JdbcNodeRegistry extends JdbcHelper implements NodeRegistry {
                     result.add(Collections.selectRandom(nodes));
                 }
             }
+            if (result.isEmpty()) {
+                // There might have been an error resolving domain names due to a missing internet exception.
+                // Try to load the stable nodes again next time.
+                stableNodes = null;
+            }
         }
         return result;
     }
