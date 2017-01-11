@@ -66,13 +66,13 @@ public class BitmessageContext {
     private final boolean sendPubkeyOnIdentityCreation;
 
     private BitmessageContext(Builder builder) {
-        if (builder.listener instanceof Listener.WithContext) {
-            ((Listener.WithContext) builder.listener).setContext(this);
-        }
         ctx = new InternalContext(builder);
         labeler = builder.labeler;
         ctx.getProofOfWorkService().doMissingProofOfWork(30_000); // TODO: this should be configurable
         sendPubkeyOnIdentityCreation = builder.sendPubkeyOnIdentityCreation;
+        if (builder.listener instanceof Listener.WithContext) {
+            ((Listener.WithContext) builder.listener).setContext(this);
+        }
     }
 
     public AddressRepository addresses() {
