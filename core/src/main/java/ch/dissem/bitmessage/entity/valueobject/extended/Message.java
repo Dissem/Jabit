@@ -3,8 +3,7 @@ package ch.dissem.bitmessage.entity.valueobject.extended;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.valueobject.ExtendedEncoding;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
-import org.msgpack.core.MessagePacker;
-import org.msgpack.core.MessageUnpacker;
+import ch.dissem.msgpack.types.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +13,10 @@ import java.io.IOException;
 import java.net.URLConnection;
 import java.nio.file.Files;
 import java.util.*;
+
+import static ch.dissem.bitmessage.entity.valueobject.extended.Attachment.Disposition.attachment;
+import static ch.dissem.bitmessage.utils.Strings.str;
+import static ch.dissem.msgpack.types.Utils.mp;
 
 /**
  * Extended encoding type 'message'. Properties 'parents' and 'files' not yet supported by PyBitmessage, so they might not work
@@ -74,45 +77,33 @@ public class Message implements ExtendedEncoding.ExtendedType {
         return Objects.hash(subject, body, parents, files);
     }
 
-    public void pack(MessagePacker packer) throws IOException {
-        int size = 3;
+    @Override
+    public MPMap<MPString, MPType<?>> pack() throws IOException {
+        MPMap<MPString, MPType<?>> result = new MPMap<>();
+        result.put(mp(""), mp(TYPE));
+        result.put(mp("subject"), mp(subject));
+        result.put(mp("body"), mp(body));
+
         if (!files.isEmpty()) {
-            size++;
-        }
-        if (!parents.isEmpty()) {
-            size++;
-        }
-        packer.packMapHeader(size);
-        packer.packString("");
-        packer.packString(TYPE);
-        packer.packString("subject");
-        packer.packString(subject);
-        packer.packString("body");
-        packer.packString(body);
-        if (!files.isEmpty()) {
-            packer.packString("files");
-            packer.packArrayHeader(files.size());
+            MPArray<MPMap<MPString, MPType<?>>> items = new MPArray<>();
+            result.put(mp("files"), items);
             for (Attachment file : files) {
-                packer.packMapHeader(4);
-                packer.packString("name");
-                packer.packString(file.getName());
-                packer.packString("data");
-                packer.packBinaryHeader(file.getData().length);
-                packer.writePayload(file.getData());
-                packer.packString("type");
-                packer.packString(file.getType());
-                packer.packString("disposition");
-                packer.packString(file.getDisposition().name());
+                MPMap<MPString, MPType<?>> item = new MPMap<>();
+                item.put(mp("name"), mp(file.getName()));
+                item.put(mp("data"), mp(file.getData()));
+                item.put(mp("type"), mp(file.getType()));
+                item.put(mp("disposition"), mp(file.getDisposition().name()));
+                items.add(item);
             }
         }
         if (!parents.isEmpty()) {
-            packer.packString("parents");
-            packer.packArrayHeader(parents.size());
+            MPArray<MPBinary> items = new MPArray<>();
+            result.put(mp("parents"), items);
             for (InventoryVector parent : parents) {
-                packer.packBinaryHeader(parent.getHash().length);
-                packer.writePayload(parent.getHash());
+                items.add(mp(parent.getHash()));
             }
         }
+        return result;
     }
 
     public static class Builder {
@@ -185,86 +176,44 @@ public class Message implements ExtendedEncoding.ExtendedType {
         }
 
         @Override
-        public Message unpack(MessageUnpacker unpacker, int size) {
+        public Message unpack(MPMap<MPString, MPType<?>> map) {
             Message.Builder builder = new Message.Builder();
-            try {
-                for (int i = 0; i < size; i++) {
-                    String key = unpacker.unpackString();
-                    switch (key) {
-                        case "subject":
-                            builder.subject(unpacker.unpackString());
-                            break;
-                        case "body":
-                            builder.body(unpacker.unpackString());
-                            break;
-                        case "parents":
-                            builder.parents = unpackParents(unpacker);
-                            break;
-                        case "files":
-                            builder.files = unpackFiles(unpacker);
-                            break;
-                        default:
-                            LOG.error("Unexpected data with key: " + key);
-                            break;
-                    }
+            builder.subject(str(map.get(mp("subject"))));
+            builder.body(str(map.get(mp("body"))));
+            @SuppressWarnings("unchecked")
+            MPArray<MPBinary> parents = (MPArray<MPBinary>) map.get(mp("parents"));
+            if (parents != null) {
+                for (MPBinary parent : parents) {
+                    builder.addParent(new InventoryVector(parent.getValue()));
                 }
-            } catch (IOException e) {
-                LOG.error(e.getMessage(), e);
             }
+            @SuppressWarnings("unchecked")
+            MPArray<MPMap<MPString, MPType<?>>> files = (MPArray<MPMap<MPString, MPType<?>>>) map.get(mp("files"));
+            if (files != null) {
+                for (MPMap<MPString, MPType<?>> item : files) {
+                    Attachment.Builder b = new Attachment.Builder();
+                    b.name(str(item.get(mp("name"))));
+                    b.data(bin(item.get(mp("data"))));
+                    b.type(str(item.get(mp("type"))));
+                    String disposition = str(item.get(mp("disposition")));
+                    if ("inline".equals(disposition)) {
+                        b.inline();
+                    } else if ("attachment".equals(disposition)) {
+                        b.attachment();
+                    }
+                    builder.addFile(b.build());
+                }
+            }
+
             return new Message(builder);
         }
 
-        private static List<InventoryVector> unpackParents(MessageUnpacker unpacker) throws IOException {
-            int size = unpacker.unpackArrayHeader();
-            List<InventoryVector> parents = new ArrayList<>(size);
-            for (int i = 0; i < size; i++) {
-                int binarySize = unpacker.unpackBinaryHeader();
-                parents.add(new InventoryVector(unpacker.readPayload(binarySize)));
+        private byte[] bin(MPType data) {
+            if (data instanceof MPBinary) {
+                return ((MPBinary) data).getValue();
+            } else {
+                return null;
             }
-            return parents;
-        }
-
-        private static List<Attachment> unpackFiles(MessageUnpacker unpacker) throws IOException {
-            int size = unpacker.unpackArrayHeader();
-            List<Attachment> files = new ArrayList<>(size);
-            for (int i = 0; i < size; i++) {
-                Attachment.Builder attachment = new Attachment.Builder();
-                int mapSize = unpacker.unpackMapHeader();
-                for (int j = 0; j < mapSize; j++) {
-                    String key = unpacker.unpackString();
-                    switch (key) {
-                        case "name":
-                            attachment.name(unpacker.unpackString());
-                            break;
-                        case "data":
-                            int binarySize = unpacker.unpackBinaryHeader();
-                            attachment.data(unpacker.readPayload(binarySize));
-                            break;
-                        case "type":
-                            attachment.type(unpacker.unpackString());
-                            break;
-                        case "disposition":
-                            String disposition = unpacker.unpackString();
-                            switch (disposition) {
-                                case "inline":
-                                    attachment.inline();
-                                    break;
-                                case "attachment":
-                                    attachment.attachment();
-                                    break;
-                                default:
-                                    LOG.debug("Unknown disposition: " + disposition);
-                                    break;
-                            }
-                            break;
-                        default:
-                            LOG.debug("Unknown file info '" + key + "' with data: " + unpacker.unpackValue());
-                            break;
-                    }
-                }
-                files.add(attachment.build());
-            }
-            return files;
         }
     }
 }

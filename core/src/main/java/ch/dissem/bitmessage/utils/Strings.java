@@ -37,4 +37,8 @@ public class Strings {
         }
         return hex;
     }
+
+    public static String str(Object o) {
+        return o == null ? null : o.toString();
+    }
 }

@@ -1,9 +1,9 @@
 package ch.dissem.bitmessage.entity.valueobject;
 
 import ch.dissem.bitmessage.exception.ApplicationException;
-import org.msgpack.core.MessagePack;
-import org.msgpack.core.MessagePacker;
-import org.msgpack.core.MessageUnpacker;
+import ch.dissem.msgpack.types.MPMap;
+import ch.dissem.msgpack.types.MPString;
+import ch.dissem.msgpack.types.MPType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,13 +39,10 @@ public class ExtendedEncoding implements Serializable {
     }
 
     public byte[] zip() {
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream();
-             DeflaterOutputStream zipper = new DeflaterOutputStream(out)) {
-
-            MessagePacker packer = MessagePack.newDefaultPacker(zipper);
-            content.pack(packer);
-            packer.close();
-            zipper.close();
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            try (DeflaterOutputStream zipper = new DeflaterOutputStream(out)) {
+                content.pack().pack(zipper);
+            }
             return out.toByteArray();
         } catch (IOException e) {
             throw new ApplicationException(e);
@@ -68,12 +65,12 @@ public class ExtendedEncoding implements Serializable {
     public interface Unpacker<T extends ExtendedType> {
         String getType();
 
-        T unpack(MessageUnpacker unpacker, int size);
+        T unpack(MPMap<MPString, MPType<?>> map);
     }
 
     public interface ExtendedType extends Serializable {
         String getType();
 
-        void pack(MessagePacker packer) throws IOException;
+        MPMap<MPString, MPType<?>> pack() throws IOException;
     }
 }

@@ -21,22 +21,26 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.Label;
+import ch.dissem.bitmessage.entity.valueobject.extended.Message;
 import org.apache.commons.lang3.text.WordUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static ch.dissem.bitmessage.demo.CommandLine.COMMAND_BACK;
 import static ch.dissem.bitmessage.demo.CommandLine.ERROR_UNKNOWN_COMMAND;
+import static java.util.regex.Pattern.CASE_INSENSITIVE;
 
 /**
  * A simple command line Bitmessage application
  */
 public class Application {
     private final static Logger LOG = LoggerFactory.getLogger(Application.class);
+    private final static Pattern RESPONSE_PATTERN = Pattern.compile("^RE:.*$", CASE_INSENSITIVE);
     private final CommandLine commandLine;
 
     private BitmessageContext ctx;
@@ -342,7 +346,7 @@ public class Application {
             System.out.println();
             System.out.println("c) compose message");
             System.out.println("s) compose broadcast");
-            if (label.getType() == Label.Type.TRASH) {
+            if (label != null && label.getType() == Label.Type.TRASH) {
                 System.out.println("e) empty trash");
             }
             System.out.println(COMMAND_BACK);
@@ -392,7 +396,7 @@ public class Application {
             command = commandLine.nextCommand();
             switch (command) {
                 case "r":
-                    compose(message.getTo(), message.getFrom(), "RE: " + message.getSubject());
+                    compose(message.getTo(), message.getFrom(), message);
                     break;
                 case "d":
                     ctx.labeler().delete(message);
@@ -442,14 +446,20 @@ public class Application {
         return commandLine.selectAddress(addresses, "To:");
     }
 
-    private void compose(BitmessageAddress from, BitmessageAddress to, String subject) {
+    private void compose(BitmessageAddress from, BitmessageAddress to, Plaintext parent) {
         boolean broadcast = (to == null);
+        String subject;
         System.out.println();
         System.out.println("From:    " + from);
         if (!broadcast) {
             System.out.println("To:      " + to);
         }
-        if (subject != null) {
+        if (parent != null) {
+            if (RESPONSE_PATTERN.matcher(parent.getSubject()).matches()) {
+                subject = parent.getSubject();
+            } else {
+                subject = "RE: " + parent.getSubject();
+            }
             System.out.println("Subject: " + subject);
         } else {
             System.out.print("Subject: ");
@@ -462,10 +472,20 @@ public class Application {
             line = commandLine.nextLine();
             message.append(line).append('\n');
         } while (line.length() > 0 || !commandLine.yesNo("Send message?"));
-        if (broadcast) {
-            ctx.broadcast(from, subject, message.toString());
+        Plaintext.Type type = broadcast ? Plaintext.Type.BROADCAST : Plaintext.Type.MSG;
+        Plaintext.Builder builder = new Plaintext.Builder(type);
+        builder.from(from);
+        builder.to(to);
+        if (commandLine.yesNo("Use extended encoding?")) {
+            Message.Builder extended = new Message.Builder();
+            extended.subject(subject).body(message.toString());
+            if (parent != null) {
+                extended.addParent(parent);
+            }
+            builder.message(extended.build());
         } else {
-            ctx.send(from, to, subject, message.toString());
+            builder.message(subject, message.toString());
         }
+        ctx.send(builder.build());
     }
 }

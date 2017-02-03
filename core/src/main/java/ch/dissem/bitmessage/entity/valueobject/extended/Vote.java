@@ -3,20 +3,19 @@ package ch.dissem.bitmessage.entity.valueobject.extended;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.valueobject.ExtendedEncoding;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
-import org.msgpack.core.MessagePacker;
-import org.msgpack.core.MessageUnpacker;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import ch.dissem.msgpack.types.*;
 
 import java.io.IOException;
 import java.util.Objects;
+
+import static ch.dissem.bitmessage.utils.Strings.str;
+import static ch.dissem.msgpack.types.Utils.mp;
 
 /**
  * Extended encoding type 'vote'. Specification still outstanding, so this will need some work.
  */
 public class Vote implements ExtendedEncoding.ExtendedType {
     private static final long serialVersionUID = -8427038604209964837L;
-    private static final Logger LOG = LoggerFactory.getLogger(Vote.class);
 
     public static final String TYPE = "vote";
 
@@ -55,15 +54,13 @@ public class Vote implements ExtendedEncoding.ExtendedType {
         return Objects.hash(msgId, vote);
     }
 
-    public void pack(MessagePacker packer) throws IOException {
-        packer.packMapHeader(3);
-        packer.packString("");
-        packer.packString(TYPE);
-        packer.packString("msgId");
-        packer.packBinaryHeader(msgId.getHash().length);
-        packer.writePayload(msgId.getHash());
-        packer.packString("vote");
-        packer.packString(vote);
+    @Override
+    public MPMap<MPString, MPType<?>> pack() throws IOException {
+        MPMap<MPString, MPType<?>> result = new MPMap<>();
+        result.put(mp(""), mp(TYPE));
+        result.put(mp("msgId"), mp(msgId.getHash()));
+        result.put(mp("vote"), mp(vote));
+        return result;
     }
 
     public static class Builder {
@@ -104,27 +101,13 @@ public class Vote implements ExtendedEncoding.ExtendedType {
         }
 
         @Override
-        public Vote unpack(MessageUnpacker unpacker, int size) {
+        public Vote unpack(MPMap<MPString, MPType<?>> map) {
             Vote.Builder builder = new Vote.Builder();
-            try {
-                for (int i = 0; i < size; i++) {
-                    String key = unpacker.unpackString();
-                    switch (key) {
-                        case "msgId":
-                            int binarySize = unpacker.unpackBinaryHeader();
-                            builder.msgId(new InventoryVector(unpacker.readPayload(binarySize)));
-                            break;
-                        case "vote":
-                            builder.vote(unpacker.unpackString());
-                            break;
-                        default:
-                            LOG.error("Unexpected data with key: " + key);
-                            break;
-                    }
-                }
-            } catch (IOException e) {
-                LOG.error(e.getMessage(), e);
+            MPType<?> msgId = map.get(mp("msgId"));
+            if (msgId instanceof MPBinary) {
+                builder.msgId(new InventoryVector(((MPBinary) msgId).getValue()));
             }
+            builder.vote(str(map.get(mp("vote"))));
             return new Vote(builder);
         }
     }
