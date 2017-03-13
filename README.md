@@ -9,7 +9,7 @@ A Java implementation for the Bitmessage protocol. To build, use command `./grad
 
 Please note that it still has its limitations, but the API should now be stable. Jabit uses Semantic Versioning, meaning as long as the major version doesn't change, nothing should break if you update.
 
-Be aware though that this doesn't necessarily applies for SNAPSHOT builds and the development branch, notably when it comes to database updates. _In other words, they may break your installation!_ 
+Be aware though that this doesn't necessarily applies for SNAPSHOT builds and the development branch, notably when it comes to database updates. In other words, they may break your installation!_ 
 
 #### Master
 [![Build Status](https://travis-ci.org/Dissem/Jabit.svg?branch=master)](https://travis-ci.org/Dissem/Jabit) 

@@ -18,22 +18,20 @@ package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.Msg;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
-import ch.dissem.bitmessage.entity.valueobject.extended.Attachment;
 import ch.dissem.bitmessage.entity.valueobject.ExtendedEncoding;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
+import ch.dissem.bitmessage.entity.valueobject.extended.Attachment;
 import ch.dissem.bitmessage.entity.valueobject.extended.Message;
 import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.factory.ExtendedEncodingFactory;
 import ch.dissem.bitmessage.factory.Factory;
-import ch.dissem.bitmessage.utils.Decode;
-import ch.dissem.bitmessage.utils.Encode;
-import ch.dissem.bitmessage.utils.TTL;
-import ch.dissem.bitmessage.utils.UnixTime;
+import ch.dissem.bitmessage.utils.*;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.Collections;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Encoding.EXTENDED;
 import static ch.dissem.bitmessage.entity.Plaintext.Encoding.SIMPLE;
@@ -50,6 +48,7 @@ public class Plaintext implements Streamable {
     private final long encoding;
     private final byte[] message;
     private final byte[] ackData;
+    private final UUID conversationId;
     private ExtendedEncoding extendedData;
     private ObjectMessage ackMessage;
     private Object id;
@@ -90,6 +89,7 @@ public class Plaintext implements Streamable {
         ttl = builder.ttl;
         retries = builder.retries;
         nextTry = builder.nextTry;
+        conversationId = builder.conversation;
     }
 
     public static Plaintext read(Type type, InputStream in) throws IOException {
@@ -390,7 +390,7 @@ public class Plaintext implements Streamable {
     }
 
     public List<InventoryVector> getParents() {
-        if (Message.TYPE.equals(getExtendedData().getType())) {
+        if (getExtendedData() != null && Message.TYPE.equals(getExtendedData().getType())) {
             return ((Message) extendedData.getContent()).getParents();
         } else {
             return Collections.emptyList();
@@ -403,6 +403,10 @@ public class Plaintext implements Streamable {
         } else {
             return Collections.emptyList();
         }
+    }
+
+    public UUID getConversationId() {
+        return conversationId;
     }
 
     @Override
@@ -470,6 +474,16 @@ public class Plaintext implements Streamable {
         return initialHash;
     }
 
+    @Override
+    public String toString() {
+        String subject = getSubject();
+        if (subject == null || subject.length() == 0) {
+            return Strings.hex(initialHash).toString();
+        } else {
+            return subject;
+        }
+    }
+
     public enum Encoding {
         IGNORE(0), TRIVIAL(1), SIMPLE(2), EXTENDED(3);
 
@@ -527,12 +541,13 @@ public class Plaintext implements Streamable {
         private byte[] ackMessage;
         private byte[] signature;
         private long sent;
-        private long received;
+        private Long received;
         private Status status;
         private Set<Label> labels = new HashSet<>();
         private long ttl;
         private int retries;
         private Long nextTry;
+        private UUID conversation;
 
         public Builder(Type type) {
             this.type = type;
@@ -685,6 +700,11 @@ public class Plaintext implements Streamable {
             return this;
         }
 
+        public Builder conversation(UUID id) {
+            this.conversation = id;
+            return this;
+        }
+
         public Plaintext build() {
             if (from == null) {
                 from = new BitmessageAddress(Factory.createPubkey(
@@ -705,6 +725,9 @@ public class Plaintext implements Streamable {
             }
             if (ttl <= 0) {
                 ttl = TTL.msg();
+            }
+            if (conversation == null) {
+                conversation = UUID.randomUUID();
             }
             return new Plaintext(this);
         }

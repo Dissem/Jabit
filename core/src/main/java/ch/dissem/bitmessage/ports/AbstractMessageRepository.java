@@ -19,13 +19,16 @@ package ch.dissem.bitmessage.ports;
 import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
+import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.utils.Strings;
 import ch.dissem.bitmessage.utils.UnixTime;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import static ch.dissem.bitmessage.utils.SqlStrings.join;
 
@@ -72,6 +75,11 @@ public abstract class AbstractMessageRepository implements MessageRepository, In
     }
 
     @Override
+    public Plaintext getMessage(InventoryVector iv) {
+        return single(find("iv=X'" + Strings.hex(iv.getHash()) + "'"));
+    }
+
+    @Override
     public Plaintext getMessage(byte[] initialHash) {
         return single(find("initial_hash=X'" + Strings.hex(initialHash) + "'"));
     }
@@ -109,6 +117,20 @@ public abstract class AbstractMessageRepository implements MessageRepository, In
     public List<Plaintext> findMessagesToResend() {
         return find("status='" + Plaintext.Status.SENT.name() + "'" +
             " AND next_try < " + UnixTime.now());
+    }
+
+    @Override
+    public List<Plaintext> findResponses(Plaintext parent) {
+        if (parent.getInventoryVector() == null) {
+            return Collections.emptyList();
+        }
+        return find("iv IN (SELECT child FROM Message_Parent"
+            + " WHERE parent=X'" + Strings.hex(parent.getInventoryVector().getHash()) + "')");
+    }
+
+    @Override
+    public List<Plaintext> getConversation(UUID conversationId) {
+        return find("conversation=X'" + conversationId.toString().replace("-", "") + "'");
     }
 
     @Override

@@ -70,6 +70,19 @@ public class JdbcNodeRegistry extends JdbcHelper implements NodeRegistry {
     }
 
     @Override
+    public void clear() {
+        try (
+            Connection connection = config.getConnection();
+            PreparedStatement ps = connection.prepareStatement(
+                "DELETE FROM Node")
+        ) {
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            LOG.error(e.getMessage(), e);
+        }
+    }
+
+    @Override
     public List<NetworkAddress> getKnownAddresses(int limit, long... streams) {
         List<NetworkAddress> result = new LinkedList<>();
         String query =

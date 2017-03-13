@@ -31,6 +31,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 
 import static ch.dissem.bitmessage.repository.JdbcHelper.writeBlob;
 
@@ -99,7 +100,7 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
             Connection connection = config.getConnection();
             Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery(
-                "SELECT id, iv, type, sender, recipient, data, ack_data, sent, received, initial_hash, status, ttl, retries, next_try " +
+                "SELECT id, iv, type, sender, recipient, data, ack_data, sent, received, initial_hash, status, ttl, retries, next_try, conversation " +
                     "FROM Message WHERE " + where)
         ) {
             while (rs.next()) {
@@ -119,6 +120,7 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
                 builder.ttl(rs.getLong("ttl"));
                 builder.retries(rs.getInt("retries"));
                 builder.nextTry(rs.getLong("next_try"));
+                builder.conversation((UUID) rs.getObject("conversation"));
                 builder.labels(findLabels(connection,
                     "id IN (SELECT label_id FROM Message_Label WHERE message_id=" + id + ") ORDER BY ord"));
                 Plaintext message = builder.build();
@@ -155,6 +157,7 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
             try {
                 connection.setAutoCommit(false);
                 save(connection, message);
+                updateParents(connection, message);
                 updateLabels(connection, message);
                 connection.commit();
             } catch (IOException | SQLException e) {
@@ -189,11 +192,38 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
         }
     }
 
+    private void updateParents(Connection connection, Plaintext message) throws SQLException {
+        if (message.getInventoryVector() == null || message.getParents().isEmpty()) {
+            // There are no parents to save yet (they are saved in the extended data, that's enough for now)
+            return;
+        }
+        // remove existing parents
+        try (PreparedStatement ps = connection.prepareStatement("DELETE FROM Message_Parent WHERE child=?")) {
+            ps.setBytes(1, message.getInitialHash());
+            ps.executeUpdate();
+        }
+        byte[] childIV = message.getInventoryVector().getHash();
+        // save new parents
+        int order = 0;
+        for (InventoryVector parentIV : message.getParents()) {
+            Plaintext parent = getMessage(parentIV);
+            mergeConversations(connection, parent.getConversationId(), message.getConversationId());
+            order++;
+            try (PreparedStatement ps = connection.prepareStatement("INSERT INTO Message_Parent VALUES (?, ?, ?, ?)")) {
+                ps.setBytes(1, parentIV.getHash());
+                ps.setBytes(2, childIV);
+                ps.setInt(3, order); // FIXME: this might not be necessary
+                ps.setObject(4, message.getConversationId());
+                ps.executeUpdate();
+            }
+        }
+    }
+
     private void insert(Connection connection, Plaintext message) throws SQLException, IOException {
         try (PreparedStatement ps = connection.prepareStatement(
             "INSERT INTO Message (iv, type, sender, recipient, data, ack_data, sent, received, " +
-                "status, initial_hash, ttl, retries, next_try) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "status, initial_hash, ttl, retries, next_try, conversation) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             Statement.RETURN_GENERATED_KEYS)
         ) {
             ps.setBytes(1, message.getInventoryVector() == null ? null : message.getInventoryVector().getHash());
@@ -209,6 +239,7 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
             ps.setLong(11, message.getTTL());
             ps.setInt(12, message.getRetries());
             ps.setObject(13, message.getNextTry());
+            ps.setObject(14, message.getConversationId());
 
             ps.executeUpdate();
             // get generated id
@@ -258,6 +289,54 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
                 }
                 LOG.error(e.getMessage(), e);
             }
+        } catch (SQLException e) {
+            LOG.error(e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public List<UUID> findConversations(Label label) {
+        String where;
+        if (label == null) {
+            where = "id NOT IN (SELECT message_id FROM Message_Label)";
+        } else {
+            where = "id IN (SELECT message_id FROM Message_Label WHERE label_id=" + label.getId() + ")";
+        }
+        List<UUID> result = new LinkedList<>();
+        try (
+            Connection connection = config.getConnection();
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(
+                "SELECT DISTINCT conversation FROM Message WHERE " + where)
+        ) {
+            while (rs.next()) {
+                result.add((UUID) rs.getObject(1));
+            }
+        } catch (SQLException e) {
+            LOG.error(e.getMessage(), e);
+        }
+        return result;
+    }
+
+    /**
+     * Replaces every occurrence of the source conversation ID with the target ID
+     *
+     * @param source ID of the conversation to be merged
+     * @param target ID of the merge target
+     */
+    private void mergeConversations(Connection connection, UUID source, UUID target) {
+        try (
+            PreparedStatement ps1 = connection.prepareStatement(
+                "UPDATE Message SET conversation=? WHERE conversation=?");
+            PreparedStatement ps2 = connection.prepareStatement(
+                "UPDATE Message_Parent SET conversation=? WHERE conversation=?")
+        ) {
+            ps1.setObject(1, target);
+            ps1.setObject(2, source);
+            ps1.executeUpdate();
+            ps2.setObject(1, target);
+            ps2.setObject(2, source);
+            ps2.executeUpdate();
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);
         }
