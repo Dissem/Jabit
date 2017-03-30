@@ -22,18 +22,35 @@ import ch.dissem.bitmessage.ports.MessageRepository;
 
 import java.util.*;
 import java.util.Collections;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static java.util.regex.Pattern.CASE_INSENSITIVE;
 
 /**
- * Helper service to work with conversations
+ * Service that helps with conversations.
  */
 public class ConversationService {
     private final MessageRepository messageRepository;
+
+    private final Pattern SUBJECT_PREFIX = Pattern.compile("^(re|fwd?):", CASE_INSENSITIVE);
 
     public ConversationService(MessageRepository messageRepository) {
         this.messageRepository = messageRepository;
     }
 
+    /**
+     * Retrieve the whole conversation from one single message. If the message isn't part
+     * of a conversation, a singleton list containing the given message is returned. Otherwise
+     * it's the same as {@link #getConversation(UUID)}
+     *
+     * @param message
+     * @return a list of messages that belong to the same conversation.
+     */
     public List<Plaintext> getConversation(Plaintext message) {
+        if (message.getConversationId() == null) {
+            return Collections.singletonList(message);
+        }
         return getConversation(message.getConversationId());
     }
 
@@ -75,6 +92,19 @@ public class ConversationService {
             addAncestors(last, result, messages, map);
         }
         return result;
+    }
+
+    public String getSubject(List<Plaintext> conversation) {
+        if (conversation.isEmpty()) {
+            return null;
+        }
+        // TODO: this has room for improvement
+        String subject = conversation.get(0).getSubject();
+        Matcher matcher = SUBJECT_PREFIX.matcher(subject);
+        if (matcher.find()) {
+            return subject.substring(matcher.end()).trim();
+        }
+        return subject.trim();
     }
 
     private int lastParentPosition(Plaintext child, LinkedList<Plaintext> messages) {
