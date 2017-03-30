@@ -205,11 +205,11 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
         byte[] childIV = message.getInventoryVector().getHash();
         // save new parents
         int order = 0;
-        for (InventoryVector parentIV : message.getParents()) {
-            Plaintext parent = getMessage(parentIV);
-            mergeConversations(connection, parent.getConversationId(), message.getConversationId());
-            order++;
-            try (PreparedStatement ps = connection.prepareStatement("INSERT INTO Message_Parent VALUES (?, ?, ?, ?)")) {
+        try (PreparedStatement ps = connection.prepareStatement("INSERT INTO Message_Parent VALUES (?, ?, ?, ?)")) {
+            for (InventoryVector parentIV : message.getParents()) {
+                Plaintext parent = getMessage(parentIV);
+                mergeConversations(connection, parent.getConversationId(), message.getConversationId());
+                order++;
                 ps.setBytes(1, parentIV.getHash());
                 ps.setBytes(2, childIV);
                 ps.setInt(3, order); // FIXME: this might not be necessary

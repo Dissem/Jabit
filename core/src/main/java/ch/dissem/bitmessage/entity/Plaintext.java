@@ -543,7 +543,7 @@ public class Plaintext implements Streamable {
         private long sent;
         private Long received;
         private Status status;
-        private Set<Label> labels = new HashSet<>();
+        private Set<Label> labels = new LinkedHashSet<>();
         private long ttl;
         private int retries;
         private Long nextTry;
