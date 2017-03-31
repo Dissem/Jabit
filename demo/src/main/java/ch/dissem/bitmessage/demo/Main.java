@@ -66,6 +66,11 @@ public class Main {
         if (options.localPort != null) {
             ctxBuilder.nodeRegistry(new NodeRegistry() {
                 @Override
+                public void clear() {
+                    // NO OP
+                }
+
+                @Override
                 public List<NetworkAddress> getKnownAddresses(int limit, long... streams) {
                     return Arrays.stream(streams)
                         .mapToObj(s -> new NetworkAddress.Builder()
