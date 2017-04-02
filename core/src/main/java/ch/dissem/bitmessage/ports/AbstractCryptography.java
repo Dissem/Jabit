@@ -31,10 +31,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
-import java.security.Provider;
-import java.security.SecureRandom;
+import java.security.*;
 
 import static ch.dissem.bitmessage.InternalContext.NETWORK_EXTRA_BYTES;
 import static ch.dissem.bitmessage.InternalContext.NETWORK_NONCE_TRIALS_PER_BYTE;
@@ -49,6 +46,10 @@ public abstract class AbstractCryptography implements Cryptography, InternalCont
     private static final BigInteger TWO = BigInteger.valueOf(2);
     private static final BigInteger TWO_POW_64 = TWO.pow(64);
     private static final BigInteger TWO_POW_16 = TWO.pow(16);
+
+    protected static final String ALGORITHM_ECDSA = "ECDSA";
+    protected static final String ALGORITHM_ECDSA_SHA1 = "SHA1withECDSA";
+    protected static final String ALGORITHM_EVP_SHA256 = "SHA256withECDSA";
 
     protected final Provider provider;
     private InternalContext context;
@@ -125,6 +126,27 @@ public abstract class AbstractCryptography implements Cryptography, InternalCont
         if (Bytes.lt(target, value, 8)) {
             throw new InsufficientProofOfWorkException(target, value);
         }
+    }
+
+    protected byte[] doSign(byte[] data, java.security.PrivateKey privKey) throws GeneralSecurityException {
+        // TODO: change this to ALGORITHM_EVP_SHA256 once it's generally used in the network
+        Signature sig = Signature.getInstance(ALGORITHM_ECDSA_SHA1, provider);
+        sig.initSign(privKey);
+        sig.update(data);
+        return sig.sign();
+    }
+
+
+    protected boolean doCheckSignature(byte[] data, byte[] signature, PublicKey publicKey) throws GeneralSecurityException {
+        for (String algorithm : new String[]{ALGORITHM_ECDSA_SHA1, ALGORITHM_EVP_SHA256}) {
+            Signature sig = Signature.getInstance(algorithm, provider);
+            sig.initVerify(publicKey);
+            sig.update(data);
+            if (sig.verify(signature)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

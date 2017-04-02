@@ -41,7 +41,6 @@ import java.math.BigInteger;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.PublicKey;
-import java.security.Signature;
 import java.security.spec.KeySpec;
 import java.util.Arrays;
 
@@ -51,7 +50,6 @@ import java.util.Arrays;
  */
 public class SpongyCryptography extends AbstractCryptography {
     private static final X9ECParameters EC_CURVE_PARAMETERS = CustomNamedCurves.getByName("secp256k1");
-    private static final String ALGORITHM_ECDSA = "ECDSA";
 
     public SpongyCryptography() {
         super(new BouncyCastleProvider());
@@ -106,10 +104,7 @@ public class SpongyCryptography extends AbstractCryptography {
             KeySpec keySpec = new ECPublicKeySpec(Q, spec);
             PublicKey publicKey = KeyFactory.getInstance(ALGORITHM_ECDSA, provider).generatePublic(keySpec);
 
-            Signature sig = Signature.getInstance(ALGORITHM_ECDSA, provider);
-            sig.initVerify(publicKey);
-            sig.update(data);
-            return sig.verify(signature);
+            return doCheckSignature(data, signature, publicKey);
         } catch (GeneralSecurityException e) {
             throw new ApplicationException(e);
         }
@@ -131,10 +126,7 @@ public class SpongyCryptography extends AbstractCryptography {
             java.security.PrivateKey privKey = KeyFactory.getInstance(ALGORITHM_ECDSA, provider)
                 .generatePrivate(keySpec);
 
-            Signature sig = Signature.getInstance(ALGORITHM_ECDSA, provider);
-            sig.initSign(privKey);
-            sig.update(data);
-            return sig.sign();
+            return doSign(data, privKey);
         } catch (GeneralSecurityException e) {
             throw new ApplicationException(e);
         }
