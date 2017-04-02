@@ -50,8 +50,8 @@ class GitFlowVersion implements Plugin<Project> {
         project.ext.isRelease = isRelease(project)
         project.version = getVersion(project)
 
-        project.task('version') << {
-            println "Version deduced from git: '${project.version}'"
+        project.task('version') {
+            doLast { println "Version deduced from git: '${project.version}'" }
         }
     }
 }
