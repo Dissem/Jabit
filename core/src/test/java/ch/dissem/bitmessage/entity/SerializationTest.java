@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
 public class SerializationTest extends TestBase {
@@ -78,7 +79,7 @@ public class SerializationTest extends TestBase {
 
     @Test
     public void ensurePlaintextIsSerializedAndDeserializedCorrectly() throws Exception {
-        Plaintext p1 = new Plaintext.Builder(MSG)
+        Plaintext expected = new Plaintext.Builder(MSG)
             .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
             .to(TestUtils.loadContact())
             .message("Subject", "Message")
@@ -86,21 +87,21 @@ public class SerializationTest extends TestBase {
             .signature(new byte[0])
             .build();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        p1.write(out);
+        expected.write(out);
         ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-        Plaintext p2 = Plaintext.read(MSG, in);
+        Plaintext actual = Plaintext.read(MSG, in);
 
-        // Received is automatically set on deserialization, so we'll need to set it to 0
+        // Received is automatically set on deserialization, so we'll need to set it to null
         Field received = Plaintext.class.getDeclaredField("received");
         received.setAccessible(true);
-        received.set(p2, 0L);
+        received.set(actual, null);
 
-        assertEquals(p1, p2);
+        assertThat(expected, is(actual));
     }
 
     @Test
     public void ensurePlaintextWithExtendedEncodingIsSerializedAndDeserializedCorrectly() throws Exception {
-        Plaintext p1 = new Plaintext.Builder(MSG)
+        Plaintext expected = new Plaintext.Builder(MSG)
             .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
             .to(TestUtils.loadContact())
             .message(new Message.Builder()
@@ -111,42 +112,42 @@ public class SerializationTest extends TestBase {
             .signature(new byte[0])
             .build();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        p1.write(out);
+        expected.write(out);
         ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-        Plaintext p2 = Plaintext.read(MSG, in);
+        Plaintext actual = Plaintext.read(MSG, in);
 
-        // Received is automatically set on deserialization, so we'll need to set it to 0
+        // Received is automatically set on deserialization, so we'll need to set it to null
         Field received = Plaintext.class.getDeclaredField("received");
         received.setAccessible(true);
-        received.set(p2, 0L);
+        received.set(actual, null);
 
-        assertEquals(p1, p2);
+        assertEquals(expected, actual);
     }
 
     @Test
     public void ensurePlaintextWithAckMessageIsSerializedAndDeserializedCorrectly() throws Exception {
-        Plaintext p1 = new Plaintext.Builder(MSG)
+        Plaintext expected = new Plaintext.Builder(MSG)
             .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
             .to(TestUtils.loadContact())
             .message("Subject", "Message")
             .ackData("ackMessage".getBytes())
             .signature(new byte[0])
             .build();
-        ObjectMessage ackMessage1 = p1.getAckMessage();
+        ObjectMessage ackMessage1 = expected.getAckMessage();
         assertNotNull(ackMessage1);
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        p1.write(out);
+        expected.write(out);
         ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-        Plaintext p2 = Plaintext.read(MSG, in);
+        Plaintext actual = Plaintext.read(MSG, in);
 
-        // Received is automatically set on deserialization, so we'll need to set it to 0
+        // Received is automatically set on deserialization, so we'll need to set it to null
         Field received = Plaintext.class.getDeclaredField("received");
         received.setAccessible(true);
-        received.set(p2, 0L);
+        received.set(actual, null);
 
-        assertEquals(p1, p2);
-        assertEquals(ackMessage1, p2.getAckMessage());
+        assertEquals(expected, actual);
+        assertEquals(ackMessage1, actual.getAckMessage());
     }
 
     @Test

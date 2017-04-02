@@ -439,9 +439,7 @@ public class Plaintext implements Streamable {
 
     public void addLabels(Collection<Label> labels) {
         if (labels != null) {
-            for (Label label : labels) {
-                this.labels.add(label);
-            }
+            this.labels.addAll(labels);
         }
     }
 
@@ -540,7 +538,7 @@ public class Plaintext implements Streamable {
         private byte[] ackData;
         private byte[] ackMessage;
         private byte[] signature;
-        private long sent;
+        private Long sent;
         private Long received;
         private Status status;
         private Set<Label> labels = new LinkedHashSet<>();
@@ -665,12 +663,12 @@ public class Plaintext implements Streamable {
             return this;
         }
 
-        public Builder sent(long sent) {
+        public Builder sent(Long sent) {
             this.sent = sent;
             return this;
         }
 
-        public Builder received(long received) {
+        public Builder received(Long received) {
             this.received = received;
             return this;
         }

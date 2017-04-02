@@ -119,7 +119,7 @@ public class ConversationServiceTest {
             .message(content)
             .status(status);
         if (status != Plaintext.Status.DRAFT && status != Plaintext.Status.DOING_PROOF_OF_WORK) {
-            builder.received(5 * ++timer - RANDOM.nextInt(10));
+            builder.received(5L * ++timer - RANDOM.nextInt(10));
         }
         return builder.build();
     }

@@ -25,12 +25,11 @@ import ch.dissem.bitmessage.entity.payload.ObjectType;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.ports.*;
+import ch.dissem.bitmessage.testutils.TestInventory;
 import ch.dissem.bitmessage.utils.MessageMatchers;
 import ch.dissem.bitmessage.utils.Singleton;
 import ch.dissem.bitmessage.utils.TTL;
 import ch.dissem.bitmessage.utils.TestUtils;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -51,15 +50,18 @@ import static org.mockito.Mockito.*;
 public class BitmessageContextTest {
     private BitmessageContext ctx;
     private BitmessageContext.Listener listener;
+    private TestInventory testInventory;
 
     @Before
     public void setUp() throws Exception {
         Singleton.initialize(null);
         listener = mock(BitmessageContext.Listener.class);
+        Singleton.initialize(new BouncyCryptography());
+        testInventory = new TestInventory();
         ctx = new BitmessageContext.Builder()
             .addressRepo(mock(AddressRepository.class))
-            .cryptography(new BouncyCryptography())
-            .inventory(mock(Inventory.class))
+            .cryptography(cryptography())
+            .inventory(spy(testInventory))
             .listener(listener)
             .messageRepo(mock(MessageRepository.class))
             .networkHandler(mock(NetworkHandler.class))
@@ -134,11 +136,19 @@ public class BitmessageContextTest {
 
     @Test
     public void ensureV2PubkeyIsNotRequestedIfItExistsInInventory() throws Exception {
+        testInventory.init(
+            "V1Msg.payload",
+            "V2GetPubkey.payload",
+            "V2Pubkey.payload",
+            "V3GetPubkey.payload",
+            "V3Pubkey.payload",
+            "V4Broadcast.payload",
+            "V4GetPubkey.payload",
+            "V4Pubkey.payload",
+            "V5Broadcast.payload"
+        );
         BitmessageAddress contact = new BitmessageAddress("BM-opWQhvk9xtMFvQA2Kvetedpk8LkbraWHT");
-        when(ctx.internals().getInventory().getObjects(anyLong(), anyLong(), any(ObjectType.class)))
-            .thenReturn(Collections.singletonList(
-                TestUtils.loadObjectMessage(2, "V2Pubkey.payload")
-            ));
+
         when(ctx.addresses().getAddress(contact.getAddress())).thenReturn(contact);
 
         ctx.addContact(contact);
@@ -150,11 +160,18 @@ public class BitmessageContextTest {
 
     @Test
     public void ensureV4PubkeyIsNotRequestedIfItExistsInInventory() throws Exception {
+        testInventory.init(
+            "V1Msg.payload",
+            "V2GetPubkey.payload",
+            "V2Pubkey.payload",
+            "V3GetPubkey.payload",
+            "V3Pubkey.payload",
+            "V4Broadcast.payload",
+            "V4GetPubkey.payload",
+            "V4Pubkey.payload",
+            "V5Broadcast.payload"
+        );
         BitmessageAddress contact = new BitmessageAddress("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h");
-        when(ctx.internals().getInventory().getObjects(anyLong(), anyLong(), any(ObjectType.class)))
-            .thenReturn(Collections.singletonList(
-                TestUtils.loadObjectMessage(2, "V4Pubkey.payload")
-            ));
         final BitmessageAddress stored = new BitmessageAddress(contact.getAddress());
         stored.setAlias("Test");
         when(ctx.addresses().getAddress(contact.getAddress())).thenReturn(stored);
@@ -170,13 +187,12 @@ public class BitmessageContextTest {
     public void ensureSubscriptionIsAddedAndExistingBroadcastsRetrieved() throws Exception {
         BitmessageAddress address = new BitmessageAddress("BM-2D9Vc5rFxxR5vTi53T9gkLfemViHRMVLQZ");
 
-        List<ObjectMessage> objects = new LinkedList<>();
-        objects.add(TestUtils.loadObjectMessage(4, "V4Broadcast.payload"));
-        objects.add(TestUtils.loadObjectMessage(5, "V5Broadcast.payload"));
-        when(ctx.internals().getInventory().getObjects(eq(address.getStream()), anyLong(), any(ObjectType.class)))
-            .thenReturn(objects);
-        when(ctx.addresses().getSubscriptions(anyLong())).thenReturn(Collections.singletonList(address));
+        testInventory.init(
+            "V4Broadcast.payload",
+            "V5Broadcast.payload"
+        );
 
+        when(ctx.addresses().getSubscriptions(anyLong())).thenReturn(Collections.singletonList(address));
         ctx.addSubscribtion(address);
 
         verify(ctx.addresses(), atLeastOnce()).save(address);

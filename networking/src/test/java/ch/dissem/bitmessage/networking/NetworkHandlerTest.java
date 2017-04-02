@@ -24,6 +24,7 @@ import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.exception.NodeException;
 import ch.dissem.bitmessage.networking.nio.NioNetworkHandler;
 import ch.dissem.bitmessage.ports.*;
+import ch.dissem.bitmessage.testutils.TestInventory;
 import ch.dissem.bitmessage.utils.Property;
 import org.junit.After;
 import org.junit.Before;

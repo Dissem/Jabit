@@ -33,6 +33,11 @@ class TestNodeRegistry implements NodeRegistry {
     }
 
     @Override
+    public void clear() {
+        // no op
+    }
+
+    @Override
     public List<NetworkAddress> getKnownAddresses(int limit, long... streams) {
         return nodes;
     }

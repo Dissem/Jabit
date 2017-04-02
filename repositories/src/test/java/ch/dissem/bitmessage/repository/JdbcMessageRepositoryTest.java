@@ -218,6 +218,7 @@ public class JdbcMessageRepositoryTest extends TestBase {
             .from(identity)
             .to(contactA)
             .message("Subject", "Message")
+            .sent(UnixTime.now())
             .status(Plaintext.Status.SENT)
             .ttl(2)
             .build();

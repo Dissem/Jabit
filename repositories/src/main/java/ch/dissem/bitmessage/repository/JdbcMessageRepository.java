@@ -114,13 +114,13 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
                 builder.from(ctx.getAddressRepository().getAddress(rs.getString("sender")));
                 builder.to(ctx.getAddressRepository().getAddress(rs.getString("recipient")));
                 builder.ackData(rs.getBytes("ack_data"));
-                builder.sent(rs.getLong("sent"));
-                builder.received(rs.getLong("received"));
+                builder.sent(rs.getObject("sent", Long.class));
+                builder.received(rs.getObject("received", Long.class));
                 builder.status(Plaintext.Status.valueOf(rs.getString("status")));
                 builder.ttl(rs.getLong("ttl"));
                 builder.retries(rs.getInt("retries"));
-                builder.nextTry(rs.getLong("next_try"));
-                builder.conversation((UUID) rs.getObject("conversation"));
+                builder.nextTry(rs.getObject("next_try", Long.class));
+                builder.conversation(rs.getObject("conversation", UUID.class));
                 builder.labels(findLabels(connection,
                     "id IN (SELECT label_id FROM Message_Label WHERE message_id=" + id + ") ORDER BY ord"));
                 Plaintext message = builder.build();
@@ -232,8 +232,8 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
             ps.setString(4, message.getTo() == null ? null : message.getTo().getAddress());
             writeBlob(ps, 5, message);
             ps.setBytes(6, message.getAckData());
-            ps.setLong(7, message.getSent());
-            ps.setLong(8, message.getReceived());
+            ps.setObject(7, message.getSent());
+            ps.setObject(8, message.getReceived());
             ps.setString(9, message.getStatus() == null ? null : message.getStatus().name());
             ps.setBytes(10, message.getInitialHash());
             ps.setLong(11, message.getTTL());
@@ -261,8 +261,8 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
             ps.setString(4, message.getTo() == null ? null : message.getTo().getAddress());
             writeBlob(ps, 5, message);
             ps.setBytes(6, message.getAckData());
-            ps.setLong(7, message.getSent());
-            ps.setLong(8, message.getReceived());
+            ps.setObject(7, message.getSent());
+            ps.setObject(8, message.getReceived());
             ps.setString(9, message.getStatus() == null ? null : message.getStatus().name());
             ps.setBytes(10, message.getInitialHash());
             ps.setLong(11, message.getTTL());
