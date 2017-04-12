@@ -20,6 +20,8 @@ import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.utils.Encode;
 import ch.dissem.bitmessage.utils.UnixTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -30,6 +32,7 @@ import java.nio.ByteBuffer;
  */
 public class Version implements MessagePayload {
     private static final long serialVersionUID = 7219240857343176567L;
+    private static final Logger LOG = LoggerFactory.getLogger(Version.class);
 
     /**
      * Identifies protocol version being used by the node. Should equal 3. Nodes should disconnect if the remote node's
@@ -91,6 +94,10 @@ public class Version implements MessagePayload {
 
     public long getServices() {
         return services;
+    }
+
+    public boolean provides(Service service) {
+        return service != null && service.isEnabled(services);
     }
 
     public long getTimestamp() {
@@ -159,7 +166,7 @@ public class Version implements MessagePayload {
 
         public Builder defaults(long clientNonce) {
             version = BitmessageContext.CURRENT_VERSION;
-            services = 1;
+            services = Service.getServiceFlag(Service.NODE_NETWORK);
             timestamp = UnixTime.now();
             userAgent = "/Jabit:0.0.1/";
             streamNumbers = new long[]{1};
@@ -169,6 +176,11 @@ public class Version implements MessagePayload {
 
         public Builder version(int version) {
             this.version = version;
+            return this;
+        }
+
+        public Builder services(Service... services) {
+            this.services = Service.getServiceFlag(services);
             return this;
         }
 
@@ -209,6 +221,29 @@ public class Version implements MessagePayload {
 
         public Version build() {
             return new Version(this);
+        }
+    }
+
+    public enum Service {
+        NODE_NETWORK(1);
+// TODO: NODE_SSL(2);
+
+        long flag;
+
+        Service(long flag) {
+            this.flag = flag;
+        }
+
+        public boolean isEnabled(long flag) {
+            return (flag & this.flag) != 0;
+        }
+
+        public static long getServiceFlag(Service... services) {
+            long flag = 0;
+            for (Service service : services) {
+                flag |= service.flag;
+            }
+            return flag;
         }
     }
 }

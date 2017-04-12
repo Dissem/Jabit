@@ -25,7 +25,6 @@ import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.Property;
-import ch.dissem.bitmessage.utils.TTL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +38,8 @@ import static ch.dissem.bitmessage.InternalContext.NETWORK_EXTRA_BYTES;
 import static ch.dissem.bitmessage.InternalContext.NETWORK_NONCE_TRIALS_PER_BYTE;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST;
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
-import static ch.dissem.bitmessage.utils.UnixTime.*;
+import static ch.dissem.bitmessage.utils.UnixTime.HOUR;
+import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
 
 /**
  * <p>Use this class if you want to create a Bitmessage client.</p>
@@ -401,23 +401,6 @@ public class BitmessageContext {
          */
         public Builder doNotSendPubkeyOnIdentityCreation() {
             this.sendPubkeyOnIdentityCreation = false;
-            return this;
-        }
-
-        /**
-         * Time to live in seconds for public keys the client sends. Defaults to the maximum of 28 days,
-         * but on weak devices smaller values might be desirable.
-         * <p>
-         * Please be aware that this might cause some problems where you can't receive a message (the
-         * sender can't receive your public key) in some special situations. Also note that it's probably
-         * not a good idea to set it too low.
-         * </p>
-         *
-         * @deprecated use {@link TTL#pubkey(long)} instead.
-         */
-        public Builder pubkeyTTL(long days) {
-            if (days < 0 || days > 28 * DAY) throw new IllegalArgumentException("TTL must be between 1 and 28 days");
-            TTL.pubkey(days);
             return this;
         }
 
