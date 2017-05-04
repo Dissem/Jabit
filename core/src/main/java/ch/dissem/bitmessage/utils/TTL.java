@@ -38,7 +38,7 @@ public class TTL {
     }
 
     private static long validate(long ttl) {
-        if (ttl < 0 || ttl > 28 * DAY) throw new IllegalArgumentException("TTL must be between 1 and 28 days");
+        if (ttl < 0 || ttl > 28 * DAY) throw new IllegalArgumentException("TTL must be between 0 seconds and 28 days");
         return ttl;
     }
 }
