@@ -1,15 +1,21 @@
+plugins {
+    id 'com.github.ben-manes.versions' version '0.14.0'
+}
+
 subprojects {
     apply plugin: 'java'
     apply plugin: 'maven'
     apply plugin: 'signing'
     apply plugin: 'jacoco'
     apply plugin: 'gitflow-version'
+    apply plugin: 'com.github.ben-manes.versions'
 
     sourceCompatibility = 1.7
     group = 'ch.dissem.jabit'
 
     repositories {
         mavenCentral()
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
     }
 
     test {

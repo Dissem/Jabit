@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ch.dissem.bitmessage.networking;
+package ch.dissem.bitmessage.testutils;
 
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.ObjectType;

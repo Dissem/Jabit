@@ -21,17 +21,23 @@ import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.Plaintext;
-import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
+import ch.dissem.bitmessage.entity.valueobject.ExtendedEncoding;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.entity.valueobject.extended.Message;
 import ch.dissem.bitmessage.ports.AddressRepository;
 import ch.dissem.bitmessage.ports.MessageRepository;
+import ch.dissem.bitmessage.utils.TestUtils;
 import ch.dissem.bitmessage.utils.UnixTime;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
 import static ch.dissem.bitmessage.entity.payload.Pubkey.Feature.DOES_ACK;
@@ -48,6 +54,7 @@ public class JdbcMessageRepositoryTest extends TestBase {
     private MessageRepository repo;
 
     private Label inbox;
+    private Label sent;
     private Label drafts;
     private Label unread;
 
@@ -58,9 +65,9 @@ public class JdbcMessageRepositoryTest extends TestBase {
         AddressRepository addressRepo = new JdbcAddressRepository(config);
         repo = new JdbcMessageRepository(config);
         new InternalContext(new BitmessageContext.Builder()
-                .cryptography(cryptography())
-                .addressRepo(addressRepo)
-                .messageRepo(repo)
+            .cryptography(cryptography())
+            .addressRepo(addressRepo)
+            .messageRepo(repo)
         );
 
         BitmessageAddress tmp = new BitmessageAddress(new PrivateKey(false, 1, 1000, 1000, DOES_ACK));
@@ -74,6 +81,7 @@ public class JdbcMessageRepositoryTest extends TestBase {
         addressRepo.save(identity);
 
         inbox = repo.getLabels(Label.Type.INBOX).get(0);
+        sent = repo.getLabels(Label.Type.SENT).get(0);
         drafts = repo.getLabels(Label.Type.DRAFT).get(0);
         unread = repo.getLabels(Label.Type.UNREAD).get(0);
 
@@ -162,12 +170,12 @@ public class JdbcMessageRepositoryTest extends TestBase {
     @Test
     public void testSave() throws Exception {
         Plaintext message = new Plaintext.Builder(MSG)
-                .IV(new InventoryVector(cryptography().randomBytes(32)))
-                .from(identity)
-                .to(contactA)
-                .message("Subject", "Message")
-                .status(Plaintext.Status.DOING_PROOF_OF_WORK)
-                .build();
+            .IV(TestUtils.randomInventoryVector())
+            .from(identity)
+            .to(contactA)
+            .message("Subject", "Message")
+            .status(Plaintext.Status.DOING_PROOF_OF_WORK)
+            .build();
         repo.save(message);
 
         assertNotNull(message.getId());
@@ -185,7 +193,7 @@ public class JdbcMessageRepositoryTest extends TestBase {
     public void testUpdate() throws Exception {
         List<Plaintext> messages = repo.findMessages(Plaintext.Status.DRAFT, contactA);
         Plaintext message = messages.get(0);
-        message.setInventoryVector(new InventoryVector(cryptography().randomBytes(32)));
+        message.setInventoryVector(TestUtils.randomInventoryVector());
         repo.save(message);
 
         messages = repo.findMessages(Plaintext.Status.DRAFT, contactA);
@@ -206,19 +214,20 @@ public class JdbcMessageRepositoryTest extends TestBase {
     @Test
     public void ensureUnacknowledgedMessagesAreFoundForResend() throws Exception {
         Plaintext message = new Plaintext.Builder(MSG)
-                .IV(new InventoryVector(cryptography().randomBytes(32)))
-                .from(identity)
-                .to(contactA)
-                .message("Subject", "Message")
-                .status(Plaintext.Status.SENT)
-                .ttl(2)
-                .build();
+            .IV(TestUtils.randomInventoryVector())
+            .from(identity)
+            .to(contactA)
+            .message("Subject", "Message")
+            .sent(UnixTime.now())
+            .status(Plaintext.Status.SENT)
+            .ttl(2)
+            .build();
         message.updateNextTry();
         assertThat(message.getRetries(), is(1));
         assertThat(message.getNextTry(), greaterThan(UnixTime.now()));
         assertThat(message.getNextTry(), lessThanOrEqualTo(UnixTime.now(+2)));
         repo.save(message);
-        Thread.sleep(4100);
+        Thread.sleep(4100); // somewhat longer than 2*TTL
         List<Plaintext> messagesToResend = repo.findMessagesToResend();
         assertThat(messagesToResend, hasSize(1));
 
@@ -230,14 +239,105 @@ public class JdbcMessageRepositoryTest extends TestBase {
         assertThat(messagesToResend, empty());
     }
 
-    private void addMessage(BitmessageAddress from, BitmessageAddress to, Plaintext.Status status, Label... labels) {
+    @Test
+    public void ensureParentsAreSaved() {
+        Plaintext parent = storeConversation();
+
+        List<Plaintext> responses = repo.findResponses(parent);
+        assertThat(responses, hasSize(2));
+        assertThat(responses, hasItem(hasMessage("Re: new test", "Nice!")));
+        assertThat(responses, hasItem(hasMessage("Re: new test", "PS: it did work!")));
+    }
+
+    @Test
+    public void ensureConversationCanBeRetrieved() {
+        Plaintext root = storeConversation();
+        List<UUID> conversations = repo.findConversations(inbox);
+        assertThat(conversations, hasSize(2));
+        assertThat(conversations, hasItem(root.getConversationId()));
+    }
+
+    private Plaintext addMessage(BitmessageAddress from, BitmessageAddress to, Plaintext.Status status, Label... labels) {
+        ExtendedEncoding content = new Message.Builder()
+            .subject("Subject")
+            .body("Message")
+            .build();
+        return addMessage(from, to, content, status, labels);
+    }
+
+    private Plaintext addMessage(BitmessageAddress from, BitmessageAddress to,
+                                 ExtendedEncoding content, Plaintext.Status status, Label... labels) {
         Plaintext message = new Plaintext.Builder(MSG)
-                .from(from)
-                .to(to)
-                .message("Subject", "Message")
-                .status(status)
-                .labels(Arrays.asList(labels))
-                .build();
+            .IV(TestUtils.randomInventoryVector())
+            .from(from)
+            .to(to)
+            .message(content)
+            .status(status)
+            .labels(Arrays.asList(labels))
+            .build();
         repo.save(message);
+        return message;
+    }
+
+    private Plaintext storeConversation() {
+        Plaintext older = addMessage(identity, contactA,
+            new Message.Builder()
+                .subject("hey there")
+                .body("does it work?")
+                .build(),
+            Plaintext.Status.SENT, sent);
+
+        Plaintext root = addMessage(identity, contactA,
+            new Message.Builder()
+                .subject("new test")
+                .body("There's a new test in town!")
+                .build(),
+            Plaintext.Status.SENT, sent);
+
+        addMessage(contactA, identity,
+            new Message.Builder()
+                .subject("Re: new test")
+                .body("Nice!")
+                .addParent(root)
+                .build(),
+            Plaintext.Status.RECEIVED, inbox);
+
+        addMessage(contactA, identity,
+            new Message.Builder()
+                .subject("Re: new test")
+                .body("PS: it did work!")
+                .addParent(root)
+                .addParent(older)
+                .build(),
+            Plaintext.Status.RECEIVED, inbox);
+
+        return repo.getMessage(root.getId());
+    }
+
+    private Matcher<Plaintext> hasMessage(String subject, String body) {
+        return new BaseMatcher<Plaintext>() {
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("Subject: ").appendText(subject);
+                description.appendText(", ");
+                description.appendText("Body: ").appendText(body);
+            }
+
+            @Override
+            public boolean matches(Object item) {
+                if (item instanceof Plaintext) {
+                    Plaintext message = (Plaintext) item;
+                    if (subject != null && !subject.equals(message.getSubject())) {
+                        return false;
+                    }
+                    if (body != null && !body.equals(message.getText())) {
+                        return false;
+                    }
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        };
     }
 }

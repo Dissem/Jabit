@@ -81,7 +81,7 @@ public class ProofOfWorkService implements ProofOfWorkEngine.Callback, InternalC
     public void onNonceCalculated(byte[] initialHash, byte[] nonce) {
         Item item = powRepo.getItem(initialHash);
         if (item.message == null) {
-            ObjectMessage object = powRepo.getItem(initialHash).object;
+            ObjectMessage object = item.object;
             object.setNonce(nonce);
             Plaintext plaintext = messageRepo.getMessage(initialHash);
             if (plaintext != null) {

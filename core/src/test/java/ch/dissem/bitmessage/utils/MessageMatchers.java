@@ -19,38 +19,27 @@ package ch.dissem.bitmessage.utils;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.entity.payload.ObjectType;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatcher;
+import org.mockito.ArgumentMatchers;
 
 /**
  * @author Christian Basler
  */
 public class MessageMatchers {
     public static Plaintext plaintext(final Plaintext.Type type) {
-        return Matchers.argThat(new BaseMatcher<Plaintext>() {
+        return ArgumentMatchers.argThat(new ArgumentMatcher<Plaintext>() {
             @Override
-            public boolean matches(Object item) {
-                return item instanceof Plaintext && ((Plaintext) item).getType() == type;
-            }
-
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("type should be ").appendValue(type);
+            public boolean matches(Plaintext item) {
+                return item != null && item.getType() == type;
             }
         });
     }
 
     public static ObjectMessage object(final ObjectType type) {
-        return Matchers.argThat(new BaseMatcher<ObjectMessage>() {
+        return ArgumentMatchers.argThat(new ArgumentMatcher<ObjectMessage>() {
             @Override
-            public boolean matches(Object item) {
-                return item instanceof ObjectMessage && ((ObjectMessage) item).getPayload().getType() == type;
-            }
-
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("payload type should be ").appendValue(type);
+            public boolean matches(ObjectMessage item) {
+                return item != null && item.getPayload().getType() == type;
             }
         });
     }

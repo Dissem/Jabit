@@ -87,7 +87,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener, Internal
         BitmessageAddress identity = ctx.getAddressRepository().findIdentity(getPubkey.getRipeTag());
         if (identity != null && identity.getPrivateKey() != null && !identity.isChan()) {
             LOG.info("Got pubkey request for identity " + identity);
-            // FIXME: only send pubkey if it wasn't sent in the last 28 days
+            // FIXME: only send pubkey if it wasn't sent in the last TTL.pubkey() days
             ctx.sendPubkey(identity, object.getStream());
         }
     }

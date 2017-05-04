@@ -52,6 +52,11 @@ public interface AddressRepository {
      */
     List<BitmessageAddress> getContacts();
 
+    /**
+     * Implementations must not delete cryptographic keys if they're not provided by <code>address</code>.
+     *
+     * @param address to save or update
+     */
     void save(BitmessageAddress address);
 
     void remove(BitmessageAddress address);

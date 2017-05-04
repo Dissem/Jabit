@@ -19,6 +19,7 @@ package ch.dissem.bitmessage.entity;
 import ch.dissem.bitmessage.entity.payload.*;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
+import ch.dissem.bitmessage.entity.valueobject.extended.Message;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.TestBase;
 import ch.dissem.bitmessage.utils.TestUtils;
@@ -30,7 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import static ch.dissem.bitmessage.entity.Plaintext.Type.MSG;
-import static ch.dissem.bitmessage.utils.Singleton.cryptography;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
 public class SerializationTest extends TestBase {
@@ -78,57 +79,82 @@ public class SerializationTest extends TestBase {
 
     @Test
     public void ensurePlaintextIsSerializedAndDeserializedCorrectly() throws Exception {
-        Plaintext p1 = new Plaintext.Builder(MSG)
-                .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
-                .to(TestUtils.loadContact())
-                .message("Subject", "Message")
-                .ackData("ackMessage".getBytes())
-                .signature(new byte[0])
-                .build();
+        Plaintext expected = new Plaintext.Builder(MSG)
+            .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
+            .to(TestUtils.loadContact())
+            .message("Subject", "Message")
+            .ackData("ackMessage".getBytes())
+            .signature(new byte[0])
+            .build();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        p1.write(out);
+        expected.write(out);
         ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-        Plaintext p2 = Plaintext.read(MSG, in);
+        Plaintext actual = Plaintext.read(MSG, in);
 
-        // Received is automatically set on deserialization, so we'll need to set it to 0
+        // Received is automatically set on deserialization, so we'll need to set it to null
         Field received = Plaintext.class.getDeclaredField("received");
         received.setAccessible(true);
-        received.set(p2, 0L);
+        received.set(actual, null);
 
-        assertEquals(p1, p2);
+        assertThat(expected, is(actual));
+    }
+
+    @Test
+    public void ensurePlaintextWithExtendedEncodingIsSerializedAndDeserializedCorrectly() throws Exception {
+        Plaintext expected = new Plaintext.Builder(MSG)
+            .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
+            .to(TestUtils.loadContact())
+            .message(new Message.Builder()
+                .subject("Subject")
+                .body("Message")
+                .build())
+            .ackData("ackMessage".getBytes())
+            .signature(new byte[0])
+            .build();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        expected.write(out);
+        ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+        Plaintext actual = Plaintext.read(MSG, in);
+
+        // Received is automatically set on deserialization, so we'll need to set it to null
+        Field received = Plaintext.class.getDeclaredField("received");
+        received.setAccessible(true);
+        received.set(actual, null);
+
+        assertEquals(expected, actual);
     }
 
     @Test
     public void ensurePlaintextWithAckMessageIsSerializedAndDeserializedCorrectly() throws Exception {
-        Plaintext p1 = new Plaintext.Builder(MSG)
-                .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
-                .to(TestUtils.loadContact())
-                .message("Subject", "Message")
-                .ackData("ackMessage".getBytes())
-                .signature(new byte[0])
-                .build();
-        ObjectMessage ackMessage1 = p1.getAckMessage();
+        Plaintext expected = new Plaintext.Builder(MSG)
+            .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
+            .to(TestUtils.loadContact())
+            .message("Subject", "Message")
+            .ackData("ackMessage".getBytes())
+            .signature(new byte[0])
+            .build();
+        ObjectMessage ackMessage1 = expected.getAckMessage();
         assertNotNull(ackMessage1);
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        p1.write(out);
+        expected.write(out);
         ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-        Plaintext p2 = Plaintext.read(MSG, in);
+        Plaintext actual = Plaintext.read(MSG, in);
 
-        // Received is automatically set on deserialization, so we'll need to set it to 0
+        // Received is automatically set on deserialization, so we'll need to set it to null
         Field received = Plaintext.class.getDeclaredField("received");
         received.setAccessible(true);
-        received.set(p2, 0L);
+        received.set(actual, null);
 
-        assertEquals(p1, p2);
-        assertEquals(ackMessage1, p2.getAckMessage());
+        assertEquals(expected, actual);
+        assertEquals(ackMessage1, actual.getAckMessage());
     }
 
     @Test
     public void ensureNetworkMessageIsSerializedAndDeserializedCorrectly() throws Exception {
         ArrayList<InventoryVector> ivs = new ArrayList<>(50000);
         for (int i = 0; i < 50000; i++) {
-            ivs.add(new InventoryVector(cryptography().randomBytes(32)));
+            ivs.add(TestUtils.randomInventoryVector());
         }
 
         Inv inv = new Inv.Builder().inventory(ivs).build();
@@ -156,11 +182,11 @@ public class SerializationTest extends TestBase {
     @Test
     public void ensureSystemSerializationWorks() throws Exception {
         Plaintext plaintext = new Plaintext.Builder(MSG)
-                .from(TestUtils.loadContact())
-                .to(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
-                .labels(Collections.singletonList(new Label("Test", Label.Type.INBOX, 0)))
-                .message("Test", "Test Test.\nTest")
-                .build();
+            .from(TestUtils.loadContact())
+            .to(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
+            .labels(Collections.singletonList(new Label("Test", Label.Type.INBOX, 0)))
+            .message("Test", "Test Test.\nTest")
+            .build();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(out);
         oos.writeObject(plaintext);

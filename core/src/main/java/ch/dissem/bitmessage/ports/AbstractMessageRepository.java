@@ -19,13 +19,16 @@ package ch.dissem.bitmessage.ports;
 import ch.dissem.bitmessage.InternalContext;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
+import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.utils.Strings;
 import ch.dissem.bitmessage.utils.UnixTime;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import static ch.dissem.bitmessage.utils.SqlStrings.join;
 
@@ -37,14 +40,27 @@ public abstract class AbstractMessageRepository implements MessageRepository, In
         this.ctx = context;
     }
 
+    /**
+     * @deprecated use {@link #saveContactIfNecessary(BitmessageAddress)} instead.
+     */
+    @Deprecated
     protected void safeSenderIfNecessary(Plaintext message) {
         if (message.getId() == null) {
-            BitmessageAddress savedAddress = ctx.getAddressRepository().getAddress(message.getFrom().getAddress());
+            saveContactIfNecessary(message.getFrom());
+        }
+    }
+
+    protected void saveContactIfNecessary(BitmessageAddress contact) {
+        if (contact != null) {
+            BitmessageAddress savedAddress = ctx.getAddressRepository().getAddress(contact.getAddress());
             if (savedAddress == null) {
-                ctx.getAddressRepository().save(message.getFrom());
-            } else if (savedAddress.getPubkey() == null && message.getFrom().getPubkey() != null) {
-                savedAddress.setPubkey(message.getFrom().getPubkey());
+                ctx.getAddressRepository().save(contact);
+            } else if (savedAddress.getPubkey() == null && contact.getPubkey() != null) {
+                savedAddress.setPubkey(contact.getPubkey());
                 ctx.getAddressRepository().save(savedAddress);
+            }
+            if (savedAddress != null) {
+                contact.setAlias(savedAddress.getAlias());
             }
         }
     }
@@ -56,6 +72,11 @@ public abstract class AbstractMessageRepository implements MessageRepository, In
         } else {
             throw new IllegalArgumentException("Long expected for ID");
         }
+    }
+
+    @Override
+    public Plaintext getMessage(InventoryVector iv) {
+        return single(find("iv=X'" + Strings.hex(iv.getHash()) + "'"));
     }
 
     @Override
@@ -95,7 +116,21 @@ public abstract class AbstractMessageRepository implements MessageRepository, In
     @Override
     public List<Plaintext> findMessagesToResend() {
         return find("status='" + Plaintext.Status.SENT.name() + "'" +
-                " AND next_try < " + UnixTime.now());
+            " AND next_try < " + UnixTime.now());
+    }
+
+    @Override
+    public List<Plaintext> findResponses(Plaintext parent) {
+        if (parent.getInventoryVector() == null) {
+            return Collections.emptyList();
+        }
+        return find("iv IN (SELECT child FROM Message_Parent"
+            + " WHERE parent=X'" + Strings.hex(parent.getInventoryVector().getHash()) + "')");
+    }
+
+    @Override
+    public List<Plaintext> getConversation(UUID conversationId) {
+        return find("conversation=X'" + conversationId.toString().replace("-", "") + "'");
     }
 
     @Override
@@ -119,7 +154,7 @@ public abstract class AbstractMessageRepository implements MessageRepository, In
                 return collection.iterator().next();
             default:
                 throw new ApplicationException("This shouldn't happen, found " + collection.size() +
-                        " items, one or none was expected");
+                    " items, one or none was expected");
         }
     }
 

@@ -70,6 +70,19 @@ public class JdbcNodeRegistry extends JdbcHelper implements NodeRegistry {
     }
 
     @Override
+    public void clear() {
+        try (
+            Connection connection = config.getConnection();
+            PreparedStatement ps = connection.prepareStatement(
+                "DELETE FROM Node")
+        ) {
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            LOG.error(e.getMessage(), e);
+        }
+    }
+
+    @Override
     public List<NetworkAddress> getKnownAddresses(int limit, long... streams) {
         List<NetworkAddress> result = new LinkedList<>();
         String query =
@@ -108,6 +121,11 @@ public class JdbcNodeRegistry extends JdbcHelper implements NodeRegistry {
                 if (nodes != null && !nodes.isEmpty()) {
                     result.add(Collections.selectRandom(nodes));
                 }
+            }
+            if (result.isEmpty()) {
+                // There might have been an error resolving domain names due to a missing internet exception.
+                // Try to load the stable nodes again next time.
+                stableNodes = null;
             }
         }
         return result;

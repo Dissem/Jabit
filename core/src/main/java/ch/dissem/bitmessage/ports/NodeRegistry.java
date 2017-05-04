@@ -24,6 +24,12 @@ import java.util.List;
  * Stores and provides known peers.
  */
 public interface NodeRegistry {
+    /**
+     * Removes all known nodes from registry. This should work around connection issues
+     * when there are many invalid nodes in the registry.
+     */
+    void clear();
+
     List<NetworkAddress> getKnownAddresses(int limit, long... streams);
 
     void offerAddresses(List<NetworkAddress> addresses);

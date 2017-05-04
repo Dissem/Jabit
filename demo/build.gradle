@@ -1,5 +1,5 @@
 plugins {
-    id "us.kirchmeier.capsule" version "1.0-rc1"
+    id "us.kirchmeier.capsule" version "1.0.2"
 }
 
 uploadArchives {
@@ -28,10 +28,10 @@ dependencies {
     compile project(':repositories')
     compile project(':cryptography-bc')
     compile project(':wif')
-    compile 'org.slf4j:slf4j-simple:1.7.12'
-    compile 'args4j:args4j:2.32'
-    compile 'com.h2database:h2:1.4.192'
-    compile 'org.apache.commons:commons-lang3:3.4'
+    compile 'org.slf4j:slf4j-simple:1.7.25'
+    compile 'args4j:args4j:2.33'
+    compile 'com.h2database:h2:1.4.194'
+    compile 'org.apache.commons:commons-lang3:3.5'
     testCompile 'junit:junit:4.12'
-    testCompile 'org.mockito:mockito-core:1.10.19'
+    testCompile 'org.mockito:mockito-core:2.7.21'
 }

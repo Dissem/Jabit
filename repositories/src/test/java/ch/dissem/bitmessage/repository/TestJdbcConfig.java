@@ -16,11 +16,27 @@
 
 package ch.dissem.bitmessage.repository;
 
+import org.h2.tools.Server;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.SQLException;
+
 /**
  * JdbcConfig to be used for tests. Uses an in-memory database and adds a useful {@link #reset()} method resetting
  * the database.
  */
 public class TestJdbcConfig extends JdbcConfig {
+    private static final Logger LOG = LoggerFactory.getLogger(TestJdbcConfig.class);
+
+    static {
+        try {
+            Server.createTcpServer().start();
+        } catch (SQLException e) {
+            LOG.error(e.getMessage(), e);
+        }
+    }
+
     public TestJdbcConfig() {
         super("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "sa", null);
     }

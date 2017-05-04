@@ -18,9 +18,13 @@ package ch.dissem.bitmessage.entity;
 
 import ch.dissem.bitmessage.entity.payload.Msg;
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature;
+import ch.dissem.bitmessage.entity.valueobject.ExtendedEncoding;
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.Label;
+import ch.dissem.bitmessage.entity.valueobject.extended.Attachment;
+import ch.dissem.bitmessage.entity.valueobject.extended.Message;
 import ch.dissem.bitmessage.exception.ApplicationException;
+import ch.dissem.bitmessage.factory.ExtendedEncodingFactory;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.utils.*;
 
@@ -29,6 +33,8 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.Collections;
 
+import static ch.dissem.bitmessage.entity.Plaintext.Encoding.EXTENDED;
+import static ch.dissem.bitmessage.entity.Plaintext.Encoding.SIMPLE;
 import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 
 /**
@@ -42,6 +48,8 @@ public class Plaintext implements Streamable {
     private final long encoding;
     private final byte[] message;
     private final byte[] ackData;
+    private final UUID conversationId;
+    private ExtendedEncoding extendedData;
     private ObjectMessage ackMessage;
     private Object id;
     private InventoryVector inventoryVector;
@@ -81,6 +89,7 @@ public class Plaintext implements Streamable {
         ttl = builder.ttl;
         retries = builder.retries;
         nextTry = builder.nextTry;
+        conversationId = builder.conversation;
     }
 
     public static Plaintext read(Type type, InputStream in) throws IOException {
@@ -143,6 +152,10 @@ public class Plaintext implements Streamable {
         return labels;
     }
 
+    public Encoding getEncoding() {
+        return Encoding.fromCode(encoding);
+    }
+
     public long getStream() {
         return from.getStream();
     }
@@ -167,12 +180,23 @@ public class Plaintext implements Streamable {
     public void write(OutputStream out, boolean includeSignature) throws IOException {
         Encode.varInt(from.getVersion(), out);
         Encode.varInt(from.getStream(), out);
-        Encode.int32(from.getPubkey().getBehaviorBitfield(), out);
-        out.write(from.getPubkey().getSigningKey(), 1, 64);
-        out.write(from.getPubkey().getEncryptionKey(), 1, 64);
-        if (from.getVersion() >= 3) {
-            Encode.varInt(from.getPubkey().getNonceTrialsPerByte(), out);
-            Encode.varInt(from.getPubkey().getExtraBytes(), out);
+        if (from.getPubkey() == null) {
+            Encode.int32(0, out);
+            byte[] empty = new byte[64];
+            out.write(empty);
+            out.write(empty);
+            if (from.getVersion() >= 3) {
+                Encode.varInt(0, out);
+                Encode.varInt(0, out);
+            }
+        } else {
+            Encode.int32(from.getPubkey().getBehaviorBitfield(), out);
+            out.write(from.getPubkey().getSigningKey(), 1, 64);
+            out.write(from.getPubkey().getEncryptionKey(), 1, 64);
+            if (from.getVersion() >= 3) {
+                Encode.varInt(from.getPubkey().getNonceTrialsPerByte(), out);
+                Encode.varInt(from.getPubkey().getExtraBytes(), out);
+            }
         }
         if (type == Type.MSG) {
             out.write(to.getRipe());
@@ -202,12 +226,23 @@ public class Plaintext implements Streamable {
     public void write(ByteBuffer buffer, boolean includeSignature) {
         Encode.varInt(from.getVersion(), buffer);
         Encode.varInt(from.getStream(), buffer);
-        Encode.int32(from.getPubkey().getBehaviorBitfield(), buffer);
-        buffer.put(from.getPubkey().getSigningKey(), 1, 64);
-        buffer.put(from.getPubkey().getEncryptionKey(), 1, 64);
-        if (from.getVersion() >= 3) {
-            Encode.varInt(from.getPubkey().getNonceTrialsPerByte(), buffer);
-            Encode.varInt(from.getPubkey().getExtraBytes(), buffer);
+        if (from.getPubkey() == null) {
+            Encode.int32(0, buffer);
+            byte[] empty = new byte[64];
+            buffer.put(empty);
+            buffer.put(empty);
+            if (from.getVersion() >= 3) {
+                Encode.varInt(0, buffer);
+                Encode.varInt(0, buffer);
+            }
+        } else {
+            Encode.int32(from.getPubkey().getBehaviorBitfield(), buffer);
+            buffer.put(from.getPubkey().getSigningKey(), 1, 64);
+            buffer.put(from.getPubkey().getEncryptionKey(), 1, 64);
+            if (from.getVersion() >= 3) {
+                Encode.varInt(from.getPubkey().getNonceTrialsPerByte(), buffer);
+                Encode.varInt(from.getPubkey().getExtraBytes(), buffer);
+            }
         }
         if (type == Type.MSG) {
             buffer.put(to.getRipe());
@@ -299,7 +334,13 @@ public class Plaintext implements Streamable {
     public String getSubject() {
         Scanner s = new Scanner(new ByteArrayInputStream(message), "UTF-8");
         String firstLine = s.nextLine();
-        if (encoding == 2) {
+        if (encoding == EXTENDED.code) {
+            if (Message.TYPE.equals(getExtendedData().getType())) {
+                return ((Message) extendedData.getContent()).getSubject();
+            } else {
+                return null;
+            }
+        } else if (encoding == SIMPLE.code) {
             return firstLine.substring("Subject:".length()).trim();
         } else if (firstLine.length() > 50) {
             return firstLine.substring(0, 50).trim() + "...";
@@ -309,15 +350,63 @@ public class Plaintext implements Streamable {
     }
 
     public String getText() {
-        try {
-            String text = new String(message, "UTF-8");
-            if (encoding == 2) {
-                return text.substring(text.indexOf("\nBody:") + 6);
+        if (encoding == EXTENDED.code) {
+            if (Message.TYPE.equals(getExtendedData().getType())) {
+                return ((Message) extendedData.getContent()).getBody();
+            } else {
+                return null;
             }
-            return text;
-        } catch (UnsupportedEncodingException e) {
-            throw new ApplicationException(e);
+        } else {
+            try {
+                String text = new String(message, "UTF-8");
+                if (encoding == SIMPLE.code) {
+                    return text.substring(text.indexOf("\nBody:") + 6);
+                }
+                return text;
+            } catch (UnsupportedEncodingException e) {
+                throw new ApplicationException(e);
+            }
         }
+    }
+
+    protected ExtendedEncoding getExtendedData() {
+        if (extendedData == null && encoding == EXTENDED.code) {
+            // TODO: make sure errors are properly handled
+            extendedData = ExtendedEncodingFactory.getInstance().unzip(message);
+        }
+        return extendedData;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends ExtendedEncoding.ExtendedType> T getExtendedData(Class<T> type) {
+        ExtendedEncoding extendedData = getExtendedData();
+        if (extendedData == null) {
+            return null;
+        }
+        if (type == null || type.isInstance(extendedData.getContent())) {
+            return (T) extendedData.getContent();
+        }
+        return null;
+    }
+
+    public List<InventoryVector> getParents() {
+        if (getExtendedData() != null && Message.TYPE.equals(getExtendedData().getType())) {
+            return ((Message) extendedData.getContent()).getParents();
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
+    public List<Attachment> getFiles() {
+        if (Message.TYPE.equals(getExtendedData().getType())) {
+            return ((Message) extendedData.getContent()).getFiles();
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
+    public UUID getConversationId() {
+        return conversationId;
     }
 
     @Override
@@ -350,9 +439,7 @@ public class Plaintext implements Streamable {
 
     public void addLabels(Collection<Label> labels) {
         if (labels != null) {
-            for (Label label : labels) {
-                this.labels.add(label);
-            }
+            this.labels.addAll(labels);
         }
     }
 
@@ -385,8 +472,18 @@ public class Plaintext implements Streamable {
         return initialHash;
     }
 
+    @Override
+    public String toString() {
+        String subject = getSubject();
+        if (subject == null || subject.length() == 0) {
+            return Strings.hex(initialHash).toString();
+        } else {
+            return subject;
+        }
+    }
+
     public enum Encoding {
-        IGNORE(0), TRIVIAL(1), SIMPLE(2);
+        IGNORE(0), TRIVIAL(1), SIMPLE(2), EXTENDED(3);
 
         long code;
 
@@ -396,6 +493,15 @@ public class Plaintext implements Streamable {
 
         public long getCode() {
             return code;
+        }
+
+        public static Encoding fromCode(long code) {
+            for (Encoding e : values()) {
+                if (e.getCode() == code) {
+                    return e;
+                }
+            }
+            return null;
         }
     }
 
@@ -432,13 +538,14 @@ public class Plaintext implements Streamable {
         private byte[] ackData;
         private byte[] ackMessage;
         private byte[] signature;
-        private long sent;
-        private long received;
+        private Long sent;
+        private Long received;
         private Status status;
-        private Set<Label> labels = new HashSet<>();
+        private Set<Label> labels = new LinkedHashSet<>();
         private long ttl;
         private int retries;
         private Long nextTry;
+        private UUID conversation;
 
         public Builder(Type type) {
             this.type = type;
@@ -517,9 +624,15 @@ public class Plaintext implements Streamable {
             return this;
         }
 
+        public Builder message(ExtendedEncoding message) {
+            this.encoding = EXTENDED.getCode();
+            this.message = message.zip();
+            return this;
+        }
+
         public Builder message(String subject, String message) {
             try {
-                this.encoding = Encoding.SIMPLE.getCode();
+                this.encoding = SIMPLE.getCode();
                 this.message = ("Subject:" + subject + '\n' + "Body:" + message).getBytes("UTF-8");
             } catch (UnsupportedEncodingException e) {
                 throw new ApplicationException(e);
@@ -550,12 +663,12 @@ public class Plaintext implements Streamable {
             return this;
         }
 
-        public Builder sent(long sent) {
+        public Builder sent(Long sent) {
             this.sent = sent;
             return this;
         }
 
-        public Builder received(long received) {
+        public Builder received(Long received) {
             this.received = received;
             return this;
         }
@@ -585,6 +698,11 @@ public class Plaintext implements Streamable {
             return this;
         }
 
+        public Builder conversation(UUID id) {
+            this.conversation = id;
+            return this;
+        }
+
         public Plaintext build() {
             if (from == null) {
                 from = new BitmessageAddress(Factory.createPubkey(
@@ -605,6 +723,9 @@ public class Plaintext implements Streamable {
             }
             if (ttl <= 0) {
                 ttl = TTL.msg();
+            }
+            if (conversation == null) {
+                conversation = UUID.randomUUID();
             }
             return new Plaintext(this);
         }

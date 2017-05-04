@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity.valueobject;
 
 import ch.dissem.bitmessage.entity.Streamable;
+import ch.dissem.bitmessage.entity.Version;
 import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.utils.Encode;
 import ch.dissem.bitmessage.utils.UnixTime;
@@ -73,6 +74,13 @@ public class NetworkAddress implements Streamable {
 
     public long getServices() {
         return services;
+    }
+
+    public boolean provides(Version.Service service) {
+        if (service == null) {
+            return false;
+        }
+        return service.isEnabled(services);
     }
 
     public long getStream() {
@@ -194,20 +202,20 @@ public class NetworkAddress implements Streamable {
                             int p08, int p09, int p10, int p11,
                             int p12, int p13, int p14, int p15) {
             this.ipv6 = new byte[]{
-                    (byte) p00, (byte) p01, (byte) p02, (byte) p03,
-                    (byte) p04, (byte) p05, (byte) p06, (byte) p07,
-                    (byte) p08, (byte) p09, (byte) p10, (byte) p11,
-                    (byte) p12, (byte) p13, (byte) p14, (byte) p15
+                (byte) p00, (byte) p01, (byte) p02, (byte) p03,
+                (byte) p04, (byte) p05, (byte) p06, (byte) p07,
+                (byte) p08, (byte) p09, (byte) p10, (byte) p11,
+                (byte) p12, (byte) p13, (byte) p14, (byte) p15
             };
             return this;
         }
 
         public Builder ipv4(int p00, int p01, int p02, int p03) {
             this.ipv6 = new byte[]{
-                    (byte) 0, (byte) 0, (byte) 0x00, (byte) 0x00,
-                    (byte) 0, (byte) 0, (byte) 0x00, (byte) 0x00,
-                    (byte) 0, (byte) 0, (byte) 0xff, (byte) 0xff,
-                    (byte) p00, (byte) p01, (byte) p02, (byte) p03
+                (byte) 0, (byte) 0, (byte) 0x00, (byte) 0x00,
+                (byte) 0, (byte) 0, (byte) 0x00, (byte) 0x00,
+                (byte) 0, (byte) 0, (byte) 0xff, (byte) 0xff,
+                (byte) p00, (byte) p01, (byte) p02, (byte) p03
             };
             return this;
         }

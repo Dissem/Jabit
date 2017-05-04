@@ -20,6 +20,7 @@ import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.ObjectMessage;
 import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.payload.V4Pubkey;
+import ch.dissem.bitmessage.entity.valueobject.InventoryVector;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.exception.DecryptionFailedException;
 import ch.dissem.bitmessage.factory.Factory;
@@ -28,6 +29,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
 
@@ -35,6 +37,8 @@ import static org.junit.Assert.assertEquals;
  * If there's ever a need for this in production code, it should be rewritten to be more efficient.
  */
 public class TestUtils {
+    public static final Random RANDOM = new Random();
+
     public static byte[] int16(int number) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Encode.int16(number, out);
@@ -57,6 +61,12 @@ public class TestUtils {
             len = in.read(buffer);
         }
         return out.toByteArray();
+    }
+
+    public static InventoryVector randomInventoryVector() {
+        byte[] bytes = new byte[32];
+        RANDOM.nextBytes(bytes);
+        return new InventoryVector(bytes);
     }
 
     public static InputStream getResource(String resourceName) {

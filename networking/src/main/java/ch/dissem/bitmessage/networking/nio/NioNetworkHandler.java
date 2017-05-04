@@ -254,7 +254,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                                         }
                                     }
                                 } catch (CancelledKeyException e) {
-                                    LOG.error(e.getMessage(), e);
+                                    LOG.debug(e.getMessage(), e);
                                 }
                             } else {
                                 // handle read/write
@@ -287,11 +287,15 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                         }
                         // set interest ops
                         for (Map.Entry<ConnectionInfo, SelectionKey> e : connections.entrySet()) {
-                            if (e.getValue().isValid()
-                                && (e.getValue().interestOps() & OP_WRITE) == 0
-                                && (e.getValue().interestOps() & OP_CONNECT) == 0
-                                && !e.getKey().getSendingQueue().isEmpty()) {
-                                e.getValue().interestOps(OP_READ | OP_WRITE);
+                            try {
+                                if (e.getValue().isValid()
+                                    && (e.getValue().interestOps() & OP_WRITE) == 0
+                                    && (e.getValue().interestOps() & OP_CONNECT) == 0
+                                    && !e.getKey().getSendingQueue().isEmpty()) {
+                                    e.getValue().interestOps(OP_READ | OP_WRITE);
+                                }
+                            } catch (CancelledKeyException x) {
+                                e.getKey().disconnect();
                             }
                         }
                         // start new connections

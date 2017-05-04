@@ -138,7 +138,7 @@ public class Decode {
 
     public static String varString(InputStream in, AccessCounter counter) throws IOException {
         int length = (int) varInt(in, counter);
-        // FIXME: technically, it says the length in characters, but I think this one might be correct
+        // technically, it says the length in characters, but I think this one might be correct
         // otherwise it will get complicated, as we'll need to read UTF-8 char by char...
         return new String(bytes(in, length, counter), "utf-8");
     }
