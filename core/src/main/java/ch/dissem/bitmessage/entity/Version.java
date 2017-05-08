@@ -20,8 +20,6 @@ import ch.dissem.bitmessage.BitmessageContext;
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.utils.Encode;
 import ch.dissem.bitmessage.utils.UnixTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -32,7 +30,6 @@ import java.nio.ByteBuffer;
  */
 public class Version implements MessagePayload {
     private static final long serialVersionUID = 7219240857343176567L;
-    private static final Logger LOG = LoggerFactory.getLogger(Version.class);
 
     /**
      * Identifies protocol version being used by the node. Should equal 3. Nodes should disconnect if the remote node's
