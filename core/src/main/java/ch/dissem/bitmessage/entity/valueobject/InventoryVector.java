@@ -52,8 +52,17 @@ public class InventoryVector implements Streamable, Serializable {
         return hash;
     }
 
-    public InventoryVector(byte[] hash) {
+    private InventoryVector(byte[] hash) {
+        if (hash == null) throw new IllegalArgumentException("hash must not be null");
         this.hash = hash;
+    }
+
+    public static InventoryVector fromHash(byte[] hash) {
+        if (hash == null) {
+            return null;
+        } else {
+            return new InventoryVector(hash);
+        }
     }
 
     @Override

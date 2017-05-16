@@ -72,7 +72,7 @@ public class BitmessageContextTest {
 
                 @Override
                 public Item getItem(byte[] initialHash) {
-                    return items.get(new InventoryVector(initialHash));
+                    return items.get(InventoryVector.fromHash(initialHash));
                 }
 
                 @Override
@@ -86,12 +86,12 @@ public class BitmessageContextTest {
 
                 @Override
                 public void putObject(Item item) {
-                    items.put(new InventoryVector(cryptography().getInitialHash(item.object)), item);
+                    items.put(InventoryVector.fromHash(cryptography().getInitialHash(item.object)), item);
                 }
 
                 @Override
                 public void putObject(ObjectMessage object, long nonceTrialsPerByte, long extraBytes) {
-                    items.put(new InventoryVector(cryptography().getInitialHash(object)), new Item(object, nonceTrialsPerByte, extraBytes));
+                    items.put(InventoryVector.fromHash(cryptography().getInitialHash(object)), new Item(object, nonceTrialsPerByte, extraBytes));
                 }
 
                 @Override

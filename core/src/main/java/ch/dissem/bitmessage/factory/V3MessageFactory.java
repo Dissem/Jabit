@@ -103,8 +103,10 @@ class V3MessageFactory {
             ByteArrayInputStream dataStream = new ByteArrayInputStream(data);
             payload = Factory.getObjectPayload(objectType, version, stream, dataStream, data.length);
         } catch (Exception e) {
-            LOG.trace("Could not parse object payload - using generic payload instead", e);
-            LOG.info(Strings.hex(data).toString());
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Could not parse object payload - using generic payload instead", e);
+                LOG.trace(Strings.hex(data).toString());
+            }
             payload = new GenericPayload(version, stream, data);
         }
 
@@ -165,7 +167,7 @@ class V3MessageFactory {
     }
 
     private static InventoryVector parseInventoryVector(InputStream stream) throws IOException {
-        return new InventoryVector(Decode.bytes(stream, 32));
+        return InventoryVector.fromHash(Decode.bytes(stream, 32));
     }
 
     private static NetworkAddress parseAddress(InputStream stream, boolean light) throws IOException {

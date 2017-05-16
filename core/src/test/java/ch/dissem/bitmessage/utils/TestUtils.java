@@ -66,7 +66,7 @@ public class TestUtils {
     public static InventoryVector randomInventoryVector() {
         byte[] bytes = new byte[32];
         RANDOM.nextBytes(bytes);
-        return new InventoryVector(bytes);
+        return InventoryVector.fromHash(bytes);
     }
 
     public static InputStream getResource(String resourceName) {

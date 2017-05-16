@@ -105,7 +105,7 @@ public class Vote implements ExtendedEncoding.ExtendedType {
             Vote.Builder builder = new Vote.Builder();
             MPType<?> msgId = map.get(mp("msgId"));
             if (msgId instanceof MPBinary) {
-                builder.msgId(new InventoryVector(((MPBinary) msgId).getValue()));
+                builder.msgId(InventoryVector.fromHash(((MPBinary) msgId).getValue()));
             }
             builder.vote(str(map.get(mp("vote"))));
             return new Vote(builder);

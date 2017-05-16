@@ -96,7 +96,7 @@ public class ObjectMessage implements MessagePayload {
     }
 
     public InventoryVector getInventoryVector() {
-        return new InventoryVector(
+        return InventoryVector.fromHash(
                 Bytes.truncate(cryptography().doubleSha512(nonce, getPayloadBytesWithoutNonce()), 32)
         );
     }

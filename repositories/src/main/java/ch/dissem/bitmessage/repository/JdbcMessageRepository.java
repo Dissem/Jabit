@@ -110,7 +110,7 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
                 Plaintext.Builder builder = Plaintext.readWithoutSignature(type, data);
                 long id = rs.getLong("id");
                 builder.id(id);
-                builder.IV(new InventoryVector(iv));
+                builder.IV(InventoryVector.fromHash(iv));
                 builder.from(ctx.getAddressRepository().getAddress(rs.getString("sender")));
                 builder.to(ctx.getAddressRepository().getAddress(rs.getString("recipient")));
                 builder.ackData(rs.getBytes("ack_data"));

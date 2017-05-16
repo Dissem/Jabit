@@ -184,7 +184,7 @@ public class Message implements ExtendedEncoding.ExtendedType {
             MPArray<MPBinary> parents = (MPArray<MPBinary>) map.get(mp("parents"));
             if (parents != null) {
                 for (MPBinary parent : parents) {
-                    builder.addParent(new InventoryVector(parent.getValue()));
+                    builder.addParent(InventoryVector.fromHash(parent.getValue()));
                 }
             }
             @SuppressWarnings("unchecked")

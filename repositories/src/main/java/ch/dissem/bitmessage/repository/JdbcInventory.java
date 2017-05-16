@@ -69,7 +69,7 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
                                     "WHERE expires > " + now(-5 * MINUTE) + " AND stream = " + stream)
                     ) {
                         while (rs.next()) {
-                            result.put(new InventoryVector(rs.getBytes("hash")), rs.getLong("expires"));
+                            result.put(InventoryVector.fromHash(rs.getBytes("hash")), rs.getLong("expires"));
                         }
                     } catch (SQLException e) {
                         LOG.error(e.getMessage(), e);
