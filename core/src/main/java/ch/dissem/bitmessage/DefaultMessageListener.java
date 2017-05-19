@@ -104,7 +104,7 @@ class DefaultMessageListener implements NetworkHandler.MessageListener, Internal
             } else {
                 address = ctx.getAddressRepository().findContact(pubkey.getRipe());
             }
-            if (address != null) {
+            if (address != null && address.getPubkey() == null) {
                 updatePubkey(address, pubkey);
             }
         } catch (DecryptionFailedException ignore) {
@@ -170,11 +170,15 @@ class DefaultMessageListener implements NetworkHandler.MessageListener, Internal
     }
 
     protected void receive(InventoryVector iv, Plaintext msg) {
+        BitmessageAddress contact = ctx.getAddressRepository().getAddress(msg.getFrom().getAddress());
+        if (contact != null && contact.getPubkey() == null) {
+            updatePubkey(contact, msg.getFrom().getPubkey());
+        }
+
         msg.setInventoryVector(iv);
         labeler.setLabels(msg);
         ctx.getMessageRepository().save(msg);
         listener.receive(msg);
-        updatePubkey(msg.getFrom(), msg.getFrom().getPubkey());
 
         if (msg.getType() == Plaintext.Type.MSG && msg.getTo().has(Pubkey.Feature.DOES_ACK)) {
             ObjectMessage ack = msg.getAckMessage();
