@@ -22,6 +22,7 @@ import ch.dissem.bitmessage.utils.Encode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -48,21 +49,28 @@ public class V3Pubkey extends V2Pubkey {
 
     public static V3Pubkey read(InputStream is, long stream) throws IOException {
         return new V3Pubkey.Builder()
-                .stream(stream)
-                .behaviorBitfield(Decode.int32(is))
-                .publicSigningKey(Decode.bytes(is, 64))
-                .publicEncryptionKey(Decode.bytes(is, 64))
-                .nonceTrialsPerByte(Decode.varInt(is))
-                .extraBytes(Decode.varInt(is))
-                .signature(Decode.varBytes(is))
-                .build();
+            .stream(stream)
+            .behaviorBitfield(Decode.int32(is))
+            .publicSigningKey(Decode.bytes(is, 64))
+            .publicEncryptionKey(Decode.bytes(is, 64))
+            .nonceTrialsPerByte(Decode.varInt(is))
+            .extraBytes(Decode.varInt(is))
+            .signature(Decode.varBytes(is))
+            .build();
     }
 
     @Override
     public void write(OutputStream out) throws IOException {
         writeBytesToSign(out);
-        Encode.varInt(signature.length, out);
-        out.write(signature);
+        Encode.varBytes(signature, out);
+    }
+
+    @Override
+    public void write(ByteBuffer buffer) {
+        super.write(buffer);
+        Encode.varInt(nonceTrialsPerByte, buffer);
+        Encode.varInt(extraBytes, buffer);
+        Encode.varBytes(signature, buffer);
     }
 
     @Override
@@ -104,11 +112,11 @@ public class V3Pubkey extends V2Pubkey {
         if (o == null || getClass() != o.getClass()) return false;
         V3Pubkey pubkey = (V3Pubkey) o;
         return Objects.equals(nonceTrialsPerByte, pubkey.nonceTrialsPerByte) &&
-                Objects.equals(extraBytes, pubkey.extraBytes) &&
-                stream == pubkey.stream &&
-                behaviorBitfield == pubkey.behaviorBitfield &&
-                Arrays.equals(publicSigningKey, pubkey.publicSigningKey) &&
-                Arrays.equals(publicEncryptionKey, pubkey.publicEncryptionKey);
+            Objects.equals(extraBytes, pubkey.extraBytes) &&
+            stream == pubkey.stream &&
+            behaviorBitfield == pubkey.behaviorBitfield &&
+            Arrays.equals(publicSigningKey, pubkey.publicSigningKey) &&
+            Arrays.equals(publicEncryptionKey, pubkey.publicEncryptionKey);
     }
 
     @Override
