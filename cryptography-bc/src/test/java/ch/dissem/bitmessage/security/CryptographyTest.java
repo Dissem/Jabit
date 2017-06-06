@@ -1,3 +1,19 @@
+/*
+ * Copyright 2017 Christian Basler
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package ch.dissem.bitmessage.security;
 
 import ch.dissem.bitmessage.InternalContext;
@@ -31,12 +47,12 @@ import static org.mockito.Mockito.when;
 public class CryptographyTest {
     public static final byte[] TEST_VALUE = "teststring".getBytes();
     public static final byte[] TEST_SHA1 = DatatypeConverter.parseHexBinary(""
-            + "b8473b86d4c2072ca9b08bd28e373e8253e865c4");
+        + "b8473b86d4c2072ca9b08bd28e373e8253e865c4");
     public static final byte[] TEST_SHA512 = DatatypeConverter.parseHexBinary(""
-            + "6253b39071e5df8b5098f59202d414c37a17d6a38a875ef5f8c7d89b0212b028"
-            + "692d3d2090ce03ae1de66c862fa8a561e57ed9eb7935ce627344f742c0931d72");
+        + "6253b39071e5df8b5098f59202d414c37a17d6a38a875ef5f8c7d89b0212b028"
+        + "692d3d2090ce03ae1de66c862fa8a561e57ed9eb7935ce627344f742c0931d72");
     public static final byte[] TEST_RIPEMD160 = DatatypeConverter.parseHexBinary(""
-            + "cd566972b5e50104011a92b59fa8e0b1234851ae");
+        + "cd566972b5e50104011a92b59fa8e0b1234851ae");
 
     private static BouncyCryptography crypto;
 
@@ -46,7 +62,6 @@ public class CryptographyTest {
         Singleton.initialize(crypto);
         InternalContext ctx = mock(InternalContext.class);
         when(ctx.getProofOfWorkEngine()).thenReturn(new MultiThreadedPOWEngine());
-        crypto.setContext(ctx);
     }
 
     @Test
@@ -77,30 +92,30 @@ public class CryptographyTest {
     @Test(expected = IOException.class)
     public void ensureExceptionForInsufficientProofOfWork() throws IOException {
         ObjectMessage objectMessage = new ObjectMessage.Builder()
-                .nonce(new byte[8])
-                .expiresTime(UnixTime.now(+28 * DAY))
-                .objectType(0)
-                .payload(GenericPayload.read(0, 1, new ByteArrayInputStream(new byte[0]), 0))
-                .build();
+            .nonce(new byte[8])
+            .expiresTime(UnixTime.now() + 28 * DAY)
+            .objectType(0)
+            .payload(GenericPayload.Companion.read(0, 1, new ByteArrayInputStream(new byte[0]), 0))
+            .build();
         crypto.checkProofOfWork(objectMessage, 1000, 1000);
     }
 
     @Test
     public void testDoProofOfWork() throws Exception {
         ObjectMessage objectMessage = new ObjectMessage.Builder()
-                .nonce(new byte[8])
-                .expiresTime(UnixTime.now(+2 * MINUTE))
-                .objectType(0)
-                .payload(GenericPayload.read(0, 1, new ByteArrayInputStream(new byte[0]), 0))
-                .build();
+            .nonce(new byte[8])
+            .expiresTime(UnixTime.now() + 2 * MINUTE)
+            .objectType(0)
+            .payload(GenericPayload.Companion.read(0, 1, new ByteArrayInputStream(new byte[0]), 0))
+            .build();
         final CallbackWaiter<byte[]> waiter = new CallbackWaiter<>();
         crypto.doProofOfWork(objectMessage, 1000, 1000,
-                new ProofOfWorkEngine.Callback() {
-                    @Override
-                    public void onNonceCalculated(byte[] initialHash, byte[] nonce) {
-                        waiter.setValue(nonce);
-                    }
-                });
+            new ProofOfWorkEngine.Callback() {
+                @Override
+                public void onNonceCalculated(byte[] initialHash, byte[] nonce) {
+                    waiter.setValue(nonce);
+                }
+            });
         objectMessage.setNonce(waiter.waitForValue());
         try {
             crypto.checkProofOfWork(objectMessage, 1000, 1000);

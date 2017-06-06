@@ -66,7 +66,22 @@ public class BitmessageContext {
     private final boolean sendPubkeyOnIdentityCreation;
 
     private BitmessageContext(Builder builder) {
-        ctx = new InternalContext(builder);
+        ctx = new InternalContext(
+            builder.cryptography,
+            builder.inventory,
+            builder.nodeRegistry,
+            builder.networkHandler,
+            builder.addressRepo,
+            builder.messageRepo,
+            builder.proofOfWorkRepository,
+            builder.proofOfWorkEngine,
+            builder.customCommandHandler,
+            builder.listener,
+            builder.labeler,
+            builder.port,
+            builder.connectionTTL,
+            builder.connectionLimit
+        );
         labeler = builder.labeler;
         ctx.getProofOfWorkService().doMissingProofOfWork(30_000); // TODO: this should be configurable
         sendPubkeyOnIdentityCreation = builder.sendPubkeyOnIdentityCreation;
@@ -103,7 +118,7 @@ public class BitmessageContext {
     }
 
     public BitmessageAddress joinChan(String passphrase, String address) {
-        BitmessageAddress chan = BitmessageAddress.chan(address, passphrase);
+        BitmessageAddress chan = BitmessageAddress.Companion.chan(address, passphrase);
         chan.setAlias(passphrase);
         ctx.getAddressRepository().save(chan);
         return chan;
@@ -111,14 +126,14 @@ public class BitmessageContext {
 
     public BitmessageAddress createChan(String passphrase) {
         // FIXME: hardcoded stream number
-        BitmessageAddress chan = BitmessageAddress.chan(1, passphrase);
+        BitmessageAddress chan = BitmessageAddress.Companion.chan(1, passphrase);
         ctx.getAddressRepository().save(chan);
         return chan;
     }
 
     public List<BitmessageAddress> createDeterministicAddresses(
         String passphrase, int numberOfAddresses, long version, long stream, boolean shorter) {
-        List<BitmessageAddress> result = BitmessageAddress.deterministic(
+        List<BitmessageAddress> result = BitmessageAddress.Companion.deterministic(
             passphrase, numberOfAddresses, version, stream, shorter);
         for (int i = 0; i < result.size(); i++) {
             BitmessageAddress address = result.get(i);
@@ -149,7 +164,7 @@ public class BitmessageContext {
     }
 
     public void send(final Plaintext msg) {
-        if (msg.getFrom() == null || msg.getFrom().getPrivateKey() == null) {
+        if (msg.getFrom().getPrivateKey() == null) {
             throw new IllegalArgumentException("'From' must be an identity, i.e. have a private key.");
         }
         labeler().markAsSending(msg);
@@ -268,7 +283,7 @@ public class BitmessageContext {
     }
 
     private void tryToFindBroadcastsForAddress(BitmessageAddress address) {
-        for (ObjectMessage object : ctx.getInventory().getObjects(address.getStream(), Broadcast.getVersion(address), ObjectType.BROADCAST)) {
+        for (ObjectMessage object : ctx.getInventory().getObjects(address.getStream(), Broadcast.Companion.getVersion(address), ObjectType.BROADCAST)) {
             try {
                 Broadcast broadcast = (Broadcast) object.getPayload();
                 broadcast.decrypt(address);

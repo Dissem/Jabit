@@ -25,8 +25,7 @@ import ch.dissem.bitmessage.entity.valueobject.ExtendedEncoding;
 import ch.dissem.bitmessage.entity.valueobject.Label;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import ch.dissem.bitmessage.entity.valueobject.extended.Message;
-import ch.dissem.bitmessage.ports.AddressRepository;
-import ch.dissem.bitmessage.ports.MessageRepository;
+import ch.dissem.bitmessage.ports.*;
 import ch.dissem.bitmessage.utils.TestUtils;
 import ch.dissem.bitmessage.utils.UnixTime;
 import org.hamcrest.BaseMatcher;
@@ -45,6 +44,7 @@ import static ch.dissem.bitmessage.utils.Singleton.cryptography;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
 
 public class JdbcMessageRepositoryTest extends TestBase {
     private BitmessageAddress contactA;
@@ -64,12 +64,21 @@ public class JdbcMessageRepositoryTest extends TestBase {
         config.reset();
         AddressRepository addressRepo = new JdbcAddressRepository(config);
         repo = new JdbcMessageRepository(config);
-        new InternalContext(new BitmessageContext.Builder()
-            .cryptography(cryptography())
-            .addressRepo(addressRepo)
-            .messageRepo(repo)
+        new InternalContext(
+            cryptography(),
+            mock(Inventory.class),
+            mock(NodeRegistry.class),
+            mock(NetworkHandler.class),
+            addressRepo,
+            repo,
+            mock(ProofOfWorkRepository.class),
+            mock(ProofOfWorkEngine.class),
+            mock(CustomCommandHandler.class),
+            mock(BitmessageContext.Listener.class),
+            mock(Labeler.class),
+            12345,
+            10, 10
         );
-
         BitmessageAddress tmp = new BitmessageAddress(new PrivateKey(false, 1, 1000, 1000, DOES_ACK));
         contactA = new BitmessageAddress(tmp.getAddress());
         contactA.setPubkey(tmp.getPubkey());
@@ -225,7 +234,7 @@ public class JdbcMessageRepositoryTest extends TestBase {
         message.updateNextTry();
         assertThat(message.getRetries(), is(1));
         assertThat(message.getNextTry(), greaterThan(UnixTime.now()));
-        assertThat(message.getNextTry(), lessThanOrEqualTo(UnixTime.now(+2)));
+        assertThat(message.getNextTry(), lessThanOrEqualTo(UnixTime.now() + 2));
         repo.save(message);
         Thread.sleep(4100); // somewhat longer than 2*TTL
         List<Plaintext> messagesToResend = repo.findMessagesToResend();

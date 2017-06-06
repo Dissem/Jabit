@@ -17,7 +17,6 @@
 package ch.dissem.bitmessage.repository;
 
 import ch.dissem.bitmessage.entity.BitmessageAddress;
-import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
 import org.junit.Before;
 import org.junit.Test;
@@ -72,7 +71,7 @@ public class JdbcAddressRepositoryTest extends TestBase {
 
         BitmessageAddress storedIdentity = repo.findIdentity(identity.getTag());
         assertEquals(identity, storedIdentity);
-        assertTrue(storedIdentity.has(Pubkey.Feature.DOES_ACK));
+        assertTrue(storedIdentity.has(DOES_ACK));
     }
 
     @Test

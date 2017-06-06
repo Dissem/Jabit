@@ -26,7 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.CLIENT;
-import static ch.dissem.bitmessage.networking.DefaultNetworkHandler.NETWORK_MAGIC_NUMBER;
+import static ch.dissem.bitmessage.constants.Network.NETWORK_MAGIC_NUMBER;
 
 /**
  * @author Christian Basler

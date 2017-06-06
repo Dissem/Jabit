@@ -111,8 +111,8 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
                 long id = rs.getLong("id");
                 builder.id(id);
                 builder.IV(InventoryVector.fromHash(iv));
-                builder.from(ctx.getAddressRepository().getAddress(rs.getString("sender")));
-                builder.to(ctx.getAddressRepository().getAddress(rs.getString("recipient")));
+                builder.from(getCtx().getAddressRepository().getAddress(rs.getString("sender")));
+                builder.to(getCtx().getAddressRepository().getAddress(rs.getString("recipient")));
                 builder.ackData(rs.getBytes("ack_data"));
                 builder.sent(rs.getObject("sent", Long.class));
                 builder.received(rs.getObject("received", Long.class));
@@ -127,7 +127,7 @@ public class JdbcMessageRepository extends AbstractMessageRepository implements 
                 message.setInitialHash(rs.getBytes("initial_hash"));
                 result.add(message);
             }
-        } catch (IOException | SQLException e) {
+        } catch (SQLException e) {
             LOG.error(e.getMessage(), e);
         }
         return result;

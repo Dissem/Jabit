@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 Christian Basler
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package ch.dissem.bitmessage.repository;
 
 import ch.dissem.bitmessage.InternalContext;
@@ -30,9 +46,9 @@ public class JdbcProofOfWorkRepository extends JdbcHelper implements ProofOfWork
     @Override
     public Item getItem(byte[] initialHash) {
         try (
-                Connection connection = config.getConnection();
-                PreparedStatement ps = connection.prepareStatement("SELECT data, version, nonce_trials_per_byte, " +
-                        "extra_bytes, expiration_time, message_id FROM POW WHERE initial_hash=?")
+            Connection connection = config.getConnection();
+            PreparedStatement ps = connection.prepareStatement("SELECT data, version, nonce_trials_per_byte, " +
+                "extra_bytes, expiration_time, message_id FROM POW WHERE initial_hash=?")
         ) {
             ps.setBytes(1, initialHash);
             try (ResultSet rs = ps.executeQuery()) {
@@ -40,17 +56,17 @@ public class JdbcProofOfWorkRepository extends JdbcHelper implements ProofOfWork
                     Blob data = rs.getBlob("data");
                     if (rs.getObject("message_id") == null) {
                         return new Item(
-                                Factory.getObjectMessage(rs.getInt("version"), data.getBinaryStream(), (int) data.length()),
-                                rs.getLong("nonce_trials_per_byte"),
-                                rs.getLong("extra_bytes")
+                            Factory.getObjectMessage(rs.getInt("version"), data.getBinaryStream(), (int) data.length()),
+                            rs.getLong("nonce_trials_per_byte"),
+                            rs.getLong("extra_bytes")
                         );
                     } else {
                         return new Item(
-                                Factory.getObjectMessage(rs.getInt("version"), data.getBinaryStream(), (int) data.length()),
-                                rs.getLong("nonce_trials_per_byte"),
-                                rs.getLong("extra_bytes"),
-                                rs.getLong("expiration_time"),
-                                ctx.getMessageRepository().getMessage(rs.getLong("message_id"))
+                            Factory.getObjectMessage(rs.getInt("version"), data.getBinaryStream(), (int) data.length()),
+                            rs.getLong("nonce_trials_per_byte"),
+                            rs.getLong("extra_bytes"),
+                            rs.getLong("expiration_time"),
+                            ctx.getMessageRepository().getMessage(rs.getLong("message_id"))
                         );
                     }
                 } else {
@@ -66,9 +82,9 @@ public class JdbcProofOfWorkRepository extends JdbcHelper implements ProofOfWork
     @Override
     public List<byte[]> getItems() {
         try (
-                Connection connection = config.getConnection();
-                Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT initial_hash FROM POW")
+            Connection connection = config.getConnection();
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT initial_hash FROM POW")
         ) {
             List<byte[]> result = new LinkedList<>();
             while (rs.next()) {
@@ -84,27 +100,27 @@ public class JdbcProofOfWorkRepository extends JdbcHelper implements ProofOfWork
     @Override
     public void putObject(Item item) {
         try (
-                Connection connection = config.getConnection();
-                PreparedStatement ps = connection.prepareStatement("INSERT INTO POW (initial_hash, data, version, " +
-                        "nonce_trials_per_byte, extra_bytes, expiration_time, message_id) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?)")
+            Connection connection = config.getConnection();
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO POW (initial_hash, data, version, " +
+                "nonce_trials_per_byte, extra_bytes, expiration_time, message_id) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)")
         ) {
-            ps.setBytes(1, cryptography().getInitialHash(item.object));
-            writeBlob(ps, 2, item.object);
-            ps.setLong(3, item.object.getVersion());
-            ps.setLong(4, item.nonceTrialsPerByte);
-            ps.setLong(5, item.extraBytes);
+            ps.setBytes(1, cryptography().getInitialHash(item.getObject()));
+            writeBlob(ps, 2, item.getObject());
+            ps.setLong(3, item.getObject().getVersion());
+            ps.setLong(4, item.getNonceTrialsPerByte());
+            ps.setLong(5, item.getExtraBytes());
 
-            if (item.message == null) {
+            if (item.getMessage() == null) {
                 ps.setObject(6, null);
                 ps.setObject(7, null);
             } else {
-                ps.setLong(6, item.expirationTime);
-                ps.setLong(7, (Long) item.message.getId());
+                ps.setLong(6, item.getExpirationTime());
+                ps.setLong(7, (Long) item.getMessage().getId());
             }
             ps.executeUpdate();
         } catch (IOException | SQLException e) {
-            LOG.debug("Error storing object of type " + item.object.getPayload().getClass().getSimpleName(), e);
+            LOG.debug("Error storing object of type " + item.getObject().getPayload().getClass().getSimpleName(), e);
             throw new ApplicationException(e);
         }
     }
@@ -117,8 +133,8 @@ public class JdbcProofOfWorkRepository extends JdbcHelper implements ProofOfWork
     @Override
     public void removeObject(byte[] initialHash) {
         try (
-                Connection connection = config.getConnection();
-                PreparedStatement ps = connection.prepareStatement("DELETE FROM POW WHERE initial_hash=?")
+            Connection connection = config.getConnection();
+            PreparedStatement ps = connection.prepareStatement("DELETE FROM POW WHERE initial_hash=?")
         ) {
             ps.setBytes(1, initialHash);
             ps.executeUpdate();

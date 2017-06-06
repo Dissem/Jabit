@@ -25,7 +25,9 @@ import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.exception.NodeException;
 import ch.dissem.bitmessage.factory.V3MessageReader;
+import ch.dissem.bitmessage.networking.AbstractConnection;
 import ch.dissem.bitmessage.ports.NetworkHandler;
+import ch.dissem.bitmessage.utils.DebugUtils;
 import ch.dissem.bitmessage.utils.Property;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,11 +41,14 @@ import java.nio.channels.*;
 import java.util.*;
 import java.util.concurrent.*;
 
-import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.*;
+import static ch.dissem.bitmessage.constants.Network.HEADER_SIZE;
+import static ch.dissem.bitmessage.constants.Network.NETWORK_MAGIC_NUMBER;
+import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.CLIENT;
+import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.SERVER;
+import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.SYNC;
 import static ch.dissem.bitmessage.networking.AbstractConnection.State.ACTIVE;
 import static ch.dissem.bitmessage.networking.AbstractConnection.State.DISCONNECTED;
 import static ch.dissem.bitmessage.utils.Collections.selectRandom;
-import static ch.dissem.bitmessage.utils.DebugUtils.inc;
 import static ch.dissem.bitmessage.utils.ThreadFactoryBuilder.pool;
 import static java.nio.channels.SelectionKey.*;
 
@@ -434,7 +439,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                 if (connection.knowsOf(next) && !connection.requested(next)) {
                     List<InventoryVector> ivs = distribution.get(connection);
                     if (ivs.size() == GetData.MAX_INVENTORY_SIZE) {
-                        connection.send(new GetData.Builder().inventory(ivs).build());
+                        connection.send(new GetData(ivs));
                         ivs.clear();
                     }
                     ivs.add(next);
@@ -458,7 +463,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
         for (ConnectionInfo connection : distribution.keySet()) {
             List<InventoryVector> ivs = distribution.get(connection);
             if (!ivs.isEmpty()) {
-                connection.send(new GetData.Builder().inventory(ivs).build());
+                connection.send(new GetData(ivs));
             }
         }
     }
@@ -474,9 +479,9 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
                 for (long stream : connection.getStreams()) {
                     streams.add(stream);
                     if (connection.getMode() == SERVER) {
-                        inc(incomingConnections, stream);
+                        DebugUtils.inc(incomingConnections, stream);
                     } else {
-                        inc(outgoingConnections, stream);
+                        DebugUtils.inc(outgoingConnections, stream);
                     }
                 }
             }
@@ -495,7 +500,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
         }
         return new Property("network", null,
             new Property("connectionManager", isRunning() ? "running" : "stopped"),
-            new Property("connections", null, streamProperties),
+            new Property("connections", streamProperties),
             new Property("requestedObjects", requestedObjects.size())
         );
     }

@@ -78,7 +78,7 @@ public abstract class AbstractConnection {
         this.host = new NetworkAddress.Builder().ipv6(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0).port(0).build();
         this.node = node;
         this.listener = context.getNetworkListener();
-        this.syncTimeout = (syncTimeout > 0 ? UnixTime.now(+syncTimeout) : 0);
+        this.syncTimeout = (syncTimeout > 0 ? UnixTime.now() + syncTimeout : 0);
         this.requestedObjects = Collections.newSetFromMap(new ConcurrentHashMap<InventoryVector, Boolean>(10_000));
         this.ivCache = new ConcurrentHashMap<>();
         this.sendingQueue = new ConcurrentLinkedDeque<>();
@@ -146,7 +146,7 @@ public abstract class AbstractConnection {
         missing.removeAll(commonRequestedObjects.keySet());
         LOG.trace("Received inventory with " + originalSize + " elements, of which are "
             + missing.size() + " missing.");
-        send(new GetData.Builder().inventory(missing).build());
+        send(new GetData(missing));
     }
 
     private void receiveMessage(GetData getData) {
@@ -195,9 +195,7 @@ public abstract class AbstractConnection {
     }
 
     public void offer(InventoryVector iv) {
-        sendingQueue.offer(new Inv.Builder()
-            .addInventoryVector(iv)
-            .build());
+        sendingQueue.offer(new Inv(Collections.singletonList(iv)));
         updateIvCache(Collections.singletonList(iv));
     }
 
@@ -210,7 +208,7 @@ public abstract class AbstractConnection {
     }
 
     private void cleanupIvCache() {
-        Long fiveMinutesAgo = UnixTime.now(-5 * MINUTE);
+        long fiveMinutesAgo = UnixTime.now() - 5 * MINUTE;
         for (Map.Entry<InventoryVector, Long> entry : ivCache.entrySet()) {
             if (entry.getValue() < fiveMinutesAgo) {
                 ivCache.remove(entry.getKey());
@@ -256,15 +254,13 @@ public abstract class AbstractConnection {
 
     private void sendAddresses() {
         List<NetworkAddress> addresses = ctx.getNodeRegistry().getKnownAddresses(1000, streams);
-        sendingQueue.offer(new Addr.Builder().addresses(addresses).build());
+        sendingQueue.offer(new Addr(addresses));
     }
 
     private void sendInventory() {
         List<InventoryVector> inventory = ctx.getInventory().getInventory(streams);
         for (int i = 0; i < inventory.size(); i += 50000) {
-            sendingQueue.offer(new Inv.Builder()
-                .inventory(inventory.subList(i, Math.min(inventory.size(), i + 50000)))
-                .build());
+            sendingQueue.offer(new Inv(inventory.subList(i, Math.min(inventory.size(), i + 50000))));
         }
     }
 
@@ -328,10 +324,6 @@ public abstract class AbstractConnection {
 
     protected abstract void send(MessagePayload payload);
 
-    public enum Mode {SERVER, CLIENT, SYNC}
-
-    public enum State {CONNECTING, ACTIVE, DISCONNECTED}
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -344,4 +336,8 @@ public abstract class AbstractConnection {
     public int hashCode() {
         return Objects.hash(node);
     }
+
+    public enum Mode {SERVER, CLIENT, SYNC}
+
+    public enum State {CONNECTING, ACTIVE, DISCONNECTED}
 }

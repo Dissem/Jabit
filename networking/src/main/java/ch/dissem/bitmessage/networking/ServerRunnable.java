@@ -37,12 +37,10 @@ public class ServerRunnable implements Runnable, Closeable {
     private final InternalContext ctx;
     private final ServerSocket serverSocket;
     private final DefaultNetworkHandler networkHandler;
-    private final NetworkHandler.MessageListener listener;
 
     public ServerRunnable(InternalContext ctx, DefaultNetworkHandler networkHandler) throws IOException {
         this.ctx = ctx;
         this.networkHandler = networkHandler;
-        this.listener = ctx.getNetworkListener();
         this.serverSocket = new ServerSocket(ctx.getPort());
     }
 

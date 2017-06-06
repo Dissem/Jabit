@@ -35,6 +35,7 @@ import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.*;
 
+import static ch.dissem.bitmessage.constants.Network.NETWORK_MAGIC_NUMBER;
 import static ch.dissem.bitmessage.networking.AbstractConnection.Mode.SERVER;
 import static ch.dissem.bitmessage.networking.AbstractConnection.State.ACTIVE;
 import static ch.dissem.bitmessage.utils.DebugUtils.inc;
@@ -193,7 +194,7 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
         }
         return new Property("network", null,
             new Property("connectionManager", running ? "running" : "stopped"),
-            new Property("connections", null, streamProperties),
+            new Property("connections", streamProperties),
             new Property("requestedObjects", requestedObjects.size())
         );
     }
@@ -222,7 +223,7 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
                 if (connection.knowsOf(next)) {
                     List<InventoryVector> ivs = distribution.get(connection);
                     if (ivs.size() == GetData.MAX_INVENTORY_SIZE) {
-                        connection.send(new GetData.Builder().inventory(ivs).build());
+                        connection.send(new GetData(ivs));
                         ivs.clear();
                     }
                     ivs.add(next);
@@ -241,7 +242,7 @@ public class DefaultNetworkHandler implements NetworkHandler, ContextHolder {
         for (Connection connection : distribution.keySet()) {
             List<InventoryVector> ivs = distribution.get(connection);
             if (!ivs.isEmpty()) {
-                connection.send(new GetData.Builder().inventory(ivs).build());
+                connection.send(new GetData(ivs));
             }
         }
     }

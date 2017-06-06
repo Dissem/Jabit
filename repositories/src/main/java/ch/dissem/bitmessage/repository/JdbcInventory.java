@@ -49,8 +49,8 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
         List<InventoryVector> result = new LinkedList<>();
         for (long stream : streams) {
             getCache(stream).entrySet().stream()
-                    .filter(e -> e.getValue() > now())
-                    .forEach(e -> result.add(e.getKey()));
+                .filter(e -> e.getValue() > now())
+                .forEach(e -> result.add(e.getKey()));
         }
         return result;
     }
@@ -63,10 +63,10 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
                     result = new ConcurrentHashMap<>();
                     cache.put(stream, result);
                     try (
-                            Connection connection = config.getConnection();
-                            Statement stmt = connection.createStatement();
-                            ResultSet rs = stmt.executeQuery("SELECT hash, expires FROM Inventory " +
-                                    "WHERE expires > " + now(-5 * MINUTE) + " AND stream = " + stream)
+                        Connection connection = config.getConnection();
+                        Statement stmt = connection.createStatement();
+                        ResultSet rs = stmt.executeQuery("SELECT hash, expires FROM Inventory " +
+                            "WHERE expires > " + (now() - 5 * MINUTE) + " AND stream = " + stream)
                     ) {
                         while (rs.next()) {
                             result.put(InventoryVector.fromHash(rs.getBytes("hash")), rs.getLong("expires"));
@@ -91,9 +91,9 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
     @Override
     public ObjectMessage getObject(InventoryVector vector) {
         try (
-                Connection connection = config.getConnection();
-                Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT data, version FROM Inventory WHERE hash = X'" + vector + "'")
+            Connection connection = config.getConnection();
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT data, version FROM Inventory WHERE hash = X'" + vector + "'")
         ) {
             if (rs.next()) {
                 Blob data = rs.getBlob("data");
@@ -121,9 +121,9 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
             query.append(" AND type IN (").append(join(types)).append(')');
         }
         try (
-                Connection connection = config.getConnection();
-                Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery(query.toString())
+            Connection connection = config.getConnection();
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(query.toString())
         ) {
             List<ObjectMessage> result = new LinkedList<>();
             while (rs.next()) {
@@ -143,9 +143,9 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
             return;
 
         try (
-                Connection connection = config.getConnection();
-                PreparedStatement ps = connection.prepareStatement("INSERT INTO Inventory " +
-                        "(hash, stream, expires, data, type, version) VALUES (?, ?, ?, ?, ?, ?)")
+            Connection connection = config.getConnection();
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO Inventory " +
+                "(hash, stream, expires, data, type, version) VALUES (?, ?, ?, ?, ?, ?)")
         ) {
             InventoryVector iv = object.getInventoryVector();
             LOG.trace("Storing object " + iv);
@@ -167,21 +167,21 @@ public class JdbcInventory extends JdbcHelper implements Inventory {
     @Override
     public boolean contains(ObjectMessage object) {
         return getCache(object.getStream()).entrySet().stream()
-                .anyMatch(x -> x.getKey().equals(object.getInventoryVector()));
+            .anyMatch(x -> x.getKey().equals(object.getInventoryVector()));
     }
 
     @Override
     public void cleanup() {
         try (
-                Connection connection = config.getConnection();
-                Statement stmt = connection.createStatement()
+            Connection connection = config.getConnection();
+            Statement stmt = connection.createStatement()
         ) {
-            stmt.executeUpdate("DELETE FROM Inventory WHERE expires < " + now(-5 * MINUTE));
+            stmt.executeUpdate("DELETE FROM Inventory WHERE expires < " + (now() - 5 * MINUTE));
         } catch (SQLException e) {
             LOG.debug(e.getMessage(), e);
         }
         for (Map<InventoryVector, Long> c : cache.values()) {
-            c.entrySet().removeIf(e -> e.getValue() < now(-5 * MINUTE));
+            c.entrySet().removeIf(e -> e.getValue() < (now() - 5 * MINUTE));
         }
     }
 }

@@ -17,24 +17,16 @@
 package ch.dissem.bitmessage.repository;
 
 import ch.dissem.bitmessage.entity.Streamable;
-import ch.dissem.bitmessage.entity.payload.ObjectType;
-import ch.dissem.bitmessage.exception.ApplicationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.Collection;
-
-import static ch.dissem.bitmessage.utils.Strings.hex;
 
 /**
  * Helper class that does Flyway migration, provides JDBC connections and some helper methods.
  */
 public abstract class JdbcHelper {
-    private static final Logger LOG = LoggerFactory.getLogger(JdbcHelper.class);
 
     protected final JdbcConfig config;
 

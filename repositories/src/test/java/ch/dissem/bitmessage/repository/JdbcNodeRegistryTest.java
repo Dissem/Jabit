@@ -18,7 +18,6 @@ package ch.dissem.bitmessage.repository;
 
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.ports.NodeRegistry;
-import ch.dissem.bitmessage.utils.UnixTime;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -28,7 +27,6 @@ import java.util.List;
 
 import static ch.dissem.bitmessage.utils.UnixTime.now;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
