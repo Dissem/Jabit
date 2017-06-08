@@ -16,7 +16,6 @@
 
 package ch.dissem.bitmessage.security
 
-import ch.dissem.bitmessage.InternalContext
 import ch.dissem.bitmessage.cryptography.sc.SpongyCryptography
 import ch.dissem.bitmessage.entity.ObjectMessage
 import ch.dissem.bitmessage.entity.payload.GenericPayload
@@ -26,21 +25,16 @@ import ch.dissem.bitmessage.ports.MultiThreadedPOWEngine
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine
 import ch.dissem.bitmessage.utils.CallbackWaiter
 import ch.dissem.bitmessage.utils.Singleton
+import ch.dissem.bitmessage.utils.TestUtils
 import ch.dissem.bitmessage.utils.UnixTime
-import org.junit.Assert
-import org.junit.BeforeClass
-import org.junit.Test
-
-import javax.xml.bind.DatatypeConverter
-import java.io.ByteArrayInputStream
-import java.io.IOException
-
 import ch.dissem.bitmessage.utils.UnixTime.DAY
 import ch.dissem.bitmessage.utils.UnixTime.MINUTE
 import org.hamcrest.CoreMatchers.`is`
 import org.junit.Assert.*
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.`when`
+import org.junit.Test
+import java.io.ByteArrayInputStream
+import java.io.IOException
+import javax.xml.bind.DatatypeConverter
 
 /**
  * @author Christian Basler
@@ -168,7 +162,7 @@ class CryptographyTest {
         val TEST_RIPEMD160 = DatatypeConverter.parseHexBinary(""
             + "cd566972b5e50104011a92b59fa8e0b1234851ae")
 
-        private val crypto = SpongyCryptography()
+        private val crypto = SpongyCryptography
 
         init {
             Singleton.initialize(crypto)

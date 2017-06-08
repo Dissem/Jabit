@@ -36,7 +36,7 @@ public class WifImporterTest {
     @Before
     public void setUp() throws Exception {
         ctx = new BitmessageContext.Builder()
-                .cryptography(new BouncyCryptography())
+                .cryptography(BouncyCryptography.INSTANCE)
                 .networkHandler(mock(NetworkHandler.class))
                 .inventory(mock(Inventory.class))
                 .messageRepo(mock(MessageRepository.class))

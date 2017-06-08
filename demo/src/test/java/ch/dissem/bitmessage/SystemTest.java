@@ -94,7 +94,7 @@ public class SystemTest {
             .port(alicePort)
             .nodeRegistry(new TestNodeRegistry(bobPort))
             .networkHandler(aliceNetworkHandler)
-            .cryptography(new BouncyCryptography())
+            .cryptography(BouncyCryptography.INSTANCE)
             .listener(aliceListener)
             .labeler(aliceLabeler)
             .build();
@@ -110,7 +110,7 @@ public class SystemTest {
             .port(bobPort)
             .nodeRegistry(new TestNodeRegistry(alicePort))
             .networkHandler(bobNetworkHandler)
-            .cryptography(new BouncyCryptography())
+            .cryptography(BouncyCryptography.INSTANCE)
             .listener(bobListener)
             .labeler(new DebugLabeler("Bob"))
             .build();

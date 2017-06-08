@@ -311,7 +311,6 @@ class BitmessageContext private constructor(builder: BitmessageContext.Builder) 
             } catch (e: Exception) {
                 LOG.debug(e.message, e)
             }
-
         }
     }
 
@@ -407,6 +406,15 @@ class BitmessageContext private constructor(builder: BitmessageContext.Builder) 
 
         fun listener(listener: Listener): Builder {
             this.listener = listener
+            return this
+        }
+
+        fun listener(listener: (Plaintext) -> Unit): Builder {
+            this.listener = object : Listener {
+                override fun receive(plaintext: Plaintext) {
+                    listener.invoke(plaintext)
+                }
+            }
             return this
         }
 
