@@ -16,8 +16,7 @@
 
 package ch.dissem.bitmessage.entity
 
-import ch.dissem.bitmessage.entity.Plaintext.Encoding.EXTENDED
-import ch.dissem.bitmessage.entity.Plaintext.Encoding.SIMPLE
+import ch.dissem.bitmessage.entity.Plaintext.Encoding.*
 import ch.dissem.bitmessage.entity.payload.Msg
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature
 import ch.dissem.bitmessage.entity.valueobject.ExtendedEncoding
@@ -35,6 +34,13 @@ import java.nio.ByteBuffer
 import java.util.*
 import java.util.Collections
 import kotlin.collections.HashSet
+
+fun message(encoding: Plaintext.Encoding, subject: String, body: String): ByteArray = when (encoding) {
+    SIMPLE -> "Subject:$subject\nBody:$body".toByteArray()
+    EXTENDED -> Message.Builder().subject(subject).body(body).build().zip()
+    TRIVIAL -> (subject+body).toByteArray()
+    IGNORE -> ByteArray(0)
+}
 
 /**
  * The unencrypted message to be sent by 'msg' or 'broadcast'.
@@ -182,9 +188,39 @@ class Plaintext private constructor(
         status
     )
 
+    constructor(
+        type: Type,
+        from: BitmessageAddress,
+        to: BitmessageAddress? = null,
+        encoding: Encoding = SIMPLE,
+        subject: String,
+        body: String,
+        ackData: ByteArray = cryptography().randomBytes(Msg.ACK_LENGTH),
+        conversationId: UUID = UUID.randomUUID(),
+        ttl: Long = TTL.msg,
+        labels: MutableSet<Label> = HashSet(),
+        status: Status = Status.DRAFT
+    ) : this(
+        type,
+        from,
+        to,
+        encoding.code,
+        message(encoding, subject, body),
+        ackData,
+        lazy { Factory.createAck(from, ackData, ttl) },
+        conversationId,
+        null,
+        null,
+        null,
+        null,
+        ttl,
+        labels,
+        status
+    )
+
     constructor(builder: Builder) : this(
         builder.type,
-        builder.from!!,
+        builder.from ?: throw IllegalStateException("sender identity not set"),
         builder.to,
         builder.encoding,
         builder.message,

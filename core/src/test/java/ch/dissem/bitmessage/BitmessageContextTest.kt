@@ -114,12 +114,12 @@ class BitmessageContextTest {
     @Test
     fun `ensure contact is saved and pubkey requested`() {
         val contact = BitmessageAddress("BM-opWQhvk9xtMFvQA2Kvetedpk8LkbraWHT")
-        whenever(ctx.addresses().getAddress(contact.address)).thenReturn(contact)
+        whenever(ctx.addresses.getAddress(contact.address)).thenReturn(contact)
 
         ctx.addContact(contact)
 
-        verify(ctx.addresses(), timeout(1000).atLeastOnce()).save(contact)
-        verify(ctx.internals().proofOfWorkEngine, timeout(1000)).calculateNonce(any(), any(), any())
+        verify(ctx.addresses, timeout(1000).atLeastOnce()).save(contact)
+        verify(ctx.internals.proofOfWorkEngine, timeout(1000)).calculateNonce(any(), any(), any())
     }
 
     @Test
@@ -131,8 +131,8 @@ class BitmessageContextTest {
 
         ctx.addContact(contact)
 
-        verify(ctx.addresses(), times(1)).save(contact)
-        verify(ctx.internals().proofOfWorkEngine, never()).calculateNonce(any(), any(), any())
+        verify(ctx.addresses, times(1)).save(contact)
+        verify(ctx.internals.proofOfWorkEngine, never()).calculateNonce(any(), any(), any())
     }
 
     @Test
@@ -150,12 +150,12 @@ class BitmessageContextTest {
         )
         val contact = BitmessageAddress("BM-opWQhvk9xtMFvQA2Kvetedpk8LkbraWHT")
 
-        whenever(ctx.addresses().getAddress(contact.address)).thenReturn(contact)
+        whenever(ctx.addresses.getAddress(contact.address)).thenReturn(contact)
 
         ctx.addContact(contact)
 
-        verify(ctx.addresses(), atLeastOnce()).save(contact)
-        verify(ctx.internals().proofOfWorkEngine, never()).calculateNonce(any(), any(), any())
+        verify(ctx.addresses, atLeastOnce()).save(contact)
+        verify(ctx.internals.proofOfWorkEngine, never()).calculateNonce(any(), any(), any())
     }
 
     @Test
@@ -174,12 +174,12 @@ class BitmessageContextTest {
         val contact = BitmessageAddress("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h")
         val stored = BitmessageAddress(contact.address)
         stored.alias = "Test"
-        whenever(ctx.addresses().getAddress(contact.address)).thenReturn(stored)
+        whenever(ctx.addresses.getAddress(contact.address)).thenReturn(stored)
 
         ctx.addContact(contact)
 
-        verify(ctx.addresses(), atLeastOnce()).save(any())
-        verify(ctx.internals().proofOfWorkEngine, never()).calculateNonce(any(), any(), any())
+        verify(ctx.addresses, atLeastOnce()).save(any())
+        verify(ctx.internals.proofOfWorkEngine, never()).calculateNonce(any(), any(), any())
     }
 
     @Test
@@ -191,12 +191,12 @@ class BitmessageContextTest {
             "V5Broadcast.payload"
         )
 
-        whenever(ctx.addresses().getSubscriptions(any())).thenReturn(listOf(address))
+        whenever(ctx.addresses.getSubscriptions(any())).thenReturn(listOf(address))
         ctx.addSubscribtion(address)
 
-        verify(ctx.addresses(), atLeastOnce()).save(address)
+        verify(ctx.addresses, atLeastOnce()).save(address)
         assertThat(address.isSubscribed, `is`(true))
-        verify(ctx.internals().inventory).getObjects(eq(address.stream), any(), any())
+        verify(ctx.internals.inventory).getObjects(eq(address.stream), any(), any())
         verify(listener).receive(any())
     }
 
@@ -210,9 +210,9 @@ class BitmessageContextTest {
         ctx.send(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"), TestUtils.loadContact(),
             "Subject", "Message")
         assertEquals(2, testPowRepo.added)
-        verify(ctx.internals().proofOfWorkRepository, timeout(10000).atLeastOnce())
+        verify(ctx.internals.proofOfWorkRepository, timeout(10000).atLeastOnce())
             .putObject(argThat { payload.type == ObjectType.MSG }, eq(1000L), eq(1000L))
-        verify(ctx.messages(), timeout(10000).atLeastOnce()).save(argThat { type == Type.MSG })
+        verify(ctx.messages, timeout(10000).atLeastOnce()).save(argThat { type == Type.MSG })
     }
 
     @Test
@@ -222,7 +222,7 @@ class BitmessageContextTest {
             "Subject", "Message")
         verify(testPowRepo, timeout(10000).atLeastOnce())
             .putObject(argThat { payload.type == ObjectType.GET_PUBKEY }, eq(1000L), eq(1000L))
-        verify(ctx.messages(), timeout(10000).atLeastOnce()).save(argThat { type == Type.MSG })
+        verify(ctx.messages, timeout(10000).atLeastOnce()).save(argThat { type == Type.MSG })
     }
 
     @Test(expected = IllegalArgumentException::class)
@@ -236,11 +236,11 @@ class BitmessageContextTest {
     fun `ensure broadcast is sent`() {
         ctx.broadcast(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"),
             "Subject", "Message")
-        verify(ctx.internals().proofOfWorkRepository, timeout(10000).atLeastOnce())
+        verify(ctx.internals.proofOfWorkRepository, timeout(10000).atLeastOnce())
             .putObject(argThat { payload.type == ObjectType.BROADCAST }, eq(1000L), eq(1000L))
-        verify(ctx.internals().proofOfWorkEngine)
+        verify(ctx.internals.proofOfWorkEngine)
             .calculateNonce(any(), any(), any())
-        verify(ctx.messages(), timeout(10000).atLeastOnce()).save(argThat { type == Type.BROADCAST })
+        verify(ctx.messages, timeout(10000).atLeastOnce()).save(argThat { type == Type.BROADCAST })
     }
 
     @Test(expected = IllegalArgumentException::class)
@@ -311,9 +311,9 @@ class BitmessageContextTest {
             .to(TestUtils.loadContact())
             .build()
         assertTrue(plaintext.to!!.has(Pubkey.Feature.DOES_ACK))
-        whenever(ctx.messages().findMessagesToResend()).thenReturn(listOf(plaintext))
-        whenever(ctx.messages().getMessage(any<ByteArray>())).thenReturn(plaintext)
+        whenever(ctx.messages.findMessagesToResend()).thenReturn(listOf(plaintext))
+        whenever(ctx.messages.getMessage(any<ByteArray>())).thenReturn(plaintext)
         ctx.resendUnacknowledgedMessages()
-        verify(ctx.labeler(), timeout(1000).times(1)).markAsSent(eq(plaintext))
+        verify(ctx.labeler, timeout(1000).times(1)).markAsSent(eq(plaintext))
     }
 }

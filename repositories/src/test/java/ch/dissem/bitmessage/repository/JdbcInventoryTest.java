@@ -130,11 +130,11 @@ public class JdbcInventoryTest extends TestBase {
 
     private ObjectMessage getObjectMessage(long stream, long TTL, ObjectPayload payload) {
         return new ObjectMessage.Builder()
-                .nonce(new byte[8])
-                .expiresTime(now(+TTL))
-                .stream(stream)
-                .payload(payload)
-                .build();
+            .nonce(new byte[8])
+            .expiresTime(now() + TTL)
+            .stream(stream)
+            .payload(payload)
+            .build();
     }
 
     private GetPubkey getGetPubkey() {

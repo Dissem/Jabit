@@ -19,6 +19,7 @@ package ch.dissem.bitmessage.ports
 import ch.dissem.bitmessage.InternalContext
 import ch.dissem.bitmessage.entity.Plaintext
 import ch.dissem.bitmessage.entity.Plaintext.Status.*
+import ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST
 import ch.dissem.bitmessage.entity.valueobject.Label
 
 open class DefaultLabeler : Labeler {
@@ -26,7 +27,7 @@ open class DefaultLabeler : Labeler {
 
     override fun setLabels(msg: Plaintext) {
         msg.status = RECEIVED
-        if (msg.type === Plaintext.Type.BROADCAST) {
+        if (msg.type == BROADCAST) {
             msg.addLabels(ctx.messageRepository.getLabels(Label.Type.INBOX, Label.Type.BROADCAST, Label.Type.UNREAD))
         } else {
             msg.addLabels(ctx.messageRepository.getLabels(Label.Type.INBOX, Label.Type.UNREAD))
