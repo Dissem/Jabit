@@ -81,6 +81,6 @@ interface NetworkHandler {
 
     interface MessageListener {
         @Throws(IOException::class)
-        fun receive(`object`: ObjectMessage)
+        fun receive(objectMessage: ObjectMessage)
     }
 }

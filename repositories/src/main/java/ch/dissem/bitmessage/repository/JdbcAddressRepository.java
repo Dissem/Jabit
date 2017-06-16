@@ -21,6 +21,7 @@ import ch.dissem.bitmessage.entity.payload.Pubkey;
 import ch.dissem.bitmessage.entity.payload.V3Pubkey;
 import ch.dissem.bitmessage.entity.payload.V4Pubkey;
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey;
+import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.factory.Factory;
 import ch.dissem.bitmessage.ports.AddressRepository;
 import org.slf4j.Logger;
@@ -137,16 +138,14 @@ public class JdbcAddressRepository extends JdbcHelper implements AddressReposito
         try (
             Connection connection = config.getConnection();
             Statement stmt = connection.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM Address " +
+            ResultSet rs = stmt.executeQuery("SELECT '1' FROM Address " +
                 "WHERE address='" + address.getAddress() + "'")
         ) {
-            if (rs.next()) {
-                return rs.getInt(1) > 0;
-            }
+            return rs.next();
         } catch (SQLException e) {
             LOG.error(e.getMessage(), e);
+            throw new ApplicationException(e);
         }
-        return false;
     }
 
     @Override

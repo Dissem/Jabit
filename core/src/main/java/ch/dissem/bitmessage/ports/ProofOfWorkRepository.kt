@@ -29,14 +29,14 @@ interface ProofOfWorkRepository {
 
     fun getItems(): List<ByteArray>
 
-    fun putObject(`object`: ObjectMessage, nonceTrialsPerByte: Long, extraBytes: Long)
+    fun putObject(objectMessage: ObjectMessage, nonceTrialsPerByte: Long, extraBytes: Long)
 
     fun putObject(item: Item)
 
     fun removeObject(initialHash: ByteArray)
 
     data class Item @JvmOverloads constructor(
-        val `object`: ObjectMessage,
+        val objectMessage: ObjectMessage,
         val nonceTrialsPerByte: Long,
         val extraBytes: Long,
         // Needed for ACK POW calculation

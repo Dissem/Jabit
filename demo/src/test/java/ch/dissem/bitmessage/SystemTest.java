@@ -19,7 +19,6 @@ package ch.dissem.bitmessage;
 import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography;
 import ch.dissem.bitmessage.entity.BitmessageAddress;
 import ch.dissem.bitmessage.entity.Plaintext;
-import ch.dissem.bitmessage.networking.DefaultNetworkHandler;
 import ch.dissem.bitmessage.networking.nio.NioNetworkHandler;
 import ch.dissem.bitmessage.ports.DefaultLabeler;
 import ch.dissem.bitmessage.ports.Labeler;
@@ -29,14 +28,10 @@ import ch.dissem.bitmessage.utils.TTL;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -49,74 +44,62 @@ import static org.mockito.ArgumentMatchers.any;
 /**
  * @author Christian Basler
  */
-@RunWith(Parameterized.class)
 public class SystemTest {
     private static int port = 6000;
-    private final NetworkHandler aliceNetworkHandler;
-    private final NetworkHandler bobNetworkHandler;
 
     private BitmessageContext alice;
-    private TestListener aliceListener = new TestListener();
-    private Labeler aliceLabeler = Mockito.spy(new DebugLabeler("Alice"));
     private BitmessageAddress aliceIdentity;
+    private Labeler aliceLabeler;
 
     private BitmessageContext bob;
-    private TestListener bobListener = new TestListener();
+    private TestListener bobListener;
     private BitmessageAddress bobIdentity;
-
-    public SystemTest(NetworkHandler peer, NetworkHandler node) {
-        this.aliceNetworkHandler = peer;
-        this.bobNetworkHandler = node;
-    }
-
-    @Parameterized.Parameters
-    @SuppressWarnings("deprecation")
-    public static List<Object[]> parameters() {
-        return Arrays.asList(new Object[][]{
-            {new NioNetworkHandler(), new DefaultNetworkHandler()},
-            {new NioNetworkHandler(), new NioNetworkHandler()}
-        });
-    }
 
     @Before
     public void setUp() {
-        int alicePort = port++;
-        int bobPort = port++;
         TTL.msg(5 * MINUTE);
         TTL.getpubkey(5 * MINUTE);
         TTL.pubkey(5 * MINUTE);
-        JdbcConfig aliceDB = new JdbcConfig("jdbc:h2:mem:alice;DB_CLOSE_DELAY=-1", "sa", "");
-        alice = new BitmessageContext.Builder()
-            .addressRepo(new JdbcAddressRepository(aliceDB))
-            .inventory(new JdbcInventory(aliceDB))
-            .messageRepo(new JdbcMessageRepository(aliceDB))
-            .powRepo(new JdbcProofOfWorkRepository(aliceDB))
-            .port(alicePort)
-            .nodeRegistry(new TestNodeRegistry(bobPort))
-            .networkHandler(aliceNetworkHandler)
-            .cryptography(BouncyCryptography.INSTANCE)
-            .listener(aliceListener)
-            .labeler(aliceLabeler)
-            .build();
-        alice.startup();
-        aliceIdentity = alice.createIdentity(false, DOES_ACK);
 
-        JdbcConfig bobDB = new JdbcConfig("jdbc:h2:mem:bob;DB_CLOSE_DELAY=-1", "sa", "");
-        bob = new BitmessageContext.Builder()
-            .addressRepo(new JdbcAddressRepository(bobDB))
-            .inventory(new JdbcInventory(bobDB))
-            .messageRepo(new JdbcMessageRepository(bobDB))
-            .powRepo(new JdbcProofOfWorkRepository(bobDB))
-            .port(bobPort)
-            .nodeRegistry(new TestNodeRegistry(alicePort))
-            .networkHandler(bobNetworkHandler)
-            .cryptography(BouncyCryptography.INSTANCE)
-            .listener(bobListener)
-            .labeler(new DebugLabeler("Bob"))
-            .build();
-        bob.startup();
-        bobIdentity = bob.createIdentity(false, DOES_ACK);
-
+        int alicePort = port++;
+        int bobPort = port++;
+        {
+            JdbcConfig aliceDB = new JdbcConfig("jdbc:h2:mem:alice;DB_CLOSE_DELAY=-1", "sa", "");
+            aliceLabeler = Mockito.spy(new DebugLabeler("Alice"));
+            TestListener aliceListener = new TestListener();
+            alice = new BitmessageContext.Builder()
+                .addressRepo(new JdbcAddressRepository(aliceDB))
+                .inventory(new JdbcInventory(aliceDB))
+                .messageRepo(new JdbcMessageRepository(aliceDB))
+                .powRepo(new JdbcProofOfWorkRepository(aliceDB))
+                .port(alicePort)
+                .nodeRegistry(new TestNodeRegistry(bobPort))
+                .networkHandler(new NioNetworkHandler())
+                .cryptography(new BouncyCryptography())
+                .listener(aliceListener)
+                .labeler(aliceLabeler)
+                .build();
+            alice.startup();
+            aliceIdentity = alice.createIdentity(false, DOES_ACK);
+        }
+        {
+            JdbcConfig bobDB = new JdbcConfig("jdbc:h2:mem:bob;DB_CLOSE_DELAY=-1", "sa", "");
+            bobListener = new TestListener();
+            bob = new BitmessageContext.Builder()
+                .addressRepo(new JdbcAddressRepository(bobDB))
+                .inventory(new JdbcInventory(bobDB))
+                .messageRepo(new JdbcMessageRepository(bobDB))
+                .powRepo(new JdbcProofOfWorkRepository(bobDB))
+                .port(bobPort)
+                .nodeRegistry(new TestNodeRegistry(alicePort))
+                .networkHandler(new NioNetworkHandler())
+                .cryptography(new BouncyCryptography())
+                .listener(bobListener)
+                .labeler(new DebugLabeler("Bob"))
+                .build();
+            bob.startup();
+            bobIdentity = bob.createIdentity(false, DOES_ACK);
+        }
         ((DebugLabeler) alice.labeler()).init(aliceIdentity, bobIdentity);
         ((DebugLabeler) bob.labeler()).init(aliceIdentity, bobIdentity);
     }

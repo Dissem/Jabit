@@ -19,11 +19,14 @@ package ch.dissem.bitmessage.entity.valueobject
 import java.io.Serializable
 import java.util.*
 
-data class Label(private val label: String, val type: Label.Type,
-                 /**
-                  * RGBA representation for the color.
-                  */
-                 var color: Int) : Serializable {
+data class Label(
+    private val label: String,
+    val type: Label.Type?,
+    /**
+     * RGBA representation for the color.
+     */
+    var color: Int
+) : Serializable {
 
     var id: Any? = null
 

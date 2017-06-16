@@ -28,8 +28,8 @@ import ch.dissem.bitmessage.ports.DefaultLabeler
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine
 import ch.dissem.bitmessage.ports.ProofOfWorkRepository
 import ch.dissem.bitmessage.testutils.TestInventory
-import ch.dissem.bitmessage.utils.Singleton
 import ch.dissem.bitmessage.utils.Singleton.cryptography
+import ch.dissem.bitmessage.utils.Strings.hex
 import ch.dissem.bitmessage.utils.TTL
 import ch.dissem.bitmessage.utils.TestUtils
 import ch.dissem.bitmessage.utils.UnixTime.MINUTE
@@ -40,12 +40,12 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import java.util.*
+import kotlin.concurrent.thread
 
 /**
  * @author Christian Basler
  */
 class BitmessageContextTest {
-    private lateinit var ctx: BitmessageContext
     private var listener: BitmessageContext.Listener = mock()
     private val inventory = spy(TestInventory())
     private val testPowRepo = spy(object : ProofOfWorkRepository {
@@ -54,7 +54,7 @@ class BitmessageContextTest {
         internal var removed = 0
 
         override fun getItem(initialHash: ByteArray): ProofOfWorkRepository.Item {
-            return items[InventoryVector(initialHash)]!!
+            return items[InventoryVector(initialHash)] ?: throw IllegalArgumentException("${hex(initialHash)} not found in $items")
         }
 
         override fun getItems(): List<ByteArray> {
@@ -66,12 +66,12 @@ class BitmessageContextTest {
         }
 
         override fun putObject(item: ProofOfWorkRepository.Item) {
-            items.put(InventoryVector(cryptography().getInitialHash(item.`object`)), item)
+            items.put(InventoryVector(cryptography().getInitialHash(item.objectMessage)), item)
             added++
         }
 
-        override fun putObject(`object`: ObjectMessage, nonceTrialsPerByte: Long, extraBytes: Long) {
-            items.put(InventoryVector(cryptography().getInitialHash(`object`)), ProofOfWorkRepository.Item(`object`, nonceTrialsPerByte, extraBytes))
+        override fun putObject(objectMessage: ObjectMessage, nonceTrialsPerByte: Long, extraBytes: Long) {
+            items.put(InventoryVector(cryptography().getInitialHash(objectMessage)), ProofOfWorkRepository.Item(objectMessage, nonceTrialsPerByte, extraBytes))
             added++
         }
 
@@ -87,39 +87,42 @@ class BitmessageContextTest {
             removed = 0
         }
     })
+    private val testPowEngine = spy(object : ProofOfWorkEngine {
+        override fun calculateNonce(initialHash: ByteArray, target: ByteArray, callback: ProofOfWorkEngine.Callback) {
+            thread { callback.onNonceCalculated(initialHash, ByteArray(8)) }
+        }
+    })
+    private var ctx = BitmessageContext.Builder()
+        .addressRepo(mock())
+        .cryptography(BouncyCryptography())
+        .inventory(inventory)
+        .listener(listener)
+        .messageRepo(mock())
+        .networkHandler(mock())
+        .nodeRegistry(mock())
+        .labeler(spy(DefaultLabeler()))
+        .powRepo(testPowRepo)
+        .proofOfWorkEngine(testPowEngine)
+        .build()
+
+    init {
+        TTL.msg = 2 * MINUTE
+    }
 
     @Before
     fun setUp() {
-        Singleton.initialize(BouncyCryptography())
-        ctx = BitmessageContext.Builder()
-            .addressRepo(mock())
-            .cryptography(cryptography())
-            .inventory(inventory)
-            .listener(listener)
-            .messageRepo(mock())
-            .networkHandler(mock())
-            .nodeRegistry(mock())
-            .labeler(spy(DefaultLabeler()))
-            .powRepo(testPowRepo)
-            .proofOfWorkEngine(spy(object : ProofOfWorkEngine {
-                override fun calculateNonce(initialHash: ByteArray, target: ByteArray, callback: ProofOfWorkEngine.Callback) {
-                    callback.onNonceCalculated(initialHash, ByteArray(8))
-                }
-            }))
-            .build()
-        TTL.msg = 2 * MINUTE
         testPowRepo.reset()
     }
 
     @Test
     fun `ensure contact is saved and pubkey requested`() {
         val contact = BitmessageAddress("BM-opWQhvk9xtMFvQA2Kvetedpk8LkbraWHT")
-        whenever(ctx.addresses.getAddress(contact.address)).thenReturn(contact)
+        doReturn(contact).whenever(ctx.addresses).getAddress(eq(contact.address))
 
         ctx.addContact(contact)
 
-        verify(ctx.addresses, timeout(1000).atLeastOnce()).save(contact)
-        verify(ctx.internals.proofOfWorkEngine, timeout(1000)).calculateNonce(any(), any(), any())
+        verify(ctx.addresses, timeout(1000).atLeastOnce()).save(eq(contact))
+        verify(testPowEngine, timeout(1000)).calculateNonce(any(), any(), any())
     }
 
     @Test
@@ -132,7 +135,7 @@ class BitmessageContextTest {
         ctx.addContact(contact)
 
         verify(ctx.addresses, times(1)).save(contact)
-        verify(ctx.internals.proofOfWorkEngine, never()).calculateNonce(any(), any(), any())
+        verify(testPowEngine, never()).calculateNonce(any(), any(), any())
     }
 
     @Test
@@ -155,7 +158,7 @@ class BitmessageContextTest {
         ctx.addContact(contact)
 
         verify(ctx.addresses, atLeastOnce()).save(contact)
-        verify(ctx.internals.proofOfWorkEngine, never()).calculateNonce(any(), any(), any())
+        verify(testPowEngine, never()).calculateNonce(any(), any(), any())
     }
 
     @Test
@@ -179,7 +182,7 @@ class BitmessageContextTest {
         ctx.addContact(contact)
 
         verify(ctx.addresses, atLeastOnce()).save(any())
-        verify(ctx.internals.proofOfWorkEngine, never()).calculateNonce(any(), any(), any())
+        verify(testPowEngine, never()).calculateNonce(any(), any(), any())
     }
 
     @Test
@@ -209,9 +212,9 @@ class BitmessageContextTest {
     fun `ensure message is sent`() {
         ctx.send(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"), TestUtils.loadContact(),
             "Subject", "Message")
+        verify(ctx.internals.proofOfWorkRepository, timeout(10000)).putObject(
+            argThat { payload.type == ObjectType.MSG }, eq(1000L), eq(1000L))
         assertEquals(2, testPowRepo.added)
-        verify(ctx.internals.proofOfWorkRepository, timeout(10000).atLeastOnce())
-            .putObject(argThat { payload.type == ObjectType.MSG }, eq(1000L), eq(1000L))
         verify(ctx.messages, timeout(10000).atLeastOnce()).save(argThat { type == Type.MSG })
     }
 
@@ -236,10 +239,9 @@ class BitmessageContextTest {
     fun `ensure broadcast is sent`() {
         ctx.broadcast(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"),
             "Subject", "Message")
-        verify(ctx.internals.proofOfWorkRepository, timeout(10000).atLeastOnce())
+        verify(ctx.internals.proofOfWorkRepository, timeout(1000).atLeastOnce())
             .putObject(argThat { payload.type == ObjectType.BROADCAST }, eq(1000L), eq(1000L))
-        verify(ctx.internals.proofOfWorkEngine)
-            .calculateNonce(any(), any(), any())
+        verify(testPowEngine).calculateNonce(any(), any(), any())
         verify(ctx.messages, timeout(10000).atLeastOnce()).save(argThat { type == Type.BROADCAST })
     }
 
@@ -265,7 +267,7 @@ class BitmessageContextTest {
     fun `ensure deterministic addresses are created`() {
         val expected_size = 8
         val addresses = ctx.createDeterministicAddresses("test", expected_size, 4, 1, false)
-        assertEquals(expected_size.toLong(), addresses.size.toLong())
+        assertEquals(expected_size, addresses.size)
         val expected = HashSet<String>(expected_size)
         expected.add("BM-2cWFkyuXXFw6d393RGnin2RpSXj8wxtt6F")
         expected.add("BM-2cX8TF9vuQZEWvT7UrEeq1HN9dgiSUPLEN")
@@ -285,7 +287,7 @@ class BitmessageContextTest {
     fun `ensure short deterministic addresses are created`() {
         val expected_size = 1
         val addresses = ctx.createDeterministicAddresses("test", expected_size, 4, 1, true)
-        assertEquals(expected_size.toLong(), addresses.size.toLong())
+        assertEquals(expected_size, addresses.size)
         val expected = HashSet<String>(expected_size)
         expected.add("BM-NBGyBAEp6VnBkFWKpzUSgxuTqVdWPi78")
         for (a in addresses) {

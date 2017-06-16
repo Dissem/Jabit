@@ -105,9 +105,9 @@ public class JdbcProofOfWorkRepository extends JdbcHelper implements ProofOfWork
                 "nonce_trials_per_byte, extra_bytes, expiration_time, message_id) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?)")
         ) {
-            ps.setBytes(1, cryptography().getInitialHash(item.getObject()));
-            writeBlob(ps, 2, item.getObject());
-            ps.setLong(3, item.getObject().getVersion());
+            ps.setBytes(1, cryptography().getInitialHash(item.getObjectMessage()));
+            writeBlob(ps, 2, item.getObjectMessage());
+            ps.setLong(3, item.getObjectMessage().getVersion());
             ps.setLong(4, item.getNonceTrialsPerByte());
             ps.setLong(5, item.getExtraBytes());
 
@@ -120,7 +120,7 @@ public class JdbcProofOfWorkRepository extends JdbcHelper implements ProofOfWork
             }
             ps.executeUpdate();
         } catch (IOException | SQLException e) {
-            LOG.debug("Error storing object of type " + item.getObject().getPayload().getClass().getSimpleName(), e);
+            LOG.debug("Error storing object of type " + item.getObjectMessage().getPayload().getClass().getSimpleName(), e);
             throw new ApplicationException(e);
         }
     }

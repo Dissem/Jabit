@@ -37,7 +37,7 @@ import javax.crypto.spec.SecretKeySpec
  * Implements everything that isn't directly dependent on either Spongy- or Bouncycastle.
  */
 abstract class AbstractCryptography protected constructor(@JvmField protected val provider: Provider) : Cryptography {
-    private val context by InternalContext
+    private val context by InternalContext.lateinit
 
     @JvmField protected val ALGORITHM_ECDSA = "ECDSA"
     @JvmField protected val ALGORITHM_ECDSA_SHA1 = "SHA1withECDSA"
@@ -87,21 +87,21 @@ abstract class AbstractCryptography protected constructor(@JvmField protected va
         return result
     }
 
-    override fun doProofOfWork(`object`: ObjectMessage, nonceTrialsPerByte: Long,
+    override fun doProofOfWork(objectMessage: ObjectMessage, nonceTrialsPerByte: Long,
                                extraBytes: Long, callback: ProofOfWorkEngine.Callback) {
 
-        val initialHash = getInitialHash(`object`)
+        val initialHash = getInitialHash(objectMessage)
 
-        val target = getProofOfWorkTarget(`object`,
+        val target = getProofOfWorkTarget(objectMessage,
             max(nonceTrialsPerByte, NETWORK_NONCE_TRIALS_PER_BYTE), max(extraBytes, NETWORK_EXTRA_BYTES))
 
         context.proofOfWorkEngine.calculateNonce(initialHash, target, callback)
     }
 
     @Throws(InsufficientProofOfWorkException::class)
-    override fun checkProofOfWork(`object`: ObjectMessage, nonceTrialsPerByte: Long, extraBytes: Long) {
-        val target = getProofOfWorkTarget(`object`, nonceTrialsPerByte, extraBytes)
-        val value = doubleSha512(`object`.nonce ?: throw ApplicationException("Object without nonce"), getInitialHash(`object`))
+    override fun checkProofOfWork(objectMessage: ObjectMessage, nonceTrialsPerByte: Long, extraBytes: Long) {
+        val target = getProofOfWorkTarget(objectMessage, nonceTrialsPerByte, extraBytes)
+        val value = doubleSha512(objectMessage.nonce ?: throw ApplicationException("Object without nonce"), getInitialHash(objectMessage))
         if (Bytes.lt(target, value, 8)) {
             throw InsufficientProofOfWorkException(target, value)
         }
@@ -130,18 +130,18 @@ abstract class AbstractCryptography protected constructor(@JvmField protected va
         return false
     }
 
-    override fun getInitialHash(`object`: ObjectMessage): ByteArray {
-        return sha512(`object`.payloadBytesWithoutNonce)
+    override fun getInitialHash(objectMessage: ObjectMessage): ByteArray {
+        return sha512(objectMessage.payloadBytesWithoutNonce)
     }
 
-    override fun getProofOfWorkTarget(`object`: ObjectMessage, nonceTrialsPerByte: Long, extraBytes: Long): ByteArray {
+    override fun getProofOfWorkTarget(objectMessage: ObjectMessage, nonceTrialsPerByte: Long, extraBytes: Long): ByteArray {
         @Suppress("NAME_SHADOWING")
         val nonceTrialsPerByte = if (nonceTrialsPerByte == 0L) NETWORK_NONCE_TRIALS_PER_BYTE else nonceTrialsPerByte
         @Suppress("NAME_SHADOWING")
         val extraBytes = if (extraBytes == 0L) NETWORK_EXTRA_BYTES else extraBytes
 
-        val TTL = BigInteger.valueOf(`object`.expiresTime - UnixTime.now)
-        val powLength = BigInteger.valueOf(`object`.payloadBytesWithoutNonce.size + extraBytes)
+        val TTL = BigInteger.valueOf(objectMessage.expiresTime - UnixTime.now)
+        val powLength = BigInteger.valueOf(objectMessage.payloadBytesWithoutNonce.size + extraBytes)
         val denominator = BigInteger.valueOf(nonceTrialsPerByte)
             .multiply(
                 powLength.add(

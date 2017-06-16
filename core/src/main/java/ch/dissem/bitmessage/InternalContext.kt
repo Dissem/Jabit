@@ -28,7 +28,6 @@ import ch.dissem.bitmessage.utils.UnixTime
 import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.Executors
-import kotlin.properties.Delegates
 import kotlin.reflect.KProperty
 
 /**
@@ -68,7 +67,8 @@ class InternalContext(
         get() = _streams.toLongArray()
 
     init {
-        instance = this
+        lateinit.instance = this
+        lateinit = ContextDelegate()
         Singleton.initialize(cryptography)
 
         // TODO: streams of new identities and subscriptions should also be added. This works only after a restart.
@@ -102,24 +102,24 @@ class InternalContext(
         val recipient = to ?: from
         val expires = UnixTime.now + timeToLive
         LOG.info("Expires at " + expires)
-        val `object` = ObjectMessage(
+        val objectMessage = ObjectMessage(
             stream = recipient.stream,
             expiresTime = expires,
             payload = payload
         )
-        if (`object`.isSigned) {
-            `object`.sign(
+        if (objectMessage.isSigned) {
+            objectMessage.sign(
                 from.privateKey ?: throw IllegalArgumentException("The given sending address is no identity")
             )
         }
         if (payload is Broadcast) {
             payload.encrypt()
         } else if (payload is Encrypted) {
-            `object`.encrypt(
+            objectMessage.encrypt(
                 recipient.pubkey ?: throw IllegalArgumentException("The public key for the recipient isn't available")
             )
         }
-        proofOfWorkService.doProofOfWork(to, `object`)
+        proofOfWorkService.doProofOfWork(to, objectMessage)
     }
 
     fun sendPubkey(identity: BitmessageAddress, targetStream: Long) {
@@ -163,12 +163,11 @@ class InternalContext(
             }
 
             val expires = UnixTime.now + TTL.getpubkey
-            LOG.info("Expires at " + expires)
-            val payload = GetPubkey(contact)
+            LOG.info("Expires at $expires")
             val request = ObjectMessage(
                 stream = contact.stream,
                 expiresTime = expires,
-                payload = payload
+                payload = GetPubkey(contact)
             )
             proofOfWorkService.doProofOfWork(request)
         }
@@ -179,14 +178,14 @@ class InternalContext(
             address.alias = it.alias
             address.isSubscribed = it.isSubscribed
         }
-        for (`object` in inventory.getObjects(address.stream, address.version, ObjectType.PUBKEY)) {
+        for (objectMessage in inventory.getObjects(address.stream, address.version, ObjectType.PUBKEY)) {
             try {
-                val pubkey = `object`.payload as Pubkey
+                val pubkey = objectMessage.payload as Pubkey
                 if (address.version == 4L) {
                     val v4Pubkey = pubkey as V4Pubkey
                     if (Arrays.equals(address.tag, v4Pubkey.tag)) {
                         v4Pubkey.decrypt(address.publicDecryptionKey)
-                        if (`object`.isSignatureValid(v4Pubkey)) {
+                        if (objectMessage.isSignatureValid(v4Pubkey)) {
                             address.pubkey = v4Pubkey
                             addressRepository.save(address)
                             break
@@ -219,17 +218,19 @@ class InternalContext(
         fun setContext(context: InternalContext)
     }
 
+    class ContextDelegate {
+        internal lateinit var instance: InternalContext
+        operator fun getValue(thisRef: Any?, property: KProperty<*>) = instance
+        operator fun setValue(thisRef: Any?, property: KProperty<*>, value: InternalContext) {}
+    }
+
     companion object {
         private val LOG = LoggerFactory.getLogger(InternalContext::class.java)
 
         @JvmField val NETWORK_NONCE_TRIALS_PER_BYTE: Long = 1000
         @JvmField val NETWORK_EXTRA_BYTES: Long = 1000
 
-        private var instance: InternalContext by Delegates.notNull<InternalContext>()
-
-        operator fun getValue(thisRef: Any?, property: KProperty<*>) = instance
-        operator fun setValue(thisRef: Any?, property: KProperty<*>, value: InternalContext) {
-            instance = value
-        }
+        var lateinit = ContextDelegate()
+            private set
     }
 }

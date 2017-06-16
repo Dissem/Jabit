@@ -21,16 +21,11 @@ import ch.dissem.bitmessage.ports.MultiThreadedPOWEngine
 import ch.dissem.bitmessage.utils.Singleton
 import ch.dissem.bitmessage.utils.TestUtils.mockedInternalContext
 
-/**
- * Created by chris on 20.07.15.
- */
 open class TestBase {
     companion object {
         init {
-            val security = BouncyCryptography()
-            Singleton.initialize(security)
             mockedInternalContext(
-                cryptography = security,
+                cryptography = BouncyCryptography(),
                 proofOfWorkEngine = MultiThreadedPOWEngine()
             )
         }

@@ -16,7 +16,6 @@
 
 package ch.dissem.bitmessage.utils
 
-import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography
 import ch.dissem.bitmessage.entity.BitmessageAddress
 import ch.dissem.bitmessage.entity.Plaintext
 import ch.dissem.bitmessage.entity.Plaintext.Type.MSG
@@ -30,18 +29,12 @@ import org.junit.Assert.assertThat
 import org.junit.Test
 import java.util.*
 
-class ConversationServiceTest {
+class ConversationServiceTest : TestBase() {
     private val alice = BitmessageAddress("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8")
     private val bob = BitmessageAddress("BM-2cTtkBnb4BUYDndTKun6D9PjtueP2h1bQj")
 
     private val messageRepository = mock<MessageRepository>()
     private val conversationService = spy(ConversationService(messageRepository))
-
-    companion object {
-        init {
-            Singleton.initialize(BouncyCryptography())
-        }
-    }
 
     @Test
     fun `ensure conversation is sorted properly`() {

@@ -61,7 +61,7 @@ public class Main {
             .messageRepo(new JdbcMessageRepository(jdbcConfig))
             .powRepo(new JdbcProofOfWorkRepository(jdbcConfig))
             .networkHandler(new NioNetworkHandler())
-            .cryptography(BouncyCryptography.INSTANCE)
+            .cryptography(new BouncyCryptography())
             .port(48444);
         if (options.localPort != null) {
             ctxBuilder.nodeRegistry(new NodeRegistry() {

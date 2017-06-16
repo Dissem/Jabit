@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage
 
+import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography
 import ch.dissem.bitmessage.entity.BitmessageAddress
 import ch.dissem.bitmessage.entity.ObjectMessage
 import ch.dissem.bitmessage.entity.Plaintext
@@ -26,9 +27,12 @@ import ch.dissem.bitmessage.entity.payload.GetPubkey
 import ch.dissem.bitmessage.entity.payload.Msg
 import ch.dissem.bitmessage.entity.payload.ObjectType
 import ch.dissem.bitmessage.factory.Factory
+import ch.dissem.bitmessage.ports.ProofOfWorkRepository
 import ch.dissem.bitmessage.utils.Singleton
 import ch.dissem.bitmessage.utils.TestBase
 import ch.dissem.bitmessage.utils.TestUtils
+import ch.dissem.bitmessage.utils.UnixTime.MINUTE
+import ch.dissem.bitmessage.utils.UnixTime.now
 import com.nhaarman.mockito_kotlin.*
 import org.junit.Before
 import org.junit.Test
@@ -40,7 +44,7 @@ class DefaultMessageListenerTest : TestBase() {
     private lateinit var listener: DefaultMessageListener
 
     private val ctx = TestUtils.mockedInternalContext(
-        cryptography = Singleton.cryptography()
+        cryptography = BouncyCryptography()
     )
 
     @Before
@@ -52,10 +56,13 @@ class DefaultMessageListenerTest : TestBase() {
     fun `ensure pubkey is sent on request`() {
         val identity = TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8")
         whenever(ctx.addressRepository.findIdentity(any())).thenReturn(identity)
-        listener.receive(ObjectMessage.Builder()
-            .stream(2)
-            .payload(GetPubkey(BitmessageAddress("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8")))
-            .build())
+        val objectMessage = ObjectMessage(
+            stream = 2,
+            payload = GetPubkey(BitmessageAddress("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8")),
+            expiresTime = now + MINUTE
+        )
+        whenever(ctx.proofOfWorkRepository.getItem(any())).thenReturn(ProofOfWorkRepository.Item(objectMessage, 1000L, 1000L))
+        listener.receive(objectMessage)
         verify(ctx.proofOfWorkRepository).putObject(argThat { type == ObjectType.PUBKEY.number }, any(), any())
     }
 
@@ -73,6 +80,7 @@ class DefaultMessageListenerTest : TestBase() {
             .build()
         objectMessage.sign(identity.privateKey!!)
         objectMessage.encrypt(Singleton.cryptography().createPublicKey(identity.publicDecryptionKey))
+        whenever(ctx.proofOfWorkRepository.getItem(any())).thenReturn(ProofOfWorkRepository.Item(objectMessage, 1000L, 1000L))
         listener.receive(objectMessage)
 
         verify(ctx.addressRepository).save(eq(contact))

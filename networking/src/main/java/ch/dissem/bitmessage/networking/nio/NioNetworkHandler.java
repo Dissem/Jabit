@@ -25,10 +25,10 @@ import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.exception.ApplicationException;
 import ch.dissem.bitmessage.exception.NodeException;
 import ch.dissem.bitmessage.factory.V3MessageReader;
-import ch.dissem.bitmessage.networking.AbstractConnection;
 import ch.dissem.bitmessage.ports.NetworkHandler;
 import ch.dissem.bitmessage.utils.DebugUtils;
 import ch.dissem.bitmessage.utils.Property;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,8 +75,9 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
 
     private Thread starter;
 
+    @NotNull
     @Override
-    public Future<Void> synchronize(final InetAddress server, final int port, final long timeoutInSeconds) {
+    public Future<Void> synchronize(@NotNull final InetAddress server, final int port, final long timeoutInSeconds) {
         return threadPool.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
@@ -97,8 +98,9 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
         });
     }
 
+    @NotNull
     @Override
-    public CustomMessage send(InetAddress server, int port, CustomMessage request) {
+    public CustomMessage send(@NotNull InetAddress server, int port, @NotNull CustomMessage request) {
         try (SocketChannel channel = SocketChannel.open(new InetSocketAddress(server, port))) {
             channel.configureBlocking(true);
             ByteBuffer headerBuffer = ByteBuffer.allocate(HEADER_SIZE);
@@ -129,7 +131,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
             if (networkMessage != null && networkMessage.getPayload() instanceof CustomMessage) {
                 return (CustomMessage) networkMessage.getPayload();
             } else {
-                if (networkMessage == null || networkMessage.getPayload() == null) {
+                if (networkMessage == null) {
                     throw new NodeException("Empty response from node " + server);
                 } else {
                     throw new NodeException("Unexpected response from node " + server + ": "
@@ -391,7 +393,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
     }
 
     @Override
-    public void offer(InventoryVector iv) {
+    public void offer(@NotNull InventoryVector iv) {
         List<ConnectionInfo> target = new LinkedList<>();
         for (ConnectionInfo connection : connections.keySet()) {
             if (connection.getState() == ACTIVE && !connection.knowsOf(iv)) {
@@ -405,7 +407,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
     }
 
     @Override
-    public void request(Collection<InventoryVector> inventoryVectors) {
+    public void request(@NotNull Collection<InventoryVector> inventoryVectors) {
         if (!isRunning()) {
             requestedObjects.clear();
             return;
@@ -468,6 +470,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
         }
     }
 
+    @NotNull
     @Override
     public Property getNetworkStatus() {
         TreeSet<Long> streams = new TreeSet<>();
@@ -520,7 +523,7 @@ public class NioNetworkHandler implements NetworkHandler, InternalContext.Contex
     }
 
     @Override
-    public void setContext(InternalContext context) {
+    public void setContext(@NotNull InternalContext context) {
         this.ctx = context;
     }
 }

@@ -27,6 +27,6 @@ class CollectionsTest {
     fun `ensure select random returns maximum possible items`() {
         val list = LinkedList<Int>()
         list += 0..9
-        assertEquals(9, Collections.selectRandom(9, list).size.toLong())
+        assertEquals(9, Collections.selectRandom(9, list).size)
     }
 }

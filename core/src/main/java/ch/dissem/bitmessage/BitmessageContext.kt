@@ -58,7 +58,53 @@ import kotlin.properties.Delegates
  *
  * The port defaults to 8444 (the default Bitmessage port)
  */
-class BitmessageContext private constructor(builder: BitmessageContext.Builder) {
+class BitmessageContext(
+    cryptography: Cryptography,
+    inventory: Inventory,
+    nodeRegistry: NodeRegistry,
+    networkHandler: NetworkHandler,
+    addressRepository: AddressRepository,
+    messageRepository: MessageRepository,
+    proofOfWorkRepository: ProofOfWorkRepository,
+    proofOfWorkEngine: ProofOfWorkEngine = MultiThreadedPOWEngine(),
+    customCommandHandler: CustomCommandHandler = object : CustomCommandHandler {
+        override fun handle(request: CustomMessage): MessagePayload? {
+            BitmessageContext.LOG.debug("Received custom request, but no custom command handler configured.")
+            return null
+        }
+    },
+    listener: Listener,
+    labeler: Labeler = DefaultLabeler(),
+    port: Int = 8444,
+    connectionTTL: Long = 30 * MINUTE,
+    connectionLimit: Int = 150,
+    sendPubkeyOnIdentityCreation: Boolean,
+    doMissingProofOfWorkDelayInSeconds: Int = 30
+) {
+
+    private constructor(builder: BitmessageContext.Builder) : this(
+        builder.cryptography,
+        builder.inventory,
+        builder.nodeRegistry,
+        builder.networkHandler,
+        builder.addressRepo,
+        builder.messageRepo,
+        builder.proofOfWorkRepository,
+        builder.proofOfWorkEngine ?: MultiThreadedPOWEngine(),
+        builder.customCommandHandler ?: object : CustomCommandHandler {
+            override fun handle(request: CustomMessage): MessagePayload? {
+                BitmessageContext.LOG.debug("Received custom request, but no custom command handler configured.")
+                return null
+            }
+        },
+        builder.listener,
+        builder.labeler ?: DefaultLabeler(),
+        builder.port,
+        builder.connectionTTL,
+        builder.connectionLimit,
+        builder.sendPubkeyOnIdentityCreation,
+        builder.doMissingProofOfWorkDelay
+    )
 
     private val sendPubkeyOnIdentityCreation: Boolean
 
@@ -72,38 +118,10 @@ class BitmessageContext private constructor(builder: BitmessageContext.Builder) 
     val labeler: Labeler
         @JvmName("labeler") get
 
-    init {
-        labeler = builder.labeler ?: DefaultLabeler()
-        internals = InternalContext(
-            builder.cryptography,
-            builder.inventory,
-            builder.nodeRegistry,
-            builder.networkHandler,
-            builder.addressRepo,
-            builder.messageRepo,
-            builder.proofOfWorkRepository,
-            builder.proofOfWorkEngine ?: MultiThreadedPOWEngine(),
-            builder.customCommandHandler ?: object : CustomCommandHandler {
-                override fun handle(request: CustomMessage): MessagePayload? {
-                    LOG.debug("Received custom request, but no custom command handler configured.")
-                    return null
-                }
-            },
-            builder.listener,
-            labeler,
-            builder.port,
-            builder.connectionTTL,
-            builder.connectionLimit
-        )
-        internals.proofOfWorkService.doMissingProofOfWork(30000) // TODO: this should be configurable
-        sendPubkeyOnIdentityCreation = builder.sendPubkeyOnIdentityCreation
-        (builder.listener as? Listener.WithContext)?.setContext(this)
-    }
-
-    val addresses: AddressRepository = internals.addressRepository
+    val addresses: AddressRepository
         @JvmName("addresses") get
 
-    val messages: MessageRepository = internals.messageRepository
+    val messages: MessageRepository
         @JvmName("messages") get
 
     fun createIdentity(shorter: Boolean, vararg features: Feature): BitmessageAddress {
@@ -285,10 +303,9 @@ class BitmessageContext private constructor(builder: BitmessageContext.Builder) 
     fun addContact(contact: BitmessageAddress) {
         internals.addressRepository.save(contact)
         if (contact.pubkey == null) {
-            internals.addressRepository.getAddress(contact.address)?.let {
-                if (it.pubkey == null) {
-                    internals.requestPubkey(contact)
-                }
+            // If it already existed, the saved contact might have the public key
+            if (internals.addressRepository.getAddress(contact.address)!!.pubkey == null) {
+                internals.requestPubkey(contact)
             }
         }
     }
@@ -300,13 +317,13 @@ class BitmessageContext private constructor(builder: BitmessageContext.Builder) 
     }
 
     private fun tryToFindBroadcastsForAddress(address: BitmessageAddress) {
-        for (`object` in internals.inventory.getObjects(address.stream, Broadcast.getVersion(address), ObjectType.BROADCAST)) {
+        for (objectMessage in internals.inventory.getObjects(address.stream, Broadcast.getVersion(address), ObjectType.BROADCAST)) {
             try {
-                val broadcast = `object`.payload as Broadcast
+                val broadcast = objectMessage.payload as Broadcast
                 broadcast.decrypt(address)
                 // This decrypts it twice, but on the other hand it doesn't try to decrypt the objects with
                 // other subscriptions and the interface stays as simple as possible.
-                internals.networkListener.receive(`object`)
+                internals.networkListener.receive(objectMessage)
             } catch (ignore: DecryptionFailedException) {
             } catch (e: Exception) {
                 LOG.debug(e.message, e)
@@ -348,6 +365,7 @@ class BitmessageContext private constructor(builder: BitmessageContext.Builder) 
         internal var connectionLimit = 150
         internal var connectionTTL = 30 * MINUTE
         internal var sendPubkeyOnIdentityCreation = true
+        internal var doMissingProofOfWorkDelay = 30
 
         fun port(port: Int): Builder {
             this.port = port
@@ -409,6 +427,7 @@ class BitmessageContext private constructor(builder: BitmessageContext.Builder) 
             return this
         }
 
+        @JvmName("kotlinListener")
         fun listener(listener: (Plaintext) -> Unit): Builder {
             this.listener = object : Listener {
                 override fun receive(plaintext: Plaintext) {
@@ -428,6 +447,10 @@ class BitmessageContext private constructor(builder: BitmessageContext.Builder) 
             return this
         }
 
+        fun doMissingProofOfWorkDelay(seconds: Int) {
+            this.doMissingProofOfWorkDelay = seconds
+        }
+
         /**
          * By default a client will send the public key when an identity is being created. On weaker devices
          * this behaviour might not be desirable.
@@ -438,18 +461,34 @@ class BitmessageContext private constructor(builder: BitmessageContext.Builder) 
         }
 
         fun build(): BitmessageContext {
-            nonNull("inventory", inventory)
-            nonNull("nodeRegistry", nodeRegistry)
-            nonNull("networkHandler", networkHandler)
-            nonNull("addressRepo", addressRepo)
-            nonNull("messageRepo", messageRepo)
-            nonNull("proofOfWorkRepo", proofOfWorkRepository)
             return BitmessageContext(this)
         }
+    }
 
-        private fun nonNull(name: String, o: Any?) {
-            if (o == null) throw IllegalStateException(name + " must not be null")
-        }
+
+    init {
+        this.labeler = labeler
+        this.internals = InternalContext(
+            cryptography,
+            inventory,
+            nodeRegistry,
+            networkHandler,
+            addressRepository,
+            messageRepository,
+            proofOfWorkRepository,
+            proofOfWorkEngine,
+            customCommandHandler,
+            listener,
+            labeler,
+            port,
+            connectionTTL,
+            connectionLimit
+        )
+        this.addresses = addressRepository
+        this.messages = messageRepository
+        this.sendPubkeyOnIdentityCreation = sendPubkeyOnIdentityCreation
+        (listener as? Listener.WithContext)?.setContext(this)
+        internals.proofOfWorkService.doMissingProofOfWork(doMissingProofOfWorkDelayInSeconds * 1000L)
     }
 
     companion object {

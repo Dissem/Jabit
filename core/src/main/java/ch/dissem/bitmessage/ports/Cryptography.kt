@@ -145,7 +145,7 @@ interface Cryptography {
      * Calculates the proof of work. This might take a long time, depending on the hardware, message size and time to
      * live.
 
-     * @param object             to do the proof of work for
+     * @param objectMessage      to do the proof of work for
      * *
      * @param nonceTrialsPerByte difficulty
      * *
@@ -153,11 +153,11 @@ interface Cryptography {
      * *
      * @param callback           to handle nonce once it's calculated
      */
-    fun doProofOfWork(`object`: ObjectMessage, nonceTrialsPerByte: Long,
+    fun doProofOfWork(objectMessage: ObjectMessage, nonceTrialsPerByte: Long,
                       extraBytes: Long, callback: ProofOfWorkEngine.Callback)
 
     /**
-     * @param object             to be checked
+     * @param objectMessage      to be checked
      * *
      * @param nonceTrialsPerByte difficulty
      * *
@@ -166,11 +166,11 @@ interface Cryptography {
      * @throws InsufficientProofOfWorkException if proof of work doesn't check out (makes it more difficult to send small messages)
      */
     @Throws(InsufficientProofOfWorkException::class)
-    fun checkProofOfWork(`object`: ObjectMessage, nonceTrialsPerByte: Long, extraBytes: Long)
+    fun checkProofOfWork(objectMessage: ObjectMessage, nonceTrialsPerByte: Long, extraBytes: Long)
 
-    fun getInitialHash(`object`: ObjectMessage): ByteArray
+    fun getInitialHash(objectMessage: ObjectMessage): ByteArray
 
-    fun getProofOfWorkTarget(`object`: ObjectMessage, nonceTrialsPerByte: Long = NETWORK_NONCE_TRIALS_PER_BYTE, extraBytes: Long = NETWORK_EXTRA_BYTES): ByteArray
+    fun getProofOfWorkTarget(objectMessage: ObjectMessage, nonceTrialsPerByte: Long = NETWORK_NONCE_TRIALS_PER_BYTE, extraBytes: Long = NETWORK_EXTRA_BYTES): ByteArray
 
     /**
      * Calculates the MAC for a message (data)

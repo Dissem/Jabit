@@ -42,12 +42,12 @@ class TestInventory : Inventory {
         return ArrayList(inventory.values)
     }
 
-    override fun storeObject(`object`: ObjectMessage) {
-        inventory.put(`object`.inventoryVector, `object`)
+    override fun storeObject(objectMessage: ObjectMessage) {
+        inventory.put(objectMessage.inventoryVector, objectMessage)
     }
 
-    override fun contains(`object`: ObjectMessage): Boolean {
-        return inventory.containsKey(`object`.inventoryVector)
+    override fun contains(objectMessage: ObjectMessage): Boolean {
+        return inventory.containsKey(objectMessage.inventoryVector)
     }
 
     override fun cleanup() {

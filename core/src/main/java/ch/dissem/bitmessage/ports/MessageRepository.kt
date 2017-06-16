@@ -28,7 +28,7 @@ interface MessageRepository {
 
     fun getLabels(vararg types: Label.Type): List<Label>
 
-    fun countUnread(label: Label): Int
+    fun countUnread(label: Label?): Int
 
     fun getMessage(id: Any): Plaintext
 
@@ -43,7 +43,7 @@ interface MessageRepository {
      * *
      * @return a distinct list of all conversations that have at least one message with the given label.
      */
-    fun findConversations(label: Label): List<UUID>
+    fun findConversations(label: Label?): List<UUID>
 
     fun findMessages(label: Label?): List<Plaintext>
 

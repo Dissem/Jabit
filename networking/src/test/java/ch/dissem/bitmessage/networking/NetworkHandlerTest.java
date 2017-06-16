@@ -98,7 +98,7 @@ public class NetworkHandlerTest {
             .port(peerAddress.getPort())
             .nodeRegistry(new TestNodeRegistry())
             .networkHandler(peerNetworkHandler)
-            .cryptography(BouncyCryptography.INSTANCE)
+            .cryptography(new BouncyCryptography())
             .listener(mock(BitmessageContext.Listener.class))
             .customCommandHandler(new CustomCommandHandler() {
                 @Override
@@ -133,7 +133,7 @@ public class NetworkHandlerTest {
             .port(6002)
             .nodeRegistry(new TestNodeRegistry(peerAddress))
             .networkHandler(nodeNetworkHandler)
-            .cryptography(BouncyCryptography.INSTANCE)
+            .cryptography(new BouncyCryptography())
             .listener(mock(BitmessageContext.Listener.class))
             .build();
     }

@@ -65,7 +65,7 @@ class CryptoCustomMessage<T : Streamable> : CustomMessage {
 
         Encode.varInt(identity.version, out)
         Encode.varInt(identity.stream, out)
-        Encode.int32(privateKey.pubkey.behaviorBitfield.toLong(), out)
+        Encode.int32(privateKey.pubkey.behaviorBitfield, out)
         out.write(privateKey.pubkey.signingKey, 1, 64)
         out.write(privateKey.pubkey.encryptionKey, 1, 64)
         if (identity.version >= 3) {
@@ -114,7 +114,7 @@ class CryptoCustomMessage<T : Streamable> : CustomMessage {
         container?.write(out) ?: throw IllegalStateException("not encrypted yet")
     }
 
-    interface Reader<T> {
+    interface Reader<out T> {
         fun read(sender: BitmessageAddress, `in`: InputStream): T
     }
 

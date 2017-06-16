@@ -77,24 +77,24 @@ class ProofOfWorkServiceTest {
         val identity = TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8")
         val address = TestUtils.loadContact()
         val plaintext = Plaintext.Builder(MSG).from(identity).to(address).message("", "").build()
-        val `object` = ObjectMessage(
+        val objectMessage = ObjectMessage(
             expiresTime = 0,
             stream = 1,
             payload = Msg(plaintext)
         )
-        `object`.sign(identity.privateKey!!)
-        `object`.encrypt(address.pubkey!!)
+        objectMessage.sign(identity.privateKey!!)
+        objectMessage.encrypt(address.pubkey!!)
         val initialHash = ByteArray(64)
         val nonce = byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8)
 
-        whenever(ctx.proofOfWorkRepository.getItem(initialHash)).thenReturn(ProofOfWorkRepository.Item(`object`, 1001, 1002))
+        whenever(ctx.proofOfWorkRepository.getItem(initialHash)).thenReturn(ProofOfWorkRepository.Item(objectMessage, 1001, 1002))
         whenever(ctx.messageRepository.getMessage(initialHash)).thenReturn(plaintext)
 
         ctx.proofOfWorkService.onNonceCalculated(initialHash, nonce)
 
         verify(ctx.proofOfWorkRepository).removeObject(eq(initialHash))
-        verify(ctx.inventory).storeObject(eq(`object`))
-        verify(ctx.networkHandler).offer(eq(`object`.inventoryVector))
-        assertThat(plaintext.inventoryVector, equalTo(`object`.inventoryVector))
+        verify(ctx.inventory).storeObject(eq(objectMessage))
+        verify(ctx.networkHandler).offer(eq(objectMessage.inventoryVector))
+        assertThat(plaintext.inventoryVector, equalTo(objectMessage.inventoryVector))
     }
 }

@@ -29,9 +29,9 @@ import org.junit.Test
 class SignatureTest : TestBase() {
     @Test
     fun `ensure validation works`() {
-        val `object` = TestUtils.loadObjectMessage(3, "V3Pubkey.payload")
-        val pubkey = `object`.payload as Pubkey
-        assertTrue(`object`.isSignatureValid(pubkey))
+        val objectMessage = TestUtils.loadObjectMessage(3, "V3Pubkey.payload")
+        val pubkey = objectMessage.payload as Pubkey
+        assertTrue(objectMessage.isSignatureValid(pubkey))
     }
 
     @Test
@@ -52,11 +52,11 @@ class SignatureTest : TestBase() {
     fun `ensure message is properly signed`() {
         val identity = TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8")
 
-        val `object` = TestUtils.loadObjectMessage(3, "V1Msg.payload")
-        val msg = `object`.payload as Msg
+        val objectMessage = TestUtils.loadObjectMessage(3, "V1Msg.payload")
+        val msg = objectMessage.payload as Msg
         msg.decrypt(identity.privateKey!!.privateEncryptionKey)
         assertNotNull(msg.plaintext)
         assertEquals(TestUtils.loadContact().pubkey, msg.plaintext!!.from.pubkey)
-        assertTrue(`object`.isSignatureValid(msg.plaintext!!.from.pubkey!!))
+        assertTrue(objectMessage.isSignatureValid(msg.plaintext!!.from.pubkey!!))
     }
 }

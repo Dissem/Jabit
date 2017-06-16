@@ -78,7 +78,7 @@ class Version constructor(
     override val command: MessagePayload.Command = MessagePayload.Command.VERSION
 
     override fun write(out: OutputStream) {
-        Encode.int32(version.toLong(), out)
+        Encode.int32(version, out)
         Encode.int64(services, out)
         Encode.int64(timestamp, out)
         addrRecv.write(out, true)
@@ -89,7 +89,7 @@ class Version constructor(
     }
 
     override fun write(buffer: ByteBuffer) {
-        Encode.int32(version.toLong(), buffer)
+        Encode.int32(version, buffer)
         Encode.int64(services, buffer)
         Encode.int64(timestamp, buffer)
         addrRecv.write(buffer, true)

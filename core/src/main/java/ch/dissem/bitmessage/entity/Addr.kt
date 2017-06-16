@@ -28,14 +28,14 @@ data class Addr constructor(val addresses: List<NetworkAddress>) : MessagePayloa
     override val command: MessagePayload.Command = MessagePayload.Command.ADDR
 
     override fun write(out: OutputStream) {
-        Encode.varInt(addresses.size.toLong(), out)
+        Encode.varInt(addresses.size, out)
         for (address in addresses) {
             address.write(out)
         }
     }
 
     override fun write(buffer: ByteBuffer) {
-        Encode.varInt(addresses.size.toLong(), buffer)
+        Encode.varInt(addresses.size, buffer)
         for (address in addresses) {
             address.write(buffer)
         }

@@ -121,12 +121,10 @@ class PrivateKey : Streamable {
         Encode.varInt(pubkey.stream, out)
         val baos = ByteArrayOutputStream()
         pubkey.writeUnencrypted(baos)
-        Encode.varInt(baos.size().toLong(), out)
+        Encode.varInt(baos.size(), out)
         out.write(baos.toByteArray())
-        Encode.varInt(privateSigningKey.size.toLong(), out)
-        out.write(privateSigningKey)
-        Encode.varInt(privateEncryptionKey.size.toLong(), out)
-        out.write(privateEncryptionKey)
+        Encode.varBytes(privateSigningKey, out)
+        Encode.varBytes(privateEncryptionKey, out)
     }
 
 

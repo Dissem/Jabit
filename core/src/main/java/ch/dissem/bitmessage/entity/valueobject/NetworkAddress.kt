@@ -30,7 +30,7 @@ import java.util.*
 /**
  * A node's address. It's written in IPv6 format.
  */
-data class NetworkAddress constructor(
+data class NetworkAddress(
     var time: Long,
 
     /**
@@ -47,25 +47,25 @@ data class NetworkAddress constructor(
      * IPv6 address. IPv4 addresses are written into the message as a 16 byte IPv4-mapped IPv6 address
      * (12 bytes 00 00 00 00 00 00 00 00 00 00 FF FF, followed by the 4 bytes of the IPv4 address).
      */
-    val iPv6: ByteArray,
+    val IPv6: ByteArray,
     val port: Int
 ) : Streamable {
 
     fun provides(service: Version.Service?): Boolean = service?.isEnabled(services) ?: false
 
     fun toInetAddress(): InetAddress {
-        return InetAddress.getByAddress(iPv6)
+        return InetAddress.getByAddress(IPv6)
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is NetworkAddress) return false
 
-        return port == other.port && Arrays.equals(iPv6, other.iPv6)
+        return port == other.port && Arrays.equals(IPv6, other.IPv6)
     }
 
     override fun hashCode(): Int {
-        var result = Arrays.hashCode(iPv6)
+        var result = Arrays.hashCode(IPv6)
         result = 31 * result + port
         return result
     }
@@ -84,8 +84,8 @@ data class NetworkAddress constructor(
             Encode.int32(stream, out)
         }
         Encode.int64(services, out)
-        out.write(iPv6)
-        Encode.int16(port.toLong(), out)
+        out.write(IPv6)
+        Encode.int16(port, out)
     }
 
     override fun write(buffer: ByteBuffer) {
@@ -98,8 +98,8 @@ data class NetworkAddress constructor(
             Encode.int32(stream, buffer)
         }
         Encode.int64(services, buffer)
-        buffer.put(iPv6)
-        Encode.int16(port.toLong(), buffer)
+        buffer.put(IPv6)
+        Encode.int16(port, buffer)
     }
 
     class Builder {

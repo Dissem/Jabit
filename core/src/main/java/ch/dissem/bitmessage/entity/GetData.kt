@@ -29,14 +29,14 @@ class GetData constructor(var inventory: List<InventoryVector>) : MessagePayload
     override val command: MessagePayload.Command = MessagePayload.Command.GETDATA
 
     override fun write(out: OutputStream) {
-        Encode.varInt(inventory.size.toLong(), out)
+        Encode.varInt(inventory.size, out)
         for (iv in inventory) {
             iv.write(out)
         }
     }
 
     override fun write(buffer: ByteBuffer) {
-        Encode.varInt(inventory.size.toLong(), buffer)
+        Encode.varInt(inventory.size, buffer)
         for (iv in inventory) {
             iv.write(buffer)
         }

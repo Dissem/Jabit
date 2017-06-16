@@ -43,7 +43,7 @@ data class NetworkMessage(
     @Throws(IOException::class)
     override fun write(out: OutputStream) {
         // magic
-        Encode.int32(MAGIC.toLong(), out)
+        Encode.int32(MAGIC, out)
 
         // ASCII string identifying the packet content, NULL padded (non-NULL padding results in packet rejected)
         val command = payload.command.name.toLowerCase()
@@ -57,7 +57,7 @@ data class NetworkMessage(
         // Length of payload in number of bytes. Because of other restrictions, there is no reason why this length would
         // ever be larger than 1600003 bytes. Some clients include a sanity-check to avoid processing messages which are
         // larger than this.
-        Encode.int32(payloadBytes.size.toLong(), out)
+        Encode.int32(payloadBytes.size, out)
 
         // checksum
         out.write(getChecksum(payloadBytes))
@@ -92,7 +92,7 @@ data class NetworkMessage(
 
     private fun writeHeader(out: ByteBuffer): ByteArray {
         // magic
-        Encode.int32(MAGIC.toLong(), out)
+        Encode.int32(MAGIC, out)
 
         // ASCII string identifying the packet content, NULL padded (non-NULL padding results in packet rejected)
         val command = payload.command.name.toLowerCase()
@@ -107,7 +107,7 @@ data class NetworkMessage(
         // Length of payload in number of bytes. Because of other restrictions, there is no reason why this length would
         // ever be larger than 1600003 bytes. Some clients include a sanity-check to avoid processing messages which are
         // larger than this.
-        Encode.int32(payloadBytes.size.toLong(), out)
+        Encode.int32(payloadBytes.size, out)
 
         // checksum
         out.put(getChecksum(payloadBytes))

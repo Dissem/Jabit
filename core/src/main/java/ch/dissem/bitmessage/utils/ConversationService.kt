@@ -19,6 +19,7 @@ package ch.dissem.bitmessage.utils
 import ch.dissem.bitmessage.entity.Plaintext
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector
 import ch.dissem.bitmessage.ports.MessageRepository
+import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.Collections
 import java.util.regex.Pattern

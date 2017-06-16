@@ -23,7 +23,7 @@ import ch.dissem.bitmessage.entity.Plaintext.Type.BROADCAST
 import ch.dissem.bitmessage.entity.valueobject.Label
 
 open class DefaultLabeler : Labeler {
-    private var ctx by InternalContext
+    private var ctx by InternalContext.lateinit
 
     override fun setLabels(msg: Plaintext) {
         msg.status = RECEIVED

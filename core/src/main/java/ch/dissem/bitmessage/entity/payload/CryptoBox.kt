@@ -114,7 +114,7 @@ class CryptoBox : Streamable {
 
     private fun writeWithoutMAC(out: OutputStream) {
         out.write(initializationVector)
-        Encode.int16(curveType.toLong(), out)
+        Encode.int16(curveType, out)
         writeCoordinateComponent(out, Points.getX(R))
         writeCoordinateComponent(out, Points.getY(R))
         out.write(encrypted)
@@ -123,14 +123,14 @@ class CryptoBox : Streamable {
     private fun writeCoordinateComponent(out: OutputStream, x: ByteArray) {
         val offset = Bytes.numberOfLeadingZeros(x)
         val length = x.size - offset
-        Encode.int16(length.toLong(), out)
+        Encode.int16(length, out)
         out.write(x, offset, length)
     }
 
     private fun writeCoordinateComponent(buffer: ByteBuffer, x: ByteArray) {
         val offset = Bytes.numberOfLeadingZeros(x)
         val length = x.size - offset
-        Encode.int16(length.toLong(), buffer)
+        Encode.int16(length, buffer)
         buffer.put(x, offset, length)
     }
 
@@ -141,7 +141,7 @@ class CryptoBox : Streamable {
 
     override fun write(buffer: ByteBuffer) {
         buffer.put(initializationVector)
-        Encode.int16(curveType.toLong(), buffer)
+        Encode.int16(curveType, buffer)
         writeCoordinateComponent(buffer, Points.getX(R))
         writeCoordinateComponent(buffer, Points.getY(R))
         buffer.put(encrypted)

@@ -25,6 +25,7 @@ import ch.dissem.bitmessage.entity.valueobject.InventoryVector
 import ch.dissem.bitmessage.exception.DecryptionFailedException
 import ch.dissem.bitmessage.ports.Labeler
 import ch.dissem.bitmessage.ports.NetworkHandler
+import ch.dissem.bitmessage.utils.Strings.hex
 import org.slf4j.LoggerFactory
 import java.util.*
 
@@ -32,23 +33,23 @@ internal open class DefaultMessageListener(
     private val labeler: Labeler,
     private val listener: BitmessageContext.Listener
 ) : NetworkHandler.MessageListener {
-    private var ctx by InternalContext
+    private var ctx by InternalContext.lateinit
 
-    override fun receive(`object`: ObjectMessage) {
-        val payload = `object`.payload
+    override fun receive(objectMessage: ObjectMessage) {
+        val payload = objectMessage.payload
 
         when (payload.type) {
             ObjectType.GET_PUBKEY -> {
-                receive(`object`, payload as GetPubkey)
+                receive(objectMessage, payload as GetPubkey)
             }
             ObjectType.PUBKEY -> {
-                receive(`object`, payload as Pubkey)
+                receive(objectMessage, payload as Pubkey)
             }
             ObjectType.MSG -> {
-                receive(`object`, payload as Msg)
+                receive(objectMessage, payload as Msg)
             }
             ObjectType.BROADCAST -> {
-                receive(`object`, payload as Broadcast)
+                receive(objectMessage, payload as Broadcast)
             }
             null -> {
                 if (payload is GenericPayload) {
@@ -61,30 +62,33 @@ internal open class DefaultMessageListener(
         }
     }
 
-    protected fun receive(`object`: ObjectMessage, getPubkey: GetPubkey) {
+    protected fun receive(objectMessage: ObjectMessage, getPubkey: GetPubkey) {
         val identity = ctx.addressRepository.findIdentity(getPubkey.ripeTag)
         if (identity != null && identity.privateKey != null && !identity.isChan) {
             LOG.info("Got pubkey request for identity " + identity)
             // FIXME: only send pubkey if it wasn't sent in the last TTL.pubkey() days
-            ctx.sendPubkey(identity, `object`.stream)
+            ctx.sendPubkey(identity, objectMessage.stream)
         }
     }
 
-    protected fun receive(`object`: ObjectMessage, pubkey: Pubkey) {
-        val address: BitmessageAddress?
+    protected fun receive(objectMessage: ObjectMessage, pubkey: Pubkey) {
         try {
             if (pubkey is V4Pubkey) {
-                address = ctx.addressRepository.findContact(pubkey.tag)
-                if (address != null) {
-                    pubkey.decrypt(address.publicDecryptionKey)
+                ctx.addressRepository.findContact(pubkey.tag)?.let {
+                    if (it.pubkey == null) {
+                        pubkey.decrypt(it.publicDecryptionKey)
+                        updatePubkey(it, pubkey)
+                    }
                 }
             } else {
-                address = ctx.addressRepository.findContact(pubkey.ripe)
+                ctx.addressRepository.findContact(pubkey.ripe)?.let {
+                    if (it.pubkey == null) {
+                        updatePubkey(it, pubkey)
+                    }
+                }
             }
-            if (address != null && address.pubkey == null) {
-                updatePubkey(address, pubkey)
-            }
-        } catch (_: DecryptionFailedException) {}
+        } catch (_: DecryptionFailedException) {
+        }
 
     }
 
@@ -101,19 +105,20 @@ internal open class DefaultMessageListener(
         }
     }
 
-    protected fun receive(`object`: ObjectMessage, msg: Msg) {
+    protected fun receive(objectMessage: ObjectMessage, msg: Msg) {
         for (identity in ctx.addressRepository.getIdentities()) {
             try {
                 msg.decrypt(identity.privateKey!!.privateEncryptionKey)
                 val plaintext = msg.plaintext!!
                 plaintext.to = identity
-                if (!`object`.isSignatureValid(plaintext.from.pubkey!!)) {
-                    LOG.warn("Msg with IV " + `object`.inventoryVector + " was successfully decrypted, but signature check failed. Ignoring.")
+                if (!objectMessage.isSignatureValid(plaintext.from.pubkey!!)) {
+                    LOG.warn("Msg with IV " + objectMessage.inventoryVector + " was successfully decrypted, but signature check failed. Ignoring.")
                 } else {
-                    receive(`object`.inventoryVector, plaintext)
+                    receive(objectMessage.inventoryVector, plaintext)
                 }
                 break
-            } catch (_: DecryptionFailedException) {}
+            } catch (_: DecryptionFailedException) {
+            }
         }
     }
 
@@ -122,11 +127,11 @@ internal open class DefaultMessageListener(
             ctx.messageRepository.getMessageForAck(ack.data)?.let {
                 ctx.labeler.markAsAcknowledged(it)
                 ctx.messageRepository.save(it)
-            }
+            } ?: LOG.debug("Message not found for ack ${hex(ack.data)}")
         }
     }
 
-    protected fun receive(`object`: ObjectMessage, broadcast: Broadcast) {
+    protected fun receive(objectMessage: ObjectMessage, broadcast: Broadcast) {
         val tag = if (broadcast is V5Broadcast) broadcast.tag else null
         for (subscription in ctx.addressRepository.getSubscriptions(broadcast.version)) {
             if (tag != null && !Arrays.equals(tag, subscription.tag)) {
@@ -134,12 +139,13 @@ internal open class DefaultMessageListener(
             }
             try {
                 broadcast.decrypt(subscription.publicDecryptionKey)
-                if (!`object`.isSignatureValid(broadcast.plaintext!!.from.pubkey!!)) {
-                    LOG.warn("Broadcast with IV " + `object`.inventoryVector + " was successfully decrypted, but signature check failed. Ignoring.")
+                if (!objectMessage.isSignatureValid(broadcast.plaintext!!.from.pubkey!!)) {
+                    LOG.warn("Broadcast with IV " + objectMessage.inventoryVector + " was successfully decrypted, but signature check failed. Ignoring.")
                 } else {
-                    receive(`object`.inventoryVector, broadcast.plaintext!!)
+                    receive(objectMessage.inventoryVector, broadcast.plaintext!!)
                 }
-            } catch (_: DecryptionFailedException) {}
+            } catch (_: DecryptionFailedException) {
+            }
         }
     }
 
@@ -158,7 +164,7 @@ internal open class DefaultMessageListener(
             msg.ackMessage?.let {
                 ctx.inventory.storeObject(it)
                 ctx.networkHandler.offer(it.inventoryVector)
-            }
+            } ?: LOG.debug("ack message expected")
         }
     }
 

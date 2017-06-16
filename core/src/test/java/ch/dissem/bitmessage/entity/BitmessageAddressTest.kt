@@ -31,9 +31,9 @@ import java.util.*
 class BitmessageAddressTest : TestBase() {
     @Test
     fun `ensure feature flag is calculated correctly`() {
-        Assert.assertEquals(1, Pubkey.Feature.bitfield(DOES_ACK).toLong())
-        assertEquals(2, Pubkey.Feature.bitfield(INCLUDE_DESTINATION).toLong())
-        assertEquals(3, Pubkey.Feature.bitfield(DOES_ACK, INCLUDE_DESTINATION).toLong())
+        Assert.assertEquals(1, Pubkey.Feature.bitfield(DOES_ACK))
+        assertEquals(2, Pubkey.Feature.bitfield(INCLUDE_DESTINATION))
+        assertEquals(3, Pubkey.Feature.bitfield(DOES_ACK, INCLUDE_DESTINATION))
     }
 
     @Test
@@ -84,9 +84,9 @@ class BitmessageAddressTest : TestBase() {
         val address = BitmessageAddress("BM-2D9Vc5rFxxR5vTi53T9gkLfemViHRMVLQZ")
         Assert.assertArrayEquals(Bytes.fromHex("007402be6e76c3cb87caa946d0c003a3d4d8e1d5"), address.ripe)
 
-        val `object` = TestUtils.loadObjectMessage(3, "V3Pubkey.payload")
-        val pubkey = `object`.payload as Pubkey
-        assertTrue(`object`.isSignatureValid(pubkey))
+        val objectMessage = TestUtils.loadObjectMessage(3, "V3Pubkey.payload")
+        val pubkey = objectMessage.payload as Pubkey
+        assertTrue(objectMessage.isSignatureValid(pubkey))
         try {
             address.pubkey = pubkey
         } catch (e: Exception) {
@@ -100,10 +100,10 @@ class BitmessageAddressTest : TestBase() {
     @Test
     fun `ensure V4Pubkey can be imported`() {
         val address = BitmessageAddress("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h")
-        val `object` = TestUtils.loadObjectMessage(4, "V4Pubkey.payload")
-        `object`.decrypt(address.publicDecryptionKey)
-        val pubkey = `object`.payload as V4Pubkey
-        assertTrue(`object`.isSignatureValid(pubkey))
+        val objectMessage = TestUtils.loadObjectMessage(4, "V4Pubkey.payload")
+        objectMessage.decrypt(address.publicDecryptionKey)
+        val pubkey = objectMessage.payload as V4Pubkey
+        assertTrue(objectMessage.isSignatureValid(pubkey))
         try {
             address.pubkey = pubkey
         } catch (e: Exception) {

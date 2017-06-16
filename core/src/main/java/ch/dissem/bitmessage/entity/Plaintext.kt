@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity
 
 import ch.dissem.bitmessage.entity.Plaintext.Encoding.*
+import ch.dissem.bitmessage.entity.Plaintext.Type.MSG
 import ch.dissem.bitmessage.entity.payload.Msg
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature
 import ch.dissem.bitmessage.entity.valueobject.ExtendedEncoding
@@ -38,8 +39,18 @@ import kotlin.collections.HashSet
 fun message(encoding: Plaintext.Encoding, subject: String, body: String): ByteArray = when (encoding) {
     SIMPLE -> "Subject:$subject\nBody:$body".toByteArray()
     EXTENDED -> Message.Builder().subject(subject).body(body).build().zip()
-    TRIVIAL -> (subject+body).toByteArray()
+    TRIVIAL -> (subject + body).toByteArray()
     IGNORE -> ByteArray(0)
+}
+
+fun ackData(type: Plaintext.Type, ackData: ByteArray?): ByteArray? {
+    if (ackData != null) {
+        return ackData
+    } else if (type == MSG) {
+        return cryptography().randomBytes(Msg.ACK_LENGTH)
+    } else {
+        return null
+    }
 }
 
 /**
@@ -52,7 +63,7 @@ class Plaintext private constructor(
     val encodingCode: Long,
     val message: ByteArray,
     val ackData: ByteArray?,
-    ackMessage: Lazy<ObjectMessage?>,
+    ackMessage: Lazy<ObjectMessage?> = lazy { Factory.createAck(from, ackData, ttl) },
     val conversationId: UUID = UUID.randomUUID(),
     var inventoryVector: InventoryVector? = null,
     var signature: ByteArray? = null,
@@ -121,7 +132,7 @@ class Plaintext private constructor(
         to: BitmessageAddress?,
         encoding: Encoding,
         message: ByteArray,
-        ackData: ByteArray = cryptography().randomBytes(Msg.ACK_LENGTH),
+        ackData: ByteArray? = null,
         conversationId: UUID = UUID.randomUUID(),
         inventoryVector: InventoryVector? = null,
         signature: ByteArray? = null,
@@ -131,21 +142,20 @@ class Plaintext private constructor(
         labels: MutableSet<Label> = HashSet(),
         status: Status
     ) : this(
-        type,
-        from,
-        to,
-        encoding.code,
-        message,
-        ackData,
-        lazy { Factory.createAck(from, ackData, ttl) },
-        conversationId,
-        inventoryVector,
-        signature,
-        received,
-        initialHash,
-        ttl,
-        labels,
-        status
+        type = type,
+        from = from,
+        to = to,
+        encoding = encoding.code,
+        message = message,
+        ackMessage = ackData(type, ackData),
+        conversationId = conversationId,
+        inventoryVector = inventoryVector,
+        signature = signature,
+        received = received,
+        initialHash = initialHash,
+        ttl = ttl,
+        labels = labels,
+        status = status
     )
 
     constructor(
@@ -164,13 +174,13 @@ class Plaintext private constructor(
         labels: MutableSet<Label> = HashSet(),
         status: Status
     ) : this(
-        type,
-        from,
-        to,
-        encoding,
-        message,
-        null,
-        lazy {
+        type = type,
+        from = from,
+        to = to,
+        encodingCode = encoding,
+        message = message,
+        ackData = null,
+        ackMessage = lazy {
             if (ackMessage != null && ackMessage.isNotEmpty()) {
                 Factory.getObjectMessage(
                     3,
@@ -178,14 +188,14 @@ class Plaintext private constructor(
                     ackMessage.size)
             } else null
         },
-        conversationId,
-        inventoryVector,
-        signature,
-        received,
-        initialHash,
-        ttl,
-        labels,
-        status
+        conversationId = conversationId,
+        inventoryVector = inventoryVector,
+        signature = signature,
+        received = received,
+        initialHash = initialHash,
+        ttl = ttl,
+        labels = labels,
+        status = status
     )
 
     constructor(
@@ -195,37 +205,36 @@ class Plaintext private constructor(
         encoding: Encoding = SIMPLE,
         subject: String,
         body: String,
-        ackData: ByteArray = cryptography().randomBytes(Msg.ACK_LENGTH),
+        ackData: ByteArray? = null,
         conversationId: UUID = UUID.randomUUID(),
         ttl: Long = TTL.msg,
         labels: MutableSet<Label> = HashSet(),
         status: Status = Status.DRAFT
     ) : this(
-        type,
-        from,
-        to,
-        encoding.code,
-        message(encoding, subject, body),
-        ackData,
-        lazy { Factory.createAck(from, ackData, ttl) },
-        conversationId,
-        null,
-        null,
-        null,
-        null,
-        ttl,
-        labels,
-        status
+        type = type,
+        from = from,
+        to = to,
+        encoding = encoding.code,
+        message = message(encoding, subject, body),
+        ackMessage = ackData(type, ackData),
+        conversationId = conversationId,
+        inventoryVector = null,
+        signature = null,
+        received = null,
+        initialHash = null,
+        ttl = ttl,
+        labels = labels,
+        status = status
     )
 
     constructor(builder: Builder) : this(
-        builder.type,
-        builder.from ?: throw IllegalStateException("sender identity not set"),
-        builder.to,
-        builder.encoding,
-        builder.message,
-        builder.ackData,
-        lazy {
+        type = builder.type,
+        from = builder.from ?: throw IllegalStateException("sender identity not set"),
+        to = builder.to,
+        encodingCode = builder.encoding,
+        message = builder.message,
+        ackData = builder.ackData,
+        ackMessage = lazy {
             val ackMsg = builder.ackMessage
             if (ackMsg != null && ackMsg.isNotEmpty()) {
                 Factory.getObjectMessage(
@@ -236,15 +245,17 @@ class Plaintext private constructor(
                 Factory.createAck(builder.from!!, builder.ackData, builder.ttl)
             }
         },
-        builder.conversation ?: UUID.randomUUID(),
-        builder.inventoryVector,
-        builder.signature,
-        builder.received,
-        null,
-        builder.ttl,
-        builder.labels,
-        builder.status ?: Status.RECEIVED
-    )
+        conversationId = builder.conversation ?: UUID.randomUUID(),
+        inventoryVector = builder.inventoryVector,
+        signature = builder.signature,
+        received = builder.received,
+        initialHash = null,
+        ttl = builder.ttl,
+        labels = builder.labels,
+        status = builder.status ?: Status.RECEIVED
+    ) {
+        id = builder.id
+    }
 
     fun write(out: OutputStream, includeSignature: Boolean) {
         Encode.varInt(from.version, out)
@@ -259,7 +270,7 @@ class Plaintext private constructor(
                 Encode.varInt(0, out)
             }
         } else {
-            Encode.int32(from.pubkey!!.behaviorBitfield.toLong(), out)
+            Encode.int32(from.pubkey!!.behaviorBitfield, out)
             out.write(from.pubkey!!.signingKey, 1, 64)
             out.write(from.pubkey!!.encryptionKey, 1, 64)
             if (from.version >= 3) {
@@ -267,13 +278,13 @@ class Plaintext private constructor(
                 Encode.varInt(from.pubkey!!.extraBytes, out)
             }
         }
-        if (type == Type.MSG) {
+        if (type == MSG) {
             out.write(to!!.ripe)
         }
         Encode.varInt(encodingCode, out)
-        Encode.varInt(message.size.toLong(), out)
+        Encode.varInt(message.size, out)
         out.write(message)
-        if (type == Type.MSG) {
+        if (type == MSG) {
             if (to?.has(Feature.DOES_ACK) ?: false) {
                 val ack = ByteArrayOutputStream()
                 ackMessage?.write(ack)
@@ -286,8 +297,7 @@ class Plaintext private constructor(
             if (signature == null) {
                 Encode.varInt(0, out)
             } else {
-                Encode.varInt(signature!!.size.toLong(), out)
-                out.write(signature!!)
+                Encode.varBytes(signature!!, out)
             }
         }
     }
@@ -305,7 +315,7 @@ class Plaintext private constructor(
                 Encode.varInt(0, buffer)
             }
         } else {
-            Encode.int32(from.pubkey!!.behaviorBitfield.toLong(), buffer)
+            Encode.int32(from.pubkey!!.behaviorBitfield, buffer)
             buffer.put(from.pubkey!!.signingKey, 1, 64)
             buffer.put(from.pubkey!!.encryptionKey, 1, 64)
             if (from.version >= 3) {
@@ -313,13 +323,12 @@ class Plaintext private constructor(
                 Encode.varInt(from.pubkey!!.extraBytes, buffer)
             }
         }
-        if (type == Type.MSG) {
+        if (type == MSG) {
             buffer.put(to!!.ripe)
         }
         Encode.varInt(encodingCode, buffer)
-        Encode.varInt(message.size.toLong(), buffer)
-        buffer.put(message)
-        if (type == Type.MSG) {
+        Encode.varBytes(message, buffer)
+        if (type == MSG) {
             if (to!!.has(Feature.DOES_ACK) && ackMessage != null) {
                 Encode.varBytes(Encode.bytes(ackMessage!!), buffer)
             } else {
@@ -331,8 +340,7 @@ class Plaintext private constructor(
             if (sig == null) {
                 Encode.varInt(0, buffer)
             } else {
-                Encode.varInt(sig.size.toLong(), buffer)
-                buffer.put(sig)
+                Encode.varBytes(sig, buffer)
             }
         }
     }
@@ -365,7 +373,7 @@ class Plaintext private constructor(
             val firstLine = s.nextLine()
             if (encodingCode == EXTENDED.code) {
                 if (Message.TYPE == extendedData?.type) {
-                    return (extendedData!!.content as Message?)?.subject
+                    return (extendedData!!.content as? Message)?.subject
                 } else {
                     return null
                 }
@@ -551,10 +559,12 @@ class Plaintext private constructor(
             return this
         }
 
-        fun to(address: BitmessageAddress): Builder {
-            if (type != Type.MSG && to != null)
-                throw IllegalArgumentException("recipient address only allowed for msg")
-            to = address
+        fun to(address: BitmessageAddress?): Builder {
+            if (address != null) {
+                if (type != MSG && to != null)
+                    throw IllegalArgumentException("recipient address only allowed for msg")
+                to = address
+            }
             return this
         }
 
@@ -594,7 +604,7 @@ class Plaintext private constructor(
         }
 
         fun destinationRipe(ripe: ByteArray?): Builder {
-            if (type != Type.MSG && ripe != null) throw IllegalArgumentException("ripe only allowed for msg")
+            if (type != MSG && ripe != null) throw IllegalArgumentException("ripe only allowed for msg")
             this.destinationRipe = ripe
             return this
         }
@@ -622,7 +632,6 @@ class Plaintext private constructor(
             } catch (e: UnsupportedEncodingException) {
                 throw ApplicationException(e)
             }
-
             return this
         }
 
@@ -632,13 +641,13 @@ class Plaintext private constructor(
         }
 
         fun ackMessage(ack: ByteArray?): Builder {
-            if (type != Type.MSG && ack != null) throw IllegalArgumentException("ackMessage only allowed for msg")
+            if (type != MSG && ack != null) throw IllegalArgumentException("ackMessage only allowed for msg")
             this.ackMessage = ack
             return this
         }
 
         fun ackData(ackData: ByteArray?): Builder {
-            if (type != Type.MSG && ackData != null)
+            if (type != MSG && ackData != null)
                 throw IllegalArgumentException("ackMessage only allowed for msg")
             this.ackData = ackData
             return this
@@ -704,7 +713,7 @@ class Plaintext private constructor(
             if (to == null && type != Type.BROADCAST && destinationRipe != null) {
                 to = BitmessageAddress(0, 0, destinationRipe!!)
             }
-            if (type == Type.MSG && ackMessage == null && ackData == null) {
+            if (type == MSG && ackMessage == null && ackData == null) {
                 ackData = cryptography().randomBytes(Msg.ACK_LENGTH)
             }
             if (ttl <= 0) {
@@ -733,10 +742,10 @@ class Plaintext private constructor(
                 .publicEncryptionKey(Decode.bytes(`in`, 64))
                 .nonceTrialsPerByte(if (version >= 3) Decode.varInt(`in`) else 0)
                 .extraBytes(if (version >= 3) Decode.varInt(`in`) else 0)
-                .destinationRipe(if (type == Type.MSG) Decode.bytes(`in`, 20) else null)
+                .destinationRipe(if (type == MSG) Decode.bytes(`in`, 20) else null)
                 .encoding(Decode.varInt(`in`))
                 .message(Decode.varBytes(`in`))
-                .ackMessage(if (type == Type.MSG) Decode.varBytes(`in`) else null)
+                .ackMessage(if (type == MSG) Decode.varBytes(`in`) else null)
         }
     }
 }

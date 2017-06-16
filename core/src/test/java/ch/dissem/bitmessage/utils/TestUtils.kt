@@ -43,7 +43,7 @@ object TestUtils {
 
     @JvmStatic fun int16(number: Int): ByteArray {
         val out = ByteArrayOutputStream()
-        Encode.int16(number.toLong(), out)
+        Encode.int16(number, out)
         return out.toByteArray()
     }
 
@@ -85,9 +85,9 @@ object TestUtils {
     @Throws(DecryptionFailedException::class)
     @JvmStatic fun loadContact(): BitmessageAddress {
         val address = BitmessageAddress("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h")
-        val `object` = TestUtils.loadObjectMessage(3, "V4Pubkey.payload")
-        `object`.decrypt(address.publicDecryptionKey)
-        address.pubkey = `object`.payload as V4Pubkey
+        val objectMessage = TestUtils.loadObjectMessage(3, "V4Pubkey.payload")
+        objectMessage.decrypt(address.publicDecryptionKey)
+        address.pubkey = objectMessage.payload as V4Pubkey
         return address
     }
 

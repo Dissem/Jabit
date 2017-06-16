@@ -31,13 +31,13 @@ open class V2Pubkey constructor(version: Long, override val stream: Long, overri
     override val encryptionKey: ByteArray = if (encryptionKey.size == 64) add0x04(encryptionKey) else encryptionKey
 
     override fun write(out: OutputStream) {
-        Encode.int32(behaviorBitfield.toLong(), out)
+        Encode.int32(behaviorBitfield, out)
         out.write(signingKey, 1, 64)
         out.write(encryptionKey, 1, 64)
     }
 
     override fun write(buffer: ByteBuffer) {
-        Encode.int32(behaviorBitfield.toLong(), buffer)
+        Encode.int32(behaviorBitfield, buffer)
         buffer.put(signingKey, 1, 64)
         buffer.put(encryptionKey, 1, 64)
     }

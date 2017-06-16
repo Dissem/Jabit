@@ -129,7 +129,7 @@ class JdbcProofOfWorkRepositoryTest : TestBase() {
     fun `ensure item can be retrieved`() {
         val item = repo.getItem(initialHash1)
         assertThat(item, notNullValue())
-        assertThat<ObjectPayload>(item.`object`.payload, instanceOf<ObjectPayload>(GetPubkey::class.java))
+        assertThat<ObjectPayload>(item.objectMessage.payload, instanceOf<ObjectPayload>(GetPubkey::class.java))
         assertThat(item.nonceTrialsPerByte, `is`(1000L))
         assertThat(item.extraBytes, `is`(1000L))
     }
@@ -138,7 +138,7 @@ class JdbcProofOfWorkRepositoryTest : TestBase() {
     fun `ensure ack item can be retrieved`() {
         val item = repo.getItem(initialHash2)
         assertThat(item, notNullValue())
-        assertThat<ObjectPayload>(item.`object`.payload, instanceOf<ObjectPayload>(GenericPayload::class.java))
+        assertThat<ObjectPayload>(item.objectMessage.payload, instanceOf<ObjectPayload>(GenericPayload::class.java))
         assertThat(item.nonceTrialsPerByte, `is`(1000L))
         assertThat(item.extraBytes, `is`(1000L))
         assertThat(item.expirationTime, not<Number>(0))

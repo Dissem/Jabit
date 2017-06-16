@@ -28,19 +28,19 @@ import ch.dissem.bitmessage.utils.UnixTime
 import java.util.*
 
 abstract class AbstractMessageRepository : MessageRepository {
-    protected var ctx by InternalContext
+    protected var ctx by InternalContext.lateinit
 
     protected fun saveContactIfNecessary(contact: BitmessageAddress?) {
         contact?.let {
-            val savedAddress = ctx.addressRepository.getAddress(contact.address)
+            val savedAddress = ctx.addressRepository.getAddress(it.address)
             if (savedAddress == null) {
-                ctx.addressRepository.save(contact)
-            } else if (savedAddress.pubkey == null && contact.pubkey != null) {
-                savedAddress.pubkey = contact.pubkey
-                ctx.addressRepository.save(savedAddress)
-            }
-            if (savedAddress != null) {
-                contact.alias = savedAddress.alias
+                ctx.addressRepository.save(it)
+            } else {
+                if (savedAddress.pubkey == null && it.pubkey != null) {
+                    savedAddress.pubkey = it.pubkey
+                    ctx.addressRepository.save(savedAddress)
+                }
+                it.alias = savedAddress.alias
             }
         }
     }

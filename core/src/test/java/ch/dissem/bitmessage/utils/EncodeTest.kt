@@ -111,11 +111,11 @@ class EncodeTest {
 
 
     fun checkBytes(stream: ByteArrayOutputStream, vararg bytes: Int) {
-        assertEquals(bytes.size.toLong(), stream.size().toLong())
+        assertEquals(bytes.size, stream.size())
         val streamBytes = stream.toByteArray()
 
         for (i in bytes.indices) {
-            assertEquals(bytes[i].toByte().toLong(), streamBytes[i].toLong())
+            assertEquals(bytes[i].toByte(), streamBytes[i])
         }
     }
 }

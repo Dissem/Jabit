@@ -40,8 +40,7 @@ import java.util.*
  * As Spongycastle can't be used on the Oracle JVM, and Bouncycastle doesn't work properly on Android (thanks, Google),
  * this is the Bouncycastle implementation.
  */
-object BouncyCryptography : AbstractCryptography(BouncyCastleProvider()) {
-    private val EC_CURVE_PARAMETERS = CustomNamedCurves.getByName("secp256k1")
+class BouncyCryptography : AbstractCryptography(BouncyCastleProvider()) {
 
     override fun crypt(encrypt: Boolean, data: ByteArray, key_e: ByteArray, initializationVector: ByteArray): ByteArray {
         val cipher = PaddedBufferedBlockCipher(
@@ -118,5 +117,9 @@ object BouncyCryptography : AbstractCryptography(BouncyCastleProvider()) {
             BigInteger(1, x),
             BigInteger(1, y)
         ).getEncoded(false)
+    }
+
+    companion object {
+        private val EC_CURVE_PARAMETERS = CustomNamedCurves.getByName("secp256k1")
     }
 }

@@ -170,12 +170,12 @@ class SerializationTest : TestBase() {
     private fun doTest(resourceName: String, version: Int, expectedPayloadType: Class<*>) {
         val data = TestUtils.getBytes(resourceName)
         val `in` = ByteArrayInputStream(data)
-        val `object` = Factory.getObjectMessage(version, `in`, data.size)
+        val objectMessage = Factory.getObjectMessage(version, `in`, data.size)
         val out = ByteArrayOutputStream()
-        assertNotNull(`object`)
-        `object`!!.write(out)
+        assertNotNull(objectMessage)
+        objectMessage!!.write(out)
         assertArrayEquals(data, out.toByteArray())
-        assertEquals(expectedPayloadType.canonicalName, `object`.payload.javaClass.canonicalName)
+        assertEquals(expectedPayloadType.canonicalName, objectMessage.payload.javaClass.canonicalName)
     }
 
     @Test

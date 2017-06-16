@@ -22,6 +22,7 @@ import ch.dissem.bitmessage.entity.*
 import ch.dissem.bitmessage.entity.payload.Msg
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine
 import ch.dissem.bitmessage.ports.ProofOfWorkRepository.Item
+import ch.dissem.bitmessage.utils.Strings
 import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.util.*
@@ -31,7 +32,7 @@ import java.util.*
  */
 class ProofOfWorkService : ProofOfWorkEngine.Callback {
 
-    private val ctx by InternalContext
+    private val ctx by InternalContext.lateinit
     private val cryptography by lazy { ctx.cryptography }
     private val powRepo by lazy { ctx.proofOfWorkRepository }
     private val messageRepo by lazy { ctx.messageRepository }
@@ -45,75 +46,69 @@ class ProofOfWorkService : ProofOfWorkEngine.Callback {
             override fun run() {
                 LOG.info("Doing POW for " + items.size + " tasks.")
                 for (initialHash in items) {
-                    val (`object`, nonceTrialsPerByte, extraBytes) = powRepo.getItem(initialHash)
-                    cryptography.doProofOfWork(`object`, nonceTrialsPerByte, extraBytes,
+                    val (objectMessage, nonceTrialsPerByte, extraBytes) = powRepo.getItem(initialHash)
+                    cryptography.doProofOfWork(objectMessage, nonceTrialsPerByte, extraBytes,
                         this@ProofOfWorkService)
                 }
             }
         }, delayInMilliseconds)
     }
 
-    fun doProofOfWork(`object`: ObjectMessage) {
-        doProofOfWork(null, `object`)
+    fun doProofOfWork(objectMessage: ObjectMessage) {
+        doProofOfWork(null, objectMessage)
     }
 
-    fun doProofOfWork(recipient: BitmessageAddress?, `object`: ObjectMessage) {
+    fun doProofOfWork(recipient: BitmessageAddress?, objectMessage: ObjectMessage) {
         val pubkey = recipient?.pubkey
 
         val nonceTrialsPerByte = pubkey?.nonceTrialsPerByte ?: NETWORK_NONCE_TRIALS_PER_BYTE
         val extraBytes = pubkey?.extraBytes ?: NETWORK_EXTRA_BYTES
 
-        powRepo.putObject(`object`, nonceTrialsPerByte, extraBytes)
-        if (`object`.payload is PlaintextHolder) {
-            `object`.payload.plaintext?.let {
-                it.initialHash = cryptography.getInitialHash(`object`)
+        powRepo.putObject(objectMessage, nonceTrialsPerByte, extraBytes)
+        if (objectMessage.payload is PlaintextHolder) {
+            objectMessage.payload.plaintext?.let {
+                it.initialHash = cryptography.getInitialHash(objectMessage)
                 messageRepo.save(it)
-            }
+            } ?: LOG.error("PlaintextHolder without Plaintext shouldn't make it to the POW")
         }
-        cryptography.doProofOfWork(`object`, nonceTrialsPerByte, extraBytes, this)
+        cryptography.doProofOfWork(objectMessage, nonceTrialsPerByte, extraBytes, this)
     }
 
     fun doProofOfWorkWithAck(plaintext: Plaintext, expirationTime: Long) {
-        val ack = plaintext.ackMessage
+        val ack = plaintext.ackMessage!!
         messageRepo.save(plaintext)
-        val item = Item(ack!!, NETWORK_NONCE_TRIALS_PER_BYTE, NETWORK_EXTRA_BYTES,
+        val item = Item(ack, NETWORK_NONCE_TRIALS_PER_BYTE, NETWORK_EXTRA_BYTES,
             expirationTime, plaintext)
         powRepo.putObject(item)
         cryptography.doProofOfWork(ack, NETWORK_NONCE_TRIALS_PER_BYTE, NETWORK_EXTRA_BYTES, this)
     }
 
     override fun onNonceCalculated(initialHash: ByteArray, nonce: ByteArray) {
-        val (`object`, _, _, expirationTime, message) = powRepo.getItem(initialHash)
+        val (objectMessage, _, _, expirationTime, message) = powRepo.getItem(initialHash)
         if (message == null) {
-            `object`.nonce = nonce
+            objectMessage.nonce = nonce
             messageRepo.getMessage(initialHash)?.let {
-                it.inventoryVector = `object`.inventoryVector
+                it.inventoryVector = objectMessage.inventoryVector
                 it.updateNextTry()
                 ctx.labeler.markAsSent(it)
                 messageRepo.save(it)
             }
-            try {
-                ctx.networkListener.receive(`object`)
-            } catch (e: IOException) {
-                LOG.debug(e.message, e)
-            }
-
-            ctx.inventory.storeObject(`object`)
-            ctx.networkHandler.offer(`object`.inventoryVector)
+            ctx.inventory.storeObject(objectMessage)
+            ctx.networkHandler.offer(objectMessage.inventoryVector)
         } else {
             message.ackMessage!!.nonce = nonce
-            val `object` = ObjectMessage.Builder()
+            val newObjectMessage = ObjectMessage.Builder()
                 .stream(message.stream)
                 .expiresTime(expirationTime!!)
                 .payload(Msg(message))
                 .build()
-            if (`object`.isSigned) {
-                `object`.sign(message.from.privateKey!!)
+            if (newObjectMessage.isSigned) {
+                newObjectMessage.sign(message.from.privateKey!!)
             }
-            if (`object`.payload is Encrypted) {
-                `object`.encrypt(message.to!!.pubkey!!)
+            if (newObjectMessage.payload is Encrypted) {
+                newObjectMessage.encrypt(message.to!!.pubkey!!)
             }
-            doProofOfWork(message.to, `object`)
+            doProofOfWork(message.to, newObjectMessage)
         }
         powRepo.removeObject(initialHash)
     }

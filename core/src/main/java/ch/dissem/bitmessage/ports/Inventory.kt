@@ -43,9 +43,9 @@ interface Inventory {
      */
     fun getObjects(stream: Long, version: Long, vararg types: ObjectType): List<ObjectMessage>
 
-    fun storeObject(`object`: ObjectMessage)
+    fun storeObject(objectMessage: ObjectMessage)
 
-    operator fun contains(`object`: ObjectMessage): Boolean
+    operator fun contains(objectMessage: ObjectMessage): Boolean
 
     /**
      * Deletes all objects that expired 5 minutes ago or earlier

@@ -84,7 +84,7 @@ BitmessageContext ctx = new BitmessageContext.Builder()
         .powRepo(new JdbcProofOfWorkRepository(jdbcConfig))
         .nodeRegistry(new JdbcNodeRegistry(jdbcConfig))
         .networkHandler(new NioNetworkHandler())
-        .cryptography(BouncyCryptography.INSTANCE)
+        .cryptography(new BouncyCryptography())
         .listener(System.out::println)
         .build();
 ```

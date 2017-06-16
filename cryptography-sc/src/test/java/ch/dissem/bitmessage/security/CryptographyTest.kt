@@ -162,7 +162,7 @@ class CryptographyTest {
         val TEST_RIPEMD160 = DatatypeConverter.parseHexBinary(""
             + "cd566972b5e50104011a92b59fa8e0b1234851ae")
 
-        private val crypto = SpongyCryptography
+        private val crypto = SpongyCryptography()
 
         init {
             Singleton.initialize(crypto)
