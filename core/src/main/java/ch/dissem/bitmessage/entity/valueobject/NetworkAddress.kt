@@ -23,9 +23,27 @@ import ch.dissem.bitmessage.utils.UnixTime
 import java.io.OutputStream
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.net.Socket
 import java.net.SocketAddress
 import java.nio.ByteBuffer
 import java.util.*
+
+fun ip6(inetAddress: InetAddress): ByteArray {
+    val address = inetAddress.address
+    when (address.size) {
+        16 -> {
+            return address
+        }
+        4 -> {
+            val ip6 = ByteArray(16)
+            ip6[10] = 0xff.toByte()
+            ip6[11] = 0xff.toByte()
+            System.arraycopy(address, 0, ip6, 12, 4)
+            return ip6
+        }
+        else -> throw IllegalArgumentException("Weird address " + inetAddress)
+    }
+}
 
 /**
  * A node's address. It's written in IPv6 format.
@@ -50,6 +68,9 @@ data class NetworkAddress(
     val IPv6: ByteArray,
     val port: Int
 ) : Streamable {
+
+    constructor(time: Long, stream: Long, services: Long = 1, socket: Socket)
+        : this(time, stream, services, ip6(socket.inetAddress), socket.port)
 
     fun provides(service: Version.Service?): Boolean = service?.isEnabled(services) ?: false
 
@@ -125,18 +146,7 @@ data class NetworkAddress(
         }
 
         fun ip(inetAddress: InetAddress): Builder {
-            val addr = inetAddress.address
-            if (addr.size == 16) {
-                this.ipv6 = addr
-            } else if (addr.size == 4) {
-                val ipv6 = ByteArray(16)
-                ipv6[10] = 0xff.toByte()
-                ipv6[11] = 0xff.toByte()
-                System.arraycopy(addr, 0, ipv6, 12, 4)
-                this.ipv6 = ipv6
-            } else {
-                throw IllegalArgumentException("Weird address " + inetAddress)
-            }
+            ipv6 = ip6(inetAddress)
             return this
         }
 
@@ -165,9 +175,8 @@ data class NetworkAddress(
 
         fun address(address: SocketAddress): Builder {
             if (address is InetSocketAddress) {
-                val inetAddress = address
-                ip(inetAddress.address)
-                port(inetAddress.port)
+                ip(address.address)
+                port(address.port)
             } else {
                 throw IllegalArgumentException("Unknown type of address: " + address.javaClass)
             }
@@ -179,5 +188,9 @@ data class NetworkAddress(
                 time ?: UnixTime.now, stream, services, ipv6!!, port
             )
         }
+    }
+
+    companion object {
+        @JvmField val ANY = NetworkAddress(time = 0, stream = 0, services = 0, IPv6 = ByteArray(16), port = 0)
     }
 }

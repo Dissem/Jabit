@@ -21,7 +21,7 @@ import ch.dissem.bitmessage.entity.valueobject.InventoryVector
 import ch.dissem.bitmessage.entity.valueobject.Label
 import ch.dissem.bitmessage.ports.AbstractMessageRepository
 import ch.dissem.bitmessage.ports.MessageRepository
-import ch.dissem.bitmessage.repository.JdbcHelper.writeBlob
+import ch.dissem.bitmessage.repository.JdbcHelper.Companion.writeBlob
 import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.sql.Connection
@@ -34,7 +34,7 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
 
     override fun findLabels(where: String): List<Label> {
         try {
-            config.connection.use {
+            config.getConnection().use {
                 connection ->
                 return findLabels(connection, where)
             }
@@ -66,7 +66,7 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
             "SELECT id FROM Label WHERE type = '" + Label.Type.UNREAD.name + "'))"
 
         try {
-            config.connection.use { connection ->
+            config.getConnection().use { connection ->
                 connection.createStatement().use { stmt ->
                     stmt.executeQuery("SELECT count(*) FROM Message WHERE $where").use { rs ->
                         if (rs.next()) {
@@ -84,7 +84,7 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
     override fun find(where: String): List<Plaintext> {
         val result = LinkedList<Plaintext>()
         try {
-            config.connection.use { connection ->
+            config.getConnection().use { connection ->
                 connection.createStatement().use { stmt ->
                     stmt.executeQuery(
                         """SELECT id, iv, type, sender, recipient, data, ack_data, sent, received, initial_hash, status, ttl, retries, next_try, conversation
@@ -100,13 +100,13 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
                             builder.from(ctx.addressRepository.getAddress(rs.getString("sender"))!!)
                             builder.to(ctx.addressRepository.getAddress(rs.getString("recipient")))
                             builder.ackData(rs.getBytes("ack_data"))
-                            builder.sent(rs.getObject("sent", Long::class.java))
-                            builder.received(rs.getObject("received", Long::class.java))
+                            builder.sent(rs.getObject("sent") as Long?)
+                            builder.received(rs.getObject("received") as Long?)
                             builder.status(Plaintext.Status.valueOf(rs.getString("status")))
                             builder.ttl(rs.getLong("ttl"))
                             builder.retries(rs.getInt("retries"))
-                            builder.nextTry(rs.getObject("next_try", Long::class.java))
-                            builder.conversation(rs.getObject("conversation", UUID::class.java))
+                            builder.nextTry(rs.getObject("next_try") as Long?)
+                            builder.conversation(rs.getObject("conversation") as UUID? ?: UUID.randomUUID())
                             builder.labels(findLabels(connection,
                                 "id IN (SELECT label_id FROM Message_Label WHERE message_id=$id) ORDER BY ord"))
                             val message = builder.build()
@@ -144,7 +144,7 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
         saveContactIfNecessary(message.from)
         saveContactIfNecessary(message.to)
 
-        config.connection.use { connection ->
+        config.getConnection().use { connection ->
             try {
                 connection.autoCommit = false
                 save(connection, message)
@@ -261,7 +261,7 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
 
     override fun remove(message: Plaintext) {
         try {
-            config.connection.use { connection ->
+            config.getConnection().use { connection ->
                 connection.autoCommit = false
                 try {
                     connection.createStatement().use { stmt ->
@@ -294,7 +294,7 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
         }
         val result = LinkedList<UUID>()
         try {
-            config.connection.use { connection ->
+            config.getConnection().use { connection ->
                 connection.createStatement().use { stmt ->
                     stmt.executeQuery(
                         "SELECT DISTINCT conversation FROM Message WHERE " + where).use { rs ->

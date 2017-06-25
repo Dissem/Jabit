@@ -27,8 +27,12 @@ import ch.dissem.bitmessage.utils.Strings
 import ch.dissem.bitmessage.utils.UnixTime
 import java.util.*
 
-abstract class AbstractMessageRepository : MessageRepository {
-    protected var ctx by InternalContext.lateinit
+abstract class AbstractMessageRepository : MessageRepository, InternalContext.ContextHolder {
+    protected lateinit var ctx: InternalContext
+
+    override fun setContext(context: InternalContext) {
+        ctx = context
+    }
 
     protected fun saveContactIfNecessary(contact: BitmessageAddress?) {
         contact?.let {

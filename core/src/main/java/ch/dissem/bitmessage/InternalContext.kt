@@ -28,7 +28,6 @@ import ch.dissem.bitmessage.utils.UnixTime
 import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.Executors
-import kotlin.reflect.KProperty
 
 /**
  * The internal context should normally only be used for port implementations. If you need it in your client
@@ -67,8 +66,6 @@ class InternalContext(
         get() = _streams.toLongArray()
 
     init {
-        lateinit.instance = this
-        lateinit = ContextDelegate()
         Singleton.initialize(cryptography)
 
         // TODO: streams of new identities and subscriptions should also be added. This works only after a restart.
@@ -218,19 +215,10 @@ class InternalContext(
         fun setContext(context: InternalContext)
     }
 
-    class ContextDelegate {
-        internal lateinit var instance: InternalContext
-        operator fun getValue(thisRef: Any?, property: KProperty<*>) = instance
-        operator fun setValue(thisRef: Any?, property: KProperty<*>, value: InternalContext) {}
-    }
-
     companion object {
         private val LOG = LoggerFactory.getLogger(InternalContext::class.java)
 
         @JvmField val NETWORK_NONCE_TRIALS_PER_BYTE: Long = 1000
         @JvmField val NETWORK_EXTRA_BYTES: Long = 1000
-
-        var lateinit = ContextDelegate()
-            private set
     }
 }

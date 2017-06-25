@@ -39,9 +39,9 @@ object BufferPool {
 
     @Synchronized fun allocate(capacity: Int): ByteBuffer {
         val targetSize = getTargetSize(capacity)
-        val pool = pools[targetSize]
-        if (pool == null || pool.isEmpty()) {
-            LOG.trace("Creating new buffer of size " + targetSize!!)
+        val pool = pools[targetSize] ?: throw IllegalStateException("No pool for size $targetSize available")
+        if (pool.isEmpty()) {
+            LOG.trace("Creating new buffer of size $targetSize")
             return ByteBuffer.allocate(targetSize)
         } else {
             return pool.pop()
@@ -64,16 +64,14 @@ object BufferPool {
 
     @Synchronized fun deallocate(buffer: ByteBuffer) {
         buffer.clear()
-        val pool = pools[buffer.capacity()]
-        pool?.push(buffer) ?: throw IllegalArgumentException("Illegal buffer capacity " + buffer.capacity() +
-            " one of " + pools.keys + " expected.")
+        val pool = pools[buffer.capacity()] ?: throw IllegalArgumentException("Illegal buffer capacity ${buffer.capacity()} one of ${pools.keys} expected.")
+        pool.push(buffer)
     }
 
-    private fun getTargetSize(capacity: Int): Int? {
+    private fun getTargetSize(capacity: Int): Int {
         for (size in pools.keys) {
             if (size >= capacity) return size
         }
-        throw IllegalArgumentException("Requested capacity too large: " +
-            "requested=" + capacity + "; max=" + MAX_PAYLOAD_SIZE)
+        throw IllegalArgumentException("Requested capacity too large: requested=$capacity; max=$MAX_PAYLOAD_SIZE")
     }
 }

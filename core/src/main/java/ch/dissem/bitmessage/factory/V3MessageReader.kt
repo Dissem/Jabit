@@ -40,23 +40,22 @@ class V3MessageReader {
 
     private val messages = LinkedList<NetworkMessage>()
 
-    val activeBuffer: ByteBuffer
-        get() {
-            if (state != null && state != ReaderState.DATA) {
-                if (headerBuffer == null) {
-                    headerBuffer = BufferPool.allocateHeaderBuffer()
-                }
+    fun getActiveBuffer(): ByteBuffer {
+        if (state != null && state != ReaderState.DATA) {
+            if (headerBuffer == null) {
+                headerBuffer = BufferPool.allocateHeaderBuffer()
             }
-            return if (state == ReaderState.DATA)
-                dataBuffer ?: throw IllegalStateException("data buffer is null")
-            else
-                headerBuffer ?: throw IllegalStateException("header buffer is null")
         }
+        return if (state == ReaderState.DATA)
+            dataBuffer ?: throw IllegalStateException("data buffer is null")
+        else
+            headerBuffer ?: throw IllegalStateException("header buffer is null")
+    }
 
     fun update() {
         if (state != ReaderState.DATA) {
-            activeBuffer
-            headerBuffer!!.flip()
+            getActiveBuffer() // in order to initialize
+            headerBuffer?.flip() ?: throw IllegalStateException("header buffer is null")
         }
         when (state) {
             V3MessageReader.ReaderState.MAGIC -> magic(headerBuffer ?: throw IllegalStateException("header buffer is null"))
@@ -93,12 +92,12 @@ class V3MessageReader {
         BufferPool.deallocate(headerBuffer)
         val dataBuffer = BufferPool.allocate(length)
         this.dataBuffer = dataBuffer
+        dataBuffer.clear()
+        dataBuffer.limit(length)
         data(dataBuffer)
     }
 
     private fun data(dataBuffer: ByteBuffer) {
-        dataBuffer.clear()
-        dataBuffer.limit(length)
         if (dataBuffer.position() < length) {
             return
         } else {
@@ -126,7 +125,7 @@ class V3MessageReader {
         }
     }
 
-    fun getMessages(): List<NetworkMessage> {
+    fun getMessages(): MutableList<NetworkMessage> {
         return messages
     }
 

@@ -36,12 +36,16 @@ import javax.crypto.spec.SecretKeySpec
 /**
  * Implements everything that isn't directly dependent on either Spongy- or Bouncycastle.
  */
-abstract class AbstractCryptography protected constructor(@JvmField protected val provider: Provider) : Cryptography {
-    private val context by InternalContext.lateinit
+abstract class AbstractCryptography protected constructor(@JvmField protected val provider: Provider) : Cryptography, InternalContext.ContextHolder {
+    private lateinit var ctx: InternalContext
 
     @JvmField protected val ALGORITHM_ECDSA = "ECDSA"
     @JvmField protected val ALGORITHM_ECDSA_SHA1 = "SHA1withECDSA"
     @JvmField protected val ALGORITHM_EVP_SHA256 = "SHA256withECDSA"
+
+    override fun setContext(context: InternalContext) {
+        ctx = context
+    }
 
     override fun sha512(data: ByteArray, offset: Int, length: Int): ByteArray {
         val mda = md("SHA-512")
@@ -95,7 +99,7 @@ abstract class AbstractCryptography protected constructor(@JvmField protected va
         val target = getProofOfWorkTarget(objectMessage,
             max(nonceTrialsPerByte, NETWORK_NONCE_TRIALS_PER_BYTE), max(extraBytes, NETWORK_EXTRA_BYTES))
 
-        context.proofOfWorkEngine.calculateNonce(initialHash, target, callback)
+        ctx.proofOfWorkEngine.calculateNonce(initialHash, target, callback)
     }
 
     @Throws(InsufficientProofOfWorkException::class)

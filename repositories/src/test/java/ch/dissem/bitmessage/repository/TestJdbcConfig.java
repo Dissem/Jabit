@@ -42,7 +42,7 @@ public class TestJdbcConfig extends JdbcConfig {
     }
 
     public void reset() {
-        flyway.clean();
-        flyway.migrate();
+        getFlyway().clean();
+        getFlyway().migrate();
     }
 }

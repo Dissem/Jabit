@@ -22,20 +22,22 @@ import ch.dissem.bitmessage.entity.*
 import ch.dissem.bitmessage.entity.payload.Msg
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine
 import ch.dissem.bitmessage.ports.ProofOfWorkRepository.Item
-import ch.dissem.bitmessage.utils.Strings
 import org.slf4j.LoggerFactory
-import java.io.IOException
 import java.util.*
 
 /**
  * @author Christian Basler
  */
-class ProofOfWorkService : ProofOfWorkEngine.Callback {
+class ProofOfWorkService : ProofOfWorkEngine.Callback, InternalContext.ContextHolder {
 
-    private val ctx by InternalContext.lateinit
+    private lateinit var ctx: InternalContext
     private val cryptography by lazy { ctx.cryptography }
     private val powRepo by lazy { ctx.proofOfWorkRepository }
     private val messageRepo by lazy { ctx.messageRepository }
+
+    override fun setContext(context: InternalContext) {
+        ctx = context
+    }
 
     fun doMissingProofOfWork(delayInMilliseconds: Long) {
         val items = powRepo.getItems()

@@ -78,7 +78,7 @@ class BitmessageContext(
     port: Int = 8444,
     connectionTTL: Long = 30 * MINUTE,
     connectionLimit: Int = 150,
-    sendPubkeyOnIdentityCreation: Boolean,
+    sendPubkeyOnIdentityCreation: Boolean = true,
     doMissingProofOfWorkDelayInSeconds: Int = 30
 ) {
 
@@ -333,7 +333,7 @@ class BitmessageContext(
 
     fun status(): Property {
         return Property("status",
-            internals.networkHandler.networkStatus,
+            internals.networkHandler.getNetworkStatus(),
             Property("unacknowledged", internals.messageRepository.findMessagesToResend().size)
         )
     }

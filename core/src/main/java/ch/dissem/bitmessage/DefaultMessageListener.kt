@@ -32,8 +32,12 @@ import java.util.*
 internal open class DefaultMessageListener(
     private val labeler: Labeler,
     private val listener: BitmessageContext.Listener
-) : NetworkHandler.MessageListener {
-    private var ctx by InternalContext.lateinit
+) : NetworkHandler.MessageListener, InternalContext.ContextHolder {
+    private lateinit var ctx: InternalContext
+
+    override fun setContext(context: InternalContext) {
+        ctx = context
+    }
 
     override fun receive(objectMessage: ObjectMessage) {
         val payload = objectMessage.payload
@@ -43,7 +47,7 @@ internal open class DefaultMessageListener(
                 receive(objectMessage, payload as GetPubkey)
             }
             ObjectType.PUBKEY -> {
-                receive(objectMessage, payload as Pubkey)
+                receive(payload as Pubkey)
             }
             ObjectType.MSG -> {
                 receive(objectMessage, payload as Msg)
@@ -55,9 +59,6 @@ internal open class DefaultMessageListener(
                 if (payload is GenericPayload) {
                     receive(payload)
                 }
-            }
-            else -> {
-                throw IllegalArgumentException("Unknown payload type " + payload.type!!)
             }
         }
     }
@@ -71,7 +72,7 @@ internal open class DefaultMessageListener(
         }
     }
 
-    protected fun receive(objectMessage: ObjectMessage, pubkey: Pubkey) {
+    protected fun receive(pubkey: Pubkey) {
         try {
             if (pubkey is V4Pubkey) {
                 ctx.addressRepository.findContact(pubkey.tag)?.let {

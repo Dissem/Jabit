@@ -30,5 +30,5 @@ interface NodeRegistry {
 
     fun getKnownAddresses(limit: Int, vararg streams: Long): List<NetworkAddress>
 
-    fun offerAddresses(addresses: List<NetworkAddress>)
+    fun offerAddresses(nodes: List<NetworkAddress>)
 }

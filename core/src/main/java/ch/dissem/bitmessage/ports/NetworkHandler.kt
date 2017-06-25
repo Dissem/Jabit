@@ -73,9 +73,9 @@ interface NetworkHandler {
 
      * @param inventoryVectors of the objects to be requested
      */
-    fun request(inventoryVectors: Collection<InventoryVector>)
+    fun request(inventoryVectors: MutableCollection<InventoryVector>)
 
-    val networkStatus: Property
+    fun getNetworkStatus(): Property
 
     val isRunning: Boolean
 
