@@ -50,7 +50,7 @@ class TestNodeRegistry implements NodeRegistry {
     }
 
     @Override
-    public void offerAddresses(List<NetworkAddress> addresses) {
+    public void offerAddresses(List<NetworkAddress> nodes) {
         // Ignore
     }
 }

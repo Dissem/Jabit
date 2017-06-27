@@ -81,8 +81,8 @@ public class Main {
                 }
 
                 @Override
-                public void offerAddresses(List<NetworkAddress> addresses) {
-                    LOG.info("Local node registry ignored offered addresses: " + addresses);
+                public void offerAddresses(List<NetworkAddress> nodes) {
+                    LOG.info("Local node registry ignored offered addresses: " + nodes);
                 }
             });
         } else {
