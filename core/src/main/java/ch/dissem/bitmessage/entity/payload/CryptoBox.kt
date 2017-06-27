@@ -195,7 +195,7 @@ class CryptoBox : Streamable {
     companion object {
         private val LOG = LoggerFactory.getLogger(CryptoBox::class.java)
 
-        fun read(stream: InputStream, length: Int): CryptoBox {
+        @JvmStatic fun read(stream: InputStream, length: Int): CryptoBox {
             val counter = AccessCounter()
             return Builder()
                 .IV(Decode.bytes(stream, 16, counter))

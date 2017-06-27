@@ -22,13 +22,11 @@ import ch.dissem.bitmessage.entity.Plaintext;
 import ch.dissem.bitmessage.networking.nio.NioNetworkHandler;
 import ch.dissem.bitmessage.ports.DefaultLabeler;
 import ch.dissem.bitmessage.ports.Labeler;
-import ch.dissem.bitmessage.ports.NetworkHandler;
 import ch.dissem.bitmessage.repository.*;
 import ch.dissem.bitmessage.utils.TTL;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +35,9 @@ import java.util.concurrent.TimeUnit;
 
 import static ch.dissem.bitmessage.entity.payload.Pubkey.Feature.DOES_ACK;
 import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
+import static com.nhaarman.mockito_kotlin.MockitoKt.spy;
+import static com.nhaarman.mockito_kotlin.MockitoKt.timeout;
+import static com.nhaarman.mockito_kotlin.MockitoKt.verify;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -65,7 +66,7 @@ public class SystemTest {
         int bobPort = port++;
         {
             JdbcConfig aliceDB = new JdbcConfig("jdbc:h2:mem:alice;DB_CLOSE_DELAY=-1", "sa", "");
-            aliceLabeler = Mockito.spy(new DebugLabeler("Alice"));
+            aliceLabeler = spy(new DebugLabeler("Alice"));
             TestListener aliceListener = new TestListener();
             alice = new BitmessageContext.Builder()
                 .addressRepo(new JdbcAddressRepository(aliceDB))
@@ -110,17 +111,17 @@ public class SystemTest {
         bob.shutdown();
     }
 
-    @Test(timeout = 60_000)
+    @Test(timeout = 120_000)
     public void ensureAliceCanSendMessageToBob() throws Exception {
         String originalMessage = UUID.randomUUID().toString();
         alice.send(aliceIdentity, new BitmessageAddress(bobIdentity.getAddress()), "Subject", originalMessage);
 
-        Plaintext plaintext = bobListener.get(15, TimeUnit.MINUTES);
+        Plaintext plaintext = bobListener.get(2, TimeUnit.MINUTES);
 
         assertThat(plaintext.getType(), equalTo(Plaintext.Type.MSG));
         assertThat(plaintext.getText(), equalTo(originalMessage));
 
-        Mockito.verify(aliceLabeler, Mockito.timeout(TimeUnit.MINUTES.toMillis(15)).atLeastOnce())
+        verify(aliceLabeler, timeout(TimeUnit.MINUTES.toMillis(2)).atLeastOnce())
             .markAsAcknowledged(any());
     }
 

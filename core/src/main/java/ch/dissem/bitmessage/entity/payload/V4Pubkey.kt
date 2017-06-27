@@ -127,7 +127,7 @@ class V4Pubkey : Pubkey, Encrypted {
     }
 
     companion object {
-        fun read(`in`: InputStream, stream: Long, length: Int, encrypted: Boolean): V4Pubkey {
+        @JvmStatic fun read(`in`: InputStream, stream: Long, length: Int, encrypted: Boolean): V4Pubkey {
             if (encrypted)
                 return V4Pubkey(stream,
                     Decode.bytes(`in`, 32),

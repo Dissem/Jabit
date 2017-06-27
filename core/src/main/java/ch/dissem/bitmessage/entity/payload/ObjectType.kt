@@ -26,7 +26,7 @@ enum class ObjectType constructor(val number: Long) {
     BROADCAST(3);
 
     companion object {
-        fun fromNumber(number: Long): ObjectType? {
+        @JvmStatic fun fromNumber(number: Long): ObjectType? {
             return values().firstOrNull { it.number == number }
         }
     }

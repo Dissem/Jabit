@@ -58,7 +58,7 @@ class GetPubkey : ObjectPayload {
     }
 
     companion object {
-        fun read(`is`: InputStream, stream: Long, length: Int, version: Long): GetPubkey {
+        @JvmStatic fun read(`is`: InputStream, stream: Long, length: Int, version: Long): GetPubkey {
             return GetPubkey(version, stream, Decode.bytes(`is`, length))
         }
     }

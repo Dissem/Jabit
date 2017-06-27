@@ -133,21 +133,20 @@ internal open class DefaultMessageListener(
     }
 
     protected fun receive(objectMessage: ObjectMessage, broadcast: Broadcast) {
-        val tag = if (broadcast is V5Broadcast) broadcast.tag else null
-        for (subscription in ctx.addressRepository.getSubscriptions(broadcast.version)) {
-            if (tag != null && !Arrays.equals(tag, subscription.tag)) {
-                continue
-            }
-            try {
-                broadcast.decrypt(subscription.publicDecryptionKey)
-                if (!objectMessage.isSignatureValid(broadcast.plaintext!!.from.pubkey!!)) {
-                    LOG.warn("Broadcast with IV " + objectMessage.inventoryVector + " was successfully decrypted, but signature check failed. Ignoring.")
-                } else {
-                    receive(objectMessage.inventoryVector, broadcast.plaintext!!)
+        val tag = (broadcast as? V5Broadcast)?.tag
+        ctx.addressRepository.getSubscriptions(broadcast.version)
+            .filter { tag == null || Arrays.equals(tag, it.tag) }
+            .forEach {
+                try {
+                    broadcast.decrypt(it.publicDecryptionKey)
+                    if (!objectMessage.isSignatureValid(broadcast.plaintext!!.from.pubkey!!)) {
+                        LOG.warn("Broadcast with IV " + objectMessage.inventoryVector + " was successfully decrypted, but signature check failed. Ignoring.")
+                    } else {
+                        receive(objectMessage.inventoryVector, broadcast.plaintext!!)
+                    }
+                } catch (_: DecryptionFailedException) {
                 }
-            } catch (_: DecryptionFailedException) {
             }
-        }
     }
 
     protected fun receive(iv: InventoryVector, msg: Plaintext) {

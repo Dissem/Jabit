@@ -134,7 +134,7 @@ class V3Pubkey protected constructor(
     }
 
     companion object {
-        fun read(`is`: InputStream, stream: Long): V3Pubkey {
+        @JvmStatic fun read(`is`: InputStream, stream: Long): V3Pubkey {
             return V3Pubkey(
                 version = 3,
                 stream = stream,

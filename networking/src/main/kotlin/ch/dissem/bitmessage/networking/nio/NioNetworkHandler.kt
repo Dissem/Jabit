@@ -431,7 +431,7 @@ class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
         }
         return Property("network",
             Property("connectionManager", if (isRunning) "running" else "stopped"),
-            Property("connections", *streamProperties.toTypedArray()),
+            Property("connections", streamProperties),
             Property("requestedObjects", requestedObjects.size)
         )
     }

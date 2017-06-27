@@ -75,7 +75,7 @@ class Connection(
 
     fun send(payload: MessagePayload) = io.send(payload)
 
-    protected fun handleMessage(payload: MessagePayload) {
+    private fun handleMessage(payload: MessagePayload) {
         when (state) {
             State.CONNECTING -> initializer!!.handleCommand(payload)
             State.ACTIVE -> receiveMessage(payload)
@@ -108,7 +108,7 @@ class Connection(
     private fun receiveMessage(objectMessage: ObjectMessage) {
         requestedObjects.remove(objectMessage.inventoryVector)
         if (ctx.inventory.contains(objectMessage)) {
-            LOG.trace("Received object " + objectMessage.inventoryVector + " - already in inventory")
+            LOG.trace("Received object ${objectMessage.inventoryVector} - already in inventory")
             return
         }
         try {
@@ -122,7 +122,7 @@ class Connection(
             LOG.warn(e.message)
             // DebugUtils.saveToFile(objectMessage); // this line must not be committed active
         } catch (e: IOException) {
-            LOG.error("Stream " + objectMessage.stream + ", object type " + objectMessage.type + ": " + e.message, e)
+            LOG.error("Stream ${objectMessage.stream}, object type ${objectMessage.type}: ${e.message}", e)
         } finally {
             if (commonRequestedObjects.remove(objectMessage.inventoryVector) == null) {
                 LOG.debug("Received object that wasn't requested.")
@@ -131,7 +131,7 @@ class Connection(
     }
 
     private fun receiveMessage(addr: Addr) {
-        LOG.trace("Received " + addr.addresses.size + " addresses.")
+        LOG.trace("Received ${addr.addresses.size} addresses.")
         ctx.nodeRegistry.offerAddresses(addr.addresses)
     }
 

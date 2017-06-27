@@ -80,7 +80,7 @@ open class V2Pubkey constructor(version: Long, override val stream: Long, overri
     }
 
     companion object {
-        fun read(`in`: InputStream, stream: Long): V2Pubkey {
+        @JvmStatic fun read(`in`: InputStream, stream: Long): V2Pubkey {
             return V2Pubkey(
                 version = 2,
                 stream = stream,

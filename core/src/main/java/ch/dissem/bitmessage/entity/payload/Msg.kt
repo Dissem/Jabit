@@ -96,7 +96,7 @@ class Msg : ObjectPayload, Encrypted, PlaintextHolder {
     companion object {
         val ACK_LENGTH = 32
 
-        fun read(`in`: InputStream, stream: Long, length: Int): Msg {
+        @JvmStatic fun read(`in`: InputStream, stream: Long, length: Int): Msg {
             return Msg(stream, CryptoBox.read(`in`, length))
         }
     }

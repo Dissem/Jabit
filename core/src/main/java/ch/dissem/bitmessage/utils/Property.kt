@@ -28,7 +28,8 @@ package ch.dissem.bitmessage.utils
 class Property private constructor(val name: String, val value: Any? = null, val properties: Array<Property> = emptyArray()) {
 
     constructor(name: String, value: Any) : this(name = name, value = value, properties = emptyArray())
-    constructor(name: String, vararg properties: Property) : this(name, null, Array(properties.size, { i -> properties[i] }))
+    constructor(name: String, vararg properties: Property) : this(name, null, arrayOf(*properties))
+    constructor(name: String, properties: List<Property>) : this(name, null, properties.toTypedArray())
 
     /**
      * Returns the property if available or `null` otherwise.

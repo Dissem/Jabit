@@ -98,7 +98,7 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
                             builder.id(id)
                             builder.IV(InventoryVector.fromHash(iv))
                             builder.from(ctx.addressRepository.getAddress(rs.getString("sender"))!!)
-                            builder.to(ctx.addressRepository.getAddress(rs.getString("recipient")))
+                            rs.getString("recipient")?.let { builder.to(ctx.addressRepository.getAddress(it)) }
                             builder.ackData(rs.getBytes("ack_data"))
                             builder.sent(rs.getObject("sent") as Long?)
                             builder.received(rs.getObject("received") as Long?)

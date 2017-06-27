@@ -52,7 +52,7 @@ open class V4Broadcast : Broadcast {
     }
 
     companion object {
-        fun read(`in`: InputStream, stream: Long, length: Int): V4Broadcast {
+        @JvmStatic fun read(`in`: InputStream, stream: Long, length: Int): V4Broadcast {
             return V4Broadcast(4, stream, CryptoBox.read(`in`, length), null)
         }
     }

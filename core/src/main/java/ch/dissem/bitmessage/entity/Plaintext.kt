@@ -36,14 +36,14 @@ import java.util.*
 import java.util.Collections
 import kotlin.collections.HashSet
 
-fun message(encoding: Plaintext.Encoding, subject: String, body: String): ByteArray = when (encoding) {
+internal fun message(encoding: Plaintext.Encoding, subject: String, body: String): ByteArray = when (encoding) {
     SIMPLE -> "Subject:$subject\nBody:$body".toByteArray()
     EXTENDED -> Message.Builder().subject(subject).body(body).build().zip()
     TRIVIAL -> (subject + body).toByteArray()
     IGNORE -> ByteArray(0)
 }
 
-fun ackData(type: Plaintext.Type, ackData: ByteArray?): ByteArray? {
+internal fun ackData(type: Plaintext.Type, ackData: ByteArray?): ByteArray? {
     if (ackData != null) {
         return ackData
     } else if (type == MSG) {
@@ -67,6 +67,7 @@ class Plaintext private constructor(
     val conversationId: UUID = UUID.randomUUID(),
     var inventoryVector: InventoryVector? = null,
     var signature: ByteArray? = null,
+    sent: Long? = null,
     val received: Long? = null,
     var initialHash: ByteArray? = null,
     ttl: Long = TTL.msg,
@@ -117,7 +118,7 @@ class Plaintext private constructor(
         }
 
     val encoding: Encoding? by lazy { Encoding.fromCode(encodingCode) }
-    var sent: Long? = null
+    var sent: Long? = sent
         private set
     var retries: Int = 0
         private set
@@ -145,9 +146,9 @@ class Plaintext private constructor(
         type = type,
         from = from,
         to = to,
-        encoding = encoding.code,
+        encodingCode = encoding.code,
         message = message,
-        ackMessage = ackData(type, ackData),
+        ackData = ackData(type, ackData),
         conversationId = conversationId,
         inventoryVector = inventoryVector,
         signature = signature,
@@ -214,9 +215,9 @@ class Plaintext private constructor(
         type = type,
         from = from,
         to = to,
-        encoding = encoding.code,
+        encoding = encoding,
         message = message(encoding, subject, body),
-        ackMessage = ackData(type, ackData),
+        ackData = ackData(type, ackData),
         conversationId = conversationId,
         inventoryVector = null,
         signature = null,
@@ -248,6 +249,7 @@ class Plaintext private constructor(
         conversationId = builder.conversation ?: UUID.randomUUID(),
         inventoryVector = builder.inventoryVector,
         signature = builder.signature,
+        sent = builder.sent,
         received = builder.received,
         initialHash = null,
         ttl = builder.ttl,
