@@ -12,8 +12,8 @@ uploadArchives {
 
 dependencies {
     compile project(':core')
-    compile 'org.ini4j:ini4j:0.5.4'
-    testCompile 'junit:junit:4.12'
-    testCompile 'com.nhaarman:mockito-kotlin:1.5.0'
+    compile 'org.ini4j:ini4j'
+    testCompile 'junit:junit'
+    testCompile 'com.nhaarman:mockito-kotlin'
     testCompile project(':cryptography-bc')
 }

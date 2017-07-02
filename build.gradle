@@ -9,6 +9,7 @@ buildscript {
 }
 plugins {
     id 'com.github.ben-manes.versions' version '0.15.0'
+    id "io.spring.dependency-management" version "1.0.3.RELEASE"
 }
 
 subprojects {
@@ -17,6 +18,7 @@ subprojects {
     apply plugin: 'signing'
     apply plugin: 'jacoco'
     apply plugin: 'gitflow-version'
+    apply plugin: 'io.spring.dependency-management'
     apply plugin: 'com.github.ben-manes.versions'
 
     sourceCompatibility = 1.7
@@ -28,8 +30,8 @@ subprojects {
         maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
     }
     dependencies {
-        compile "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
-        compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+        compile "org.jetbrains.kotlin:kotlin-stdlib-jre7"
+        compile "org.jetbrains.kotlin:kotlin-reflect"
     }
 
     test {
@@ -107,4 +109,31 @@ subprojects {
     }
 
     check.dependsOn jacocoTestReport
+
+    dependencyManagement {
+        dependencies {
+            dependencySet(group: 'org.jetbrains.kotlin', version: "$kotlin_version") {
+                entry 'kotlin-stdlib-jre7'
+                entry 'kotlin-reflect'
+            }
+            dependencySet(group: 'org.slf4j', version: '1.7.25') {
+                entry 'slf4j-api'
+                entry 'slf4j-simple'
+            }
+
+            dependency 'ch.dissem.msgpack:msgpack:1.0.0'
+            dependency 'org.bouncycastle:bcprov-jdk15on:1.57'
+            dependency 'com.madgag.spongycastle:prov:1.56.0.0'
+            dependency 'org.apache.commons:commons-lang3:3.6'
+            dependency 'org.flywaydb:flyway-core:4.2.0'
+
+            dependency 'args4j:args4j:2.33'
+            dependency 'org.ini4j:ini4j:0.5.4'
+            dependency 'com.h2database:h2:1.4.196'
+
+            dependency 'junit:junit:4.12'
+            dependency 'org.hamcrest:hamcrest-library:1.3'
+            dependency 'com.nhaarman:mockito-kotlin:1.5.0'
+        }
+    }
 }
