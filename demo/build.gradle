@@ -15,6 +15,7 @@ uploadArchives {
 }
 
 sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 test.enabled = Boolean.valueOf(systemTestsEnabled)
 
@@ -30,8 +31,8 @@ dependencies {
     compile project(':wif')
     compile 'org.slf4j:slf4j-simple:1.7.25'
     compile 'args4j:args4j:2.33'
-    compile 'com.h2database:h2:1.4.194'
-    compile 'org.apache.commons:commons-lang3:3.5'
+    compile 'com.h2database:h2:1.4.196'
+    compile 'org.apache.commons:commons-lang3:3.6'
     testCompile 'junit:junit:4.12'
-    testCompile 'com.nhaarman:mockito-kotlin:1.4.0'
+    testCompile 'com.nhaarman:mockito-kotlin:1.5.0'
 }

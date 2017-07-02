@@ -235,7 +235,6 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
         }
     }
 
-    @Throws(SQLException::class, IOException::class)
     private fun update(connection: Connection, message: Plaintext) {
         connection.prepareStatement(
             "UPDATE Message SET iv=?, type=?, sender=?, recipient=?, data=?, ack_data=?, sent=?, received=?, " +

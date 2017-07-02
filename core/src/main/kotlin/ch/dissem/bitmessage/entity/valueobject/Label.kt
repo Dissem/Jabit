@@ -21,11 +21,11 @@ import java.util.*
 
 data class Label(
     private val label: String,
-    val type: Label.Type?,
+    val type: Label.Type? = null,
     /**
      * RGBA representation for the color.
      */
-    var color: Int
+    var color: Int = 0
 ) : Serializable {
 
     var id: Any? = null

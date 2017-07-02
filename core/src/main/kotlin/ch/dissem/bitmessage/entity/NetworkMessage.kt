@@ -40,7 +40,6 @@ data class NetworkMessage(
         return byteArrayOf(d[0], d[1], d[2], d[3])
     }
 
-    @Throws(IOException::class)
     override fun write(out: OutputStream) {
         // magic
         Encode.int32(MAGIC, out)

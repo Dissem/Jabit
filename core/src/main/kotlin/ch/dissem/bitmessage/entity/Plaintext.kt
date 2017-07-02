@@ -36,14 +36,14 @@ import java.util.*
 import java.util.Collections
 import kotlin.collections.HashSet
 
-internal fun message(encoding: Plaintext.Encoding, subject: String, body: String): ByteArray = when (encoding) {
+private fun message(encoding: Plaintext.Encoding, subject: String, body: String): ByteArray = when (encoding) {
     SIMPLE -> "Subject:$subject\nBody:$body".toByteArray()
     EXTENDED -> Message.Builder().subject(subject).body(body).build().zip()
     TRIVIAL -> (subject + body).toByteArray()
     IGNORE -> ByteArray(0)
 }
 
-internal fun ackData(type: Plaintext.Type, ackData: ByteArray?): ByteArray? {
+private fun ackData(type: Plaintext.Type, ackData: ByteArray?): ByteArray? {
     if (ackData != null) {
         return ackData
     } else if (type == MSG) {
@@ -54,7 +54,7 @@ internal fun ackData(type: Plaintext.Type, ackData: ByteArray?): ByteArray? {
 }
 
 /**
- * The unencrypted message to be sent by 'msg' or 'broadcast'.
+ * A plaintext message before encryption or after decryption.
  */
 class Plaintext private constructor(
     val type: Type,
@@ -464,7 +464,7 @@ class Plaintext private constructor(
     }
 
     fun removeLabel(type: Label.Type) {
-        labels.removeIf { it.type == type }
+        labels.removeAll { it.type == type }
     }
 
     fun isUnread(): Boolean {

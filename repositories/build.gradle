@@ -10,14 +10,12 @@ uploadArchives {
     }
 }
 
-sourceCompatibility = 1.8
-
 dependencies {
     compile project(':core')
-    compile 'org.flywaydb:flyway-core:4.1.2'
+    compile 'org.flywaydb:flyway-core:4.2.0'
     testCompile 'junit:junit:4.12'
-    testCompile 'com.h2database:h2:1.4.194'
-    testCompile 'com.nhaarman:mockito-kotlin:1.4.0'
+    testCompile 'com.h2database:h2:1.4.196'
+    testCompile 'com.nhaarman:mockito-kotlin:1.5.0'
     testCompile project(path: ':core', configuration: 'testArtifacts')
     testCompile project(':cryptography-bc')
 }

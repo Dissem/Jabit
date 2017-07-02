@@ -111,7 +111,6 @@ abstract class AbstractCryptography protected constructor(@JvmField protected va
         }
     }
 
-    @Throws(GeneralSecurityException::class)
     protected fun doSign(data: ByteArray, privKey: java.security.PrivateKey): ByteArray {
         // TODO: change this to ALGORITHM_EVP_SHA256 once it's generally used in the network
         val sig = Signature.getInstance(ALGORITHM_ECDSA_SHA1, provider)
@@ -121,7 +120,6 @@ abstract class AbstractCryptography protected constructor(@JvmField protected va
     }
 
 
-    @Throws(GeneralSecurityException::class)
     protected fun doCheckSignature(data: ByteArray, signature: ByteArray, publicKey: PublicKey): Boolean {
         for (algorithm in arrayOf(ALGORITHM_ECDSA_SHA1, ALGORITHM_EVP_SHA256)) {
             val sig = Signature.getInstance(algorithm, provider)

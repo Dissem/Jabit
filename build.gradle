@@ -8,11 +8,10 @@ buildscript {
     }
 }
 plugins {
-    id 'com.github.ben-manes.versions' version '0.14.0'
+    id 'com.github.ben-manes.versions' version '0.15.0'
 }
 
 subprojects {
-    apply plugin: 'java'
     apply plugin: 'kotlin'
     apply plugin: 'maven'
     apply plugin: 'signing'
@@ -21,6 +20,7 @@ subprojects {
     apply plugin: 'com.github.ben-manes.versions'
 
     sourceCompatibility = 1.7
+    targetCompatibility = 1.7
     group = 'ch.dissem.jabit'
 
     repositories {
@@ -28,7 +28,7 @@ subprojects {
         maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
     }
     dependencies {
-        compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
+        compile "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
         compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
     }
 

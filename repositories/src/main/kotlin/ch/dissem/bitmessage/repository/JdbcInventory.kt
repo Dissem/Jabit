@@ -156,7 +156,7 @@ class JdbcInventory(config: JdbcConfig) : JdbcHelper(config), Inventory {
         }
 
         for (c in cache.values) {
-            c.entries.removeIf { e -> e.value < now - 5 * MINUTE }
+            c.entries.removeAll { e -> e.value < now - 5 * MINUTE }
         }
     }
 

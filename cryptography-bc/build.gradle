@@ -12,8 +12,8 @@ uploadArchives {
 
 dependencies {
     compile project(':core')
-    compile 'org.bouncycastle:bcprov-jdk15on:1.56'
+    compile 'org.bouncycastle:bcprov-jdk15on:1.57'
     testCompile 'junit:junit:4.12'
-    testCompile 'org.mockito:mockito-core:2.7.21'
+    testCompile 'com.nhaarman:mockito-kotlin:1.5.0'
     testCompile project(path: ':core', configuration: 'testArtifacts')
 }
