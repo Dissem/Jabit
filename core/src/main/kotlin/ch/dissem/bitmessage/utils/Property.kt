@@ -25,7 +25,11 @@ package ch.dissem.bitmessage.utils
  * If you need a real JSON representation, please add a method `toJson()`.
  *
  */
-class Property private constructor(val name: String, val value: Any? = null, val properties: Array<Property> = emptyArray()) {
+class Property private constructor(
+    val name: String,
+    val value: Any? = null,
+    val properties: Array<Property>
+) {
 
     constructor(name: String, value: Any) : this(name = name, value = value, properties = emptyArray())
     constructor(name: String, vararg properties: Property) : this(name, null, arrayOf(*properties))

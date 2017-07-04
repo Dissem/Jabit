@@ -28,6 +28,7 @@ import ch.dissem.bitmessage.ports.DefaultLabeler
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine
 import ch.dissem.bitmessage.ports.ProofOfWorkRepository
 import ch.dissem.bitmessage.testutils.TestInventory
+import ch.dissem.bitmessage.utils.Property
 import ch.dissem.bitmessage.utils.Singleton.cryptography
 import ch.dissem.bitmessage.utils.Strings.hex
 import ch.dissem.bitmessage.utils.TTL
@@ -98,7 +99,9 @@ class BitmessageContextTest {
         .inventory(inventory)
         .listener(listener)
         .messageRepo(mock())
-        .networkHandler(mock())
+        .networkHandler(mock {
+            on { getNetworkStatus() } doReturn Property("test", "mocked")
+        })
         .nodeRegistry(mock())
         .labeler(spy(DefaultLabeler()))
         .powRepo(testPowRepo)
@@ -317,5 +320,11 @@ class BitmessageContextTest {
         whenever(ctx.messages.getMessage(any<ByteArray>())).thenReturn(plaintext)
         ctx.resendUnacknowledgedMessages()
         verify(ctx.labeler, timeout(1000).times(1)).markAsSent(eq(plaintext))
+    }
+
+    @Test
+    fun `ensure status contains user agent`() {
+        val userAgent = ctx.status().getProperty("user agent")?.value.toString()
+        assertThat(userAgent, `is`("/Jabit:${BitmessageContext.version}/"))
     }
 }

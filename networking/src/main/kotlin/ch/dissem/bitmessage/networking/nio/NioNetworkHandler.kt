@@ -408,18 +408,18 @@ class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
         val incomingConnections = TreeMap<Long, Int>()
         val outgoingConnections = TreeMap<Long, Int>()
 
-        for (connection in connections.keys) {
-            if (connection.state == Connection.State.ACTIVE) {
-                for (stream in connection.streams) {
+        connections.keys
+            .filter { it.state == Connection.State.ACTIVE }
+            .forEach {
+                for (stream in it.streams) {
                     streams.add(stream)
-                    if (connection.mode == SERVER) {
+                    if (it.mode == SERVER) {
                         DebugUtils.inc(incomingConnections, stream)
                     } else {
                         DebugUtils.inc(outgoingConnections, stream)
                     }
                 }
             }
-        }
         val streamProperties = mutableListOf<Property>()
         for (stream in streams) {
             val incoming = incomingConnections[stream] ?: 0

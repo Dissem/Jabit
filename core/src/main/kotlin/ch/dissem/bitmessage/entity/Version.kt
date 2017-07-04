@@ -62,7 +62,7 @@ class Version constructor(
     /**
      * User Agent (0x00 if string is 0 bytes long). Sending nodes must not include a user_agent longer than 5000 bytes.
      */
-    val userAgent: String = "/Jabit:0.0.1/",
+    val userAgent: String,
 
     /**
      * The stream numbers that the emitting node is interested in. Sending nodes must not include more than 160000

@@ -29,7 +29,7 @@ import ch.dissem.bitmessage.utils.Strings.hex
 import org.slf4j.LoggerFactory
 import java.util.*
 
-internal open class DefaultMessageListener(
+open class DefaultMessageListener(
     private val labeler: Labeler,
     private val listener: BitmessageContext.Listener
 ) : NetworkHandler.MessageListener, InternalContext.ContextHolder {

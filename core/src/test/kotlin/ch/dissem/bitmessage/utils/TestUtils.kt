@@ -125,6 +125,7 @@ object TestUtils {
             customCommandHandler,
             listener,
             labeler,
+            "/Jabit:TEST/",
             port,
             connectionTTL,
             connectionLimit

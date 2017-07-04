@@ -54,6 +54,14 @@ subprojects {
         archives javadocJar, sourcesJar
     }
 
+    jar {
+        manifest {
+            attributes 'Implementation-Title': "Jabit ${project.name.capitalize()}",
+                       'Implementation-Version': version
+        }
+        baseName "jabit-${project.name}"
+    }
+
     signing {
         required { isRelease && project.getProperties().get("signing.keyId")?.length() > 0 }
         sign configurations.archives

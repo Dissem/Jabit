@@ -75,6 +75,7 @@ class BitmessageContext(
     },
     listener: Listener,
     labeler: Labeler = DefaultLabeler(),
+    userAgent: String? = null,
     port: Int = 8444,
     connectionTTL: Long = 30 * MINUTE,
     connectionLimit: Int = 150,
@@ -99,6 +100,7 @@ class BitmessageContext(
         },
         builder.listener,
         builder.labeler ?: DefaultLabeler(),
+        builder.userAgent,
         builder.port,
         builder.connectionTTL,
         builder.connectionLimit,
@@ -333,6 +335,7 @@ class BitmessageContext(
 
     fun status(): Property {
         return Property("status",
+            Property("user agent", internals.userAgent),
             internals.networkHandler.getNetworkStatus(),
             Property("unacknowledged", internals.messageRepository.findMessagesToResend().size)
         )
@@ -361,6 +364,7 @@ class BitmessageContext(
         internal var cryptography by Delegates.notNull<Cryptography>()
         internal var customCommandHandler: CustomCommandHandler? = null
         internal var labeler: Labeler? = null
+        internal var userAgent: String? = null
         internal var listener by Delegates.notNull<Listener>()
         internal var connectionLimit = 150
         internal var connectionTTL = 30 * MINUTE
@@ -480,6 +484,7 @@ class BitmessageContext(
             customCommandHandler,
             listener,
             labeler,
+            userAgent?.let { "/$it/Jabit:$version/" } ?: "/Jabit:$version/",
             port,
             connectionTTL,
             connectionLimit
@@ -494,5 +499,11 @@ class BitmessageContext(
     companion object {
         @JvmField val CURRENT_VERSION = 3
         private val LOG = LoggerFactory.getLogger(BitmessageContext::class.java)
+
+        val version: String by lazy {
+            BitmessageContext::class.java.getResource("/version")?.readText() ?: "local build"
+        }
+            @JvmStatic get
+
     }
 }

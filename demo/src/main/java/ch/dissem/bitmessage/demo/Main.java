@@ -46,6 +46,8 @@ public class Main {
         if (System.getProperty("org.slf4j.simpleLogger.logFile") == null)
             System.setProperty("org.slf4j.simpleLogger.logFile", "./jabit.log");
 
+        System.out.println("Version: " + BitmessageContext.getVersion());
+
         CmdLineOptions options = new CmdLineOptions();
         CmdLineParser parser = new CmdLineParser(options);
         try {
