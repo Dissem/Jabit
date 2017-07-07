@@ -24,10 +24,28 @@ artifacts {
 }
 
 dependencies {
-    compile 'org.slf4j:slf4j-api:1.7.25'
+    compile 'org.slf4j:slf4j-api'
     compile 'ch.dissem.msgpack:msgpack:1.0.0'
     testCompile 'junit:junit:4.12'
     testCompile 'org.hamcrest:hamcrest-library:1.3'
-    testCompile 'org.mockito:mockito-core:2.7.21'
+    testCompile 'com.nhaarman:mockito-kotlin:1.5.0'
     testCompile project(':cryptography-bc')
+}
+
+def generatedResources = "${project.buildDir}/generated-resources/main"
+
+sourceSets {
+    main {
+        output.dir(generatedResources, builtBy: 'generateVersionInfo')
+    }
+}
+task('generateVersionInfo') {
+    doLast {
+        def dir = new File(generatedResources)
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+        def file = new File(generatedResources, "version")
+        file.write(project.version.toString())
+    }
 }

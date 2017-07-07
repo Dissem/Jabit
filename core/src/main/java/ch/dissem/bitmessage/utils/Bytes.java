@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Christian Basler
+ * Copyright 2017 Christian Basler
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,10 @@ package ch.dissem.bitmessage.utils;
  * This is one part due to the fact that Java doesn't support unsigned numbers, and another
  * part so we don't have to convert between byte arrays and numbers in time critical
  * situations.
+ * <p>
+ * Note: This class can't yet be ported to Kotlin, as with Kotlin byte + byte = int, which
+ * would be rather inefficient in our case.
+ * </p>
  */
 public class Bytes {
     public static final byte BYTE_0x80 = (byte) 0x80;

@@ -15,6 +15,7 @@ uploadArchives {
 }
 
 sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 test.enabled = Boolean.valueOf(systemTestsEnabled)
 
@@ -28,10 +29,10 @@ dependencies {
     compile project(':repositories')
     compile project(':cryptography-bc')
     compile project(':wif')
-    compile 'org.slf4j:slf4j-simple:1.7.25'
-    compile 'args4j:args4j:2.33'
-    compile 'com.h2database:h2:1.4.194'
-    compile 'org.apache.commons:commons-lang3:3.5'
-    testCompile 'junit:junit:4.12'
-    testCompile 'org.mockito:mockito-core:2.7.21'
+    compile 'org.slf4j:slf4j-simple'
+    compile 'args4j:args4j'
+    compile 'com.h2database:h2'
+    compile 'org.apache.commons:commons-lang3'
+    testCompile 'junit:junit'
+    testCompile 'com.nhaarman:mockito-kotlin'
 }

@@ -31,10 +31,10 @@ class TestNodeRegistry implements NodeRegistry {
     public TestNodeRegistry(int... ports) {
         for (int port : ports) {
             nodes.add(
-                    new NetworkAddress.Builder()
-                            .ipv4(127, 0, 0, 1)
-                            .port(port)
-                            .build()
+                new NetworkAddress.Builder()
+                    .ipv4(127, 0, 0, 1)
+                    .port(port)
+                    .build()
             );
         }
     }
@@ -50,7 +50,7 @@ class TestNodeRegistry implements NodeRegistry {
     }
 
     @Override
-    public void offerAddresses(List<NetworkAddress> addresses) {
+    public void offerAddresses(List<NetworkAddress> nodes) {
         // Ignore
     }
 }
