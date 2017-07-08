@@ -23,7 +23,7 @@ import java.sql.PreparedStatement
 /**
  * Helper class that does Flyway migration, provides JDBC connections and some helper methods.
  */
-abstract class JdbcHelper protected constructor(protected val config: JdbcConfig) {
+abstract class JdbcHelper protected constructor(@JvmField protected val config: JdbcConfig) {
     companion object {
         @JvmStatic fun writeBlob(ps: PreparedStatement, parameterIndex: Int, data: Streamable?) {
             if (data == null) {

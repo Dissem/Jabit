@@ -68,11 +68,13 @@ open class CustomMessage(val customCommand: String, private val data: ByteArray?
     companion object {
         val COMMAND_ERROR = "ERROR"
 
+        @JvmStatic
         fun read(`in`: InputStream, length: Int): CustomMessage {
             val counter = AccessCounter()
             return CustomMessage(varString(`in`, counter), bytes(`in`, length - counter.length()))
         }
 
+        @JvmStatic
         fun error(message: String): CustomMessage {
             return CustomMessage(COMMAND_ERROR, message.toByteArray(charset("UTF-8")))
         }

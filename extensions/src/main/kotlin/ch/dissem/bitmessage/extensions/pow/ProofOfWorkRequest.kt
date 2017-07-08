@@ -77,6 +77,7 @@ data class ProofOfWorkRequest @JvmOverloads constructor(val sender: BitmessageAd
     }
 
     companion object {
+        @JvmStatic
         fun read(client: BitmessageAddress, `in`: InputStream): ProofOfWorkRequest {
             return ProofOfWorkRequest(
                 client,
