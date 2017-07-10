@@ -50,6 +50,14 @@ subprojects {
         from sourceSets.main.allSource
     }
 
+    compileKotlin {
+        kotlinOptions.jvmTarget = "1.6"
+    }
+
+    compileTestKotlin {
+        kotlinOptions.jvmTarget = "1.6"
+    }
+
     artifacts {
         archives javadocJar, sourcesJar
     }

@@ -134,7 +134,7 @@ class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
         starter = thread("connection manager") {
             while (selector.isOpen) {
                 var missing = NETWORK_MAGIC_NUMBER
-                for (connection in connections.keys) {
+                for ((connection, _) in connections) {
                     if (connection.state == Connection.State.ACTIVE) {
                         missing--
                         if (missing == 0) break
@@ -351,7 +351,7 @@ class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
         }
 
         val distribution = HashMap<Connection, MutableList<InventoryVector>>()
-        for (connection in connections.keys) {
+        for ((connection, _) in connections) {
             if (connection.state == Connection.State.ACTIVE) {
                 distribution.put(connection, mutableListOf<InventoryVector>())
             }
@@ -436,14 +436,7 @@ class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
         )
     }
 
-    private fun isConnectedTo(address: NetworkAddress): Boolean {
-        for (c in connections.keys) {
-            if (c.node == address) {
-                return true
-            }
-        }
-        return false
-    }
+    private fun isConnectedTo(address: NetworkAddress): Boolean = connections.any { it.key.node == address }
 
     override val isRunning: Boolean
         get() = selector?.isOpen ?: false && starter?.isAlive ?: false
