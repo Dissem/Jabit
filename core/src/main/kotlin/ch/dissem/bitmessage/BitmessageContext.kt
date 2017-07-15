@@ -231,12 +231,9 @@ class BitmessageContext(
 
     /**
      * @param host             a trusted node that must be reliable (it's used for every synchronization)
-     * *
      * @param port             of the trusted host, default is 8444
-     * *
-     * @param timeoutInSeconds synchronization should end no later than about 5 seconds after the timeout elapsed, even
-     * *                         if not all objects were fetched
-     * *
+     * @param timeoutInSeconds synchronization should end no later than about 5 seconds after the timeout elapsed,
+     *                         even if not all objects were fetched
      * @param wait             waits for the synchronization thread to finish
      */
     fun synchronize(host: InetAddress, port: Int, timeoutInSeconds: Long, wait: Boolean) {
@@ -259,13 +256,10 @@ class BitmessageContext(
     /**
      * Send a custom message to a specific node (that should implement handling for this message type) and returns
      * the response, which in turn is expected to be a [CustomMessage].
-
+     *
      * @param server  the node's address
-     * *
      * @param port    the node's port
-     * *
      * @param request the request
-     * *
      * @return the response
      */
     fun send(server: InetAddress, port: Int, request: CustomMessage): CustomMessage {
@@ -284,23 +278,20 @@ class BitmessageContext(
      * Sends messages again whose time to live expired without being acknowledged. (And whose
      * recipient is expected to send acknowledgements.
      *
-     *
      * You should call this method regularly, but be aware of the following:
      *
      *  * As messages might be sent, POW will be done. It is therefore not advised to
-     * call it on shutdown.
+     *    call it on shutdown.
      *  * It shouldn't be called right after startup, as it's possible the missing
-     * acknowledgement was sent while the client was offline.
+     *    acknowledgement was sent while the client was offline.
      *  * Other than that, the call isn't expensive as long as there is no message
-     * to send, so it might be a good idea to just call it every few minutes.
-     *
+     *    to send, so it might be a good idea to just call it every few minutes.
      */
     fun resendUnacknowledgedMessages() {
         internals.resendUnacknowledged()
     }
 
-    val isRunning: Boolean
-        get() = internals.networkHandler.isRunning
+    fun isRunning() = internals.networkHandler.isRungning
 
     fun addContact(contact: BitmessageAddress) {
         internals.addressRepository.save(contact)

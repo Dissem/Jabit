@@ -52,22 +52,32 @@ class Property private constructor(
     }
 
     override fun toString(): String {
-        return toString("")
+        return toJson("")
     }
 
-    private fun toString(indentation: String): String {
+    @JvmOverloads
+    fun toJson(indentation: String = ""): String {
         val result = StringBuilder()
-        result.append(indentation).append(name).append(": ")
+        result.append(indentation).append('"').append(name).append('"').append(": ")
         if (value != null || properties.isEmpty()) {
-            result.append(value)
-        }
-        if (properties.isNotEmpty()) {
+            result.append(asJson(value, indentation))
+        } else if (properties.isNotEmpty()) {
             result.append("{\n")
-            for (property in properties) {
-                result.append(property.toString(indentation + "  ")).append('\n')
-            }
-            result.append(indentation).append("}")
+            result.append(properties.map { it.toJson(indentation + "  ") }.reduce { l, r -> "$l,\n$r" })
+            result.append('\n').append(indentation).append("}")
+        } else {
+            result.append("null")
         }
         return result.toString()
+    }
+
+    private fun asJson(value: Any?, indentation: String): String = when (value) {
+        null -> "null"
+        is Number, is Boolean -> value.toString()
+        is Property -> value.toJson(indentation)
+        is Collection<*> -> """[
+${value.map { asJson(it, indentation + "    ") }.reduce { l, r -> "$indentation  $l,\n$indentation  $r" }}
+$indentation]"""
+        else -> "\"$value\""
     }
 }

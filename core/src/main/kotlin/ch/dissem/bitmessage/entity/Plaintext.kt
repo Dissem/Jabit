@@ -262,7 +262,15 @@ class Plaintext private constructor(
     fun write(out: OutputStream, includeSignature: Boolean) {
         Encode.varInt(from.version, out)
         Encode.varInt(from.stream, out)
-        if (from.pubkey == null) {
+        from.pubkey?.apply {
+            Encode.int32(behaviorBitfield, out)
+            out.write(signingKey, 1, 64)
+            out.write(encryptionKey, 1, 64)
+            if (from.version >= 3) {
+                Encode.varInt(nonceTrialsPerByte, out)
+                Encode.varInt(extraBytes, out)
+            }
+        } ?: {
             Encode.int32(0, out)
             val empty = ByteArray(64)
             out.write(empty)
@@ -271,17 +279,9 @@ class Plaintext private constructor(
                 Encode.varInt(0, out)
                 Encode.varInt(0, out)
             }
-        } else {
-            Encode.int32(from.pubkey!!.behaviorBitfield, out)
-            out.write(from.pubkey!!.signingKey, 1, 64)
-            out.write(from.pubkey!!.encryptionKey, 1, 64)
-            if (from.version >= 3) {
-                Encode.varInt(from.pubkey!!.nonceTrialsPerByte, out)
-                Encode.varInt(from.pubkey!!.extraBytes, out)
-            }
-        }
+        }.invoke()
         if (type == MSG) {
-            out.write(to!!.ripe)
+            out.write(to?.ripe ?: throw IllegalStateException("No recipient set for message"))
         }
         Encode.varInt(encodingCode, out)
         Encode.varInt(message.size, out)
