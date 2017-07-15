@@ -291,7 +291,7 @@ class BitmessageContext(
         internals.resendUnacknowledged()
     }
 
-    fun isRunning() = internals.networkHandler.isRungning
+    fun isRunning() = internals.networkHandler.isRunning
 
     fun addContact(contact: BitmessageAddress) {
         internals.addressRepository.save(contact)
