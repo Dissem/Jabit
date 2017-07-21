@@ -438,7 +438,7 @@ class Plaintext private constructor(
         if (this === other) return true
         if (other !is Plaintext) return false
         return encoding == other.encoding &&
-            from == other.from &&
+            from.address == other.from.address &&
             Arrays.equals(message, other.message) &&
             ackMessage == other.ackMessage &&
             Arrays.equals(to?.ripe, other.to?.ripe) &&
@@ -655,7 +655,7 @@ class Plaintext private constructor(
             return this
         }
 
-        fun signature(signature: ByteArray): Builder {
+        fun signature(signature: ByteArray?): Builder {
             this.signature = signature
             return this
         }

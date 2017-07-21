@@ -241,7 +241,6 @@ class NetworkHandlerTest {
                     Thread.sleep(100)
                 } catch (ignore: InterruptedException) {
                 }
-
             } while (ctx.isRunning())
         }
 

@@ -34,48 +34,37 @@ import java.util.*
  * Represents a private key. Additional information (stream, version, features, ...) is stored in the accompanying
  * [Pubkey] object.
  */
-class PrivateKey : Streamable {
-
-    val privateSigningKey: ByteArray
-    val privateEncryptionKey: ByteArray
+data class PrivateKey(
+    val privateSigningKey: ByteArray,
+    val privateEncryptionKey: ByteArray,
 
     val pubkey: Pubkey
+) : Streamable {
 
-    constructor(shorter: Boolean, stream: Long, nonceTrialsPerByte: Long, extraBytes: Long, vararg features: Pubkey.Feature) {
-        var privSK: ByteArray
-        var pubSK: ByteArray
-        var privEK: ByteArray
-        var pubEK: ByteArray
-        var ripe: ByteArray
-        do {
-            privSK = cryptography().randomBytes(PRIVATE_KEY_SIZE)
-            privEK = cryptography().randomBytes(PRIVATE_KEY_SIZE)
-            pubSK = cryptography().createPublicKey(privSK)
-            pubEK = cryptography().createPublicKey(privEK)
-            ripe = Pubkey.getRipe(pubSK, pubEK)
-        } while (ripe[0].toInt() != 0 || shorter && ripe[1].toInt() != 0)
-        this.privateSigningKey = privSK
-        this.privateEncryptionKey = privEK
-        this.pubkey = cryptography().createPubkey(Pubkey.LATEST_VERSION, stream, privateSigningKey, privateEncryptionKey,
-            nonceTrialsPerByte, extraBytes, *features)
-    }
-
-    constructor(privateSigningKey: ByteArray, privateEncryptionKey: ByteArray, pubkey: Pubkey) {
-        this.privateSigningKey = privateSigningKey
-        this.privateEncryptionKey = privateEncryptionKey
-        this.pubkey = pubkey
-    }
+    constructor(
+        shorter: Boolean,
+        stream: Long,
+        nonceTrialsPerByte: Long, extraBytes: Long,
+        vararg features: Pubkey.Feature
+    ) : this(
+        Builder(version = Pubkey.LATEST_VERSION, stream = stream, shorter = shorter)
+            .random()
+            .nonceTrialsPerByte(nonceTrialsPerByte)
+            .extraBytes(extraBytes)
+            .features(features)
+            .generate())
 
     constructor(address: BitmessageAddress, passphrase: String) : this(address.version, address.stream, passphrase)
 
-    constructor(version: Long, stream: Long, passphrase: String) : this(Builder(version, stream, false).seed(passphrase).generate())
+    constructor(version: Long, stream: Long, passphrase: String) : this(
+        Builder(version, stream, false).seed(passphrase).generate()
+    )
 
-    private constructor(builder: Builder) {
-        this.privateSigningKey = builder.privSK!!
-        this.privateEncryptionKey = builder.privEK!!
-        this.pubkey = Factory.createPubkey(builder.version, builder.stream, builder.pubSK!!, builder.pubEK!!,
-            InternalContext.NETWORK_NONCE_TRIALS_PER_BYTE, InternalContext.NETWORK_EXTRA_BYTES)
-    }
+    private constructor(builder: Builder) : this(
+        builder.privSK!!, builder.privEK!!,
+        Factory.createPubkey(builder.version, builder.stream, builder.pubSK!!, builder.pubEK!!,
+            builder.nonceTrialsPerByte, builder.extraBytes, *builder.features)
+    )
 
     private class Builder internal constructor(internal val version: Long, internal val stream: Long, internal val shorter: Boolean) {
 
@@ -86,6 +75,30 @@ class PrivateKey : Streamable {
         internal var privEK: ByteArray? = null
         internal var pubSK: ByteArray? = null
         internal var pubEK: ByteArray? = null
+
+        internal var nonceTrialsPerByte = InternalContext.NETWORK_NONCE_TRIALS_PER_BYTE
+        internal var extraBytes = InternalContext.NETWORK_EXTRA_BYTES
+        internal var features: Array<out Pubkey.Feature> = emptyArray()
+
+        internal fun random(): Builder {
+            seed = cryptography().randomBytes(1024)
+            return this
+        }
+
+        fun nonceTrialsPerByte(nonceTrialsPerByte: Long): Builder {
+            this.nonceTrialsPerByte = nonceTrialsPerByte
+            return this
+        }
+
+        fun extraBytes(extraBytes: Long): Builder {
+            this.extraBytes = extraBytes
+            return this
+        }
+
+        fun features(features: Array<out Pubkey.Feature>): Builder {
+            this.features = features
+            return this
+        }
 
         internal fun seed(passphrase: String): Builder {
             try {
@@ -142,6 +155,13 @@ class PrivateKey : Streamable {
         Encode.varBytes(privateSigningKey, buffer)
         Encode.varBytes(privateEncryptionKey, buffer)
     }
+
+    override fun equals(other: Any?) = other is PrivateKey
+        && Arrays.equals(privateEncryptionKey, other.privateEncryptionKey)
+        && Arrays.equals(privateSigningKey, other.privateSigningKey)
+        && pubkey == other.pubkey
+
+    override fun hashCode() = pubkey.hashCode()
 
     companion object {
         @JvmField val PRIVATE_KEY_SIZE = 32

@@ -28,6 +28,7 @@ subprojects {
     repositories {
         mavenCentral()
         maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
+        jcenter()
     }
     dependencies {
         compile "org.jetbrains.kotlin:kotlin-stdlib-jre7"
@@ -142,6 +143,7 @@ subprojects {
             dependency 'com.madgag.spongycastle:prov:1.56.0.0'
             dependency 'org.apache.commons:commons-lang3:3.6'
             dependency 'org.flywaydb:flyway-core:4.2.0'
+            dependency 'com.beust:klaxon:0.31'
 
             dependency 'args4j:args4j:2.33'
             dependency 'org.ini4j:ini4j:0.5.4'
