@@ -203,73 +203,77 @@ class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
                 serverChannel.register(selector, OP_ACCEPT, null)
 
                 while (selector.isOpen) {
-                    selector.select(1000)
-                    val keyIterator = selector.selectedKeys().iterator()
-                    while (keyIterator.hasNext()) {
-                        val key = keyIterator.next()
-                        keyIterator.remove()
-                        if (key.attachment() == null) {
-                            try {
-                                if (key.isAcceptable) {
-                                    // handle accept
-                                    try {
-                                        val accepted = (key.channel() as ServerSocketChannel).accept()
-                                        accepted.configureBlocking(false)
-                                        val connection = Connection(ctx, SERVER,
-                                            NetworkAddress(
-                                                time = now,
-                                                stream = 1L,
-                                                socket = accepted.socket()!!
-                                            ),
-                                            requestedObjects, 0
-                                        )
-                                        connections.put(
-                                            connection,
-                                            accepted.register(selector, OP_READ or OP_WRITE, connection)
-                                        )
-                                    } catch (e: AsynchronousCloseException) {
-                                        LOG.trace(e.message)
-                                    } catch (e: IOException) {
-                                        LOG.error(e.message, e)
-                                    }
+                    try {
+                        selector.select(1000)
+                        val keyIterator = selector.selectedKeys().iterator()
+                        while (keyIterator.hasNext()) {
+                            val key = keyIterator.next()
+                            keyIterator.remove()
+                            if (key.attachment() == null) {
+                                try {
+                                    if (key.isAcceptable) {
+                                        // handle accept
+                                        try {
+                                            val accepted = (key.channel() as ServerSocketChannel).accept()
+                                            accepted.configureBlocking(false)
+                                            val connection = Connection(ctx, SERVER,
+                                                NetworkAddress(
+                                                    time = now,
+                                                    stream = 1L,
+                                                    socket = accepted.socket()!!
+                                                ),
+                                                requestedObjects, 0
+                                            )
+                                            connections.put(
+                                                connection,
+                                                accepted.register(selector, OP_READ or OP_WRITE, connection)
+                                            )
+                                        } catch (e: AsynchronousCloseException) {
+                                            LOG.trace(e.message)
+                                        } catch (e: IOException) {
+                                            LOG.error(e.message, e)
+                                        }
 
-                                }
-                            } catch (e: CancelledKeyException) {
-                                LOG.debug(e.message, e)
-                            }
-
-                        } else {
-                            // handle read/write
-                            val channel = key.channel() as SocketChannel
-                            val connection = key.attachment() as Connection
-                            try {
-                                if (key.isConnectable) {
-                                    if (!channel.finishConnect()) {
-                                        continue
                                     }
+                                } catch (e: CancelledKeyException) {
+                                    LOG.debug(e.message, e)
                                 }
-                                if (key.isWritable) {
-                                    write(channel, connection.io)
+
+                            } else {
+                                // handle read/write
+                                val channel = key.channel() as SocketChannel
+                                val connection = key.attachment() as Connection
+                                try {
+                                    if (key.isConnectable) {
+                                        if (!channel.finishConnect()) {
+                                            continue
+                                        }
+                                    }
+                                    if (key.isWritable) {
+                                        write(channel, connection.io)
+                                    }
+                                    if (key.isReadable) {
+                                        read(channel, connection.io)
+                                    }
+                                    if (connection.state == Connection.State.DISCONNECTED) {
+                                        key.interestOps(0)
+                                        channel.close()
+                                    } else if (connection.io.isWritePending) {
+                                        key.interestOps(OP_READ or OP_WRITE)
+                                    } else {
+                                        key.interestOps(OP_READ)
+                                    }
+                                } catch (e: CancelledKeyException) {
+                                    connection.disconnect()
+                                } catch (e: NodeException) {
+                                    connection.disconnect()
+                                } catch (e: IOException) {
+                                    connection.disconnect()
                                 }
-                                if (key.isReadable) {
-                                    read(channel, connection.io)
-                                }
-                                if (connection.state == Connection.State.DISCONNECTED) {
-                                    key.interestOps(0)
-                                    channel.close()
-                                } else if (connection.io.isWritePending) {
-                                    key.interestOps(OP_READ or OP_WRITE)
-                                } else {
-                                    key.interestOps(OP_READ)
-                                }
-                            } catch (e: CancelledKeyException) {
-                                connection.disconnect()
-                            } catch (e: NodeException) {
-                                connection.disconnect()
-                            } catch (e: IOException) {
-                                connection.disconnect()
                             }
                         }
+                    } catch (e: CancelledKeyException) {
+                        LOG.debug(e.message, e)
                     }
                     // set interest ops
                     for ((connection, selectionKey) in connections) {
