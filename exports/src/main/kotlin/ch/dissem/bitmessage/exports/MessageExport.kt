@@ -20,6 +20,7 @@ import ch.dissem.bitmessage.entity.BitmessageAddress
 import ch.dissem.bitmessage.entity.Plaintext
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector
 import ch.dissem.bitmessage.entity.valueobject.Label
+import ch.dissem.bitmessage.utils.Base64
 import ch.dissem.bitmessage.utils.Encode
 import ch.dissem.bitmessage.utils.TTL
 import com.beust.klaxon.*
@@ -42,7 +43,6 @@ object MessageExport {
     }
 
     fun exportMessages(messages: List<Plaintext>) = json {
-        val base64 = Base64.getEncoder()
         array(messages.map {
             obj(
                 "type" to it.type.name,
@@ -52,13 +52,13 @@ object MessageExport {
                 "body" to it.text,
 
                 "conversationId" to it.conversationId.toString(),
-                "msgId" to it.inventoryVector?.hash?.let { base64.encodeToString(it) },
+                "msgId" to it.inventoryVector?.hash?.let { Base64.encodeToString(it) },
                 "encoding" to it.encodingCode,
                 "status" to it.status.name,
-                "message" to base64.encodeToString(it.message),
-                "ackData" to it.ackData?.let { base64.encodeToString(it) },
-                "ackMessage" to it.ackMessage?.let { base64.encodeToString(Encode.bytes(it)) },
-                "signature" to it.signature?.let { base64.encodeToString(it) },
+                "message" to Base64.encodeToString(it.message),
+                "ackData" to it.ackData?.let { Base64.encodeToString(it) },
+                "ackMessage" to it.ackMessage?.let { Base64.encodeToString(Encode.bytes(it)) },
+                "signature" to it.signature?.let { Base64.encodeToString(it) },
                 "sent" to it.sent,
                 "received" to it.received,
                 "ttl" to it.ttl,
@@ -69,8 +69,7 @@ object MessageExport {
 
     fun importMessages(input: JsonArray<*>, labels: Map<String, Label>): List<Plaintext> {
         return input.filterIsInstance(JsonObject::class.java).map { json ->
-            val base64 = Base64.getDecoder()
-            fun JsonObject.bytes(fieldName: String) = string(fieldName)?.let { base64.decode(it) }
+            fun JsonObject.bytes(fieldName: String) = string(fieldName)?.let { Base64.decode(it) }
             Plaintext.Builder(Plaintext.Type.valueOf(json.string("type") ?: "MSG"))
                 .from(json.string("from")?.let { BitmessageAddress(it) } ?: throw IllegalArgumentException("'from' address expected"))
                 .to(json.string("to")?.let { BitmessageAddress(it) })

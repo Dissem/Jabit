@@ -88,21 +88,22 @@ object Base58 {
         val input58 = ByteArray(input.length)
         // Transform the String to a base58 byte sequence
         for (i in 0..input.length - 1) {
-            val c = input[i]
+            val c = input[i].toInt()
 
-            var digit58 = -1
-            if (c.toInt() < 128) {
-                digit58 = INDEXES[c.toInt()]
+            val digit58 = if (c < 128) {
+                INDEXES[c]
+            } else {
+                -1
             }
             if (digit58 < 0) {
-                throw AddressFormatException("Illegal character $c at $i")
+                throw AddressFormatException("Illegal character ${input[i]} at $i")
             }
 
             input58[i] = digit58.toByte()
         }
         // Count leading zeroes
         var zeroCount = 0
-        while (zeroCount < input58.size && input58[zeroCount].toInt() == 0) {
+        while (zeroCount < input58.size && input58[zeroCount] == 0.toByte()) {
             ++zeroCount
         }
         // The encoding

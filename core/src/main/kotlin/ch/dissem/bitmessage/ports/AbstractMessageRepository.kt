@@ -49,6 +49,8 @@ abstract class AbstractMessageRepository : MessageRepository, InternalContext.Co
         }
     }
 
+    override fun getAllMessages() = find("1=1")
+
     override fun getMessage(id: Any): Plaintext {
         if (id is Long) {
             return single(find("id=" + id)) ?: throw IllegalArgumentException("There  is no message with id $id")

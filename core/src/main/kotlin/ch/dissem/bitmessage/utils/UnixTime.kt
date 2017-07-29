@@ -23,15 +23,15 @@ object UnixTime {
     /**
      * Length of a minute in seconds, intended for use with [.now].
      */
-    @JvmField val MINUTE = 60L
+    const val MINUTE = 60L
     /**
      * Length of an hour in seconds, intended for use with [.now].
      */
-    @JvmField val HOUR = 60L * MINUTE
+    const val HOUR = 60L * MINUTE
     /**
      * Length of a day in seconds, intended for use with [.now].
      */
-    @JvmField val DAY = 24L * HOUR
+    const val DAY = 24L * HOUR
 
     /**
      * @return the time in second based Unix time ([System.currentTimeMillis]/1000)

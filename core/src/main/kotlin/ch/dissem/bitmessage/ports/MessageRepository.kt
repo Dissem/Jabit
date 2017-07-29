@@ -30,6 +30,8 @@ interface MessageRepository {
 
     fun countUnread(label: Label?): Int
 
+    fun getAllMessages(): List<Plaintext>
+
     fun getMessage(id: Any): Plaintext
 
     fun getMessage(iv: InventoryVector): Plaintext?

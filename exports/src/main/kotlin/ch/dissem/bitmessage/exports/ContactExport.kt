@@ -19,18 +19,17 @@ package ch.dissem.bitmessage.exports
 import ch.dissem.bitmessage.entity.BitmessageAddress
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey
 import ch.dissem.bitmessage.factory.Factory
+import ch.dissem.bitmessage.utils.Base64
 import ch.dissem.bitmessage.utils.Encode
 import com.beust.klaxon.*
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
-import java.util.*
 
 /**
  * Exports and imports contacts and identities
  */
 object ContactExport {
     fun exportContacts(contacts: List<BitmessageAddress>, includePrivateKey: Boolean = false) = json {
-        val base64 = Base64.getEncoder()
         array(
             contacts.map {
                 obj(
@@ -41,10 +40,10 @@ object ContactExport {
                     "pubkey" to it.pubkey?.let {
                         val out = ByteArrayOutputStream()
                         it.writeUnencrypted(out)
-                        base64.encodeToString(out.toByteArray())
+                        Base64.encodeToString(out.toByteArray())
                     },
                     "privateKey" to if (includePrivateKey) {
-                        it.privateKey?.let { base64.encodeToString(Encode.bytes(it)) }
+                        it.privateKey?.let { Base64.encodeToString(Encode.bytes(it)) }
                     } else {
                         null
                     }
@@ -55,8 +54,7 @@ object ContactExport {
 
     fun importContacts(input: JsonArray<*>): List<BitmessageAddress> {
         return input.filterIsInstance(JsonObject::class.java).map { json ->
-            val base64 = Base64.getDecoder()
-            fun JsonObject.bytes(fieldName: String) = string(fieldName)?.let { base64.decode(it) }
+            fun JsonObject.bytes(fieldName: String) = string(fieldName)?.let { Base64.decode(it) }
             val privateKey = json.bytes("privateKey")?.let { PrivateKey.read(ByteArrayInputStream(it)) }
             if (privateKey != null) {
                 BitmessageAddress(privateKey)
