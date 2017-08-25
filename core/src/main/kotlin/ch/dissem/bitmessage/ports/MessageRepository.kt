@@ -28,6 +28,8 @@ interface MessageRepository {
 
     fun getLabels(vararg types: Label.Type): List<Label>
 
+    fun save(label: Label)
+
     fun countUnread(label: Label?): Int
 
     fun getAllMessages(): List<Plaintext>

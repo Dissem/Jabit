@@ -218,7 +218,7 @@ class BitmessageContextTest {
         verify(ctx.internals.proofOfWorkRepository, timeout(10000)).putObject(
             argThat { payload.type == ObjectType.MSG }, eq(1000L), eq(1000L))
         assertEquals(2, testPowRepo.added)
-        verify(ctx.messages, timeout(10000).atLeastOnce()).save(argThat { type == Type.MSG })
+        verify(ctx.messages, timeout(10000).atLeastOnce()).save(argThat<Plaintext> { type == Type.MSG })
     }
 
     @Test
@@ -228,7 +228,7 @@ class BitmessageContextTest {
             "Subject", "Message")
         verify(testPowRepo, timeout(10000).atLeastOnce())
             .putObject(argThat { payload.type == ObjectType.GET_PUBKEY }, eq(1000L), eq(1000L))
-        verify(ctx.messages, timeout(10000).atLeastOnce()).save(argThat { type == Type.MSG })
+        verify(ctx.messages, timeout(10000).atLeastOnce()).save(argThat<Plaintext> { type == Type.MSG })
     }
 
     @Test(expected = IllegalArgumentException::class)
@@ -245,7 +245,7 @@ class BitmessageContextTest {
         verify(ctx.internals.proofOfWorkRepository, timeout(1000).atLeastOnce())
             .putObject(argThat { payload.type == ObjectType.BROADCAST }, eq(1000L), eq(1000L))
         verify(testPowEngine).calculateNonce(any(), any(), any())
-        verify(ctx.messages, timeout(10000).atLeastOnce()).save(argThat { type == Type.BROADCAST })
+        verify(ctx.messages, timeout(10000).atLeastOnce()).save(argThat<Plaintext> { type == Type.BROADCAST })
     }
 
     @Test(expected = IllegalArgumentException::class)

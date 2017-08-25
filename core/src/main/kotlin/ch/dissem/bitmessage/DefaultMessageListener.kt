@@ -23,6 +23,7 @@ import ch.dissem.bitmessage.entity.Plaintext.Status.PUBKEY_REQUESTED
 import ch.dissem.bitmessage.entity.payload.*
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector
 import ch.dissem.bitmessage.exception.DecryptionFailedException
+import ch.dissem.bitmessage.ports.AlreadyStoredException
 import ch.dissem.bitmessage.ports.Labeler
 import ch.dissem.bitmessage.ports.NetworkHandler
 import ch.dissem.bitmessage.utils.Strings.hex
@@ -65,7 +66,7 @@ open class DefaultMessageListener(
 
     protected fun receive(objectMessage: ObjectMessage, getPubkey: GetPubkey) {
         val identity = ctx.addressRepository.findIdentity(getPubkey.ripeTag)
-        if (identity != null && identity.privateKey != null && !identity.isChan) {
+        if (identity?.privateKey != null && !identity.isChan) {
             LOG.info("Got pubkey request for identity " + identity)
             // FIXME: only send pubkey if it wasn't sent in the last TTL.pubkey() days
             ctx.sendPubkey(identity, objectMessage.stream)
@@ -90,7 +91,6 @@ open class DefaultMessageListener(
             }
         } catch (_: DecryptionFailedException) {
         }
-
     }
 
     private fun updatePubkey(address: BitmessageAddress, pubkey: Pubkey) {
@@ -157,14 +157,18 @@ open class DefaultMessageListener(
 
         msg.inventoryVector = iv
         labeler.setLabels(msg)
-        ctx.messageRepository.save(msg)
-        listener.receive(msg)
+        try {
+            ctx.messageRepository.save(msg)
+            listener.receive(msg)
 
-        if (msg.type == Plaintext.Type.MSG && msg.to!!.has(Pubkey.Feature.DOES_ACK)) {
-            msg.ackMessage?.let {
-                ctx.inventory.storeObject(it)
-                ctx.networkHandler.offer(it.inventoryVector)
-            } ?: LOG.debug("ack message expected")
+            if (msg.type == Plaintext.Type.MSG && msg.to!!.has(Pubkey.Feature.DOES_ACK)) {
+                msg.ackMessage?.let {
+                    ctx.inventory.storeObject(it)
+                    ctx.networkHandler.offer(it.inventoryVector)
+                } ?: LOG.debug("ack message expected")
+            }
+        } catch (e: AlreadyStoredException) {
+            LOG.trace("Message was already received before.", e)
         }
     }
 

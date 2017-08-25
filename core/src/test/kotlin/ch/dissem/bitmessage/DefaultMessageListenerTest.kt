@@ -108,7 +108,7 @@ class DefaultMessageListenerTest : TestBase() {
 
         listener.receive(objectMessage)
 
-        verify(ctx.messageRepository, atLeastOnce()).save(argThat { type == MSG })
+        verify(ctx.messageRepository, atLeastOnce()).save(argThat<Plaintext> { type == MSG })
     }
 
     @Test
@@ -131,6 +131,6 @@ class DefaultMessageListenerTest : TestBase() {
 
         listener.receive(objectMessage)
 
-        verify(ctx.messageRepository, atLeastOnce()).save(argThat { type == BROADCAST })
+        verify(ctx.messageRepository, atLeastOnce()).save(argThat<Plaintext> { type == BROADCAST })
     }
 }

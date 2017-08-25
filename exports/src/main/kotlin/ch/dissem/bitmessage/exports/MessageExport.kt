@@ -91,7 +91,7 @@ object MessageExport {
         }
     }
 
-    fun importLabels(input: JsonArray<Any?>): List<Label> {
+    fun importLabels(input: JsonArray<*>): List<Label> {
         return input.filterIsInstance(JsonObject::class.java).map { json ->
             Label(
                 label = json.string("label") ?: throw IllegalArgumentException("label expected"),
