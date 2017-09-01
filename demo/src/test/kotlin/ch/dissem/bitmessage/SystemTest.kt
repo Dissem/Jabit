@@ -106,7 +106,7 @@ class SystemTest {
     }
 
     @Test(timeout = 120_000)
-    fun ensureAliceCanSendMessageToBob() {
+    fun `ensure Alice can send message to Bob`() {
         val originalMessage = UUID.randomUUID().toString()
         alice.send(aliceIdentity, BitmessageAddress(bobIdentity.address), "Subject", originalMessage)
 
@@ -120,7 +120,7 @@ class SystemTest {
     }
 
     @Test(timeout = 30_000)
-    fun ensureBobCanReceiveBroadcastFromAlice() {
+    fun `ensure Bob can receive broadcast from Alice`() {
         val originalMessage = UUID.randomUUID().toString()
         bob.addSubscribtion(BitmessageAddress(aliceIdentity.address))
         alice.broadcast(aliceIdentity, "Subject", originalMessage)
