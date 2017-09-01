@@ -26,7 +26,7 @@ class CommandLine {
         val ERROR_UNKNOWN_COMMAND = "Unknown command. Please try again."
     }
 
-    private val scanner = Scanner(System.`in`)
+    private val scanner: Scanner by lazy { Scanner(System.`in`) }
 
     fun nextCommand() = scanner.nextLine().trim().toLowerCase()
 
@@ -36,14 +36,14 @@ class CommandLine {
 
     fun yesNo(question: String): Boolean {
         var answer: String
-        do {
+        while (true) {
             println("$question (y/n)")
             answer = nextLine()
             when (answer.toLowerCase()) {
                 "y" -> return true
                 "n" -> return false
             }
-        } while (true)
+        }
     }
 
     fun selectAddress(addresses: List<BitmessageAddress>, label: String): BitmessageAddress? {
@@ -62,13 +62,11 @@ class CommandLine {
             command = nextCommand()
             when (command) {
                 "b" -> return null
-                else -> {
-                    try {
-                        val index = command.toInt() - 1
-                        return addresses[index]
-                    } catch (e: NumberFormatException) {
-                        println(ERROR_UNKNOWN_COMMAND)
-                    }
+                else -> try {
+                    val index = command.toInt() - 1
+                    return addresses[index]
+                } catch (e: NumberFormatException) {
+                    println(ERROR_UNKNOWN_COMMAND)
                 }
             }
         } while ("b" != command)
@@ -80,7 +78,7 @@ class CommandLine {
             println("You have no $kind yet.")
         } else {
             addresses.forEachIndexed { index, address ->
-                println("$index) ")
+                print("$index) ")
                 if (address.alias == null) {
                     println(address.address)
                 } else {

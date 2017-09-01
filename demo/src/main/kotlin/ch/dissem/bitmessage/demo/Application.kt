@@ -27,10 +27,10 @@ import ch.dissem.bitmessage.entity.payload.Pubkey
 import ch.dissem.bitmessage.entity.valueobject.Label
 import ch.dissem.bitmessage.entity.valueobject.extended.Message
 import org.apache.commons.lang3.text.WordUtils
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.net.InetAddress
-import java.util.regex.Pattern.CASE_INSENSITIVE
-import java.util.regex.Pattern.compile
+import kotlin.text.RegexOption.IGNORE_CASE
 
 /**
  * A simple command line Bitmessage application
@@ -40,9 +40,9 @@ class Application(
     syncServer: InetAddress? = null,
     syncPort: Int = 8444
 ) {
-    private val log = LoggerFactory.getLogger(Application::class.java)
-    private val responsePattern = compile("^RE:.*$", CASE_INSENSITIVE)
-    private val commandLine = CommandLine()
+    private val log: Logger by lazy { LoggerFactory.getLogger(Application::class.java) }
+    private val responsePattern: Regex by lazy { Regex("^RE:.*\$", IGNORE_CASE) }
+    private val commandLine: CommandLine by lazy { CommandLine() }
 
     private val ctx: BitmessageContext
 
@@ -412,7 +412,7 @@ class Application(
             println("To:      $to")
         }
         if (parent != null) {
-            subject = if (responsePattern.matcher(parent.subject!!).matches()) {
+            subject = if (responsePattern.matches(parent.subject!!)) {
                 //TODO: Is this truly safe?
                 parent.subject!!
             } else {

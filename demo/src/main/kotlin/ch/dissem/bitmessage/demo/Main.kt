@@ -27,6 +27,7 @@ import ch.dissem.bitmessage.wif.WifImporter
 import org.kohsuke.args4j.CmdLineException
 import org.kohsuke.args4j.CmdLineParser
 import org.kohsuke.args4j.Option
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.net.InetAddress
@@ -34,7 +35,7 @@ import java.net.InetAddress
 class Main {
 
     companion object {
-        private val log = LoggerFactory.getLogger(Main::class.java)
+        private val log: Logger by lazy { LoggerFactory.getLogger(Main::class.java) }
 
         @JvmStatic fun main(args: Array<String>) {
             when {
@@ -46,7 +47,7 @@ class Main {
 
             println("Version: ${BitmessageContext.version}")
 
-            val options = CmdLineoptions()
+            val options = CmdLineOptions()
             val parser = CmdLineParser(options)
             try {
                 parser.parseArgument(*args)
@@ -99,7 +100,7 @@ class Main {
         }
     }
 
-    private class CmdLineoptions {
+    private class CmdLineOptions {
         @Option(name = "-local", usage = "Connect to local Bitmessage client on given port, instead of the usual connections from node.txt")
         var localPort: Int? = null
 
