@@ -115,7 +115,7 @@ class SystemTest {
         assertThat(plaintext.type, equalTo(Plaintext.Type.MSG))
         assertThat(plaintext.text, equalTo(originalMessage))
 
-        //TODO: Something must be of here because the 'anyOrNull' matcher does not seem necessary but without it the test fails
+        //TODO: Something must be off here because the 'anyOrNull' matcher does not seem necessary but without it the test fails
         verify(aliceLabeler, timeout(TimeUnit.MINUTES.toMillis(2)).atLeastOnce()).markAsAcknowledged(anyOrNull())
     }
 
