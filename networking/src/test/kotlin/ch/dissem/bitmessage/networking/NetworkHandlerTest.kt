@@ -31,7 +31,8 @@ import com.nhaarman.mockito_kotlin.mock
 import org.hamcrest.Matchers.`is`
 import org.hamcrest.Matchers.notNullValue
 import org.junit.After
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThat
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -233,7 +234,7 @@ class NetworkHandlerTest {
         private val peerAddress = NetworkAddress.Builder().ipv4(127, 0, 0, 1).port(6001).build()
 
         private fun shutdown(ctx: BitmessageContext) {
-            if (!ctx.isRunning) return
+            if (!ctx.isRunning()) return
 
             ctx.shutdown()
             do {
@@ -242,7 +243,7 @@ class NetworkHandlerTest {
                 } catch (ignore: InterruptedException) {
                 }
 
-            } while (ctx.isRunning)
+            } while (ctx.isRunning())
         }
 
         private fun shutdown(networkHandler: NetworkHandler) {
