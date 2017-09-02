@@ -32,7 +32,7 @@ class TestListener : BitmessageContext.Listener {
     }
 
     fun reset() {
-        future = CompletableFuture<Plaintext>()
+        future = CompletableFuture()
     }
 
     operator fun get(timeout: Long, unit: TimeUnit): Plaintext {
