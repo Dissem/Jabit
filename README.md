@@ -14,12 +14,10 @@ Be aware though that this doesn't necessarily applies for SNAPSHOT builds and th
 #### Master
 [![Build Status](https://travis-ci.org/Dissem/Jabit.svg?branch=master)](https://travis-ci.org/Dissem/Jabit) 
 [![Code Quality](https://img.shields.io/codacy/e9938d2adbb74a0db553115bef692ff3/master.svg)](https://www.codacy.com/app/chrigu-meyer/Jabit/dashboard?bid=3144281)
-[![Test Coverage](https://codecov.io/github/Dissem/Jabit/coverage.svg?branch=master)](https://codecov.io/github/Dissem/Jabit?branch=master)
 
 #### Develop
 [![Build Status](https://travis-ci.org/Dissem/Jabit.svg?branch=develop)](https://travis-ci.org/Dissem/Jabit?branch=develop) 
 [![Code Quality](https://img.shields.io/codacy/e9938d2adbb74a0db553115bef692ff3/develop.svg)](https://www.codacy.com/app/chrigu-meyer/Jabit/dashboard?bid=3144279)
-[![Test Coverage](https://codecov.io/github/Dissem/Jabit/coverage.svg?branch=develop)](https://codecov.io/github/Dissem/Jabit?branch=develop)
 
 Upgrading
 ---------
