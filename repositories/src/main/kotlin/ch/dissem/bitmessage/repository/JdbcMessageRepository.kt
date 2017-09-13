@@ -126,14 +126,15 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
         return 0
     }
 
-    override fun find(where: String): List<Plaintext> {
+    override fun find(where: String, offset: Int, limit: Int): List<Plaintext> {
         val result = LinkedList<Plaintext>()
+        val limit = if (limit == 0) "" else "LIMIT $limit OFFSET $offset"
         try {
             config.getConnection().use { connection ->
                 connection.createStatement().use { stmt ->
                     stmt.executeQuery(
                         """SELECT id, iv, type, sender, recipient, data, ack_data, sent, received, initial_hash, status, ttl, retries, next_try, conversation
-                           FROM Message WHERE $where""").use { rs ->
+                           FROM Message WHERE $where $limit""").use { rs ->
                         while (rs.next()) {
                             val iv = rs.getBytes("iv")
                             val data = rs.getBinaryStream("data")
@@ -224,7 +225,8 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
     }
 
     private fun updateParents(connection: Connection, message: Plaintext) {
-        if (message.inventoryVector == null || message.parents.isEmpty()) {
+        val childIV = message.inventoryVector?.hash
+        if (childIV == null || message.parents.isEmpty()) {
             // There are no parents to save yet (they are saved in the extended data, that's enough for now)
             return
         }
@@ -233,19 +235,19 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
             ps.setBytes(1, message.initialHash)
             ps.executeUpdate()
         }
-        val childIV = message.inventoryVector!!.hash
         // save new parents
         var order = 0
         connection.prepareStatement("INSERT INTO Message_Parent VALUES (?, ?, ?, ?)").use { ps ->
             for (parentIV in message.parents) {
-                val parent = getMessage(parentIV)
-                mergeConversations(connection, parent!!.conversationId, message.conversationId)
-                order++
-                ps.setBytes(1, parentIV.hash)
-                ps.setBytes(2, childIV)
-                ps.setInt(3, order) // FIXME: this might not be necessary
-                ps.setObject(4, message.conversationId)
-                ps.executeUpdate()
+                getMessage(parentIV)?.let { parent ->
+                    mergeConversations(connection, parent.conversationId, message.conversationId)
+                    order++
+                    ps.setBytes(1, parentIV.hash)
+                    ps.setBytes(2, childIV)
+                    ps.setInt(3, order) // FIXME: this might not be necessary
+                    ps.setObject(4, message.conversationId)
+                    ps.executeUpdate()
+                }
             }
         }
     }
@@ -334,18 +336,17 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
     }
 
     override fun findConversations(label: Label?): List<UUID> {
-        val where: String
-        if (label == null) {
-            where = "id NOT IN (SELECT message_id FROM Message_Label)"
+        val where = if (label == null) {
+            "id NOT IN (SELECT message_id FROM Message_Label)"
         } else {
-            where = "id IN (SELECT message_id FROM Message_Label WHERE label_id=" + label.id + ")"
+            "id IN (SELECT message_id FROM Message_Label WHERE label_id=${label.id})"
         }
         val result = LinkedList<UUID>()
         try {
             config.getConnection().use { connection ->
                 connection.createStatement().use { stmt ->
                     stmt.executeQuery(
-                        "SELECT DISTINCT conversation FROM Message WHERE " + where).use { rs ->
+                        "SELECT DISTINCT conversation FROM Message WHERE $where").use { rs ->
                         while (rs.next()) {
                             result.add(rs.getObject(1) as UUID)
                         }

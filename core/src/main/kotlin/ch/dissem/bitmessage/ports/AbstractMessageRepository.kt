@@ -60,52 +60,58 @@ abstract class AbstractMessageRepository : MessageRepository, InternalContext.Co
     }
 
     override fun getMessage(iv: InventoryVector): Plaintext? {
-        return single(find("iv=X'" + Strings.hex(iv.hash) + "'"))
+        return single(find("iv=X'${Strings.hex(iv.hash)}'"))
     }
 
     override fun getMessage(initialHash: ByteArray): Plaintext? {
-        return single(find("initial_hash=X'" + Strings.hex(initialHash) + "'"))
+        return single(find("initial_hash=X'${Strings.hex(initialHash)}'"))
     }
 
     override fun getMessageForAck(ackData: ByteArray): Plaintext? {
-        return single(find("ack_data=X'" + Strings.hex(ackData) + "' AND status='" + Plaintext.Status.SENT + "'"))
+        return single(find("ack_data=X'${Strings.hex(ackData)}' AND status='${Plaintext.Status.SENT}'"))
     }
 
-    override fun findMessages(label: Label?): List<Plaintext> {
-        if (label == null) {
-            return find("id NOT IN (SELECT message_id FROM Message_Label)")
-        } else {
-            return find("id IN (SELECT message_id FROM Message_Label WHERE label_id=" + label.id + ")")
-        }
+    /**
+     * Finds messages that have a specific label, with optional offset and limit. If the limit is set to 0,
+     * offset and limit are ignored.
+     */
+    open fun findMessages(label: Label?, offset: Int = 0, limit: Int = 0) = if (label == null) {
+        find("id NOT IN (SELECT message_id FROM Message_Label)", offset, limit)
+    } else {
+        find("id IN (SELECT message_id FROM Message_Label WHERE label_id=" + label.id + ")", offset, limit)
+    }
+
+    override fun findMessages(label: Label?) = if (label == null) {
+        find("id NOT IN (SELECT message_id FROM Message_Label)")
+    } else {
+        find("id IN (SELECT message_id FROM Message_Label WHERE label_id=${label.id})")
     }
 
     override fun findMessages(status: Plaintext.Status, recipient: BitmessageAddress): List<Plaintext> {
-        return find("status='" + status.name + "' AND recipient='" + recipient.address + "'")
+        return find("status='${status.name}' AND recipient='${recipient.address}'")
     }
 
     override fun findMessages(status: Plaintext.Status): List<Plaintext> {
-        return find("status='" + status.name + "'")
+        return find("status='${status.name}'")
     }
 
     override fun findMessages(sender: BitmessageAddress): List<Plaintext> {
-        return find("sender='" + sender.address + "'")
+        return find("sender='${sender.address}'")
     }
 
     override fun findMessagesToResend(): List<Plaintext> {
-        return find("status='" + Plaintext.Status.SENT.name + "'" +
-            " AND next_try < " + UnixTime.now)
+        return find("status='${Plaintext.Status.SENT.name}' AND next_try < ${UnixTime.now}")
     }
 
     override fun findResponses(parent: Plaintext): List<Plaintext> {
         if (parent.inventoryVector == null) {
             return emptyList()
         }
-        return find("iv IN (SELECT child FROM Message_Parent"
-            + " WHERE parent=X'" + Strings.hex(parent.inventoryVector!!.hash) + "')")
+        return find("iv IN (SELECT child FROM Message_Parent WHERE parent=X'${Strings.hex(parent.inventoryVector!!.hash)}')")
     }
 
     override fun getConversation(conversationId: UUID): List<Plaintext> {
-        return find("conversation=X'" + conversationId.toString().replace("-", "") + "'")
+        return find("conversation=X'${conversationId.toString().replace("-", "")}'")
     }
 
     override fun getLabels(): List<Label> {
@@ -113,20 +119,23 @@ abstract class AbstractMessageRepository : MessageRepository, InternalContext.Co
     }
 
     override fun getLabels(vararg types: Label.Type): List<Label> {
-        return findLabels("type IN (" + join(*types) + ")")
+        return findLabels("type IN (${join(*types)})")
     }
 
     protected abstract fun findLabels(where: String): List<Label>
 
 
     protected fun <T> single(collection: Collection<T>): T? {
-        when (collection.size) {
-            0 -> return null
-            1 -> return collection.iterator().next()
-            else -> throw ApplicationException("This shouldn't happen, found " + collection.size +
-                " items, one or none was expected")
+        return when (collection.size) {
+            0 -> null
+            1 -> collection.iterator().next()
+            else -> throw ApplicationException("This shouldn't happen, found ${collection.size} items, one or none was expected")
         }
     }
 
-    protected abstract fun find(where: String): List<Plaintext>
+    /**
+     * Finds messages that mach the given where statement, with optional offset and limit. If the limit is set to 0,
+     * offset and limit are ignored.
+     */
+    protected abstract fun find(where: String, offset: Int = 0, limit: Int = 0): List<Plaintext>
 }

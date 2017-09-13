@@ -318,7 +318,13 @@ class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
                     }
                 }
                 selector.close()
-            } catch (_: ClosedSelectorException) {
+            } catch (e: Exception) {
+                // There are various exceptions that may occur when the selector can't be bound:
+                // ClosedSelectorException, BindException, NullPointerException, SocketException,
+                // ClosedChannelException
+                // I'm not sure if I give a damn, or what to do about it. Crashing the application
+                // isn't nice though.
+                LOG.error(e.message, e)
             }
         })
     }
