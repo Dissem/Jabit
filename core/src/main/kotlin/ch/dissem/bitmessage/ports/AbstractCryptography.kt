@@ -198,10 +198,10 @@ abstract class AbstractCryptography protected constructor(@JvmField protected va
     }
 
     companion object {
-        protected val LOG = LoggerFactory.getLogger(Cryptography::class.java)
+        protected val LOG = LoggerFactory.getLogger(Cryptography::class.java)!!
         private val RANDOM = SecureRandom()
         private val TWO = BigInteger.valueOf(2)
-        private val TWO_POW_64 = TWO.pow(64)
-        private val TWO_POW_16 = TWO.pow(16)
+        private val TWO_POW_64 = TWO.pow(64)!!
+        private val TWO_POW_16 = TWO.pow(16)!!
     }
 }

@@ -36,6 +36,8 @@ class ConversationServiceTest : TestBase() {
     private val messageRepository = mock<MessageRepository>()
     private val conversationService = spy(ConversationService(messageRepository))
 
+    private val conversation = conversation(alice, bob)
+
     @Test
     fun `ensure conversation is sorted properly`() {
         MockitoKotlin.registerInstanceCreator { UUID.randomUUID() }
@@ -46,8 +48,9 @@ class ConversationServiceTest : TestBase() {
         assertThat(actual, `is`(expected))
     }
 
-    private val conversation: List<Plaintext>
-        get() {
+    companion object {
+        private var timer = 2
+        fun conversation(alice: BitmessageAddress, bob: BitmessageAddress): List<Plaintext> {
             val result = LinkedList<Plaintext>()
 
             val older = plaintext(alice, bob,
@@ -99,19 +102,18 @@ class ConversationServiceTest : TestBase() {
             return result
         }
 
-    private var timer = 2
-
-    private fun plaintext(from: BitmessageAddress, to: BitmessageAddress,
-                          content: ExtendedEncoding, status: Plaintext.Status): Plaintext {
-        val builder = Plaintext.Builder(MSG)
-            .IV(TestUtils.randomInventoryVector())
-            .from(from)
-            .to(to)
-            .message(content)
-            .status(status)
-        if (status !== Plaintext.Status.DRAFT && status !== Plaintext.Status.DOING_PROOF_OF_WORK) {
-            builder.received(5L * ++timer - RANDOM.nextInt(10))
+        fun plaintext(from: BitmessageAddress, to: BitmessageAddress,
+                      content: ExtendedEncoding, status: Plaintext.Status): Plaintext {
+            val builder = Plaintext.Builder(MSG)
+                .IV(TestUtils.randomInventoryVector())
+                .from(from)
+                .to(to)
+                .message(content)
+                .status(status)
+            if (status !== Plaintext.Status.DRAFT && status !== Plaintext.Status.DOING_PROOF_OF_WORK) {
+                builder.received(5L * ++timer - RANDOM.nextInt(10))
+            }
+            return builder.build()
         }
-        return builder.build()
     }
 }

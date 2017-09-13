@@ -20,22 +20,18 @@ import ch.dissem.bitmessage.entity.Plaintext
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector
 import ch.dissem.bitmessage.entity.valueobject.Label
 import ch.dissem.bitmessage.ports.AbstractMessageRepository
+import ch.dissem.bitmessage.ports.AlreadyStoredException
 import ch.dissem.bitmessage.ports.MessageRepository
 import ch.dissem.bitmessage.repository.JdbcHelper.Companion.writeBlob
 import org.slf4j.LoggerFactory
-import java.io.IOException
-import java.sql.Connection
-import java.sql.ResultSet
-import java.sql.SQLException
-import java.sql.Statement
+import java.sql.*
 import java.util.*
 
 class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRepository(), MessageRepository {
 
     override fun findLabels(where: String): List<Label> {
         try {
-            config.getConnection().use {
-                connection ->
+            config.getConnection().use { connection ->
                 return findLabels(connection, where)
             }
         } catch (e: SQLException) {
@@ -51,10 +47,59 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
         } else {
             Label.Type.valueOf(typeName)
         }
-        val label = Label(rs.getString("label"), type, rs.getInt("color"))
+        val label = Label(rs.getString("label"), type, rs.getInt("color"), rs.getInt("ord"))
         label.id = rs.getLong("id")
 
         return label
+    }
+
+    override fun save(label: Label) {
+        config.getConnection().use { connection ->
+            if (label.id != null) {
+                connection.prepareStatement("UPDATE Label SET label=?, type=?, color=?, ord=? WHERE id=?").use { ps ->
+                    ps.setString(1, label.toString())
+                    ps.setString(2, label.type?.name)
+                    ps.setInt(3, label.color)
+                    ps.setInt(4, label.ord)
+                    ps.setInt(5, label.id as Int)
+                    ps.executeUpdate()
+                }
+            } else {
+                try {
+                    connection.autoCommit = false
+                    var exists = false
+                    connection.prepareStatement("SELECT COUNT(1) FROM Label WHERE label=?").use { ps ->
+                        ps.setString(1, label.toString())
+                        val rs = ps.executeQuery()
+                        if (rs.next()) {
+                            exists = rs.getInt(1) > 0
+                        }
+                    }
+
+                    if (exists) {
+                        connection.prepareStatement("UPDATE Label SET type=?, color=?, ord=? WHERE label=?").use { ps ->
+                            ps.setString(1, label.type?.name)
+                            ps.setInt(2, label.color)
+                            ps.setInt(3, label.ord)
+                            ps.setString(4, label.toString())
+                            ps.executeUpdate()
+                        }
+                    } else {
+                        connection.prepareStatement("INSERT INTO Label (label, type, color, ord) VALUES (?, ?, ?, ?)").use { ps ->
+                            ps.setString(1, label.toString())
+                            ps.setString(2, label.type?.name)
+                            ps.setInt(3, label.color)
+                            ps.setInt(4, label.ord)
+                            ps.executeUpdate()
+                        }
+                    }
+                    connection.commit()
+                } catch (e: Exception) {
+                    connection.rollback()
+                    throw e
+                }
+            }
+        }
     }
 
     override fun countUnread(label: Label?): Int {
@@ -68,7 +113,7 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
         try {
             config.getConnection().use { connection ->
                 connection.createStatement().use { stmt ->
-                    stmt.executeQuery("SELECT count(*) FROM Message WHERE $where").use { rs ->
+                    stmt.executeQuery("SELECT count(1) FROM Message WHERE $where").use { rs ->
                         if (rs.next()) {
                             return rs.getInt(1)
                         }
@@ -127,7 +172,7 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
         val result = ArrayList<Label>()
         try {
             connection.createStatement().use { stmt ->
-                stmt.executeQuery("SELECT id, label, type, color FROM Label WHERE $where").use { rs ->
+                stmt.executeQuery("SELECT id, label, type, color, ord FROM Label WHERE $where").use { rs ->
                     while (rs.next()) {
                         result.add(getLabel(rs))
                     }
@@ -226,11 +271,15 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
             ps.setObject(13, message.nextTry)
             ps.setObject(14, message.conversationId)
 
-            ps.executeUpdate()
-            // get generated id
-            ps.generatedKeys.use { rs ->
-                rs.next()
-                message.id = rs.getLong(1)
+            try {
+                ps.executeUpdate()
+                // get generated id
+                ps.generatedKeys.use { rs ->
+                    rs.next()
+                    message.id = rs.getLong(1)
+                }
+            } catch (e: SQLIntegrityConstraintViolationException) {
+                throw AlreadyStoredException(cause = e)
             }
         }
     }

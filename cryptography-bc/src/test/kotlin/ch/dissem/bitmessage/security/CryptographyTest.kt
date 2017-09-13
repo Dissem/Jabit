@@ -23,10 +23,7 @@ import ch.dissem.bitmessage.entity.valueobject.PrivateKey
 import ch.dissem.bitmessage.exception.InsufficientProofOfWorkException
 import ch.dissem.bitmessage.ports.MultiThreadedPOWEngine
 import ch.dissem.bitmessage.ports.ProofOfWorkEngine
-import ch.dissem.bitmessage.utils.CallbackWaiter
-import ch.dissem.bitmessage.utils.Singleton
-import ch.dissem.bitmessage.utils.TestUtils
-import ch.dissem.bitmessage.utils.UnixTime
+import ch.dissem.bitmessage.utils.*
 import ch.dissem.bitmessage.utils.UnixTime.DAY
 import ch.dissem.bitmessage.utils.UnixTime.MINUTE
 import ch.dissem.bitmessage.utils.UnixTime.now
@@ -34,7 +31,6 @@ import org.hamcrest.CoreMatchers.`is`
 import org.junit.Assert.*
 import org.junit.Test
 import java.io.ByteArrayInputStream
-import java.io.IOException
 import javax.xml.bind.DatatypeConverter
 
 /**
@@ -63,12 +59,12 @@ class CryptographyTest {
     }
 
     @Test
-    fun ensureDoubleHashYieldsSameResultAsHashOfHash() {
+    fun `ensure double hash yields same result as hash of hash`() {
         assertArrayEquals(crypto.sha512(TEST_SHA512), crypto.doubleSha512(TEST_VALUE))
     }
 
-    @Test(expected = IOException::class)
-    fun ensureExceptionForInsufficientProofOfWork() {
+    @Test(expected = InsufficientProofOfWorkException::class)
+    fun `ensure exception for insufficient proof of work`() {
         val objectMessage = ObjectMessage.Builder()
             .nonce(ByteArray(8))
             .expiresTime(UnixTime.now + 28 * DAY)
@@ -79,7 +75,7 @@ class CryptographyTest {
     }
 
     @Test
-    fun testDoProofOfWork() {
+    fun `ensure proof of work is calculated correctly`() {
         TestUtils.mockedInternalContext(
             cryptography = crypto,
             proofOfWorkEngine = MultiThreadedPOWEngine()
@@ -108,7 +104,7 @@ class CryptographyTest {
     }
 
     @Test
-    fun ensureEncryptionAndDecryptionWorks() {
+    fun `ensure encryption and decryption works`() {
         val data = crypto.randomBytes(100)
         val key_e = crypto.randomBytes(32)
         val iv = crypto.randomBytes(16)
@@ -118,7 +114,7 @@ class CryptographyTest {
     }
 
     @Test(expected = IllegalArgumentException::class)
-    fun ensureDecryptionFailsWithInvalidCypherText() {
+    fun `ensure decryption fails with invalid cypher text`() {
         val data = crypto.randomBytes(128)
         val key_e = crypto.randomBytes(32)
         val iv = crypto.randomBytes(16)
@@ -126,7 +122,7 @@ class CryptographyTest {
     }
 
     @Test
-    fun testMultiplication() {
+    fun `ensure multiplication works correctly`() {
         val a = crypto.randomBytes(PrivateKey.PRIVATE_KEY_SIZE)
         val A = crypto.createPublicKey(a)
 
@@ -137,7 +133,7 @@ class CryptographyTest {
     }
 
     @Test
-    fun ensureSignatureIsValid() {
+    fun `ensure signature is valid`() {
         val data = crypto.randomBytes(100)
         val privateKey = PrivateKey(false, 1, 1000, 1000)
         val signature = crypto.getSignature(data, privateKey)
@@ -145,7 +141,7 @@ class CryptographyTest {
     }
 
     @Test
-    fun ensureSignatureIsInvalidForTemperedData() {
+    fun `ensure signature is invalid for tempered data`() {
         val data = crypto.randomBytes(100)
         val privateKey = PrivateKey(false, 1, 1000, 1000)
         val signature = crypto.getSignature(data, privateKey)

@@ -229,7 +229,8 @@ class Plaintext private constructor(
     )
 
     constructor(builder: Builder) : this(
-        type = builder.type,
+        // Calling prepare() here is somewhat ugly, but also a foolproof way to make sure the builder is properly initialized
+        type = builder.prepare().type,
         from = builder.from ?: throw IllegalStateException("sender identity not set"),
         to = builder.to,
         encodingCode = builder.encoding,
@@ -438,7 +439,7 @@ class Plaintext private constructor(
         if (this === other) return true
         if (other !is Plaintext) return false
         return encoding == other.encoding &&
-            from == other.from &&
+            from.address == other.from.address &&
             Arrays.equals(message, other.message) &&
             ackMessage == other.ackMessage &&
             Arrays.equals(to?.ripe, other.to?.ripe) &&
@@ -532,6 +533,7 @@ class Plaintext private constructor(
         private var nonceTrialsPerByte: Long = 0
         private var extraBytes: Long = 0
         private var destinationRipe: ByteArray? = null
+        private var preventAck: Boolean = false
         internal var encoding: Long = 0
         internal var message = ByteArray(0)
         internal var ackData: ByteArray? = null
@@ -611,6 +613,12 @@ class Plaintext private constructor(
             return this
         }
 
+        @JvmOverloads
+        fun preventAck(preventAck: Boolean = true): Builder {
+            this.preventAck = preventAck
+            return this
+        }
+
         fun encoding(encoding: Encoding): Builder {
             this.encoding = encoding.code
             return this
@@ -655,7 +663,7 @@ class Plaintext private constructor(
             return this
         }
 
-        fun signature(signature: ByteArray): Builder {
+        fun signature(signature: ByteArray?): Builder {
             this.signature = signature
             return this
         }
@@ -700,7 +708,7 @@ class Plaintext private constructor(
             return this
         }
 
-        fun build(): Plaintext {
+        internal fun prepare(): Builder {
             if (from == null) {
                 from = BitmessageAddress(Factory.createPubkey(
                     addressVersion,
@@ -715,12 +723,19 @@ class Plaintext private constructor(
             if (to == null && type != Type.BROADCAST && destinationRipe != null) {
                 to = BitmessageAddress(0, 0, destinationRipe!!)
             }
-            if (type == MSG && ackMessage == null && ackData == null) {
+            if (preventAck) {
+                ackData = null
+                ackMessage = null
+            } else if (type == MSG && ackMessage == null && ackData == null) {
                 ackData = cryptography().randomBytes(Msg.ACK_LENGTH)
             }
             if (ttl <= 0) {
                 ttl = TTL.msg
             }
+            return this
+        }
+
+        fun build(): Plaintext {
             return Plaintext(this)
         }
     }

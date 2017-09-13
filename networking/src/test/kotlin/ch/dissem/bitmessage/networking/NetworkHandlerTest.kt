@@ -233,7 +233,7 @@ class NetworkHandlerTest {
         private val peerAddress = NetworkAddress.Builder().ipv4(127, 0, 0, 1).port(6001).build()
 
         private fun shutdown(ctx: BitmessageContext) {
-            if (!ctx.isRunning) return
+            if (!ctx.isRunning()) return
 
             ctx.shutdown()
             do {
@@ -241,8 +241,7 @@ class NetworkHandlerTest {
                     Thread.sleep(100)
                 } catch (ignore: InterruptedException) {
                 }
-
-            } while (ctx.isRunning)
+            } while (ctx.isRunning())
         }
 
         private fun shutdown(networkHandler: NetworkHandler) {

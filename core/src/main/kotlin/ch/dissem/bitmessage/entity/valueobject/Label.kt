@@ -25,7 +25,8 @@ data class Label(
     /**
      * RGBA representation for the color.
      */
-    var color: Int = 0
+    var color: Int = 0,
+    var ord: Int = 1000
 ) : Serializable {
 
     var id: Any? = null

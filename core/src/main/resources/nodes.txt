@@ -1,6 +1,6 @@
 [stream 1]
 
-dissem.ch:8444
+bitmessage.dissem.ch:8444
 bootstrap8080.bitmessage.org:8080
 bootstrap8444.bitmessage.org:8444
 
