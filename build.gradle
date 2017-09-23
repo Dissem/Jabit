@@ -138,7 +138,7 @@ subprojects {
                 entry 'slf4j-simple'
             }
 
-            dependency 'ch.dissem.msgpack:msgpack:1.0.0'
+            dependency 'ch.dissem.msgpack:msgpack:2.0.0'
             dependency 'org.bouncycastle:bcprov-jdk15on:1.57'
             dependency 'com.madgag.spongycastle:prov:1.56.0.0'
             dependency 'org.apache.commons:commons-lang3:3.6'

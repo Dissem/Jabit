@@ -156,8 +156,10 @@ open class DefaultMessageListener(
         }
 
         msg.inventoryVector = iv
-        labeler.setLabels(msg)
         try {
+            ctx.messageRepository.save(msg)
+            // We might need the ID here, so we need to add the labels and save it again
+            labeler.setLabels(msg)
             ctx.messageRepository.save(msg)
             listener.receive(msg)
 

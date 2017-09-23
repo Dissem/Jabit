@@ -35,7 +35,7 @@ open class DefaultLabeler : Labeler, InternalContext.ContextHolder {
         msg.status = RECEIVED
         val labelsToAdd =
             if (msg.type == BROADCAST) {
-                ctx.messageRepository.getLabels(Label.Type.INBOX, Label.Type.BROADCAST, Label.Type.UNREAD)
+                ctx.messageRepository.getLabels(Label.Type.BROADCAST, Label.Type.UNREAD)
             } else {
                 ctx.messageRepository.getLabels(Label.Type.INBOX, Label.Type.UNREAD)
             }
@@ -89,7 +89,7 @@ open class DefaultLabeler : Labeler, InternalContext.ContextHolder {
     }
 
     override fun delete(msg: Plaintext) {
-        val labelsToRemove = msg.labels.filterNot { it.type == Label.Type.TRASH }
+        val labelsToRemove = msg.labels.toSet()
         msg.labels.clear()
         val labelsToAdd = ctx.messageRepository.getLabels(Label.Type.TRASH)
         msg.addLabels(labelsToAdd)
