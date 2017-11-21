@@ -24,7 +24,27 @@ import java.nio.ByteBuffer
  * An object that can be written to an [OutputStream]
  */
 interface Streamable : Serializable {
-    fun write(out: OutputStream)
+    fun writer(): StreamableWriter
+}
 
+interface SignedStreamable : Streamable {
+    override fun writer(): SignedStreamableWriter
+}
+
+interface EncryptedStreamable : SignedStreamable {
+    override fun writer(): EncryptedStreamableWriter
+}
+
+interface StreamableWriter: Serializable {
+    fun write(out: OutputStream)
     fun write(buffer: ByteBuffer)
+}
+
+interface SignedStreamableWriter : StreamableWriter {
+    fun writeBytesToSign(out: OutputStream)
+}
+
+interface EncryptedStreamableWriter : SignedStreamableWriter {
+    fun writeUnencrypted(out: OutputStream)
+    fun writeUnencrypted(buffer: ByteBuffer)
 }

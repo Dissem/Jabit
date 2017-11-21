@@ -18,7 +18,6 @@ package ch.dissem.bitmessage.entity
 
 import ch.dissem.bitmessage.utils.Encode
 import ch.dissem.bitmessage.utils.Singleton.cryptography
-import java.io.IOException
 import java.io.OutputStream
 import java.nio.ByteBuffer
 
@@ -32,87 +31,95 @@ data class NetworkMessage(
     val payload: MessagePayload
 ) : Streamable {
 
-    /**
-     * First 4 bytes of sha512(payload)
-     */
-    private fun getChecksum(bytes: ByteArray): ByteArray {
-        val d = cryptography().sha512(bytes)
-        return byteArrayOf(d[0], d[1], d[2], d[3])
-    }
+    override fun writer(): Writer = Writer(this)
 
-    override fun write(out: OutputStream) {
-        // magic
-        Encode.int32(MAGIC, out)
+    class Writer internal constructor(
+        private val item: NetworkMessage
+    ) : StreamableWriter {
 
-        // ASCII string identifying the packet content, NULL padded (non-NULL padding results in packet rejected)
-        val command = payload.command.name.toLowerCase()
-        out.write(command.toByteArray(charset("ASCII")))
-        for (i in command.length..11) {
-            out.write(0x0)
+        override fun write(out: OutputStream) {
+            // magic
+            Encode.int32(MAGIC, out)
+
+            // ASCII string identifying the packet content, NULL padded (non-NULL padding results in packet rejected)
+            val command = item.payload.command.name.toLowerCase()
+            out.write(command.toByteArray(charset("ASCII")))
+            for (i in command.length..11) {
+                out.write(0x0)
+            }
+
+            val payloadBytes = Encode.bytes(item.payload)
+
+            // Length of payload in number of bytes. Because of other restrictions, there is no reason why this length would
+            // ever be larger than 1600003 bytes. Some clients include a sanity-check to avoid processing messages which are
+            // larger than this.
+            Encode.int32(payloadBytes.size, out)
+
+            // checksum
+            out.write(getChecksum(payloadBytes))
+
+            // message payload
+            out.write(payloadBytes)
         }
 
-        val payloadBytes = Encode.bytes(payload)
+        /**
+         * A more efficient implementation of the write method, writing header data to the provided buffer and returning
+         * a new buffer containing the payload.
 
-        // Length of payload in number of bytes. Because of other restrictions, there is no reason why this length would
-        // ever be larger than 1600003 bytes. Some clients include a sanity-check to avoid processing messages which are
-        // larger than this.
-        Encode.int32(payloadBytes.size, out)
-
-        // checksum
-        out.write(getChecksum(payloadBytes))
-
-        // message payload
-        out.write(payloadBytes)
-    }
-
-    /**
-     * A more efficient implementation of the write method, writing header data to the provided buffer and returning
-     * a new buffer containing the payload.
-
-     * @param headerBuffer where the header data is written to (24 bytes)
-     * *
-     * @return a buffer containing the payload, ready to be read.
-     */
-    fun writeHeaderAndGetPayloadBuffer(headerBuffer: ByteBuffer): ByteBuffer {
-        return ByteBuffer.wrap(writeHeader(headerBuffer))
-    }
-
-    /**
-     * For improved memory efficiency, you should use [.writeHeaderAndGetPayloadBuffer]
-     * and write the header buffer as well as the returned payload buffer into the channel.
-
-     * @param buffer where everything gets written to. Needs to be large enough for the whole message
-     * *               to be written.
-     */
-    override fun write(buffer: ByteBuffer) {
-        val payloadBytes = writeHeader(buffer)
-        buffer.put(payloadBytes)
-    }
-
-    private fun writeHeader(out: ByteBuffer): ByteArray {
-        // magic
-        Encode.int32(MAGIC, out)
-
-        // ASCII string identifying the packet content, NULL padded (non-NULL padding results in packet rejected)
-        val command = payload.command.name.toLowerCase()
-        out.put(command.toByteArray(charset("ASCII")))
-
-        for (i in command.length..11) {
-            out.put(0.toByte())
+         * @param headerBuffer where the header data is written to (24 bytes)
+         * *
+         * @return a buffer containing the payload, ready to be read.
+         */
+        fun writeHeaderAndGetPayloadBuffer(headerBuffer: ByteBuffer): ByteBuffer {
+            return ByteBuffer.wrap(writeHeader(headerBuffer))
         }
 
-        val payloadBytes = Encode.bytes(payload)
+        /**
+         * For improved memory efficiency, you should use [.writeHeaderAndGetPayloadBuffer]
+         * and write the header buffer as well as the returned payload buffer into the channel.
 
-        // Length of payload in number of bytes. Because of other restrictions, there is no reason why this length would
-        // ever be larger than 1600003 bytes. Some clients include a sanity-check to avoid processing messages which are
-        // larger than this.
-        Encode.int32(payloadBytes.size, out)
+         * @param buffer where everything gets written to. Needs to be large enough for the whole message
+         * *               to be written.
+         */
+        override fun write(buffer: ByteBuffer) {
+            val payloadBytes = writeHeader(buffer)
+            buffer.put(payloadBytes)
+        }
 
-        // checksum
-        out.put(getChecksum(payloadBytes))
+        private fun writeHeader(out: ByteBuffer): ByteArray {
+            // magic
+            Encode.int32(MAGIC, out)
 
-        // message payload
-        return payloadBytes
+            // ASCII string identifying the packet content, NULL padded (non-NULL padding results in packet rejected)
+            val command = item.payload.command.name.toLowerCase()
+            out.put(command.toByteArray(charset("ASCII")))
+
+            for (i in command.length..11) {
+                out.put(0.toByte())
+            }
+
+            val payloadBytes = Encode.bytes(item.payload)
+
+            // Length of payload in number of bytes. Because of other restrictions, there is no reason why this length would
+            // ever be larger than 1600003 bytes. Some clients include a sanity-check to avoid processing messages which are
+            // larger than this.
+            Encode.int32(payloadBytes.size, out)
+
+            // checksum
+            out.put(getChecksum(payloadBytes))
+
+            // message payload
+            return payloadBytes
+        }
+
+        /**
+         * First 4 bytes of sha512(payload)
+         */
+        private fun getChecksum(bytes: ByteArray): ByteArray {
+            val d = cryptography().sha512(bytes)
+            return byteArrayOf(d[0], d[1], d[2], d[3])
+        }
+
     }
 
     companion object {

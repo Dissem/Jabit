@@ -18,6 +18,8 @@ package ch.dissem.bitmessage.entity.payload
 
 import ch.dissem.bitmessage.InternalContext.Companion.NETWORK_EXTRA_BYTES
 import ch.dissem.bitmessage.InternalContext.Companion.NETWORK_NONCE_TRIALS_PER_BYTE
+import ch.dissem.bitmessage.entity.EncryptedStreamableWriter
+import ch.dissem.bitmessage.entity.SignedStreamableWriter
 import ch.dissem.bitmessage.utils.Singleton.cryptography
 import java.io.OutputStream
 import java.nio.ByteBuffer
@@ -42,13 +44,7 @@ abstract class Pubkey protected constructor(version: Long) : ObjectPayload(versi
 
     open val extraBytes: Long = NETWORK_EXTRA_BYTES
 
-    open fun writeUnencrypted(out: OutputStream) {
-        write(out)
-    }
-
-    open fun writeUnencrypted(buffer: ByteBuffer) {
-        write(buffer)
-    }
+    abstract override fun writer(): EncryptedStreamableWriter
 
     /**
      * Bits 0 through 29 are yet undefined

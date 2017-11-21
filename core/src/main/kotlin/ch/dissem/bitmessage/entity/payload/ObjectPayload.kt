@@ -17,23 +17,20 @@
 package ch.dissem.bitmessage.entity.payload
 
 import ch.dissem.bitmessage.entity.ObjectMessage
+import ch.dissem.bitmessage.entity.SignedStreamable
 import ch.dissem.bitmessage.entity.Streamable
 import java.io.OutputStream
 
 /**
  * The payload of an 'object' command. This is shared by the network.
  */
-abstract class ObjectPayload protected constructor(val version: Long) : Streamable {
+abstract class ObjectPayload protected constructor(val version: Long) : SignedStreamable {
 
     abstract val type: ObjectType?
 
     abstract val stream: Long
 
     open val isSigned: Boolean = false
-
-    open fun writeBytesToSign(out: OutputStream) {
-        // nothing to do
-    }
 
     /**
      * @return the ECDSA signature which, as of protocol v3, covers the object header starting with the time,

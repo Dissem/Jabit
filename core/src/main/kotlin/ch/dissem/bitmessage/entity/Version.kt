@@ -71,32 +71,36 @@ class Version constructor(
     val streams: LongArray = longArrayOf(1)
 ) : MessagePayload {
 
-    fun provides(service: Service?): Boolean {
-        return service != null && service.isEnabled(services)
-    }
+    fun provides(service: Service?) = service?.isEnabled(services) == true
 
     override val command: MessagePayload.Command = MessagePayload.Command.VERSION
 
-    override fun write(out: OutputStream) {
-        Encode.int32(version, out)
-        Encode.int64(services, out)
-        Encode.int64(timestamp, out)
-        addrRecv.write(out, true)
-        addrFrom.write(out, true)
-        Encode.int64(nonce, out)
-        Encode.varString(userAgent, out)
-        Encode.varIntList(streams, out)
-    }
+    override fun writer(): StreamableWriter = Writer(this)
 
-    override fun write(buffer: ByteBuffer) {
-        Encode.int32(version, buffer)
-        Encode.int64(services, buffer)
-        Encode.int64(timestamp, buffer)
-        addrRecv.write(buffer, true)
-        addrFrom.write(buffer, true)
-        Encode.int64(nonce, buffer)
-        Encode.varString(userAgent, buffer)
-        Encode.varIntList(streams, buffer)
+    private class Writer(
+        private val item: Version
+    ) : StreamableWriter {
+        override fun write(out: OutputStream) {
+            Encode.int32(item.version, out)
+            Encode.int64(item.services, out)
+            Encode.int64(item.timestamp, out)
+            item.addrRecv.writer(true).write(out)
+            item.addrFrom.writer(true).write(out)
+            Encode.int64(item.nonce, out)
+            Encode.varString(item.userAgent, out)
+            Encode.varIntList(item.streams, out)
+        }
+
+        override fun write(buffer: ByteBuffer) {
+            Encode.int32(item.version, buffer)
+            Encode.int64(item.services, buffer)
+            Encode.int64(item.timestamp, buffer)
+            item.addrRecv.writer(true).write(buffer)
+            item.addrFrom.writer(true).write(buffer)
+            Encode.int64(item.nonce, buffer)
+            Encode.varString(item.userAgent, buffer)
+            Encode.varIntList(item.streams, buffer)
+        }
     }
 
     class Builder {
@@ -187,9 +191,7 @@ class Version constructor(
         // TODO: NODE_SSL(2);
         NODE_NETWORK(1);
 
-        fun isEnabled(flag: Long): Boolean {
-            return (flag and this.flag) != 0L
-        }
+        fun isEnabled(flag: Long) = (flag and this.flag) != 0L
 
         companion object {
             fun getServiceFlag(vararg services: Service): Long {

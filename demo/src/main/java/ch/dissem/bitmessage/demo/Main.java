@@ -24,6 +24,7 @@ import ch.dissem.bitmessage.ports.NodeRegistry;
 import ch.dissem.bitmessage.repository.*;
 import ch.dissem.bitmessage.wif.WifExporter;
 import ch.dissem.bitmessage.wif.WifImporter;
+import org.jetbrains.annotations.NotNull;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
@@ -68,12 +69,28 @@ public class Main {
         if (options.localPort != null) {
             ctxBuilder.nodeRegistry(new NodeRegistry() {
                 @Override
-                public void clear() {
+                public void cleanup() {
                     // NO OP
                 }
 
                 @Override
-                public List<NetworkAddress> getKnownAddresses(int limit, long... streams) {
+                public void remove(@NotNull NetworkAddress node) {
+                    // NO OP
+                }
+
+                @Override
+                public void update(@NotNull NetworkAddress node) {
+                    // NO OP
+                }
+
+                @Override
+                public void clear() {
+                    // NO OP
+                }
+
+                @NotNull
+                @Override
+                public List<NetworkAddress> getKnownAddresses(int limit, @NotNull long... streams) {
                     return Arrays.stream(streams)
                         .mapToObj(s -> new NetworkAddress.Builder()
                             .ipv4(127, 0, 0, 1)
@@ -83,7 +100,7 @@ public class Main {
                 }
 
                 @Override
-                public void offerAddresses(List<NetworkAddress> nodes) {
+                public void offerAddresses(@NotNull List<NetworkAddress> nodes) {
                     LOG.info("Local node registry ignored offered addresses: " + nodes);
                 }
             });

@@ -81,8 +81,8 @@ data class ObjectMessage(
         get() {
             try {
                 val out = ByteArrayOutputStream()
-                writeHeaderWithoutNonce(out)
-                payload.writeBytesToSign(out)
+                writer.writeHeaderWithoutNonce(out)
+                payload.writer().writeBytesToSign(out)
                 return out.toByteArray()
             } catch (e: IOException) {
                 throw ApplicationException(e)
@@ -131,28 +131,37 @@ data class ObjectMessage(
         return cryptography().isSignatureValid(bytesToSign, payload.signature ?: return false, pubkey)
     }
 
-    override fun write(out: OutputStream) {
-        out.write(nonce ?: ByteArray(8))
-        out.write(payloadBytesWithoutNonce)
-    }
-
-    override fun write(buffer: ByteBuffer) {
-        buffer.put(nonce ?: ByteArray(8))
-        buffer.put(payloadBytesWithoutNonce)
-    }
-
-    private fun writeHeaderWithoutNonce(out: OutputStream) {
-        Encode.int64(expiresTime, out)
-        Encode.int32(type, out)
-        Encode.varInt(version, out)
-        Encode.varInt(stream, out)
-    }
-
     val payloadBytesWithoutNonce: ByteArray by lazy {
         val out = ByteArrayOutputStream()
-        writeHeaderWithoutNonce(out)
-        payload.write(out)
+        writer.writeHeaderWithoutNonce(out)
+        payload.writer().write(out)
         out.toByteArray()
+    }
+
+    private val writer = Writer(this)
+    override fun writer(): StreamableWriter = writer
+
+    private class Writer(
+        private val item: ObjectMessage
+    ) : StreamableWriter {
+
+        override fun write(out: OutputStream) {
+            out.write(item.nonce ?: ByteArray(8))
+            out.write(item.payloadBytesWithoutNonce)
+        }
+
+        override fun write(buffer: ByteBuffer) {
+            buffer.put(item.nonce ?: ByteArray(8))
+            buffer.put(item.payloadBytesWithoutNonce)
+        }
+
+        internal fun writeHeaderWithoutNonce(out: OutputStream) {
+            Encode.int64(item.expiresTime, out)
+            Encode.int32(item.type, out)
+            Encode.varInt(item.version, out)
+            Encode.varInt(item.stream, out)
+        }
+
     }
 
     class Builder {

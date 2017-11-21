@@ -16,6 +16,9 @@
 
 package ch.dissem.bitmessage.entity.payload
 
+import ch.dissem.bitmessage.entity.EncryptedStreamableWriter
+import ch.dissem.bitmessage.entity.SignedStreamableWriter
+import ch.dissem.bitmessage.entity.StreamableWriter
 import ch.dissem.bitmessage.utils.Decode
 import ch.dissem.bitmessage.utils.Encode
 import java.io.InputStream
@@ -34,31 +37,7 @@ class V3Pubkey protected constructor(
     override var signature: ByteArray? = null
 ) : V2Pubkey(version, stream, behaviorBitfield, signingKey, encryptionKey) {
 
-    override fun write(out: OutputStream) {
-        writeBytesToSign(out)
-        Encode.varBytes(
-            signature ?: throw IllegalStateException("signature not available"),
-            out
-        )
-    }
-
-    override fun write(buffer: ByteBuffer) {
-        super.write(buffer)
-        Encode.varInt(nonceTrialsPerByte, buffer)
-        Encode.varInt(extraBytes, buffer)
-        Encode.varBytes(
-            signature ?: throw IllegalStateException("signature not available"),
-            buffer
-        )
-    }
-
     override val isSigned: Boolean = true
-
-    override fun writeBytesToSign(out: OutputStream) {
-        super.write(out)
-        Encode.varInt(nonceTrialsPerByte, out)
-        Encode.varInt(extraBytes, out)
-    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -73,6 +52,37 @@ class V3Pubkey protected constructor(
 
     override fun hashCode(): Int {
         return Objects.hash(nonceTrialsPerByte, extraBytes)
+    }
+
+    override fun writer(): EncryptedStreamableWriter = Writer(this)
+
+    protected open class Writer(
+        private val item: V3Pubkey
+    ) : V2Pubkey.Writer(item) {
+
+        override fun write(out: OutputStream) {
+            writeBytesToSign(out)
+            Encode.varBytes(
+                item.signature ?: throw IllegalStateException("signature not available"),
+                out
+            )
+        }
+
+        override fun write(buffer: ByteBuffer) {
+            super.write(buffer)
+            Encode.varInt(item.nonceTrialsPerByte, buffer)
+            Encode.varInt(item.extraBytes, buffer)
+            Encode.varBytes(
+                item.signature ?: throw IllegalStateException("signature not available"),
+                buffer
+            )
+        }
+
+        override fun writeBytesToSign(out: OutputStream) {
+            super.write(out)
+            Encode.varInt(item.nonceTrialsPerByte, out)
+            Encode.varInt(item.extraBytes, out)
+        }
     }
 
     class Builder {

@@ -45,25 +45,25 @@ data class Message constructor(
 
     override fun pack(): MPMap<MPString, MPType<*>> {
         val result = MPMap<MPString, MPType<*>>()
-        result.put(mp(""), mp(TYPE))
-        result.put(mp("subject"), mp(subject))
-        result.put(mp("body"), mp(body))
+        result.put("".mp, TYPE.mp)
+        result.put("subject".mp, subject.mp)
+        result.put("body".mp, body.mp)
 
         if (!files.isEmpty()) {
             val items = MPArray<MPMap<MPString, MPType<*>>>()
-            result.put(mp("files"), items)
+            result.put("files".mp, items)
             for (file in files) {
                 val item = MPMap<MPString, MPType<*>>()
-                item.put(mp("name"), mp(file.name))
-                item.put(mp("data"), mp(*file.data))
-                item.put(mp("type"), mp(file.type))
-                item.put(mp("disposition"), mp(file.disposition.name))
+                item.put("name".mp, file.name.mp)
+                item.put("data".mp, file.data.mp)
+                item.put("type".mp, file.type.mp)
+                item.put("disposition".mp, file.disposition.name.mp)
                 items.add(item)
             }
         }
         if (!parents.isEmpty()) {
             val items = MPArray<MPBinary>()
-            result.put(mp("parents"), items)
+            result.put("parents".mp, items)
             for ((hash) in parents) {
                 items.add(mp(*hash))
             }
@@ -139,26 +139,26 @@ data class Message constructor(
         override val type: String = TYPE
 
         override fun unpack(map: MPMap<MPString, MPType<*>>): Message {
-            val subject = str(map[mp("subject")]) ?: ""
-            val body = str(map[mp("body")]) ?: ""
+            val subject = str(map["subject".mp]) ?: ""
+            val body = str(map["body".mp]) ?: ""
             val parents = LinkedList<InventoryVector>()
             val files = LinkedList<Attachment>()
-            val mpParents = map[mp("parents")] as? MPArray<*>
+            val mpParents = map["parents".mp] as? MPArray<*>
             for (parent in mpParents ?: emptyList<MPArray<MPBinary>>()) {
                 parents.add(InventoryVector.fromHash(
                     (parent as? MPBinary)?.value ?: continue
                 ) ?: continue)
             }
-            val mpFiles = map[mp("files")] as? MPArray<*>
+            val mpFiles = map["files".mp] as? MPArray<*>
             for (item in mpFiles ?: emptyList<Any>()) {
                 if (item is MPMap<*, *>) {
                     val b = Attachment.Builder()
-                    b.name(str(item[mp("name")])!!)
+                    b.name(str(item["name".mp])!!)
                     b.data(
-                        bin(item[mp("data")] ?: continue) ?: continue
+                        bin(item["data".mp] ?: continue) ?: continue
                     )
-                    b.type(str(item[mp("type")])!!)
-                    val disposition = str(item[mp("disposition")])
+                    b.type(str(item["type".mp])!!)
+                    val disposition = str(item["disposition".mp])
                     if ("inline" == disposition) {
                         b.inline()
                     } else if ("attachment" == disposition) {

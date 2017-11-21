@@ -29,7 +29,12 @@ import java.util.*
  * Users who are subscribed to the sending address will see the message appear in their inbox.
  * Broadcasts are version 4 or 5.
  */
-abstract class Broadcast protected constructor(version: Long, override val stream: Long, protected var encrypted: CryptoBox?, override var plaintext: Plaintext?) : ObjectPayload(version), Encrypted, PlaintextHolder {
+abstract class Broadcast protected constructor(
+    version: Long,
+    override val stream: Long,
+    protected var encrypted: CryptoBox?,
+    override var plaintext: Plaintext?
+) : ObjectPayload(version), Encrypted, PlaintextHolder {
 
     override val isSigned: Boolean = true
 

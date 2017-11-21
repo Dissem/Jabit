@@ -86,7 +86,7 @@ class SerializationTest : TestBase() {
             .signature(ByteArray(0))
             .build()
         val out = ByteArrayOutputStream()
-        expected.write(out)
+        expected.writer().write(out)
         val `in` = ByteArrayInputStream(out.toByteArray())
         val actual = Plaintext.read(MSG, `in`)
 
@@ -111,7 +111,7 @@ class SerializationTest : TestBase() {
             .signature(ByteArray(0))
             .build()
         val out = ByteArrayOutputStream()
-        expected.write(out)
+        expected.writer().write(out)
         val `in` = ByteArrayInputStream(out.toByteArray())
         val actual = Plaintext.read(MSG, `in`)
 
@@ -136,7 +136,7 @@ class SerializationTest : TestBase() {
         assertNotNull(ackMessage1)
 
         val out = ByteArrayOutputStream()
-        expected.write(out)
+        expected.writer().write(out)
         val `in` = ByteArrayInputStream(out.toByteArray())
         val actual = Plaintext.read(MSG, `in`)
 
@@ -159,7 +159,7 @@ class SerializationTest : TestBase() {
         val inv = Inv(ivs)
         val before = NetworkMessage(inv)
         val out = ByteArrayOutputStream()
-        before.write(out)
+        before.writer().write(out)
 
         val after = Factory.getNetworkMessage(3, ByteArrayInputStream(out.toByteArray()))
         assertNotNull(after)
@@ -173,7 +173,7 @@ class SerializationTest : TestBase() {
         val objectMessage = Factory.getObjectMessage(version, `in`, data.size)
         val out = ByteArrayOutputStream()
         assertNotNull(objectMessage)
-        objectMessage!!.write(out)
+        objectMessage!!.writer().write(out)
         assertArrayEquals(data, out.toByteArray())
         assertEquals(expectedPayloadType.canonicalName, objectMessage.payload.javaClass.canonicalName)
     }

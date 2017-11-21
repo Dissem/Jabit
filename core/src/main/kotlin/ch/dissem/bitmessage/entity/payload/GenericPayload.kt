@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage.entity.payload
 
+import ch.dissem.bitmessage.entity.SignedStreamableWriter
 import ch.dissem.bitmessage.utils.Decode
 import java.io.InputStream
 import java.io.OutputStream
@@ -29,14 +30,6 @@ import java.util.*
 class GenericPayload(version: Long, override val stream: Long, val data: ByteArray) : ObjectPayload(version) {
 
     override val type: ObjectType? = null
-
-    override fun write(out: OutputStream) {
-        out.write(data)
-    }
-
-    override fun write(buffer: ByteBuffer) {
-        buffer.put(data)
-    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -52,9 +45,27 @@ class GenericPayload(version: Long, override val stream: Long, val data: ByteArr
         return result
     }
 
-    companion object {
-        @JvmStatic fun read(version: Long, stream: Long, `is`: InputStream, length: Int): GenericPayload {
-            return GenericPayload(version, stream, Decode.bytes(`is`, length))
+    override fun writer(): SignedStreamableWriter = Writer(this)
+
+    private class Writer(
+        private val item: GenericPayload
+    ) : SignedStreamableWriter {
+
+        override fun write(out: OutputStream) {
+            out.write(item.data)
         }
+
+        override fun write(buffer: ByteBuffer) {
+            buffer.put(item.data)
+        }
+
+        override fun writeBytesToSign(out: OutputStream) = Unit // nothing to do
+
+    }
+
+    companion object {
+        @JvmStatic
+        fun read(version: Long, stream: Long, `is`: InputStream, length: Int) =
+            GenericPayload(version, stream, Decode.bytes(`is`, length))
     }
 }

@@ -272,6 +272,7 @@ class BitmessageContext(
      */
     fun cleanup() {
         internals.inventory.cleanup()
+        internals.nodeRegistry.cleanup()
     }
 
     /**

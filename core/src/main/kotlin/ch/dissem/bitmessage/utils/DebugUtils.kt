@@ -29,7 +29,7 @@ object DebugUtils {
         try {
             val f = File(System.getProperty("user.home") + "/jabit.error/" + objectMessage.inventoryVector + ".inv")
             f.createNewFile()
-            objectMessage.write(FileOutputStream(f))
+            objectMessage.writer().write(FileOutputStream(f))
         } catch (e: IOException) {
             LOG.debug(e.message, e)
         }

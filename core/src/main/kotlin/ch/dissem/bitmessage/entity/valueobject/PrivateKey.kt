@@ -19,6 +19,7 @@ package ch.dissem.bitmessage.entity.valueobject
 import ch.dissem.bitmessage.InternalContext
 import ch.dissem.bitmessage.entity.BitmessageAddress
 import ch.dissem.bitmessage.entity.Streamable
+import ch.dissem.bitmessage.entity.StreamableWriter
 import ch.dissem.bitmessage.entity.payload.Pubkey
 import ch.dissem.bitmessage.exception.ApplicationException
 import ch.dissem.bitmessage.factory.Factory
@@ -66,7 +67,52 @@ data class PrivateKey(
             builder.nonceTrialsPerByte, builder.extraBytes, *builder.features)
     )
 
-    private class Builder internal constructor(internal val version: Long, internal val stream: Long, internal val shorter: Boolean) {
+    override fun equals(other: Any?) = other is PrivateKey
+        && Arrays.equals(privateEncryptionKey, other.privateEncryptionKey)
+        && Arrays.equals(privateSigningKey, other.privateSigningKey)
+        && pubkey == other.pubkey
+
+    override fun hashCode() = pubkey.hashCode()
+
+    override fun writer(): StreamableWriter = Writer(this)
+
+    private class Writer(
+        private val item: PrivateKey
+    ) : StreamableWriter {
+
+        override fun write(out: OutputStream) {
+            Encode.varInt(item.pubkey.version, out)
+            Encode.varInt(item.pubkey.stream, out)
+            val baos = ByteArrayOutputStream()
+            item.pubkey.writer().writeUnencrypted(baos)
+            Encode.varInt(baos.size(), out)
+            out.write(baos.toByteArray())
+            Encode.varBytes(item.privateSigningKey, out)
+            Encode.varBytes(item.privateEncryptionKey, out)
+        }
+
+        override fun write(buffer: ByteBuffer) {
+            Encode.varInt(item.pubkey.version, buffer)
+            Encode.varInt(item.pubkey.stream, buffer)
+            try {
+                val baos = ByteArrayOutputStream()
+                item.pubkey.writer().writeUnencrypted(baos)
+                Encode.varBytes(baos.toByteArray(), buffer)
+            } catch (e: IOException) {
+                throw ApplicationException(e)
+            }
+
+            Encode.varBytes(item.privateSigningKey, buffer)
+            Encode.varBytes(item.privateEncryptionKey, buffer)
+        }
+
+    }
+
+    private class Builder internal constructor(
+        internal val version: Long,
+        internal val stream: Long,
+        internal val shorter: Boolean
+    ) {
 
         internal var seed: ByteArray? = null
         internal var nextNonce: Long = 0
@@ -129,44 +175,12 @@ data class PrivateKey(
         }
     }
 
-    override fun write(out: OutputStream) {
-        Encode.varInt(pubkey.version, out)
-        Encode.varInt(pubkey.stream, out)
-        val baos = ByteArrayOutputStream()
-        pubkey.writeUnencrypted(baos)
-        Encode.varInt(baos.size(), out)
-        out.write(baos.toByteArray())
-        Encode.varBytes(privateSigningKey, out)
-        Encode.varBytes(privateEncryptionKey, out)
-    }
-
-
-    override fun write(buffer: ByteBuffer) {
-        Encode.varInt(pubkey.version, buffer)
-        Encode.varInt(pubkey.stream, buffer)
-        try {
-            val baos = ByteArrayOutputStream()
-            pubkey.writeUnencrypted(baos)
-            Encode.varBytes(baos.toByteArray(), buffer)
-        } catch (e: IOException) {
-            throw ApplicationException(e)
-        }
-
-        Encode.varBytes(privateSigningKey, buffer)
-        Encode.varBytes(privateEncryptionKey, buffer)
-    }
-
-    override fun equals(other: Any?) = other is PrivateKey
-        && Arrays.equals(privateEncryptionKey, other.privateEncryptionKey)
-        && Arrays.equals(privateSigningKey, other.privateSigningKey)
-        && pubkey == other.pubkey
-
-    override fun hashCode() = pubkey.hashCode()
-
     companion object {
-        @JvmField val PRIVATE_KEY_SIZE = 32
+        @JvmField
+        val PRIVATE_KEY_SIZE = 32
 
-        @JvmStatic fun deterministic(passphrase: String, numberOfAddresses: Int, version: Long, stream: Long, shorter: Boolean): List<PrivateKey> {
+        @JvmStatic
+        fun deterministic(passphrase: String, numberOfAddresses: Int, version: Long, stream: Long, shorter: Boolean): List<PrivateKey> {
             val result = ArrayList<PrivateKey>(numberOfAddresses)
             val builder = Builder(version, stream, shorter).seed(passphrase)
             for (i in 0..numberOfAddresses - 1) {
@@ -176,7 +190,8 @@ data class PrivateKey(
             return result
         }
 
-        @JvmStatic fun read(`is`: InputStream): PrivateKey {
+        @JvmStatic
+        fun read(`is`: InputStream): PrivateKey {
             val version = Decode.varInt(`is`).toInt()
             val stream = Decode.varInt(`is`)
             val len = Decode.varInt(`is`).toInt()

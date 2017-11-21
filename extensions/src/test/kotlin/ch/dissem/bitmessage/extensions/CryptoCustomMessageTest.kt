@@ -43,7 +43,7 @@ class CryptoCustomMessageTest : TestBase() {
         messageBefore.signAndEncrypt(sendingIdentity, cryptography().createPublicKey(sendingIdentity.publicDecryptionKey))
 
         val out = ByteArrayOutputStream()
-        messageBefore.write(out)
+        messageBefore.writer().write(out)
         val `in` = ByteArrayInputStream(out.toByteArray())
 
         val customMessage = CustomMessage.read(`in`, out.size())
@@ -71,7 +71,7 @@ class CryptoCustomMessageTest : TestBase() {
 
 
         val out = ByteArrayOutputStream()
-        messageBefore.write(out)
+        messageBefore.writer().write(out)
         val `in` = ByteArrayInputStream(out.toByteArray())
 
         val customMessage = CustomMessage.read(`in`, out.size())

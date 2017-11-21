@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage.entity.payload
 
+import ch.dissem.bitmessage.entity.EncryptedStreamableWriter
 import ch.dissem.bitmessage.utils.Decode
 import ch.dissem.bitmessage.utils.Encode
 import java.io.InputStream
@@ -25,21 +26,47 @@ import java.nio.ByteBuffer
 /**
  * A version 2 public key.
  */
-open class V2Pubkey constructor(version: Long, override val stream: Long, override val behaviorBitfield: Int, signingKey: ByteArray, encryptionKey: ByteArray) : Pubkey(version) {
+open class V2Pubkey constructor(
+    version: Long,
+    override val stream: Long,
+    override val behaviorBitfield: Int,
+    signingKey: ByteArray,
+    encryptionKey: ByteArray
+) : Pubkey(version) {
 
     override val signingKey: ByteArray = if (signingKey.size == 64) add0x04(signingKey) else signingKey
     override val encryptionKey: ByteArray = if (encryptionKey.size == 64) add0x04(encryptionKey) else encryptionKey
 
-    override fun write(out: OutputStream) {
-        Encode.int32(behaviorBitfield, out)
-        out.write(signingKey, 1, 64)
-        out.write(encryptionKey, 1, 64)
-    }
+    override fun writer(): EncryptedStreamableWriter = Writer(this)
 
-    override fun write(buffer: ByteBuffer) {
-        Encode.int32(behaviorBitfield, buffer)
-        buffer.put(signingKey, 1, 64)
-        buffer.put(encryptionKey, 1, 64)
+    protected open class Writer(
+        private val item: V2Pubkey
+    ) : EncryptedStreamableWriter {
+
+        override fun write(out: OutputStream) {
+            Encode.int32(item.behaviorBitfield, out)
+            out.write(item.signingKey, 1, 64)
+            out.write(item.encryptionKey, 1, 64)
+        }
+
+        override fun write(buffer: ByteBuffer) {
+            Encode.int32(item.behaviorBitfield, buffer)
+            buffer.put(item.signingKey, 1, 64)
+            buffer.put(item.encryptionKey, 1, 64)
+        }
+
+        override fun writeBytesToSign(out: OutputStream) {
+            // Nothing to do
+        }
+
+        override fun writeUnencrypted(out: OutputStream) {
+            write(out)
+        }
+
+        override fun writeUnencrypted(buffer: ByteBuffer) {
+            write(buffer)
+        }
+
     }
 
     class Builder {

@@ -19,9 +19,8 @@ package ch.dissem.bitmessage.repository
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress
 import ch.dissem.bitmessage.ports.NodeRegistry
 import ch.dissem.bitmessage.ports.NodeRegistryHelper.loadStableNodes
+import ch.dissem.bitmessage.utils.*
 import ch.dissem.bitmessage.utils.Collections
-import ch.dissem.bitmessage.utils.SqlStrings
-import ch.dissem.bitmessage.utils.Strings
 import ch.dissem.bitmessage.utils.UnixTime.DAY
 import ch.dissem.bitmessage.utils.UnixTime.MINUTE
 import ch.dissem.bitmessage.utils.UnixTime.now
@@ -155,7 +154,18 @@ class JdbcNodeRegistry(config: JdbcConfig) : JdbcHelper(config), NodeRegistry {
                     ps.setBytes(2, node.IPv6)
                     ps.setInt(3, node.port)
                     ps.setLong(4, node.services)
-                    ps.setLong(5, node.time)
+                    ps.setLong(5,
+                        if (node.time > UnixTime.now) {
+                            // This might be an attack, let's not use those nodes with priority
+                            UnixTime.now - 7 * UnixTime.DAY
+                        } else if (node.time == 0L) {
+                            // Those just don't have a time set
+                            // let's give them slightly higher priority than the possible attack ones
+                            UnixTime.now - 6 * UnixTime.DAY
+                        } else {
+                            node.time
+                        }
+                    )
                     ps.executeUpdate()
                 }
             }
@@ -164,16 +174,53 @@ class JdbcNodeRegistry(config: JdbcConfig) : JdbcHelper(config), NodeRegistry {
         }
     }
 
-    private fun update(node: NetworkAddress) {
+    override fun update(node: NetworkAddress) {
         try {
+            val time = if (node.time > UnixTime.now) {
+                // This might be an attack, let's not use those nodes with priority
+                UnixTime.now - 7 * UnixTime.DAY
+            } else {
+                node.time
+            }
+
             config.getConnection().use { connection ->
                 connection.prepareStatement(
                     "UPDATE Node SET services=?, time=? WHERE stream=? AND address=? AND port=?").use { ps ->
                     ps.setLong(1, node.services)
-                    ps.setLong(2, node.time)
+                    ps.setLong(2, max(node.time, time))
                     ps.setLong(3, node.stream)
                     ps.setBytes(4, node.IPv6)
                     ps.setInt(5, node.port)
+                    ps.executeUpdate()
+                }
+            }
+        } catch (e: SQLException) {
+            LOG.error(e.message, e)
+        }
+    }
+
+    override fun remove(node: NetworkAddress) {
+        try {
+            config.getConnection().use { connection ->
+                connection.prepareStatement(
+                    "DELETE FROM Node WHERE stream=? AND address=? AND port=?").use { ps ->
+                    ps.setLong(1, node.stream)
+                    ps.setBytes(2, node.IPv6)
+                    ps.setInt(3, node.port)
+                    ps.executeUpdate()
+                }
+            }
+        } catch (e: SQLException) {
+            LOG.error(e.message, e)
+        }
+    }
+
+    override fun cleanup() {
+        try {
+            config.getConnection().use { connection ->
+                connection.prepareStatement(
+                    "DELETE FROM Node WHERE time<?").use { ps ->
+                    ps.setLong(1, UnixTime.now - 8 * DAY)
                     ps.executeUpdate()
                 }
             }

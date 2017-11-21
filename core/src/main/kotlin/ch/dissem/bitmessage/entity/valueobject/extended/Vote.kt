@@ -35,9 +35,9 @@ data class Vote constructor(val msgId: InventoryVector, val vote: String) : Exte
 
     override fun pack(): MPMap<MPString, MPType<*>> {
         val result = MPMap<MPString, MPType<*>>()
-        result.put(mp(""), mp(TYPE))
-        result.put(mp("msgId"), mp(*msgId.hash))
-        result.put(mp("vote"), mp(vote))
+        result.put("".mp, TYPE.mp)
+        result.put("msgId".mp, msgId.hash.mp)
+        result.put("vote".mp, vote.mp)
         return result
     }
 
@@ -77,13 +77,14 @@ data class Vote constructor(val msgId: InventoryVector, val vote: String) : Exte
             get() = TYPE
 
         override fun unpack(map: MPMap<MPString, MPType<*>>): Vote {
-            val msgId = InventoryVector.fromHash((map[mp("msgId")] as? MPBinary)?.value) ?: throw IllegalArgumentException("data doesn't contain proper msgId")
-            val vote = str(map[mp("vote")]) ?: throw IllegalArgumentException("no vote given")
+            val msgId = InventoryVector.fromHash((map["msgId".mp] as? MPBinary)?.value) ?: throw IllegalArgumentException("data doesn't contain proper msgId")
+            val vote = str(map["vote".mp]) ?: throw IllegalArgumentException("no vote given")
             return Vote(msgId, vote)
         }
     }
 
     companion object {
-        @JvmField val TYPE = "vote"
+        @JvmField
+        val TYPE = "vote"
     }
 }

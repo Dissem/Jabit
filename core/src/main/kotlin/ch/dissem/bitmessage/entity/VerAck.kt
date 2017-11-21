@@ -26,12 +26,12 @@ class VerAck : MessagePayload {
 
     override val command: MessagePayload.Command = MessagePayload.Command.VERACK
 
-    override fun write(out: OutputStream) {
-        // 'verack' doesn't have any payload, so there is nothing to write
-    }
+    // 'verack' doesn't have any payload, so there is nothing to write
+    override fun writer(): StreamableWriter = EmptyWriter
 
-    override fun write(buffer: ByteBuffer) {
-        // 'verack' doesn't have any payload, so there is nothing to write
+    internal object EmptyWriter : StreamableWriter {
+        override fun write(out: OutputStream) = Unit
+        override fun write(buffer: ByteBuffer) = Unit
     }
 
     companion object {

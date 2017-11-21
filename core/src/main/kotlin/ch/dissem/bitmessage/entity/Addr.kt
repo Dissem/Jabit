@@ -25,19 +25,28 @@ import java.nio.ByteBuffer
  * The 'addr' command holds a list of known active Bitmessage nodes.
  */
 data class Addr constructor(val addresses: List<NetworkAddress>) : MessagePayload {
+
     override val command: MessagePayload.Command = MessagePayload.Command.ADDR
 
-    override fun write(out: OutputStream) {
-        Encode.varInt(addresses.size, out)
-        for (address in addresses) {
-            address.write(out)
-        }
-    }
+    override fun writer(): StreamableWriter = Writer(this)
 
-    override fun write(buffer: ByteBuffer) {
-        Encode.varInt(addresses.size, buffer)
-        for (address in addresses) {
-            address.write(buffer)
+    private class Writer(
+        private val item: Addr
+    ) : StreamableWriter {
+
+        override fun write(out: OutputStream) {
+            Encode.varInt(item.addresses.size, out)
+            for (address in item.addresses) {
+                address.writer().write(out)
+            }
         }
+
+        override fun write(buffer: ByteBuffer) {
+            Encode.varInt(item.addresses.size, buffer)
+            for (address in item.addresses) {
+                address.writer().write(buffer)
+            }
+        }
+
     }
 }

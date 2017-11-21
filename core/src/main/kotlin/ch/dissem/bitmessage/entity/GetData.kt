@@ -28,21 +28,30 @@ class GetData constructor(var inventory: List<InventoryVector>) : MessagePayload
 
     override val command: MessagePayload.Command = MessagePayload.Command.GETDATA
 
-    override fun write(out: OutputStream) {
-        Encode.varInt(inventory.size, out)
-        for (iv in inventory) {
-            iv.write(out)
-        }
-    }
+    override fun writer(): StreamableWriter = Writer(this)
 
-    override fun write(buffer: ByteBuffer) {
-        Encode.varInt(inventory.size, buffer)
-        for (iv in inventory) {
-            iv.write(buffer)
+    private class Writer(
+        private val item: GetData
+    ) : StreamableWriter {
+
+        override fun write(out: OutputStream) {
+            Encode.varInt(item.inventory.size, out)
+            for (iv in item.inventory) {
+                iv.writer().write(out)
+            }
         }
+
+        override fun write(buffer: ByteBuffer) {
+            Encode.varInt(item.inventory.size, buffer)
+            for (iv in item.inventory) {
+                iv.writer().write(buffer)
+            }
+        }
+
     }
 
     companion object {
-        @JvmField val MAX_INVENTORY_SIZE = 50000
+        @JvmField
+        val MAX_INVENTORY_SIZE = 50000
     }
 }

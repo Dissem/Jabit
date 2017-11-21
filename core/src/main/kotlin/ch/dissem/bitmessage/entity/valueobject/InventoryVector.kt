@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity.valueobject
 
 import ch.dissem.bitmessage.entity.Streamable
+import ch.dissem.bitmessage.entity.StreamableWriter
 import ch.dissem.bitmessage.utils.Strings
 import java.io.OutputStream
 import java.nio.ByteBuffer
@@ -39,20 +40,29 @@ data class InventoryVector constructor(
         return Arrays.hashCode(hash)
     }
 
-    override fun write(out: OutputStream) {
-        out.write(hash)
-    }
-
-    override fun write(buffer: ByteBuffer) {
-        buffer.put(hash)
-    }
-
     override fun toString(): String {
         return Strings.hex(hash)
     }
 
+    override fun writer(): StreamableWriter = Writer(this)
+
+    private class Writer(
+        private val item: InventoryVector
+    ) : StreamableWriter {
+
+        override fun write(out: OutputStream) {
+            out.write(item.hash)
+        }
+
+        override fun write(buffer: ByteBuffer) {
+            buffer.put(item.hash)
+        }
+
+    }
+
     companion object {
-        @JvmStatic fun fromHash(hash: ByteArray?): InventoryVector? {
+        @JvmStatic
+        fun fromHash(hash: ByteArray?): InventoryVector? {
             return InventoryVector(
                 hash ?: return null
             )

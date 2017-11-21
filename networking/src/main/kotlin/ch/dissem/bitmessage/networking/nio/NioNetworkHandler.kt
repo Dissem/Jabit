@@ -90,7 +90,7 @@ class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
         SocketChannel.open(InetSocketAddress(server, port)).use { channel ->
             channel.configureBlocking(true)
             val headerBuffer = ByteBuffer.allocate(HEADER_SIZE)
-            val payloadBuffer = NetworkMessage(request).writeHeaderAndGetPayloadBuffer(headerBuffer)
+            val payloadBuffer = NetworkMessage(request).writer().writeHeaderAndGetPayloadBuffer(headerBuffer)
             headerBuffer.flip()
             while (headerBuffer.hasRemaining()) {
                 channel.write(headerBuffer)

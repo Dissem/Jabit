@@ -18,6 +18,7 @@ package ch.dissem.bitmessage;
 
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress;
 import ch.dissem.bitmessage.ports.NodeRegistry;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -44,13 +45,29 @@ class TestNodeRegistry implements NodeRegistry {
         // NO OP
     }
 
+    @NotNull
     @Override
-    public List<NetworkAddress> getKnownAddresses(int limit, long... streams) {
+    public List<NetworkAddress> getKnownAddresses(int limit, @NotNull long... streams) {
         return nodes;
     }
 
     @Override
-    public void offerAddresses(List<NetworkAddress> nodes) {
+    public void offerAddresses(@NotNull List<NetworkAddress> nodes) {
+        // Ignore
+    }
+
+    @Override
+    public void update(@NotNull NetworkAddress node) {
+        // Ignore
+    }
+
+    @Override
+    public void remove(@NotNull NetworkAddress node) {
+        // Ignore
+    }
+
+    @Override
+    public void cleanup() {
         // Ignore
     }
 }

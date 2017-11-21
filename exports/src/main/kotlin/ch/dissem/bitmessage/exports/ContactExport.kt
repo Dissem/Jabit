@@ -39,7 +39,7 @@ object ContactExport {
                     "subscribed" to it.isSubscribed,
                     "pubkey" to it.pubkey?.let {
                         val out = ByteArrayOutputStream()
-                        it.writeUnencrypted(out)
+                        it.writer().writeUnencrypted(out)
                         Base64.encodeToString(out.toByteArray())
                     },
                     "privateKey" to if (includePrivateKey) {

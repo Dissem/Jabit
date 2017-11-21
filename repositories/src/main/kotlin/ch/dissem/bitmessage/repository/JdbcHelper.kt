@@ -30,7 +30,7 @@ abstract class JdbcHelper protected constructor(@JvmField protected val config: 
                 ps.setBytes(parameterIndex, null)
             } else {
                 val os = ByteArrayOutputStream()
-                data.write(os)
+                data.writer().write(os)
                 ps.setBytes(parameterIndex, os.toByteArray())
             }
         }

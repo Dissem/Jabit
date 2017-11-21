@@ -175,7 +175,7 @@ class JdbcAddressRepository(config: JdbcConfig) : JdbcHelper(config), AddressRep
     private fun writePubkey(ps: PreparedStatement, parameterIndex: Int, data: Pubkey?) {
         if (data != null) {
             val out = ByteArrayOutputStream()
-            data.writeUnencrypted(out)
+            data.writer().writeUnencrypted(out)
             ps.setBytes(parameterIndex, out.toByteArray())
         } else {
             ps.setBytes(parameterIndex, null)

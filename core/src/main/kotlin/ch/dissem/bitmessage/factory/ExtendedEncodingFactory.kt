@@ -54,9 +54,8 @@ object ExtendedEncodingFactory {
     fun unzip(zippedData: ByteArray): ExtendedEncoding? {
         try {
             InflaterInputStream(ByteArrayInputStream(zippedData)).use { unzipper ->
-                val reader = Reader.getInstance()
                 @Suppress("UNCHECKED_CAST")
-                val map = reader.read(unzipper) as MPMap<MPString, MPType<*>>
+                val map = Reader.read(unzipper) as MPMap<MPString, MPType<*>>
                 val messageType = map[KEY_MESSAGE_TYPE]
                 if (messageType == null) {
                     LOG.error("Missing message type")

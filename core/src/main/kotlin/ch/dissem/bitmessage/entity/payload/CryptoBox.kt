@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity.payload
 
 import ch.dissem.bitmessage.entity.Streamable
+import ch.dissem.bitmessage.entity.StreamableWriter
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey.Companion.PRIVATE_KEY_SIZE
 import ch.dissem.bitmessage.exception.DecryptionFailedException
 import ch.dissem.bitmessage.utils.*
@@ -108,44 +109,53 @@ class CryptoBox : Streamable {
 
     private fun calculateMac(key_m: ByteArray): ByteArray {
         val macData = ByteArrayOutputStream()
-        writeWithoutMAC(macData)
+        writer.writeWithoutMAC(macData)
         return cryptography().mac(key_m, macData.toByteArray())
     }
 
-    private fun writeWithoutMAC(out: OutputStream) {
-        out.write(initializationVector)
-        Encode.int16(curveType, out)
-        writeCoordinateComponent(out, Points.getX(R))
-        writeCoordinateComponent(out, Points.getY(R))
-        out.write(encrypted)
-    }
+    private val writer = Writer(this)
+    override fun writer(): StreamableWriter = writer
 
-    private fun writeCoordinateComponent(out: OutputStream, x: ByteArray) {
-        val offset = Bytes.numberOfLeadingZeros(x)
-        val length = x.size - offset
-        Encode.int16(length, out)
-        out.write(x, offset, length)
-    }
+    private class Writer(
+        private val item: CryptoBox
+    ) : StreamableWriter {
 
-    private fun writeCoordinateComponent(buffer: ByteBuffer, x: ByteArray) {
-        val offset = Bytes.numberOfLeadingZeros(x)
-        val length = x.size - offset
-        Encode.int16(length, buffer)
-        buffer.put(x, offset, length)
-    }
+        override fun write(out: OutputStream) {
+            writeWithoutMAC(out)
+            out.write(item.mac)
+        }
 
-    override fun write(out: OutputStream) {
-        writeWithoutMAC(out)
-        out.write(mac)
-    }
+        internal fun writeWithoutMAC(out: OutputStream) {
+            out.write(item.initializationVector)
+            Encode.int16(item.curveType, out)
+            writeCoordinateComponent(out, Points.getX(item.R))
+            writeCoordinateComponent(out, Points.getY(item.R))
+            out.write(item.encrypted)
+        }
 
-    override fun write(buffer: ByteBuffer) {
-        buffer.put(initializationVector)
-        Encode.int16(curveType, buffer)
-        writeCoordinateComponent(buffer, Points.getX(R))
-        writeCoordinateComponent(buffer, Points.getY(R))
-        buffer.put(encrypted)
-        buffer.put(mac)
+        override fun write(buffer: ByteBuffer) {
+            buffer.put(item.initializationVector)
+            Encode.int16(item.curveType, buffer)
+            writeCoordinateComponent(buffer, Points.getX(item.R))
+            writeCoordinateComponent(buffer, Points.getY(item.R))
+            buffer.put(item.encrypted)
+            buffer.put(item.mac)
+        }
+
+        private fun writeCoordinateComponent(out: OutputStream, x: ByteArray) {
+            val offset = Bytes.numberOfLeadingZeros(x)
+            val length = x.size - offset
+            Encode.int16(length, out)
+            out.write(x, offset, length)
+        }
+
+        private fun writeCoordinateComponent(buffer: ByteBuffer, x: ByteArray) {
+            val offset = Bytes.numberOfLeadingZeros(x)
+            val length = x.size - offset
+            Encode.int16(length, buffer)
+            buffer.put(x, offset, length)
+        }
+
     }
 
     class Builder {
@@ -187,15 +197,14 @@ class CryptoBox : Streamable {
             return this
         }
 
-        fun build(): CryptoBox {
-            return CryptoBox(this)
-        }
+        fun build() = CryptoBox(this)
     }
 
     companion object {
         private val LOG = LoggerFactory.getLogger(CryptoBox::class.java)
 
-        @JvmStatic fun read(stream: InputStream, length: Int): CryptoBox {
+        @JvmStatic
+        fun read(stream: InputStream, length: Int): CryptoBox {
             val counter = AccessCounter()
             return Builder()
                 .IV(Decode.bytes(stream, 16, counter))

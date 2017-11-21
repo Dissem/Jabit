@@ -260,102 +260,6 @@ class Plaintext private constructor(
         id = builder.id
     }
 
-    fun write(out: OutputStream, includeSignature: Boolean) {
-        Encode.varInt(from.version, out)
-        Encode.varInt(from.stream, out)
-        from.pubkey?.apply {
-            Encode.int32(behaviorBitfield, out)
-            out.write(signingKey, 1, 64)
-            out.write(encryptionKey, 1, 64)
-            if (from.version >= 3) {
-                Encode.varInt(nonceTrialsPerByte, out)
-                Encode.varInt(extraBytes, out)
-            }
-        } ?: {
-            Encode.int32(0, out)
-            val empty = ByteArray(64)
-            out.write(empty)
-            out.write(empty)
-            if (from.version >= 3) {
-                Encode.varInt(0, out)
-                Encode.varInt(0, out)
-            }
-        }.invoke()
-        if (type == MSG) {
-            out.write(to?.ripe ?: throw IllegalStateException("No recipient set for message"))
-        }
-        Encode.varInt(encodingCode, out)
-        Encode.varInt(message.size, out)
-        out.write(message)
-        if (type == MSG) {
-            if (to?.has(Feature.DOES_ACK) ?: false) {
-                val ack = ByteArrayOutputStream()
-                ackMessage?.write(ack)
-                Encode.varBytes(ack.toByteArray(), out)
-            } else {
-                Encode.varInt(0, out)
-            }
-        }
-        if (includeSignature) {
-            if (signature == null) {
-                Encode.varInt(0, out)
-            } else {
-                Encode.varBytes(signature!!, out)
-            }
-        }
-    }
-
-    fun write(buffer: ByteBuffer, includeSignature: Boolean) {
-        Encode.varInt(from.version, buffer)
-        Encode.varInt(from.stream, buffer)
-        if (from.pubkey == null) {
-            Encode.int32(0, buffer)
-            val empty = ByteArray(64)
-            buffer.put(empty)
-            buffer.put(empty)
-            if (from.version >= 3) {
-                Encode.varInt(0, buffer)
-                Encode.varInt(0, buffer)
-            }
-        } else {
-            Encode.int32(from.pubkey!!.behaviorBitfield, buffer)
-            buffer.put(from.pubkey!!.signingKey, 1, 64)
-            buffer.put(from.pubkey!!.encryptionKey, 1, 64)
-            if (from.version >= 3) {
-                Encode.varInt(from.pubkey!!.nonceTrialsPerByte, buffer)
-                Encode.varInt(from.pubkey!!.extraBytes, buffer)
-            }
-        }
-        if (type == MSG) {
-            buffer.put(to!!.ripe)
-        }
-        Encode.varInt(encodingCode, buffer)
-        Encode.varBytes(message, buffer)
-        if (type == MSG) {
-            if (to!!.has(Feature.DOES_ACK) && ackMessage != null) {
-                Encode.varBytes(Encode.bytes(ackMessage!!), buffer)
-            } else {
-                Encode.varInt(0, buffer)
-            }
-        }
-        if (includeSignature) {
-            val sig = signature
-            if (sig == null) {
-                Encode.varInt(0, buffer)
-            } else {
-                Encode.varBytes(sig, buffer)
-            }
-        }
-    }
-
-    override fun write(out: OutputStream) {
-        write(out, true)
-    }
-
-    override fun write(buffer: ByteBuffer) {
-        write(buffer, true)
-    }
-
     fun updateNextTry() {
         if (to != null) {
             if (nextTry == null) {
@@ -484,6 +388,7 @@ class Plaintext private constructor(
     }
 
     enum class Encoding constructor(code: Long) {
+
         IGNORE(0), TRIVIAL(1), SIMPLE(2), EXTENDED(3);
 
         var code: Long = 0
@@ -495,7 +400,8 @@ class Plaintext private constructor(
 
         companion object {
 
-            @JvmStatic fun fromCode(code: Long): Encoding? {
+            @JvmStatic
+            fun fromCode(code: Long): Encoding? {
                 for (e in values()) {
                     if (e.code == code) {
                         return e
@@ -503,12 +409,13 @@ class Plaintext private constructor(
                 }
                 return null
             }
+
         }
     }
 
     enum class Status {
+
         DRAFT,
-        // For sent messages
         PUBKEY_REQUESTED,
         DOING_PROOF_OF_WORK,
         SENT,
@@ -517,7 +424,108 @@ class Plaintext private constructor(
     }
 
     enum class Type {
+
         MSG, BROADCAST
+    }
+
+    fun writer(includeSignature: Boolean): StreamableWriter = Writer(this, includeSignature)
+
+    override fun writer(): StreamableWriter = Writer(this)
+
+    private class Writer(
+        private val item: Plaintext,
+        private val includeSignature: Boolean = true
+    ) : StreamableWriter {
+
+        override fun write(out: OutputStream) {
+            Encode.varInt(item.from.version, out)
+            Encode.varInt(item.from.stream, out)
+            item.from.pubkey?.apply {
+                Encode.int32(behaviorBitfield, out)
+                out.write(signingKey, 1, 64)
+                out.write(encryptionKey, 1, 64)
+                if (item.from.version >= 3) {
+                    Encode.varInt(nonceTrialsPerByte, out)
+                    Encode.varInt(extraBytes, out)
+                }
+            } ?: {
+                Encode.int32(0, out)
+                val empty = ByteArray(64)
+                out.write(empty)
+                out.write(empty)
+                if (item.from.version >= 3) {
+                    Encode.varInt(0, out)
+                    Encode.varInt(0, out)
+                }
+            }.invoke()
+            if (item.type == MSG) {
+                out.write(item.to?.ripe ?: throw IllegalStateException("No recipient set for message"))
+            }
+            Encode.varInt(item.encodingCode, out)
+            Encode.varInt(item.message.size, out)
+            out.write(item.message)
+            if (item.type == MSG) {
+                if (item.to?.has(Feature.DOES_ACK) == true) {
+                    val ack = ByteArrayOutputStream()
+                    item.ackMessage?.writer()?.write(ack)
+                    Encode.varBytes(ack.toByteArray(), out)
+                } else {
+                    Encode.varInt(0, out)
+                }
+            }
+            if (includeSignature) {
+                val sig = item.signature
+                if (sig == null) {
+                    Encode.varInt(0, out)
+                } else {
+                    Encode.varBytes(sig, out)
+                }
+            }
+        }
+
+        override fun write(buffer: ByteBuffer) {
+            Encode.varInt(item.from.version, buffer)
+            Encode.varInt(item.from.stream, buffer)
+            if (item.from.pubkey == null) {
+                Encode.int32(0, buffer)
+                val empty = ByteArray(64)
+                buffer.put(empty)
+                buffer.put(empty)
+                if (item.from.version >= 3) {
+                    Encode.varInt(0, buffer)
+                    Encode.varInt(0, buffer)
+                }
+            } else {
+                Encode.int32(item.from.pubkey!!.behaviorBitfield, buffer)
+                buffer.put(item.from.pubkey!!.signingKey, 1, 64)
+                buffer.put(item.from.pubkey!!.encryptionKey, 1, 64)
+                if (item.from.version >= 3) {
+                    Encode.varInt(item.from.pubkey!!.nonceTrialsPerByte, buffer)
+                    Encode.varInt(item.from.pubkey!!.extraBytes, buffer)
+                }
+            }
+            if (item.type == MSG) {
+                buffer.put(item.to!!.ripe)
+            }
+            Encode.varInt(item.encodingCode, buffer)
+            Encode.varBytes(item.message, buffer)
+            if (item.type == MSG) {
+                if (item.to!!.has(Feature.DOES_ACK) && item.ackMessage != null) {
+                    Encode.varBytes(Encode.bytes(item.ackMessage!!), buffer)
+                } else {
+                    Encode.varInt(0, buffer)
+                }
+            }
+            if (includeSignature) {
+                val sig = item.signature
+                if (sig == null) {
+                    Encode.varInt(0, buffer)
+                } else {
+                    Encode.varBytes(sig, buffer)
+                }
+            }
+        }
+
     }
 
     class Builder(internal val type: Type) {
@@ -742,14 +750,16 @@ class Plaintext private constructor(
 
     companion object {
 
-        @JvmStatic fun read(type: Type, `in`: InputStream): Plaintext {
+        @JvmStatic
+        fun read(type: Type, `in`: InputStream): Plaintext {
             return readWithoutSignature(type, `in`)
                 .signature(Decode.varBytes(`in`))
                 .received(UnixTime.now)
                 .build()
         }
 
-        @JvmStatic fun readWithoutSignature(type: Type, `in`: InputStream): Plaintext.Builder {
+        @JvmStatic
+        fun readWithoutSignature(type: Type, `in`: InputStream): Plaintext.Builder {
             val version = Decode.varInt(`in`)
             return Builder(type)
                 .addressVersion(version)

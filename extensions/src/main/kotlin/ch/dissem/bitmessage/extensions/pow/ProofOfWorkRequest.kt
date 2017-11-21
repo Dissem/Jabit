@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.extensions.pow
 
 import ch.dissem.bitmessage.entity.BitmessageAddress
 import ch.dissem.bitmessage.entity.Streamable
+import ch.dissem.bitmessage.entity.StreamableWriter
 import ch.dissem.bitmessage.extensions.CryptoCustomMessage
 import ch.dissem.bitmessage.utils.Decode.bytes
 import ch.dissem.bitmessage.utils.Decode.varBytes
@@ -33,16 +34,24 @@ import java.util.*
  */
 data class ProofOfWorkRequest @JvmOverloads constructor(val sender: BitmessageAddress, val initialHash: ByteArray, val request: ProofOfWorkRequest.Request, val data: ByteArray = ByteArray(0)) : Streamable {
 
-    override fun write(out: OutputStream) {
-        out.write(initialHash)
-        Encode.varString(request.name, out)
-        Encode.varBytes(data, out)
-    }
+    override fun writer(): StreamableWriter = Writer(this)
 
-    override fun write(buffer: ByteBuffer) {
-        buffer.put(initialHash)
-        Encode.varString(request.name, buffer)
-        Encode.varBytes(data, buffer)
+    private class Writer(
+        private val item: ProofOfWorkRequest
+    ) : StreamableWriter {
+
+        override fun write(out: OutputStream) {
+            out.write(item.initialHash)
+            Encode.varString(item.request.name, out)
+            Encode.varBytes(item.data, out)
+        }
+
+        override fun write(buffer: ByteBuffer) {
+            buffer.put(item.initialHash)
+            Encode.varString(item.request.name, buffer)
+            Encode.varBytes(item.data, buffer)
+        }
+
     }
 
     class Reader(private val identity: BitmessageAddress) : CryptoCustomMessage.Reader<ProofOfWorkRequest> {

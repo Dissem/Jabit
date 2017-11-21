@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity.payload
 
 import ch.dissem.bitmessage.entity.BitmessageAddress
+import ch.dissem.bitmessage.entity.SignedStreamableWriter
 import ch.dissem.bitmessage.utils.Decode
 import java.io.InputStream
 import java.io.OutputStream
@@ -47,16 +48,27 @@ class GetPubkey : ObjectPayload {
         this.ripeTag = ripeOrTag
     }
 
-    override fun write(out: OutputStream) {
-        out.write(ripeTag)
-    }
+    override fun writer(): SignedStreamableWriter = Writer(this)
 
-    override fun write(buffer: ByteBuffer) {
-        buffer.put(ripeTag)
+    private class Writer(
+        private val item: GetPubkey
+    ) : SignedStreamableWriter {
+
+        override fun write(out: OutputStream) {
+            out.write(item.ripeTag)
+        }
+
+        override fun write(buffer: ByteBuffer) {
+            buffer.put(item.ripeTag)
+        }
+
+        override fun writeBytesToSign(out: OutputStream) = Unit // nothing to sign
+
     }
 
     companion object {
-        @JvmStatic fun read(`is`: InputStream, stream: Long, length: Int, version: Long): GetPubkey {
+        @JvmStatic
+        fun read(`is`: InputStream, stream: Long, length: Int, version: Long): GetPubkey {
             return GetPubkey(version, stream, Decode.bytes(`is`, length))
         }
     }

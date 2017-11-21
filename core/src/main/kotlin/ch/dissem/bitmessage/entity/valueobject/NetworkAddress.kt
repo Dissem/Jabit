@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.entity.valueobject
 
 import ch.dissem.bitmessage.entity.Streamable
+import ch.dissem.bitmessage.entity.StreamableWriter
 import ch.dissem.bitmessage.entity.Version
 import ch.dissem.bitmessage.utils.Encode
 import ch.dissem.bitmessage.utils.UnixTime
@@ -77,9 +78,7 @@ data class NetworkAddress(
 
     fun provides(service: Version.Service?): Boolean = service?.isEnabled(services) ?: false
 
-    fun toInetAddress(): InetAddress {
-        return InetAddress.getByAddress(IPv6)
-    }
+    fun toInetAddress() = InetAddress.getByAddress(IPv6)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -98,32 +97,40 @@ data class NetworkAddress(
         return "[" + toInetAddress() + "]:" + port
     }
 
-    override fun write(out: OutputStream) {
-        write(out, false)
-    }
+    fun writer(light: Boolean): StreamableWriter = Writer(
+        item = this,
+        light = light
+    )
 
-    fun write(out: OutputStream, light: Boolean) {
-        if (!light) {
-            Encode.int64(time, out)
-            Encode.int32(stream, out)
+    override fun writer(): StreamableWriter = Writer(
+        item = this
+    )
+
+    private class Writer(
+        private val item: NetworkAddress,
+        private val light: Boolean = false
+    ) : StreamableWriter {
+
+        override fun write(out: OutputStream) {
+            if (!light) {
+                Encode.int64(item.time, out)
+                Encode.int32(item.stream, out)
+            }
+            Encode.int64(item.services, out)
+            out.write(item.IPv6)
+            Encode.int16(item.port, out)
         }
-        Encode.int64(services, out)
-        out.write(IPv6)
-        Encode.int16(port, out)
-    }
 
-    override fun write(buffer: ByteBuffer) {
-        write(buffer, false)
-    }
-
-    fun write(buffer: ByteBuffer, light: Boolean) {
-        if (!light) {
-            Encode.int64(time, buffer)
-            Encode.int32(stream, buffer)
+        override fun write(buffer: ByteBuffer) {
+            if (!light) {
+                Encode.int64(item.time, buffer)
+                Encode.int32(item.stream, buffer)
+            }
+            Encode.int64(item.services, buffer)
+            buffer.put(item.IPv6)
+            Encode.int16(item.port, buffer)
         }
-        Encode.int64(services, buffer)
-        buffer.put(IPv6)
-        Encode.int16(port, buffer)
+
     }
 
     class Builder {
@@ -194,6 +201,7 @@ data class NetworkAddress(
     }
 
     companion object {
-        @JvmField val ANY = NetworkAddress(time = 0, stream = 0, services = 0, IPv6 = ByteArray(16), port = 0)
+        @JvmField
+        val ANY = NetworkAddress(time = 0, stream = 0, services = 0, IPv6 = ByteArray(16), port = 0)
     }
 }

@@ -19,6 +19,7 @@ package ch.dissem.bitmessage.extensions
 import ch.dissem.bitmessage.entity.BitmessageAddress
 import ch.dissem.bitmessage.entity.CustomMessage
 import ch.dissem.bitmessage.entity.Streamable
+import ch.dissem.bitmessage.entity.StreamableWriter
 import ch.dissem.bitmessage.entity.payload.CryptoBox
 import ch.dissem.bitmessage.entity.payload.Pubkey
 import ch.dissem.bitmessage.exception.DecryptionFailedException
@@ -73,7 +74,7 @@ class CryptoCustomMessage<T : Streamable> : CustomMessage {
             Encode.varInt(privateKey.pubkey.extraBytes, out)
         }
 
-        data?.write(out) ?: throw IllegalStateException("no unencrypted data available")
+        data?.writer()?.write(out) ?: throw IllegalStateException("no unencrypted data available")
         Encode.varBytes(cryptography().getSignature(out.toByteArray(), privateKey), out)
         container = CryptoBox(out.toByteArray(), publicKey)
     }
@@ -109,9 +110,17 @@ class CryptoCustomMessage<T : Streamable> : CustomMessage {
         return data!!
     }
 
-    override fun write(out: OutputStream) {
-        Encode.varString(COMMAND, out)
-        container?.write(out) ?: throw IllegalStateException("not encrypted yet")
+    override fun writer(): StreamableWriter = Writer(this)
+
+    private class Writer(
+        private val item: CryptoCustomMessage<*>
+    ) : CustomMessage.Writer(item) {
+
+        override fun write(out: OutputStream) {
+            Encode.varString(COMMAND, out)
+            item.container?.writer()?.write(out) ?: throw IllegalStateException("not encrypted yet")
+        }
+
     }
 
     interface Reader<out T> {
@@ -136,9 +145,11 @@ class CryptoCustomMessage<T : Streamable> : CustomMessage {
     }
 
     companion object {
-        @JvmField val COMMAND = "ENCRYPTED"
+        @JvmField
+        val COMMAND = "ENCRYPTED"
 
-        @JvmStatic fun <T : Streamable> read(data: CustomMessage, dataReader: Reader<T>): CryptoCustomMessage<T> {
+        @JvmStatic
+        fun <T : Streamable> read(data: CustomMessage, dataReader: Reader<T>): CryptoCustomMessage<T> {
             val cryptoBox = CryptoBox.read(ByteArrayInputStream(data.getData()), data.getData().size)
             return CryptoCustomMessage(cryptoBox, dataReader)
         }

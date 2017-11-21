@@ -38,4 +38,16 @@ internal class TestNodeRegistry(vararg nodes: NetworkAddress) : NodeRegistry {
     override fun offerAddresses(nodes: List<NetworkAddress>) {
         // Ignore
     }
+
+    override fun update(node: NetworkAddress) {
+        // Ignore
+    }
+
+    override fun remove(node: NetworkAddress) {
+        // Ignore
+    }
+
+    override fun cleanup() {
+        // Ignore
+    }
 }

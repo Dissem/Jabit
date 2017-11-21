@@ -18,7 +18,7 @@ package ch.dissem.bitmessage.entity.payload
 
 import ch.dissem.bitmessage.entity.BitmessageAddress
 import ch.dissem.bitmessage.entity.Plaintext
-
+import ch.dissem.bitmessage.entity.SignedStreamableWriter
 import java.io.InputStream
 import java.io.OutputStream
 import java.nio.ByteBuffer
@@ -38,21 +38,28 @@ open class V4Broadcast : Broadcast {
             throw IllegalArgumentException("Address version 3 or older expected, but was " + senderAddress.version)
     }
 
+    override fun writer(): SignedStreamableWriter = Writer(this)
 
-    override fun writeBytesToSign(out: OutputStream) {
-        plaintext?.write(out, false) ?: throw IllegalStateException("no plaintext data available")
-    }
+    protected open class Writer(
+        private val item: V4Broadcast
+    ) : SignedStreamableWriter {
 
-    override fun write(out: OutputStream) {
-        encrypted?.write(out) ?: throw IllegalStateException("broadcast not encrypted")
-    }
+        override fun writeBytesToSign(out: OutputStream) {
+            item.plaintext?.writer(false)?.write(out) ?: throw IllegalStateException("no plaintext data available")
+        }
 
-    override fun write(buffer: ByteBuffer) {
-        encrypted?.write(buffer) ?: throw IllegalStateException("broadcast not encrypted")
+        override fun write(out: OutputStream) {
+            item.encrypted?.writer()?.write(out) ?: throw IllegalStateException("broadcast not encrypted")
+        }
+
+        override fun write(buffer: ByteBuffer) {
+            item.encrypted?.writer()?.write(buffer) ?: throw IllegalStateException("broadcast not encrypted")
+        }
     }
 
     companion object {
-        @JvmStatic fun read(`in`: InputStream, stream: Long, length: Int): V4Broadcast {
+        @JvmStatic
+        fun read(`in`: InputStream, stream: Long, length: Int): V4Broadcast {
             return V4Broadcast(4, stream, CryptoBox.read(`in`, length), null)
         }
     }

@@ -31,4 +31,13 @@ interface NodeRegistry {
     fun getKnownAddresses(limit: Int, vararg streams: Long): List<NetworkAddress>
 
     fun offerAddresses(nodes: List<NetworkAddress>)
+
+    fun update(node: NetworkAddress)
+
+    fun remove(node: NetworkAddress)
+
+    /**
+     * Remove stale nodes
+     */
+    fun cleanup()
 }

@@ -61,7 +61,7 @@ class ConnectionIO(
         if (!headerOut.hasRemaining() && !sendingQueue.isEmpty()) {
             headerOut.clear()
             val payload = sendingQueue.poll()
-            payloadOut = NetworkMessage(payload).writeHeaderAndGetPayloadBuffer(headerOut)
+            payloadOut = NetworkMessage(payload).writer().writeHeaderAndGetPayloadBuffer(headerOut)
             headerOut.flip()
             lastUpdate = System.currentTimeMillis()
         }

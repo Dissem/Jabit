@@ -16,10 +16,8 @@
 
 package ch.dissem.bitmessage.entity.payload
 
-import ch.dissem.bitmessage.entity.Encrypted
-import ch.dissem.bitmessage.entity.Plaintext
+import ch.dissem.bitmessage.entity.*
 import ch.dissem.bitmessage.entity.Plaintext.Type.MSG
-import ch.dissem.bitmessage.entity.PlaintextHolder
 import ch.dissem.bitmessage.exception.DecryptionFailedException
 import java.io.InputStream
 import java.io.OutputStream
@@ -51,10 +49,6 @@ class Msg : ObjectPayload, Encrypted, PlaintextHolder {
 
     override val isSigned: Boolean = true
 
-    override fun writeBytesToSign(out: OutputStream) {
-        plaintext?.write(out, false) ?: throw IllegalStateException("no plaintext data available")
-    }
-
     override var signature: ByteArray?
         get() = plaintext?.signature
         set(signature) {
@@ -73,14 +67,6 @@ class Msg : ObjectPayload, Encrypted, PlaintextHolder {
     override val isDecrypted: Boolean
         get() = plaintext != null
 
-    override fun write(out: OutputStream) {
-        encrypted?.write(out) ?: throw IllegalStateException("Msg must be signed and encrypted before writing it.")
-    }
-
-    override fun write(buffer: ByteBuffer) {
-        encrypted?.write(buffer) ?: throw IllegalStateException("Msg must be signed and encrypted before writing it.")
-    }
-
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Msg) return false
@@ -89,14 +75,35 @@ class Msg : ObjectPayload, Encrypted, PlaintextHolder {
         return stream == other.stream && (encrypted == other.encrypted || plaintext == other.plaintext)
     }
 
-    override fun hashCode(): Int {
-        return stream.toInt()
+    override fun hashCode() = stream.toInt()
+
+    override fun writer(): SignedStreamableWriter = Writer(this)
+
+    private class Writer(
+        private val item: Msg
+    ) : SignedStreamableWriter {
+
+        val encryptedDataWriter = item.encrypted?.writer()
+
+        override fun write(out: OutputStream) {
+            encryptedDataWriter?.write(out) ?: throw IllegalStateException("Msg must be signed and encrypted before writing it.")
+        }
+
+        override fun write(buffer: ByteBuffer) {
+            encryptedDataWriter?.write(buffer) ?: throw IllegalStateException("Msg must be signed and encrypted before writing it.")
+        }
+
+        override fun writeBytesToSign(out: OutputStream) {
+            item.plaintext?.writer(false)?.write(out) ?: throw IllegalStateException("no plaintext data available")
+        }
+
     }
 
     companion object {
         val ACK_LENGTH = 32
 
-        @JvmStatic fun read(`in`: InputStream, stream: Long, length: Int): Msg {
+        @JvmStatic
+        fun read(`in`: InputStream, stream: Long, length: Int): Msg {
             return Msg(stream, CryptoBox.read(`in`, length))
         }
     }

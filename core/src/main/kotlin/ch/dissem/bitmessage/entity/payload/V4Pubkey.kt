@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.entity.payload
 
 import ch.dissem.bitmessage.entity.BitmessageAddress
 import ch.dissem.bitmessage.entity.Encrypted
+import ch.dissem.bitmessage.entity.EncryptedStreamableWriter
 import ch.dissem.bitmessage.exception.DecryptionFailedException
 import ch.dissem.bitmessage.utils.Decode
 import java.io.InputStream
@@ -63,29 +64,6 @@ class V4Pubkey : Pubkey, Encrypted {
     override val isDecrypted: Boolean
         get() = decrypted != null
 
-    override fun write(out: OutputStream) {
-        out.write(tag)
-        encrypted?.write(out) ?: throw IllegalStateException("pubkey is encrypted")
-    }
-
-    override fun write(buffer: ByteBuffer) {
-        buffer.put(tag)
-        encrypted?.write(buffer) ?: throw IllegalStateException("pubkey is encrypted")
-    }
-
-    override fun writeUnencrypted(out: OutputStream) {
-        decrypted?.write(out) ?: throw IllegalStateException("pubkey is encrypted")
-    }
-
-    override fun writeUnencrypted(buffer: ByteBuffer) {
-        decrypted?.write(buffer) ?: throw IllegalStateException("pubkey is encrypted")
-    }
-
-    override fun writeBytesToSign(out: OutputStream) {
-        out.write(tag)
-        decrypted?.writeBytesToSign(out) ?: throw IllegalStateException("pubkey is encrypted")
-    }
-
     override val signingKey: ByteArray
         get() = decrypted?.signingKey ?: throw IllegalStateException("pubkey is encrypted")
 
@@ -126,8 +104,40 @@ class V4Pubkey : Pubkey, Encrypted {
         return result
     }
 
+    override fun writer(): EncryptedStreamableWriter = Writer(this)
+
+    private class Writer(
+        val item: V4Pubkey
+    ) : EncryptedStreamableWriter {
+
+        override fun write(out: OutputStream) {
+            out.write(item.tag)
+            item.encrypted?.writer()?.write(out) ?: throw IllegalStateException("pubkey is encrypted")
+        }
+
+        override fun write(buffer: ByteBuffer) {
+            buffer.put(item.tag)
+            item.encrypted?.writer()?.write(buffer) ?: throw IllegalStateException("pubkey is encrypted")
+        }
+
+        override fun writeUnencrypted(out: OutputStream) {
+            item.decrypted?.writer()?.write(out) ?: throw IllegalStateException("pubkey is encrypted")
+        }
+
+        override fun writeUnencrypted(buffer: ByteBuffer) {
+            item.decrypted?.writer()?.write(buffer) ?: throw IllegalStateException("pubkey is encrypted")
+        }
+
+        override fun writeBytesToSign(out: OutputStream) {
+            out.write(item.tag)
+            item.decrypted?.writer()?.writeBytesToSign(out) ?: throw IllegalStateException("pubkey is encrypted")
+        }
+
+    }
+
     companion object {
-        @JvmStatic fun read(`in`: InputStream, stream: Long, length: Int, encrypted: Boolean): V4Pubkey {
+        @JvmStatic
+        fun read(`in`: InputStream, stream: Long, length: Int, encrypted: Boolean): V4Pubkey {
             if (encrypted)
                 return V4Pubkey(stream,
                     Decode.bytes(`in`, 32),

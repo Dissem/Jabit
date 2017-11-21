@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.entity.payload
 
 import ch.dissem.bitmessage.entity.BitmessageAddress
 import ch.dissem.bitmessage.entity.Plaintext
+import ch.dissem.bitmessage.entity.SignedStreamableWriter
 import ch.dissem.bitmessage.utils.Decode
 
 import java.io.InputStream
@@ -40,18 +41,27 @@ class V5Broadcast : V4Broadcast {
         this.tag = senderAddress.tag ?: throw IllegalStateException("version 4 address without tag")
     }
 
-    override fun writeBytesToSign(out: OutputStream) {
-        out.write(tag)
-        super.writeBytesToSign(out)
-    }
+    override fun writer(): SignedStreamableWriter = Writer(this)
 
-    override fun write(out: OutputStream) {
-        out.write(tag)
-        super.write(out)
+    private class Writer(
+        private val item: V5Broadcast
+    ) : V4Broadcast.Writer(item) {
+
+        override fun writeBytesToSign(out: OutputStream) {
+            out.write(item.tag)
+            super.writeBytesToSign(out)
+        }
+
+        override fun write(out: OutputStream) {
+            out.write(item.tag)
+            super.write(out)
+        }
+
     }
 
     companion object {
-        @JvmStatic fun read(`is`: InputStream, stream: Long, length: Int): V5Broadcast {
+        @JvmStatic
+        fun read(`is`: InputStream, stream: Long, length: Int): V5Broadcast {
             return V5Broadcast(stream, Decode.bytes(`is`, 32), CryptoBox.read(`is`, length - 32))
         }
     }

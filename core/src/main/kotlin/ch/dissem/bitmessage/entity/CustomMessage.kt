@@ -33,36 +33,42 @@ open class CustomMessage(val customCommand: String, private val data: ByteArray?
 
     override val command: MessagePayload.Command = MessagePayload.Command.CUSTOM
 
-    val isError: Boolean
+    val isError = COMMAND_ERROR == customCommand
 
     fun getData(): ByteArray {
-        if (data != null) {
-            return data
-        } else {
+        return data ?: {
             val out = ByteArrayOutputStream()
-            write(out)
-            return out.toByteArray()
-        }
+            writer().write(out)
+            out.toByteArray()
+        }.invoke()
     }
 
-    override fun write(out: OutputStream) {
-        if (data != null) {
-            Encode.varString(customCommand, out)
-            out.write(data)
-        } else {
-            throw ApplicationException("Tried to write custom message without data. "
-                + "Programmer: did you forget to override #write()?")
-        }
-    }
+    override fun writer(): StreamableWriter = Writer(this)
 
-    override fun write(buffer: ByteBuffer) {
-        if (data != null) {
-            Encode.varString(customCommand, buffer)
-            buffer.put(data)
-        } else {
-            throw ApplicationException("Tried to write custom message without data. "
-                + "Programmer: did you forget to override #write()?")
+    protected open class Writer(
+        private val item: CustomMessage
+    ) : StreamableWriter {
+
+        override fun write(out: OutputStream) {
+            if (item.data != null) {
+                Encode.varString(item.customCommand, out)
+                out.write(item.data)
+            } else {
+                throw ApplicationException("Tried to write custom message without data. "
+                    + "Programmer: did you forget to override #write()?")
+            }
         }
+
+        override fun write(buffer: ByteBuffer) {
+            if (item.data != null) {
+                Encode.varString(item.customCommand, buffer)
+                buffer.put(item.data)
+            } else {
+                throw ApplicationException("Tried to write custom message without data. "
+                    + "Programmer: did you forget to override #write()?")
+            }
+        }
+
     }
 
     companion object {
@@ -75,12 +81,6 @@ open class CustomMessage(val customCommand: String, private val data: ByteArray?
         }
 
         @JvmStatic
-        fun error(message: String): CustomMessage {
-            return CustomMessage(COMMAND_ERROR, message.toByteArray(charset("UTF-8")))
-        }
-    }
-
-    init {
-        this.isError = COMMAND_ERROR == customCommand
+        fun error(message: String) = CustomMessage(COMMAND_ERROR, message.toByteArray(charset("UTF-8")))
     }
 }
