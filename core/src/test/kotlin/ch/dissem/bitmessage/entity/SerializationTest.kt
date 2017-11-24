@@ -87,8 +87,8 @@ class SerializationTest : TestBase() {
             .build()
         val out = ByteArrayOutputStream()
         expected.writer().write(out)
-        val `in` = ByteArrayInputStream(out.toByteArray())
-        val actual = Plaintext.read(MSG, `in`)
+        val input = ByteArrayInputStream(out.toByteArray())
+        val actual = Plaintext.read(MSG, input)
 
         // Received is automatically set on deserialization, so we'll need to set it to null
         val received = Plaintext::class.java.getDeclaredField("received")
@@ -112,8 +112,8 @@ class SerializationTest : TestBase() {
             .build()
         val out = ByteArrayOutputStream()
         expected.writer().write(out)
-        val `in` = ByteArrayInputStream(out.toByteArray())
-        val actual = Plaintext.read(MSG, `in`)
+        val input = ByteArrayInputStream(out.toByteArray())
+        val actual = Plaintext.read(MSG, input)
 
         // Received is automatically set on deserialization, so we'll need to set it to null
         val received = Plaintext::class.java.getDeclaredField("received")
@@ -137,8 +137,8 @@ class SerializationTest : TestBase() {
 
         val out = ByteArrayOutputStream()
         expected.writer().write(out)
-        val `in` = ByteArrayInputStream(out.toByteArray())
-        val actual = Plaintext.read(MSG, `in`)
+        val input = ByteArrayInputStream(out.toByteArray())
+        val actual = Plaintext.read(MSG, input)
 
         // Received is automatically set on deserialization, so we'll need to set it to null
         val received = Plaintext::class.java.getDeclaredField("received")
@@ -169,8 +169,8 @@ class SerializationTest : TestBase() {
 
     private fun doTest(resourceName: String, version: Int, expectedPayloadType: Class<*>) {
         val data = TestUtils.getBytes(resourceName)
-        val `in` = ByteArrayInputStream(data)
-        val objectMessage = Factory.getObjectMessage(version, `in`, data.size)
+        val input = ByteArrayInputStream(data)
+        val objectMessage = Factory.getObjectMessage(version, input, data.size)
         val out = ByteArrayOutputStream()
         assertNotNull(objectMessage)
         objectMessage!!.writer().write(out)
@@ -190,8 +190,8 @@ class SerializationTest : TestBase() {
         val oos = ObjectOutputStream(out)
         oos.writeObject(plaintext)
 
-        val `in` = ByteArrayInputStream(out.toByteArray())
-        val ois = ObjectInputStream(`in`)
+        val input = ByteArrayInputStream(out.toByteArray())
+        val ois = ObjectInputStream(input)
         assertEquals(plaintext, ois.readObject())
     }
 }

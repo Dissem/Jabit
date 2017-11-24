@@ -49,18 +49,18 @@ object TestUtils {
 
     @JvmStatic fun loadObjectMessage(version: Int, resourceName: String): ObjectMessage {
         val data = getBytes(resourceName)
-        val `in` = ByteArrayInputStream(data)
-        return Factory.getObjectMessage(version, `in`, data.size) ?: throw NoSuchElementException("error loading object message")
+        val input = ByteArrayInputStream(data)
+        return Factory.getObjectMessage(version, input, data.size) ?: throw NoSuchElementException("error loading object message")
     }
 
     @JvmStatic fun getBytes(resourceName: String): ByteArray {
-        val `in` = javaClass.classLoader.getResourceAsStream(resourceName)
+        val input = javaClass.classLoader.getResourceAsStream(resourceName)
         val out = ByteArrayOutputStream()
         val buffer = ByteArray(1024)
-        var len = `in`.read(buffer)
+        var len = input.read(buffer)
         while (len != -1) {
             out.write(buffer, 0, len)
-            len = `in`.read(buffer)
+            len = input.read(buffer)
         }
         return out.toByteArray()
     }
@@ -71,9 +71,8 @@ object TestUtils {
         return InventoryVector(bytes)
     }
 
-    @JvmStatic fun getResource(resourceName: String): InputStream {
-        return javaClass.classLoader.getResourceAsStream(resourceName)
-    }
+    @JvmStatic fun getResource(resourceName: String): InputStream =
+        javaClass.classLoader.getResourceAsStream(resourceName)
 
     @JvmStatic fun loadIdentity(address: String): BitmessageAddress {
         val privateKey = PrivateKey.read(TestUtils.getResource(address + ".privkey"))

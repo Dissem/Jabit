@@ -51,7 +51,7 @@ import java.util.*
  */
 class WifImporter constructor(
     private val ctx: BitmessageContext,
-    `in`: InputStream,
+    input: InputStream,
     vararg features: Pubkey.Feature
 ) {
     private val identities = LinkedList<BitmessageAddress>()
@@ -62,7 +62,7 @@ class WifImporter constructor(
 
     init {
         val ini = Ini()
-        ini.load(`in`)
+        ini.load(input)
 
         for ((key, section) in ini) {
             if (!key.startsWith("BM-"))

@@ -65,7 +65,7 @@ class GenericPayload(version: Long, override val stream: Long, val data: ByteArr
 
     companion object {
         @JvmStatic
-        fun read(version: Long, stream: Long, `is`: InputStream, length: Int) =
-            GenericPayload(version, stream, Decode.bytes(`is`, length))
+        fun read(version: Long, stream: Long, input: InputStream, length: Int) =
+            GenericPayload(version, stream, Decode.bytes(input, length))
     }
 }

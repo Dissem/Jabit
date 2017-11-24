@@ -751,28 +751,28 @@ class Plaintext private constructor(
     companion object {
 
         @JvmStatic
-        fun read(type: Type, `in`: InputStream): Plaintext {
-            return readWithoutSignature(type, `in`)
-                .signature(Decode.varBytes(`in`))
+        fun read(type: Type, input: InputStream): Plaintext {
+            return readWithoutSignature(type, input)
+                .signature(Decode.varBytes(input))
                 .received(UnixTime.now)
                 .build()
         }
 
         @JvmStatic
-        fun readWithoutSignature(type: Type, `in`: InputStream): Plaintext.Builder {
-            val version = Decode.varInt(`in`)
+        fun readWithoutSignature(type: Type, input: InputStream): Plaintext.Builder {
+            val version = Decode.varInt(input)
             return Builder(type)
                 .addressVersion(version)
-                .stream(Decode.varInt(`in`))
-                .behaviorBitfield(Decode.int32(`in`))
-                .publicSigningKey(Decode.bytes(`in`, 64))
-                .publicEncryptionKey(Decode.bytes(`in`, 64))
-                .nonceTrialsPerByte(if (version >= 3) Decode.varInt(`in`) else 0)
-                .extraBytes(if (version >= 3) Decode.varInt(`in`) else 0)
-                .destinationRipe(if (type == MSG) Decode.bytes(`in`, 20) else null)
-                .encoding(Decode.varInt(`in`))
-                .message(Decode.varBytes(`in`))
-                .ackMessage(if (type == MSG) Decode.varBytes(`in`) else null)
+                .stream(Decode.varInt(input))
+                .behaviorBitfield(Decode.int32(input))
+                .publicSigningKey(Decode.bytes(input, 64))
+                .publicEncryptionKey(Decode.bytes(input, 64))
+                .nonceTrialsPerByte(if (version >= 3) Decode.varInt(input) else 0)
+                .extraBytes(if (version >= 3) Decode.varInt(input) else 0)
+                .destinationRipe(if (type == MSG) Decode.bytes(input, 20) else null)
+                .encoding(Decode.varInt(input))
+                .message(Decode.varBytes(input))
+                .ackMessage(if (type == MSG) Decode.varBytes(input) else null)
         }
     }
 }

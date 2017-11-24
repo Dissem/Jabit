@@ -39,59 +39,52 @@ object V3MessageFactory {
     private val LOG = LoggerFactory.getLogger(V3MessageFactory::class.java)
 
     @JvmStatic
-    fun read(`in`: InputStream): NetworkMessage? {
-        findMagic(`in`)
-        val command = getCommand(`in`)
-        val length = Decode.uint32(`in`).toInt()
+    fun read(input: InputStream): NetworkMessage? {
+        findMagic(input)
+        val command = getCommand(input)
+        val length = Decode.uint32(input).toInt()
         if (length > 1600003) {
             throw NodeException("Payload of $length bytes received, no more than 1600003 was expected.")
         }
-        val checksum = Decode.bytes(`in`, 4)
+        val checksum = Decode.bytes(input, 4)
 
-        val payloadBytes = Decode.bytes(`in`, length)
+        val payloadBytes = Decode.bytes(input, length)
 
         if (testChecksum(checksum, payloadBytes)) {
             val payload = getPayload(command, ByteArrayInputStream(payloadBytes), length)
-            if (payload != null)
-                return NetworkMessage(payload)
-            else
-                return null
+            return payload?.let { NetworkMessage(payload) }
         } else {
             throw IOException("Checksum failed for message '$command'")
         }
     }
 
     @JvmStatic
-    fun getPayload(command: String, stream: InputStream, length: Int): MessagePayload? {
-        when (command) {
-            "version" -> return parseVersion(stream)
-            "verack" -> return VerAck()
-            "addr" -> return parseAddr(stream)
-            "inv" -> return parseInv(stream)
-            "getdata" -> return parseGetData(stream)
-            "object" -> return readObject(stream, length)
-            "custom" -> return readCustom(stream, length)
-            else -> {
-                LOG.debug("Unknown command: " + command)
-                return null
-            }
+    fun getPayload(command: String, stream: InputStream, length: Int): MessagePayload? = when (command) {
+        "version" -> parseVersion(stream)
+        "verack" -> VerAck()
+        "addr" -> parseAddr(stream)
+        "inv" -> parseInv(stream)
+        "getdata" -> parseGetData(stream)
+        "object" -> readObject(stream, length)
+        "custom" -> readCustom(stream, length)
+        else -> {
+            LOG.debug("Unknown command: " + command)
+            null
         }
     }
 
-    private fun readCustom(`in`: InputStream, length: Int): MessagePayload {
-        return CustomMessage.read(`in`, length)
-    }
+    private fun readCustom(input: InputStream, length: Int): MessagePayload = CustomMessage.read(input, length)
 
     @JvmStatic
-    fun readObject(`in`: InputStream, length: Int): ObjectMessage {
+    fun readObject(input: InputStream, length: Int): ObjectMessage {
         val counter = AccessCounter()
-        val nonce = Decode.bytes(`in`, 8, counter)
-        val expiresTime = Decode.int64(`in`, counter)
-        val objectType = Decode.uint32(`in`, counter)
-        val version = Decode.varInt(`in`, counter)
-        val stream = Decode.varInt(`in`, counter)
+        val nonce = Decode.bytes(input, 8, counter)
+        val expiresTime = Decode.int64(input, counter)
+        val objectType = Decode.uint32(input, counter)
+        val version = Decode.varInt(input, counter)
+        val stream = Decode.varInt(input, counter)
 
-        val data = Decode.bytes(`in`, length - counter.length())
+        val data = Decode.bytes(input, length - counter.length())
         var payload: ObjectPayload
         try {
             val dataStream = ByteArrayInputStream(data)
@@ -116,7 +109,7 @@ object V3MessageFactory {
     private fun parseGetData(stream: InputStream): GetData {
         val count = Decode.varInt(stream)
         val inventoryVectors = LinkedList<InventoryVector>()
-        for (i in 0..count - 1) {
+        for (i in 0 until count) {
             inventoryVectors.add(parseInventoryVector(stream))
         }
         return GetData(inventoryVectors)
@@ -125,7 +118,7 @@ object V3MessageFactory {
     private fun parseInv(stream: InputStream): Inv {
         val count = Decode.varInt(stream)
         val inventoryVectors = LinkedList<InventoryVector>()
-        for (i in 0..count - 1) {
+        for (i in 0 until count) {
             inventoryVectors.add(parseInventoryVector(stream))
         }
         return Inv(inventoryVectors)
@@ -134,7 +127,7 @@ object V3MessageFactory {
     private fun parseAddr(stream: InputStream): Addr {
         val count = Decode.varInt(stream)
         val networkAddresses = LinkedList<NetworkAddress>()
-        for (i in 0..count - 1) {
+        for (i in 0 until count) {
             networkAddresses.add(parseAddress(stream, false))
         }
         return Addr(networkAddresses)
@@ -160,9 +153,7 @@ object V3MessageFactory {
             .streams(*streamNumbers).build()
     }
 
-    private fun parseInventoryVector(stream: InputStream): InventoryVector {
-        return InventoryVector(Decode.bytes(stream, 32))
-    }
+    private fun parseInventoryVector(stream: InputStream) = InventoryVector(Decode.bytes(stream, 32))
 
     private fun parseAddress(stream: InputStream, light: Boolean): NetworkAddress {
         val time: Long
@@ -188,12 +179,7 @@ object V3MessageFactory {
 
     private fun testChecksum(checksum: ByteArray, payload: ByteArray): Boolean {
         val payloadChecksum = cryptography().sha512(payload)
-        for (i in checksum.indices) {
-            if (checksum[i] != payloadChecksum[i]) {
-                return false
-            }
-        }
-        return true
+        return checksum.indices.none { checksum[it] != payloadChecksum[it] }
     }
 
     private fun getCommand(stream: InputStream): String {
@@ -210,10 +196,10 @@ object V3MessageFactory {
         return String(bytes, 0, end, Charsets.US_ASCII)
     }
 
-    private fun findMagic(`in`: InputStream) {
+    private fun findMagic(input: InputStream) {
         var pos = 0
         for (i in 0..1619999) {
-            val b = `in`.read().toByte()
+            val b = input.read().toByte()
             if (b == NetworkMessage.MAGIC_BYTES[pos]) {
                 if (pos + 1 == NetworkMessage.MAGIC_BYTES.size) {
                     return

@@ -56,8 +56,8 @@ data class ProofOfWorkRequest @JvmOverloads constructor(val sender: BitmessageAd
 
     class Reader(private val identity: BitmessageAddress) : CryptoCustomMessage.Reader<ProofOfWorkRequest> {
 
-        override fun read(sender: BitmessageAddress, `in`: InputStream): ProofOfWorkRequest {
-            return ProofOfWorkRequest.read(identity, `in`)
+        override fun read(sender: BitmessageAddress, input: InputStream): ProofOfWorkRequest {
+            return ProofOfWorkRequest.read(identity, input)
         }
     }
 
@@ -87,12 +87,12 @@ data class ProofOfWorkRequest @JvmOverloads constructor(val sender: BitmessageAd
 
     companion object {
         @JvmStatic
-        fun read(client: BitmessageAddress, `in`: InputStream): ProofOfWorkRequest {
+        fun read(client: BitmessageAddress, input: InputStream): ProofOfWorkRequest {
             return ProofOfWorkRequest(
                 client,
-                bytes(`in`, 64),
-                Request.valueOf(varString(`in`)),
-                varBytes(`in`)
+                bytes(input, 64),
+                Request.valueOf(varString(input)),
+                varBytes(input)
             )
         }
     }

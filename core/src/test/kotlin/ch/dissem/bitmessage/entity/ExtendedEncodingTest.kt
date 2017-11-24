@@ -44,20 +44,20 @@ class ExtendedEncodingTest {
 
     @Test
     fun `ensure simple message is encoded`() {
-        val `in` = Message.Builder()
+        val input = Message.Builder()
             .subject("Test sübject")
             .body("test bödy")
             .build()
 
-        assertThat(`in`.zip(), notNullValue())
+        assertThat(input.zip(), notNullValue())
 
-        val out = ExtendedEncodingFactory.unzip(`in`.zip())
-        assertThat<ExtendedEncoding>(out, `is`(`in`))
+        val out = ExtendedEncodingFactory.unzip(input.zip())
+        assertThat<ExtendedEncoding>(out, `is`(input))
     }
 
     @Test
     fun `ensure complete message is encoded and decoded`() {
-        val `in` = Message.Builder()
+        val input = Message.Builder()
             .addParent(TestUtils.randomInventoryVector())
             .addParent(TestUtils.randomInventoryVector())
             .subject("Test sübject")
@@ -72,22 +72,22 @@ class ExtendedEncodingTest {
             )
             .build()
 
-        assertThat(`in`.zip(), notNullValue())
+        assertThat(input.zip(), notNullValue())
 
-        val out = ExtendedEncodingFactory.unzip(`in`.zip())
-        assertThat<ExtendedEncoding>(out, `is`(`in`))
+        val out = ExtendedEncodingFactory.unzip(input.zip())
+        assertThat<ExtendedEncoding>(out, `is`(input))
     }
 
     @Test
     fun `ensure vote is encoded and decoded`() {
-        val `in` = Vote.Builder()
+        val input = Vote.Builder()
             .msgId(TestUtils.randomInventoryVector())
             .vote("+1")
             .build()
 
-        assertThat(`in`.zip(), notNullValue())
+        assertThat(input.zip(), notNullValue())
 
-        val out = ExtendedEncodingFactory.unzip(`in`.zip())
-        assertThat<ExtendedEncoding>(out, `is`(`in`))
+        val out = ExtendedEncodingFactory.unzip(input.zip())
+        assertThat<ExtendedEncoding>(out, `is`(input))
     }
 }

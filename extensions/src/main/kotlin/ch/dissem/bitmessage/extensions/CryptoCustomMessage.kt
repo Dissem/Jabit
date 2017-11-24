@@ -81,16 +81,16 @@ class CryptoCustomMessage<T : Streamable> : CustomMessage {
 
     @Throws(DecryptionFailedException::class)
     fun decrypt(privateKey: ByteArray): T {
-        val `in` = SignatureCheckingInputStream(container?.decrypt(privateKey) ?: throw IllegalStateException("no encrypted data available"))
+        val input = SignatureCheckingInputStream(container?.decrypt(privateKey) ?: throw IllegalStateException("no encrypted data available"))
         if (dataReader == null) throw IllegalStateException("no data reader available")
 
-        val addressVersion = varInt(`in`)
-        val stream = varInt(`in`)
-        val behaviorBitfield = int32(`in`)
-        val publicSigningKey = bytes(`in`, 64)
-        val publicEncryptionKey = bytes(`in`, 64)
-        val nonceTrialsPerByte = if (addressVersion >= 3) varInt(`in`) else 0
-        val extraBytes = if (addressVersion >= 3) varInt(`in`) else 0
+        val addressVersion = varInt(input)
+        val stream = varInt(input)
+        val behaviorBitfield = int32(input)
+        val publicSigningKey = bytes(input, 64)
+        val publicEncryptionKey = bytes(input, 64)
+        val nonceTrialsPerByte = if (addressVersion >= 3) varInt(input) else 0
+        val extraBytes = if (addressVersion >= 3) varInt(input) else 0
 
         val sender = BitmessageAddress(Factory.createPubkey(
             addressVersion,
@@ -103,9 +103,9 @@ class CryptoCustomMessage<T : Streamable> : CustomMessage {
         ))
         this.sender = sender
 
-        data = dataReader.read(sender, `in`)
+        data = dataReader.read(sender, input)
 
-        `in`.checkSignature(sender.pubkey!!)
+        input.checkSignature(sender.pubkey!!)
 
         return data!!
     }
@@ -124,7 +124,7 @@ class CryptoCustomMessage<T : Streamable> : CustomMessage {
     }
 
     interface Reader<out T> {
-        fun read(sender: BitmessageAddress, `in`: InputStream): T
+        fun read(sender: BitmessageAddress, input: InputStream): T
     }
 
     private inner class SignatureCheckingInputStream internal constructor(private val wrapped: InputStream) : InputStream() {

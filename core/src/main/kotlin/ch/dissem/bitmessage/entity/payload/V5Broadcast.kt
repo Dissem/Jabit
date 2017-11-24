@@ -61,8 +61,7 @@ class V5Broadcast : V4Broadcast {
 
     companion object {
         @JvmStatic
-        fun read(`is`: InputStream, stream: Long, length: Int): V5Broadcast {
-            return V5Broadcast(stream, Decode.bytes(`is`, 32), CryptoBox.read(`is`, length - 32))
-        }
+        fun read(input: InputStream, stream: Long, length: Int) =
+            V5Broadcast(stream, Decode.bytes(input, 32), CryptoBox.read(input, length - 32))
     }
 }

@@ -17,8 +17,6 @@
 package ch.dissem.bitmessage.entity.payload
 
 import ch.dissem.bitmessage.entity.EncryptedStreamableWriter
-import ch.dissem.bitmessage.entity.SignedStreamableWriter
-import ch.dissem.bitmessage.entity.StreamableWriter
 import ch.dissem.bitmessage.utils.Decode
 import ch.dissem.bitmessage.utils.Encode
 import java.io.InputStream
@@ -144,16 +142,16 @@ class V3Pubkey protected constructor(
     }
 
     companion object {
-        @JvmStatic fun read(`is`: InputStream, stream: Long): V3Pubkey {
+        @JvmStatic fun read(input: InputStream, stream: Long): V3Pubkey {
             return V3Pubkey(
                 version = 3,
                 stream = stream,
-                behaviorBitfield = Decode.int32(`is`),
-                signingKey = Decode.bytes(`is`, 64),
-                encryptionKey = Decode.bytes(`is`, 64),
-                nonceTrialsPerByte = Decode.varInt(`is`),
-                extraBytes = Decode.varInt(`is`),
-                signature = Decode.varBytes(`is`)
+                behaviorBitfield = Decode.int32(input),
+                signingKey = Decode.bytes(input, 64),
+                encryptionKey = Decode.bytes(input, 64),
+                nonceTrialsPerByte = Decode.varInt(input),
+                extraBytes = Decode.varInt(input),
+                signature = Decode.varBytes(input)
             )
         }
     }

@@ -137,13 +137,12 @@ class V4Pubkey : Pubkey, Encrypted {
 
     companion object {
         @JvmStatic
-        fun read(`in`: InputStream, stream: Long, length: Int, encrypted: Boolean): V4Pubkey {
-            if (encrypted)
-                return V4Pubkey(stream,
-                    Decode.bytes(`in`, 32),
-                    CryptoBox.read(`in`, length - 32))
-            else
-                return V4Pubkey(V3Pubkey.read(`in`, stream))
+        fun read(input: InputStream, stream: Long, length: Int, encrypted: Boolean) = if (encrypted) {
+            V4Pubkey(stream,
+                Decode.bytes(input, 32),
+                CryptoBox.read(input, length - 32))
+        } else {
+            V4Pubkey(V3Pubkey.read(input, stream))
         }
     }
 }

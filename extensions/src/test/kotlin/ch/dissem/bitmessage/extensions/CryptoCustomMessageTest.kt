@@ -44,14 +44,13 @@ class CryptoCustomMessageTest : TestBase() {
 
         val out = ByteArrayOutputStream()
         messageBefore.writer().write(out)
-        val `in` = ByteArrayInputStream(out.toByteArray())
+        val input = ByteArrayInputStream(out.toByteArray())
 
-        val customMessage = CustomMessage.read(`in`, out.size())
+        val customMessage = CustomMessage.read(input, out.size())
         val messageAfter = CryptoCustomMessage.read(customMessage,
                 object : CryptoCustomMessage.Reader<GenericPayload> {
-                    override fun read(sender: BitmessageAddress, `in`: InputStream): GenericPayload {
-                        return GenericPayload.read(0, 1, `in`, 100)
-                    }
+                    override fun read(sender: BitmessageAddress, input: InputStream) =
+                        GenericPayload.read(0, 1, input, 100)
                 })
         val payloadAfter = messageAfter.decrypt(sendingIdentity.publicDecryptionKey)
 
@@ -72,9 +71,9 @@ class CryptoCustomMessageTest : TestBase() {
 
         val out = ByteArrayOutputStream()
         messageBefore.writer().write(out)
-        val `in` = ByteArrayInputStream(out.toByteArray())
+        val input = ByteArrayInputStream(out.toByteArray())
 
-        val customMessage = CustomMessage.read(`in`, out.size())
+        val customMessage = CustomMessage.read(input, out.size())
         val messageAfter = CryptoCustomMessage.read(customMessage,
                 ProofOfWorkRequest.Reader(sendingIdentity))
         val requestAfter = messageAfter.decrypt(sendingIdentity.publicDecryptionKey)

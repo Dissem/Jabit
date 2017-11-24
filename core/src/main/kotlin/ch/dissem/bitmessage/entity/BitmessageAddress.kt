@@ -116,15 +116,15 @@ class BitmessageAddress : Serializable {
     constructor(address: String) {
         this.address = address
         val bytes = Base58.decode(address.substring(3))
-        val `in` = ByteArrayInputStream(bytes)
+        val input = ByteArrayInputStream(bytes)
         val counter = AccessCounter()
-        this.version = varInt(`in`, counter)
-        this.stream = varInt(`in`, counter)
-        this.ripe = Bytes.expand(bytes(`in`, bytes.size - counter.length() - 4), 20)
+        this.version = varInt(input, counter)
+        this.stream = varInt(input, counter)
+        this.ripe = Bytes.expand(bytes(input, bytes.size - counter.length() - 4), 20)
 
         // test checksum
         var checksum = cryptography().doubleSha512(bytes, bytes.size - 4)
-        val expectedChecksum = bytes(`in`, 4)
+        val expectedChecksum = bytes(input, 4)
         for (i in 0..3) {
             if (expectedChecksum[i] != checksum[i])
                 throw IllegalArgumentException("Checksum of address failed")

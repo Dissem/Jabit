@@ -68,7 +68,7 @@ object ContactExport {
                     Factory.readPubkey(
                         version = version,
                         stream = stream,
-                        `is` = ByteArrayInputStream(it),
+                        input = ByteArrayInputStream(it),
                         length = it.size,
                         encrypted = false
                     )

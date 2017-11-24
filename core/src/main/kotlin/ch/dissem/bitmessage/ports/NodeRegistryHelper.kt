@@ -31,8 +31,8 @@ object NodeRegistryHelper {
 
     @JvmStatic
     fun loadStableNodes(): Map<Long, Set<NetworkAddress>> {
-        javaClass.classLoader.getResourceAsStream("nodes.txt").use { `in` ->
-            val scanner = Scanner(`in`)
+        javaClass.classLoader.getResourceAsStream("nodes.txt").use { input ->
+            val scanner = Scanner(input)
             var stream: Long = 0
             val result = HashMap<Long, Set<NetworkAddress>>()
             var streamSet: MutableSet<NetworkAddress>? = null

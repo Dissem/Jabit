@@ -34,8 +34,8 @@ class DecodeTest {
     }
 
     private fun testCodec(number: Long) {
-        val `is` = ByteArrayOutputStream()
-        Encode.varInt(number, `is`)
-        assertEquals(number, Decode.varInt(ByteArrayInputStream(`is`.toByteArray())))
+        val out = ByteArrayOutputStream()
+        Encode.varInt(number, out)
+        assertEquals(number, Decode.varInt(ByteArrayInputStream(out.toByteArray())))
     }
 }

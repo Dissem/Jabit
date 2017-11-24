@@ -16,8 +16,11 @@
 
 package ch.dissem.bitmessage.entity.payload
 
-import ch.dissem.bitmessage.entity.*
+import ch.dissem.bitmessage.entity.Encrypted
+import ch.dissem.bitmessage.entity.Plaintext
 import ch.dissem.bitmessage.entity.Plaintext.Type.MSG
+import ch.dissem.bitmessage.entity.PlaintextHolder
+import ch.dissem.bitmessage.entity.SignedStreamableWriter
 import ch.dissem.bitmessage.exception.DecryptionFailedException
 import java.io.InputStream
 import java.io.OutputStream
@@ -103,8 +106,6 @@ class Msg : ObjectPayload, Encrypted, PlaintextHolder {
         val ACK_LENGTH = 32
 
         @JvmStatic
-        fun read(`in`: InputStream, stream: Long, length: Int): Msg {
-            return Msg(stream, CryptoBox.read(`in`, length))
-        }
+        fun read(input: InputStream, stream: Long, length: Int) = Msg(stream, CryptoBox.read(input, length))
     }
 }

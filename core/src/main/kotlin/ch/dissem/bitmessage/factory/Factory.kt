@@ -156,11 +156,11 @@ object Factory {
         return GetPubkey.read(stream, streamNumber, length, version)
     }
 
-    @JvmStatic fun readPubkey(version: Long, stream: Long, `is`: InputStream, length: Int, encrypted: Boolean): Pubkey? {
+    @JvmStatic fun readPubkey(version: Long, stream: Long, input: InputStream, length: Int, encrypted: Boolean): Pubkey? {
         when (version.toInt()) {
-            2 -> return V2Pubkey.read(`is`, stream)
-            3 -> return V3Pubkey.read(`is`, stream)
-            4 -> return V4Pubkey.read(`is`, stream, length, encrypted)
+            2 -> return V2Pubkey.read(input, stream)
+            3 -> return V3Pubkey.read(input, stream)
+            4 -> return V4Pubkey.read(input, stream, length, encrypted)
         }
         LOG.debug("Unexpected pubkey version $version, handling as generic payload object")
         return null

@@ -107,13 +107,13 @@ open class V2Pubkey constructor(
     }
 
     companion object {
-        @JvmStatic fun read(`in`: InputStream, stream: Long): V2Pubkey {
+        @JvmStatic fun read(input: InputStream, stream: Long): V2Pubkey {
             return V2Pubkey(
                 version = 2,
                 stream = stream,
-                behaviorBitfield = Decode.uint32(`in`).toInt(),
-                signingKey = Decode.bytes(`in`, 64),
-                encryptionKey = Decode.bytes(`in`, 64)
+                behaviorBitfield = Decode.uint32(input).toInt(),
+                signingKey = Decode.bytes(input, 64),
+                encryptionKey = Decode.bytes(input, 64)
             )
         }
     }

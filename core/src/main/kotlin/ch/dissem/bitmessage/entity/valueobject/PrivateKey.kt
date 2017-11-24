@@ -191,13 +191,13 @@ data class PrivateKey(
         }
 
         @JvmStatic
-        fun read(`is`: InputStream): PrivateKey {
-            val version = Decode.varInt(`is`).toInt()
-            val stream = Decode.varInt(`is`)
-            val len = Decode.varInt(`is`).toInt()
-            val pubkey = Factory.readPubkey(version.toLong(), stream, `is`, len, false) ?: throw ApplicationException("Unknown pubkey version encountered")
-            val signingKey = Decode.varBytes(`is`)
-            val encryptionKey = Decode.varBytes(`is`)
+        fun read(input: InputStream): PrivateKey {
+            val version = Decode.varInt(input).toInt()
+            val stream = Decode.varInt(input)
+            val len = Decode.varInt(input).toInt()
+            val pubkey = Factory.readPubkey(version.toLong(), stream, input, len, false) ?: throw ApplicationException("Unknown pubkey version encountered")
+            val signingKey = Decode.varBytes(input)
+            val encryptionKey = Decode.varBytes(input)
             return PrivateKey(signingKey, encryptionKey, pubkey)
         }
     }

@@ -25,21 +25,21 @@ import java.nio.ByteBuffer
  * https://bitmessage.org/wiki/Protocol_specification#Common_structures
  */
 object Decode {
-    @JvmStatic fun shortVarBytes(`in`: InputStream, counter: AccessCounter): ByteArray {
-        val length = uint16(`in`, counter)
-        return bytes(`in`, length, counter)
+    @JvmStatic fun shortVarBytes(input: InputStream, counter: AccessCounter): ByteArray {
+        val length = uint16(input, counter)
+        return bytes(input, length, counter)
     }
 
-    @JvmStatic @JvmOverloads fun varBytes(`in`: InputStream, counter: AccessCounter? = null): ByteArray {
-        val length = varInt(`in`, counter).toInt()
-        return bytes(`in`, length, counter)
+    @JvmStatic @JvmOverloads fun varBytes(input: InputStream, counter: AccessCounter? = null): ByteArray {
+        val length = varInt(input, counter).toInt()
+        return bytes(input, length, counter)
     }
 
-    @JvmStatic @JvmOverloads fun bytes(`in`: InputStream, count: Int, counter: AccessCounter? = null): ByteArray {
+    @JvmStatic @JvmOverloads fun bytes(input: InputStream, count: Int, counter: AccessCounter? = null): ByteArray {
         val result = ByteArray(count)
         var off = 0
         while (off < count) {
-            val read = `in`.read(result, off, count - off)
+            val read = input.read(result, off, count - off)
             if (read < 0) {
                 throw IOException("Unexpected end of stream, wanted to read $count bytes but only got $off")
             }
@@ -49,60 +49,58 @@ object Decode {
         return result
     }
 
-    @JvmStatic fun varIntList(`in`: InputStream): LongArray {
-        val length = varInt(`in`).toInt()
+    @JvmStatic fun varIntList(input: InputStream): LongArray {
+        val length = varInt(input).toInt()
         val result = LongArray(length)
 
-        for (i in 0..length - 1) {
-            result[i] = varInt(`in`)
+        for (i in 0 until length) {
+            result[i] = varInt(input)
         }
         return result
     }
 
-    @JvmStatic @JvmOverloads fun varInt(`in`: InputStream, counter: AccessCounter? = null): Long {
-        val first = `in`.read()
+    @JvmStatic @JvmOverloads fun varInt(input: InputStream, counter: AccessCounter? = null): Long {
+        val first = input.read()
         AccessCounter.inc(counter)
         when (first) {
-            0xfd -> return uint16(`in`, counter).toLong()
-            0xfe -> return uint32(`in`, counter)
-            0xff -> return int64(`in`, counter)
+            0xfd -> return uint16(input, counter).toLong()
+            0xfe -> return uint32(input, counter)
+            0xff -> return int64(input, counter)
             else -> return first.toLong()
         }
     }
 
-    @JvmStatic fun uint8(`in`: InputStream): Int {
-        return `in`.read()
-    }
+    @JvmStatic fun uint8(input: InputStream): Int = input.read()
 
-    @JvmStatic @JvmOverloads fun uint16(`in`: InputStream, counter: AccessCounter? = null): Int {
+    @JvmStatic @JvmOverloads fun uint16(input: InputStream, counter: AccessCounter? = null): Int {
         AccessCounter.inc(counter, 2)
-        return `in`.read() shl 8 or `in`.read()
+        return input.read() shl 8 or input.read()
     }
 
-    @JvmStatic @JvmOverloads fun uint32(`in`: InputStream, counter: AccessCounter? = null): Long {
+    @JvmStatic @JvmOverloads fun uint32(input: InputStream, counter: AccessCounter? = null): Long {
         AccessCounter.inc(counter, 4)
-        return (`in`.read() shl 24 or (`in`.read() shl 16) or (`in`.read() shl 8) or `in`.read()).toLong()
+        return (input.read() shl 24 or (input.read() shl 16) or (input.read() shl 8) or input.read()).toLong()
     }
 
-    @JvmStatic fun uint32(`in`: ByteBuffer): Long {
-        return (u(`in`.get()) shl 24 or (u(`in`.get()) shl 16) or (u(`in`.get()) shl 8) or u(`in`.get())).toLong()
+    @JvmStatic fun uint32(input: ByteBuffer): Long {
+        return (u(input.get()) shl 24 or (u(input.get()) shl 16) or (u(input.get()) shl 8) or u(input.get())).toLong()
     }
 
-    @JvmStatic @JvmOverloads fun int32(`in`: InputStream, counter: AccessCounter? = null): Int {
+    @JvmStatic @JvmOverloads fun int32(input: InputStream, counter: AccessCounter? = null): Int {
         AccessCounter.inc(counter, 4)
-        return ByteBuffer.wrap(bytes(`in`, 4)).int
+        return ByteBuffer.wrap(bytes(input, 4)).int
     }
 
-    @JvmStatic @JvmOverloads fun int64(`in`: InputStream, counter: AccessCounter? = null): Long {
+    @JvmStatic @JvmOverloads fun int64(input: InputStream, counter: AccessCounter? = null): Long {
         AccessCounter.inc(counter, 8)
-        return ByteBuffer.wrap(bytes(`in`, 8)).long
+        return ByteBuffer.wrap(bytes(input, 8)).long
     }
 
-    @JvmStatic @JvmOverloads fun varString(`in`: InputStream, counter: AccessCounter? = null): String {
-        val length = varInt(`in`, counter).toInt()
+    @JvmStatic @JvmOverloads fun varString(input: InputStream, counter: AccessCounter? = null): String {
+        val length = varInt(input, counter).toInt()
         // technically, it says the length in characters, but I think this one might be correct
         // otherwise it will get complicated, as we'll need to read UTF-8 char by char...
-        return String(bytes(`in`, length, counter))
+        return String(bytes(input, length, counter))
     }
 
     /**
