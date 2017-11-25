@@ -51,11 +51,7 @@ class InternalContext(
     listener: BitmessageContext.Listener,
     val labeler: Labeler,
 
-    val userAgent: String,
-
-    val port: Int,
-    val connectionTTL: Long,
-    val connectionLimit: Int
+    val preferences: Preferences
 ) {
 
     private val threadPool = Executors.newCachedThreadPool()

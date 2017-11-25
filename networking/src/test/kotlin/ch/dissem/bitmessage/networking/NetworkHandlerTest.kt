@@ -23,7 +23,8 @@ import ch.dissem.bitmessage.entity.MessagePayload
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress
 import ch.dissem.bitmessage.exception.NodeException
 import ch.dissem.bitmessage.networking.nio.NioNetworkHandler
-import ch.dissem.bitmessage.ports.*
+import ch.dissem.bitmessage.ports.CustomCommandHandler
+import ch.dissem.bitmessage.ports.NetworkHandler
 import ch.dissem.bitmessage.testutils.TestInventory
 import ch.dissem.bitmessage.utils.Property
 import ch.dissem.bitmessage.utils.Singleton.cryptography
@@ -31,7 +32,8 @@ import com.nhaarman.mockito_kotlin.mock
 import org.hamcrest.Matchers.`is`
 import org.hamcrest.Matchers.notNullValue
 import org.junit.After
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThat
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -56,20 +58,22 @@ class NetworkHandlerTest {
     private lateinit var peerNetworkHandler: NetworkHandler
     private lateinit var nodeNetworkHandler: NetworkHandler
 
-    @JvmField @Rule val timeout: TestRule = DisableOnDebug(Timeout.seconds(60))
+    @JvmField
+    @Rule
+    val timeout: TestRule = DisableOnDebug(Timeout.seconds(60))
 
     @Before
     fun setUp() {
         peerInventory = TestInventory()
         peerNetworkHandler = NioNetworkHandler()
-        peer = BitmessageContext(
-            cryptography = BouncyCryptography(),
-            inventory = peerInventory,
-            nodeRegistry = TestNodeRegistry(),
-            networkHandler = peerNetworkHandler,
-            addressRepository = mock<AddressRepository>(),
-            messageRepository = mock<MessageRepository>(),
-            proofOfWorkRepository = mock<ProofOfWorkRepository>(),
+        peer = BitmessageContext.build {
+            cryptography = BouncyCryptography()
+            inventory = peerInventory
+            nodeRegistry = TestNodeRegistry()
+            networkHandler = peerNetworkHandler
+            addressRepo = mock()
+            messageRepo = mock()
+            proofOfWorkRepo = mock()
             customCommandHandler = object : CustomCommandHandler {
                 override fun handle(request: CustomMessage): MessagePayload? {
                     val data = request.getData()
@@ -83,23 +87,23 @@ class NetworkHandlerTest {
                     }
                     return CustomMessage("test response", request.getData())
                 }
-            },
-            listener = mock<BitmessageContext.Listener>(),
-            port = peerAddress.port
-        )
+            }
+            listener = mock()
+            preferences.port = peerAddress.port
+        }
         peer.startup()
         Thread.sleep(100)
 
         nodeInventory = TestInventory()
         nodeNetworkHandler = NioNetworkHandler()
-        node = BitmessageContext(
-            cryptography = BouncyCryptography(),
-            inventory = nodeInventory,
-            nodeRegistry = TestNodeRegistry(peerAddress),
-            networkHandler = nodeNetworkHandler,
-            addressRepository = mock<AddressRepository>(),
-            messageRepository = mock<MessageRepository>(),
-            proofOfWorkRepository = mock<ProofOfWorkRepository>(),
+        node = BitmessageContext.build {
+            cryptography = BouncyCryptography()
+            inventory = nodeInventory
+            nodeRegistry = TestNodeRegistry(peerAddress)
+            networkHandler = nodeNetworkHandler
+            addressRepo = mock()
+            messageRepo = mock()
+            proofOfWorkRepo = mock()
             customCommandHandler = object : CustomCommandHandler {
                 override fun handle(request: CustomMessage): MessagePayload? {
                     val data = request.getData()
@@ -113,10 +117,10 @@ class NetworkHandlerTest {
                     }
                     return CustomMessage("test response", request.getData())
                 }
-            },
-            listener = mock<BitmessageContext.Listener>(),
-            port = 6002
-        )
+            }
+            listener = mock()
+            preferences.port = 6002
+        }
     }
 
     @After

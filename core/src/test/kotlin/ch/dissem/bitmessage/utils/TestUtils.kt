@@ -18,6 +18,7 @@ package ch.dissem.bitmessage.utils
 
 import ch.dissem.bitmessage.BitmessageContext
 import ch.dissem.bitmessage.InternalContext
+import ch.dissem.bitmessage.Preferences
 import ch.dissem.bitmessage.entity.BitmessageAddress
 import ch.dissem.bitmessage.entity.ObjectMessage
 import ch.dissem.bitmessage.entity.payload.V4Pubkey
@@ -39,21 +40,25 @@ import kotlin.NoSuchElementException
  * If there's ever a need for this in production code, it should be rewritten to be more efficient.
  */
 object TestUtils {
-    @JvmField val RANDOM = Random()
+    @JvmField
+    val RANDOM = Random()
 
-    @JvmStatic fun int16(number: Int): ByteArray {
+    @JvmStatic
+    fun int16(number: Int): ByteArray {
         val out = ByteArrayOutputStream()
         Encode.int16(number, out)
         return out.toByteArray()
     }
 
-    @JvmStatic fun loadObjectMessage(version: Int, resourceName: String): ObjectMessage {
+    @JvmStatic
+    fun loadObjectMessage(version: Int, resourceName: String): ObjectMessage {
         val data = getBytes(resourceName)
         val input = ByteArrayInputStream(data)
         return Factory.getObjectMessage(version, input, data.size) ?: throw NoSuchElementException("error loading object message")
     }
 
-    @JvmStatic fun getBytes(resourceName: String): ByteArray {
+    @JvmStatic
+    fun getBytes(resourceName: String): ByteArray {
         val input = javaClass.classLoader.getResourceAsStream(resourceName)
         val out = ByteArrayOutputStream()
         val buffer = ByteArray(1024)
@@ -65,16 +70,19 @@ object TestUtils {
         return out.toByteArray()
     }
 
-    @JvmStatic fun randomInventoryVector(): InventoryVector {
+    @JvmStatic
+    fun randomInventoryVector(): InventoryVector {
         val bytes = ByteArray(32)
         RANDOM.nextBytes(bytes)
         return InventoryVector(bytes)
     }
 
-    @JvmStatic fun getResource(resourceName: String): InputStream =
+    @JvmStatic
+    fun getResource(resourceName: String): InputStream =
         javaClass.classLoader.getResourceAsStream(resourceName)
 
-    @JvmStatic fun loadIdentity(address: String): BitmessageAddress {
+    @JvmStatic
+    fun loadIdentity(address: String): BitmessageAddress {
         val privateKey = PrivateKey.read(TestUtils.getResource(address + ".privkey"))
         val identity = BitmessageAddress(privateKey)
         assertEquals(address, identity.address)
@@ -82,7 +90,8 @@ object TestUtils {
     }
 
     @Throws(DecryptionFailedException::class)
-    @JvmStatic fun loadContact(): BitmessageAddress {
+    @JvmStatic
+    fun loadContact(): BitmessageAddress {
         val address = BitmessageAddress("BM-2cXxfcSetKnbHJX2Y85rSkaVpsdNUZ5q9h")
         val objectMessage = TestUtils.loadObjectMessage(3, "V4Pubkey.payload")
         objectMessage.decrypt(address.publicDecryptionKey)
@@ -90,13 +99,15 @@ object TestUtils {
         return address
     }
 
-    @JvmStatic fun loadPubkey(address: BitmessageAddress) {
+    @JvmStatic
+    fun loadPubkey(address: BitmessageAddress) {
         val bytes = getBytes(address.address + ".pubkey")
         val pubkey = Factory.readPubkey(address.version, address.stream, ByteArrayInputStream(bytes), bytes.size, false)
         address.pubkey = pubkey
     }
 
-    @JvmStatic fun mockedInternalContext(
+    @JvmStatic
+    fun mockedInternalContext(
         cryptography: Cryptography = mock {},
         inventory: Inventory = mock {},
         nodeRegistry: NodeRegistry = mock {},
@@ -124,10 +135,12 @@ object TestUtils {
             customCommandHandler,
             listener,
             labeler,
-            "/Jabit:TEST/",
-            port,
-            connectionTTL,
-            connectionLimit
+            Preferences().apply {
+                this.userAgent = "/Jabit:TEST/"
+                this.port = port
+                this.connectionTTL = connectionTTL
+                this.connectionLimit = connectionLimit
+            }
         ))
     }
 }

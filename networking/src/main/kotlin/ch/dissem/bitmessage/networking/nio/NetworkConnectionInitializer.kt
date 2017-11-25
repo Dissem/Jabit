@@ -41,7 +41,7 @@ class NetworkConnectionInitializer(
 
     fun start() {
         if (mode == Connection.Mode.CLIENT || mode == Connection.Mode.SYNC) {
-            send(Version(nonce = ctx.clientNonce, addrFrom = NetworkAddress.ANY, addrRecv = node, userAgent = ctx.userAgent))
+            send(Version(nonce = ctx.clientNonce, addrFrom = NetworkAddress.ANY, addrRecv = node, userAgent = ctx.preferences.userAgent))
         }
     }
 

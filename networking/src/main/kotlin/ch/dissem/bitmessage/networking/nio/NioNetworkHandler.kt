@@ -199,7 +199,7 @@ class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
                 val serverChannel = ServerSocketChannel.open()
                 this.serverChannel = serverChannel
                 serverChannel.configureBlocking(false)
-                serverChannel.socket().bind(InetSocketAddress(ctx.port))
+                serverChannel.socket().bind(InetSocketAddress(ctx.preferences.port))
                 serverChannel.register(selector, OP_ACCEPT, null)
 
                 while (selector.isOpen) {

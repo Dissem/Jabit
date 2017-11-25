@@ -73,13 +73,13 @@ public class SystemTest {
                 .inventory(new JdbcInventory(aliceDB))
                 .messageRepo(new JdbcMessageRepository(aliceDB))
                 .powRepo(new JdbcProofOfWorkRepository(aliceDB))
-                .port(alicePort)
                 .nodeRegistry(new TestNodeRegistry(bobPort))
                 .networkHandler(new NioNetworkHandler())
                 .cryptography(new BouncyCryptography())
                 .listener(aliceListener)
                 .labeler(aliceLabeler)
                 .build();
+            alice.internals().getPreferences().setPort(alicePort);
             alice.startup();
             aliceIdentity = alice.createIdentity(false, DOES_ACK);
         }
@@ -91,13 +91,13 @@ public class SystemTest {
                 .inventory(new JdbcInventory(bobDB))
                 .messageRepo(new JdbcMessageRepository(bobDB))
                 .powRepo(new JdbcProofOfWorkRepository(bobDB))
-                .port(bobPort)
                 .nodeRegistry(new TestNodeRegistry(alicePort))
                 .networkHandler(new NioNetworkHandler())
                 .cryptography(new BouncyCryptography())
                 .listener(bobListener)
                 .labeler(new DebugLabeler("Bob"))
                 .build();
+            bob.internals().getPreferences().setPort(bobPort);
             bob.startup();
             bobIdentity = bob.createIdentity(false, DOES_ACK);
         }

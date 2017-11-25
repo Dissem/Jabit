@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage
 
+import ch.dissem.bitmessage.BitmessageContext.Companion.version
 import ch.dissem.bitmessage.InternalContext.Companion.NETWORK_EXTRA_BYTES
 import ch.dissem.bitmessage.InternalContext.Companion.NETWORK_NONCE_TRIALS_PER_BYTE
 import ch.dissem.bitmessage.entity.BitmessageAddress
@@ -33,7 +34,6 @@ import ch.dissem.bitmessage.exception.DecryptionFailedException
 import ch.dissem.bitmessage.factory.Factory
 import ch.dissem.bitmessage.ports.*
 import ch.dissem.bitmessage.utils.Property
-import ch.dissem.bitmessage.utils.UnixTime.HOUR
 import ch.dissem.bitmessage.utils.UnixTime.MINUTE
 import org.slf4j.LoggerFactory
 import java.net.InetAddress
@@ -58,57 +58,7 @@ import kotlin.properties.Delegates
  *
  * The port defaults to 8444 (the default Bitmessage port)
  */
-class BitmessageContext(
-    cryptography: Cryptography,
-    inventory: Inventory,
-    nodeRegistry: NodeRegistry,
-    networkHandler: NetworkHandler,
-    addressRepository: AddressRepository,
-    messageRepository: MessageRepository,
-    proofOfWorkRepository: ProofOfWorkRepository,
-    proofOfWorkEngine: ProofOfWorkEngine = MultiThreadedPOWEngine(),
-    customCommandHandler: CustomCommandHandler = object : CustomCommandHandler {
-        override fun handle(request: CustomMessage): MessagePayload? {
-            BitmessageContext.LOG.debug("Received custom request, but no custom command handler configured.")
-            return null
-        }
-    },
-    listener: Listener,
-    labeler: Labeler = DefaultLabeler(),
-    userAgent: String? = null,
-    port: Int = 8444,
-    connectionTTL: Long = 30 * MINUTE,
-    connectionLimit: Int = 150,
-    sendPubkeyOnIdentityCreation: Boolean = true,
-    doMissingProofOfWorkDelayInSeconds: Int = 30
-) {
-
-    private constructor(builder: BitmessageContext.Builder) : this(
-        builder.cryptography,
-        builder.inventory,
-        builder.nodeRegistry,
-        builder.networkHandler,
-        builder.addressRepo,
-        builder.messageRepo,
-        builder.proofOfWorkRepository,
-        builder.proofOfWorkEngine ?: MultiThreadedPOWEngine(),
-        builder.customCommandHandler ?: object : CustomCommandHandler {
-            override fun handle(request: CustomMessage): MessagePayload? {
-                BitmessageContext.LOG.debug("Received custom request, but no custom command handler configured.")
-                return null
-            }
-        },
-        builder.listener,
-        builder.labeler ?: DefaultLabeler(),
-        builder.userAgent,
-        builder.port,
-        builder.connectionTTL,
-        builder.connectionLimit,
-        builder.sendPubkeyOnIdentityCreation,
-        builder.doMissingProofOfWorkDelay
-    )
-
-    private val sendPubkeyOnIdentityCreation: Boolean
+class BitmessageContext private constructor(builder: BitmessageContext.Builder) {
 
     /**
      * The [InternalContext] - normally you wouldn't need it,
@@ -135,7 +85,7 @@ class BitmessageContext(
             *features
         ))
         internals.addressRepository.save(identity)
-        if (sendPubkeyOnIdentityCreation) {
+        if (internals.preferences.sendPubkeyOnIdentityCreation) {
             internals.sendPubkey(identity, identity.stream)
         }
         return identity
@@ -262,9 +212,8 @@ class BitmessageContext(
      * @param request the request
      * @return the response
      */
-    fun send(server: InetAddress, port: Int, request: CustomMessage): CustomMessage {
-        return internals.networkHandler.send(server, port, request)
-    }
+    fun send(server: InetAddress, port: Int, request: CustomMessage): CustomMessage =
+        internals.networkHandler.send(server, port, request)
 
     /**
      * Removes expired objects from the inventory. You should call this method regularly,
@@ -327,7 +276,7 @@ class BitmessageContext(
 
     fun status(): Property {
         return Property("status",
-            Property("user agent", internals.userAgent),
+            Property("user agent", internals.preferences.userAgent),
             internals.networkHandler.getNetworkStatus(),
             Property("unacknowledged", internals.messageRepository.findMessagesToResend().size)
         )
@@ -344,29 +293,22 @@ class BitmessageContext(
         }
     }
 
+    /**
+     * Kotlin users: you might want to use [BitmessageContext.build] instead.
+     */
     class Builder {
-        internal var port = 8444
-        internal var inventory by Delegates.notNull<Inventory>()
-        internal var nodeRegistry by Delegates.notNull<NodeRegistry>()
-        internal var networkHandler by Delegates.notNull<NetworkHandler>()
-        internal var addressRepo by Delegates.notNull<AddressRepository>()
-        internal var messageRepo by Delegates.notNull<MessageRepository>()
-        internal var proofOfWorkRepository by Delegates.notNull<ProofOfWorkRepository>()
-        internal var proofOfWorkEngine: ProofOfWorkEngine? = null
-        internal var cryptography by Delegates.notNull<Cryptography>()
-        internal var customCommandHandler: CustomCommandHandler? = null
-        internal var labeler: Labeler? = null
-        internal var userAgent: String? = null
-        internal var listener by Delegates.notNull<Listener>()
-        internal var connectionLimit = 150
-        internal var connectionTTL = 30 * MINUTE
-        internal var sendPubkeyOnIdentityCreation = true
-        internal var doMissingProofOfWorkDelay = 30
-
-        fun port(port: Int): Builder {
-            this.port = port
-            return this
-        }
+        var inventory by Delegates.notNull<Inventory>()
+        var nodeRegistry by Delegates.notNull<NodeRegistry>()
+        var networkHandler by Delegates.notNull<NetworkHandler>()
+        var addressRepo by Delegates.notNull<AddressRepository>()
+        var messageRepo by Delegates.notNull<MessageRepository>()
+        var proofOfWorkRepo by Delegates.notNull<ProofOfWorkRepository>()
+        var proofOfWorkEngine: ProofOfWorkEngine? = null
+        var cryptography by Delegates.notNull<Cryptography>()
+        var customCommandHandler: CustomCommandHandler? = null
+        var labeler: Labeler? = null
+        var listener by Delegates.notNull<Listener>()
+        val preferences = Preferences()
 
         fun inventory(inventory: Inventory): Builder {
             this.inventory = inventory
@@ -394,7 +336,7 @@ class BitmessageContext(
         }
 
         fun powRepo(proofOfWorkRepository: ProofOfWorkRepository): Builder {
-            this.proofOfWorkRepository = proofOfWorkRepository
+            this.proofOfWorkRepo = proofOfWorkRepository
             return this
         }
 
@@ -423,7 +365,7 @@ class BitmessageContext(
             return this
         }
 
-        @JvmName("kotlinListener")
+        @JvmSynthetic
         fun listener(listener: (Plaintext) -> Unit): Builder {
             this.listener = object : Listener {
                 override fun receive(plaintext: Plaintext) {
@@ -433,63 +375,39 @@ class BitmessageContext(
             return this
         }
 
-        fun connectionLimit(connectionLimit: Int): Builder {
-            this.connectionLimit = connectionLimit
-            return this
-        }
-
-        fun connectionTTL(hours: Int): Builder {
-            this.connectionTTL = hours * HOUR
-            return this
-        }
-
-        fun doMissingProofOfWorkDelay(seconds: Int) {
-            this.doMissingProofOfWorkDelay = seconds
-        }
-
-        /**
-         * By default a client will send the public key when an identity is being created. On weaker devices
-         * this behaviour might not be desirable.
-         */
-        fun doNotSendPubkeyOnIdentityCreation(): Builder {
-            this.sendPubkeyOnIdentityCreation = false
-            return this
-        }
-
-        fun build(): BitmessageContext {
-            return BitmessageContext(this)
-        }
+        fun build() = BitmessageContext(this)
     }
 
-
     init {
-        this.labeler = labeler
+        this.labeler = builder.labeler ?: DefaultLabeler()
         this.internals = InternalContext(
-            cryptography,
-            inventory,
-            nodeRegistry,
-            networkHandler,
-            addressRepository,
-            messageRepository,
-            proofOfWorkRepository,
-            proofOfWorkEngine,
-            customCommandHandler,
-            listener,
+            builder.cryptography,
+            builder.inventory,
+            builder.nodeRegistry,
+            builder.networkHandler,
+            builder.addressRepo,
+            builder.messageRepo,
+            builder.proofOfWorkRepo,
+            builder.proofOfWorkEngine ?: MultiThreadedPOWEngine(),
+            builder.customCommandHandler ?: object : CustomCommandHandler {
+                override fun handle(request: CustomMessage): MessagePayload? {
+                    BitmessageContext.LOG.debug("Received custom request, but no custom command handler configured.")
+                    return null
+                }
+            },
+            builder.listener,
             labeler,
-            userAgent?.let { "/$it/Jabit:$version/" } ?: "/Jabit:$version/",
-            port,
-            connectionTTL,
-            connectionLimit
+            builder.preferences
         )
-        this.addresses = addressRepository
-        this.messages = messageRepository
-        this.sendPubkeyOnIdentityCreation = sendPubkeyOnIdentityCreation
-        (listener as? Listener.WithContext)?.setContext(this)
-        internals.proofOfWorkService.doMissingProofOfWork(doMissingProofOfWorkDelayInSeconds * 1000L)
+        this.addresses = builder.addressRepo
+        this.messages = builder.messageRepo
+        (builder.listener as? Listener.WithContext)?.setContext(this)
+        internals.proofOfWorkService.doMissingProofOfWork(builder.preferences.doMissingProofOfWorkDelayInSeconds * 1000L)
     }
 
     companion object {
-        @JvmField val CURRENT_VERSION = 3
+        @JvmField
+        val CURRENT_VERSION = 3
         private val LOG = LoggerFactory.getLogger(BitmessageContext::class.java)
 
         val version: String by lazy {
@@ -497,5 +415,40 @@ class BitmessageContext(
         }
             @JvmStatic get
 
+        @JvmSynthetic
+        inline fun build(block: Builder.() -> Unit): BitmessageContext {
+            val builder = Builder()
+            block(builder)
+            return builder.build()
+        }
+
     }
+}
+
+class Preferences {
+    var port = 8444
+    /**
+     * Defaults to "/Jabit:<version>/", and whatever you set will be inserted into "/<your user agent>/Jabit:<version>/"
+     */
+    var userAgent = "/Jabit:$version/"
+        set(value) {
+            field = "/$value/Jabit:$version/"
+        }
+    /**
+     * Time to live for any connection
+     */
+    var connectionTTL = 30 * MINUTE
+    /**
+     * Maximum number of connections. Values below 8 would probably result in erratic behaviour, so you shouldn't do that.
+     */
+    var connectionLimit = 150
+    /**
+     * By default a client will send the public key when an identity is being created. On weaker devices
+     * this behaviour might not be desirable.
+     */
+    var sendPubkeyOnIdentityCreation = true
+    /**
+     * Delay in seconds before outstandinng proof of work is calculated.
+     */
+    var doMissingProofOfWorkDelayInSeconds = 30
 }

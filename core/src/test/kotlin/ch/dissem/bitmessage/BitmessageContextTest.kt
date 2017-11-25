@@ -47,8 +47,8 @@ import kotlin.concurrent.thread
  * @author Christian Basler
  */
 class BitmessageContextTest {
-    private var listener: BitmessageContext.Listener = mock()
-    private val inventory = spy(TestInventory())
+    private var testListener: BitmessageContext.Listener = mock()
+    private val testInventory = spy(TestInventory())
     private val testPowRepo = spy(object : ProofOfWorkRepository {
         internal var items: MutableMap<InventoryVector, ProofOfWorkRepository.Item> = HashMap()
         internal var added = 0
@@ -93,20 +93,20 @@ class BitmessageContextTest {
             thread { callback.onNonceCalculated(initialHash, ByteArray(8)) }
         }
     })
-    private var ctx = BitmessageContext.Builder()
-        .addressRepo(mock())
-        .cryptography(BouncyCryptography())
-        .inventory(inventory)
-        .listener(listener)
-        .messageRepo(mock())
-        .networkHandler(mock {
+    private var ctx = BitmessageContext.build {
+        addressRepo = mock()
+        cryptography = BouncyCryptography()
+        inventory = testInventory
+        listener = testListener
+        messageRepo = mock()
+        networkHandler = mock {
             on { getNetworkStatus() } doReturn Property("test", "mocked")
-        })
-        .nodeRegistry(mock())
-        .labeler(spy(DefaultLabeler()))
-        .powRepo(testPowRepo)
-        .proofOfWorkEngine(testPowEngine)
-        .build()
+        }
+        nodeRegistry = mock()
+        labeler = spy(DefaultLabeler())
+        proofOfWorkRepo = testPowRepo
+        proofOfWorkEngine = testPowEngine
+    }
 
     init {
         TTL.msg = 2 * MINUTE
@@ -143,7 +143,7 @@ class BitmessageContextTest {
 
     @Test
     fun `ensure V2Pubkey is not requested if it exists in inventory`() {
-        inventory.init(
+        testInventory.init(
             "V1Msg.payload",
             "V2GetPubkey.payload",
             "V2Pubkey.payload",
@@ -166,7 +166,7 @@ class BitmessageContextTest {
 
     @Test
     fun `ensure V4Pubkey is not requested if it exists in inventory`() {
-        inventory.init(
+        testInventory.init(
             "V1Msg.payload",
             "V2GetPubkey.payload",
             "V2Pubkey.payload",
@@ -192,7 +192,7 @@ class BitmessageContextTest {
     fun `ensure subscription is added and existing broadcasts retrieved`() {
         val address = BitmessageAddress("BM-2D9Vc5rFxxR5vTi53T9gkLfemViHRMVLQZ")
 
-        inventory.init(
+        testInventory.init(
             "V4Broadcast.payload",
             "V5Broadcast.payload"
         )
@@ -203,7 +203,7 @@ class BitmessageContextTest {
         verify(ctx.addresses, atLeastOnce()).save(address)
         assertThat(address.isSubscribed, `is`(true))
         verify(ctx.internals.inventory).getObjects(eq(address.stream), any(), any())
-        verify(listener).receive(any())
+        verify(testListener).receive(any())
     }
 
     @Test

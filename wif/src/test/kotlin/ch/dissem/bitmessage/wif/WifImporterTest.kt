@@ -50,16 +50,16 @@ class WifImporterTest {
 
     @Before
     fun setUp() {
-        ctx = BitmessageContext.Builder()
-            .cryptography(BouncyCryptography())
-            .networkHandler(mock())
-            .inventory(mock())
-            .messageRepo(mock())
-            .powRepo(mock())
-            .nodeRegistry(mock())
-            .addressRepo(repo)
-            .listener { }
-            .build()
+        ctx = BitmessageContext.build {
+            cryptography = BouncyCryptography()
+            networkHandler = mock()
+            inventory = mock()
+            messageRepo = mock()
+            proofOfWorkRepo = mock()
+            nodeRegistry = mock()
+            addressRepo = repo
+            listener { }
+        }
         importer = WifImporter(ctx, javaClass.classLoader.getResourceAsStream("nuked.dat"))
     }
 
