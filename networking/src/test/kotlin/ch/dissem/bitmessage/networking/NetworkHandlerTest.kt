@@ -72,6 +72,7 @@ class NetworkHandlerTest {
             nodeRegistry = TestNodeRegistry()
             networkHandler = peerNetworkHandler
             addressRepo = mock()
+            labelRepo = mock()
             messageRepo = mock()
             proofOfWorkRepo = mock()
             customCommandHandler = object : CustomCommandHandler {
@@ -102,6 +103,7 @@ class NetworkHandlerTest {
             nodeRegistry = TestNodeRegistry(peerAddress)
             networkHandler = nodeNetworkHandler
             addressRepo = mock()
+            labelRepo = mock()
             messageRepo = mock()
             proofOfWorkRepo = mock()
             customCommandHandler = object : CustomCommandHandler {

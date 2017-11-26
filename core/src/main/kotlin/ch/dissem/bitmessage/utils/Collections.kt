@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage.utils
 
+import ch.dissem.bitmessage.exception.ApplicationException
 import java.util.*
 
 object Collections {
@@ -66,5 +67,13 @@ object Collections {
             index--
         }
         throw IllegalArgumentException("Empty collection? Size: " + collection.size)
+    }
+
+    @JvmStatic fun <T> single(collection: Collection<T>): T? {
+        return when (collection.size) {
+            0 -> null
+            1 -> collection.iterator().next()
+            else -> throw ApplicationException("This shouldn't happen, found ${collection.size} items, one or none was expected")
+        }
     }
 }

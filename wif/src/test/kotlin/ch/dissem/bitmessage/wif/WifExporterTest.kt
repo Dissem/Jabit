@@ -53,6 +53,7 @@ class WifExporterTest {
             cryptography = BouncyCryptography()
             networkHandler = mock()
             inventory = mock()
+            labelRepo = mock()
             messageRepo = mock()
             proofOfWorkRepo = mock()
             nodeRegistry = mock()

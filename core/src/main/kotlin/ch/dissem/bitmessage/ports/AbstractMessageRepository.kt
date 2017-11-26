@@ -21,8 +21,7 @@ import ch.dissem.bitmessage.entity.BitmessageAddress
 import ch.dissem.bitmessage.entity.Plaintext
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector
 import ch.dissem.bitmessage.entity.valueobject.Label
-import ch.dissem.bitmessage.exception.ApplicationException
-import ch.dissem.bitmessage.utils.SqlStrings.join
+import ch.dissem.bitmessage.utils.Collections.single
 import ch.dissem.bitmessage.utils.Strings
 import ch.dissem.bitmessage.utils.UnixTime
 import java.util.*
@@ -112,25 +111,6 @@ abstract class AbstractMessageRepository : MessageRepository, InternalContext.Co
 
     override fun getConversation(conversationId: UUID): List<Plaintext> {
         return find("conversation=X'${conversationId.toString().replace("-", "")}'")
-    }
-
-    override fun getLabels(): List<Label> {
-        return findLabels("1=1")
-    }
-
-    override fun getLabels(vararg types: Label.Type): List<Label> {
-        return findLabels("type IN (${join(*types)})")
-    }
-
-    protected abstract fun findLabels(where: String): List<Label>
-
-
-    protected fun <T> single(collection: Collection<T>): T? {
-        return when (collection.size) {
-            0 -> null
-            1 -> collection.iterator().next()
-            else -> throw ApplicationException("This shouldn't happen, found ${collection.size} items, one or none was expected")
-        }
     }
 
     /**

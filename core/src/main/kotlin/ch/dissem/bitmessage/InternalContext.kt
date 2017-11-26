@@ -40,11 +40,12 @@ import java.util.concurrent.Executors
  */
 class InternalContext(
     val cryptography: Cryptography,
-    val inventory: ch.dissem.bitmessage.ports.Inventory,
+    val inventory: Inventory,
     val nodeRegistry: NodeRegistry,
     val networkHandler: NetworkHandler,
     val addressRepository: AddressRepository,
-    val messageRepository: ch.dissem.bitmessage.ports.MessageRepository,
+    val labelRepository: LabelRepository,
+    val messageRepository: MessageRepository,
     val proofOfWorkRepository: ProofOfWorkRepository,
     val proofOfWorkEngine: ProofOfWorkEngine,
     val customCommandHandler: CustomCommandHandler,
@@ -216,7 +217,9 @@ class InternalContext(
     companion object {
         private val LOG = LoggerFactory.getLogger(InternalContext::class.java)
 
-        @JvmField val NETWORK_NONCE_TRIALS_PER_BYTE: Long = 1000
-        @JvmField val NETWORK_EXTRA_BYTES: Long = 1000
+        @JvmField
+        val NETWORK_NONCE_TRIALS_PER_BYTE: Long = 1000
+        @JvmField
+        val NETWORK_EXTRA_BYTES: Long = 1000
     }
 }

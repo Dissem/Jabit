@@ -24,12 +24,6 @@ import ch.dissem.bitmessage.entity.valueobject.Label
 import java.util.*
 
 interface MessageRepository {
-    fun getLabels(): List<Label>
-
-    fun getLabels(vararg types: Label.Type): List<Label>
-
-    fun save(label: Label)
-
     fun countUnread(label: Label?): Int
 
     fun getAllMessages(): List<Plaintext>

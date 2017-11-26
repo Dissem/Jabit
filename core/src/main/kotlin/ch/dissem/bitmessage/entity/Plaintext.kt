@@ -35,6 +35,7 @@ import java.nio.ByteBuffer
 import java.util.*
 import java.util.Collections
 import kotlin.collections.HashSet
+import kotlin.collections.LinkedHashSet
 
 private fun message(encoding: Plaintext.Encoding, subject: String, body: String): ByteArray = when (encoding) {
     SIMPLE -> "Subject:$subject\nBody:$body".toByteArray()
@@ -254,7 +255,7 @@ class Plaintext private constructor(
         received = builder.received,
         initialHash = null,
         ttl = builder.ttl,
-        labels = builder.labels,
+        labels = LinkedHashSet(builder.labels),
         status = builder.status ?: Status.RECEIVED
     ) {
         id = builder.id
@@ -278,28 +279,30 @@ class Plaintext private constructor(
         get() {
             val s = Scanner(ByteArrayInputStream(message), "UTF-8")
             val firstLine = s.nextLine()
-            if (encodingCode == EXTENDED.code) {
-                if (Message.TYPE == extendedData?.type) {
-                    return (extendedData!!.content as? Message)?.subject
+            return when (encodingCode) {
+                EXTENDED.code -> if (Message.TYPE == extendedData?.type) {
+                    (extendedData!!.content as? Message)?.subject
                 } else {
-                    return null
+                    null
                 }
-            } else if (encodingCode == SIMPLE.code) {
-                return firstLine.substring("Subject:".length).trim { it <= ' ' }
-            } else if (firstLine.length > 50) {
-                return firstLine.substring(0, 50).trim { it <= ' ' } + "..."
-            } else {
-                return firstLine
+                SIMPLE.code -> firstLine.substring("Subject:".length).trim { it <= ' ' }
+                else -> {
+                    if (firstLine.length > 50) {
+                        firstLine.substring(0, 50).trim { it <= ' ' } + "..."
+                    } else {
+                        firstLine
+                    }
+                }
             }
         }
 
     val text: String?
         get() {
             if (encodingCode == EXTENDED.code) {
-                if (Message.TYPE == extendedData?.type) {
-                    return (extendedData?.content as Message?)?.body
+                return if (Message.TYPE == extendedData?.type) {
+                    (extendedData?.content as Message?)?.body
                 } else {
-                    return null
+                    null
                 }
             } else {
                 val text = String(message)
@@ -322,20 +325,20 @@ class Plaintext private constructor(
     val parents: List<InventoryVector>
         get() {
             val extendedData = extendedData ?: return emptyList()
-            if (Message.TYPE == extendedData.type) {
-                return (extendedData.content as Message).parents
+            return if (Message.TYPE == extendedData.type) {
+                (extendedData.content as Message).parents
             } else {
-                return emptyList()
+                emptyList()
             }
         }
 
     val files: List<Attachment>
         get() {
             val extendedData = extendedData ?: return emptyList()
-            if (Message.TYPE == extendedData.type) {
-                return (extendedData.content as Message).files
+            return if (Message.TYPE == extendedData.type) {
+                (extendedData.content as Message).files
             } else {
-                return emptyList()
+                emptyList()
             }
         }
 
@@ -378,8 +381,8 @@ class Plaintext private constructor(
 
     override fun toString(): String {
         val subject = subject
-        if (subject?.isNotEmpty() ?: false) {
-            return subject!!
+        if (subject?.isNotEmpty() == true) {
+            return subject
         } else {
             return Strings.hex(
                 initialHash ?: return super.toString()
@@ -529,32 +532,43 @@ class Plaintext private constructor(
     }
 
     class Builder(internal val type: Type) {
-        internal var id: Any? = null
-        internal var inventoryVector: InventoryVector? = null
-        internal var from: BitmessageAddress? = null
-        internal var to: BitmessageAddress? = null
-        private var addressVersion: Long = 0
-        private var stream: Long = 0
-        private var behaviorBitfield: Int = 0
-        private var publicSigningKey: ByteArray? = null
-        private var publicEncryptionKey: ByteArray? = null
-        private var nonceTrialsPerByte: Long = 0
-        private var extraBytes: Long = 0
-        private var destinationRipe: ByteArray? = null
-        private var preventAck: Boolean = false
-        internal var encoding: Long = 0
-        internal var message = ByteArray(0)
-        internal var ackData: ByteArray? = null
-        internal var ackMessage: ByteArray? = null
-        internal var signature: ByteArray? = null
-        internal var sent: Long? = null
-        internal var received: Long? = null
-        internal var status: Status? = null
-        internal val labels = LinkedHashSet<Label>()
-        internal var ttl: Long = 0
-        internal var retries: Int = 0
-        internal var nextTry: Long? = null
-        internal var conversation: UUID? = null
+        var id: Any? = null
+        var inventoryVector: InventoryVector? = null
+        var from: BitmessageAddress? = null
+        var to: BitmessageAddress? = null
+            set(value) {
+                if (value != null) {
+                    if (type != MSG && to != null)
+                        throw IllegalArgumentException("recipient address only allowed for msg")
+                    field = value
+                }
+            }
+        var addressVersion: Long = 0
+        var stream: Long = 0
+        var behaviorBitfield: Int = 0
+        var publicSigningKey: ByteArray? = null
+        var publicEncryptionKey: ByteArray? = null
+        var nonceTrialsPerByte: Long = 0
+        var extraBytes: Long = 0
+        var destinationRipe: ByteArray? = null
+            set(value) {
+                if (type != MSG && value != null) throw IllegalArgumentException("ripe only allowed for msg")
+                field = value
+            }
+        var preventAck: Boolean = false
+        var encoding: Long = 0
+        var message = ByteArray(0)
+        var ackData: ByteArray? = null
+        var ackMessage: ByteArray? = null
+        var signature: ByteArray? = null
+        var sent: Long? = null
+        var received: Long? = null
+        var status: Status? = null
+        var labels: Collection<Label> = emptySet()
+        var ttl: Long = 0
+        var retries: Int = 0
+        var nextTry: Long? = null
+        var conversation: UUID? = null
 
         fun id(id: Any): Builder {
             this.id = id
@@ -572,11 +586,7 @@ class Plaintext private constructor(
         }
 
         fun to(address: BitmessageAddress?): Builder {
-            if (address != null) {
-                if (type != MSG && to != null)
-                    throw IllegalArgumentException("recipient address only allowed for msg")
-                to = address
-            }
+            to = address
             return this
         }
 
@@ -616,7 +626,6 @@ class Plaintext private constructor(
         }
 
         fun destinationRipe(ripe: ByteArray?): Builder {
-            if (type != MSG && ripe != null) throw IllegalArgumentException("ripe only allowed for msg")
             this.destinationRipe = ripe
             return this
         }
@@ -692,7 +701,7 @@ class Plaintext private constructor(
         }
 
         fun labels(labels: Collection<Label>): Builder {
-            this.labels.addAll(labels)
+            this.labels = labels
             return this
         }
 
@@ -743,6 +752,12 @@ class Plaintext private constructor(
             return this
         }
 
+        @JvmSynthetic
+        inline fun build(block: Builder.() -> Unit): Plaintext {
+            block(this)
+            return build()
+        }
+
         fun build(): Plaintext {
             return Plaintext(this)
         }
@@ -774,5 +789,13 @@ class Plaintext private constructor(
                 .message(Decode.varBytes(input))
                 .ackMessage(if (type == MSG) Decode.varBytes(input) else null)
         }
+
+        @JvmSynthetic
+        inline fun build(type: Type, block: Builder.() -> Unit): Plaintext {
+            val builder = Builder(type)
+            block(builder)
+            return builder.build()
+        }
+
     }
 }

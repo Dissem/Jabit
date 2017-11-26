@@ -35,9 +35,7 @@ import java.util.concurrent.TimeUnit;
 
 import static ch.dissem.bitmessage.entity.payload.Pubkey.Feature.DOES_ACK;
 import static ch.dissem.bitmessage.utils.UnixTime.MINUTE;
-import static com.nhaarman.mockito_kotlin.MockitoKt.spy;
-import static com.nhaarman.mockito_kotlin.MockitoKt.timeout;
-import static com.nhaarman.mockito_kotlin.MockitoKt.verify;
+import static com.nhaarman.mockito_kotlin.MockitoKt.*;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -71,6 +69,7 @@ public class SystemTest {
             alice = new BitmessageContext.Builder()
                 .addressRepo(new JdbcAddressRepository(aliceDB))
                 .inventory(new JdbcInventory(aliceDB))
+                .labelRepo(new JdbcLabelRepository(aliceDB))
                 .messageRepo(new JdbcMessageRepository(aliceDB))
                 .powRepo(new JdbcProofOfWorkRepository(aliceDB))
                 .nodeRegistry(new TestNodeRegistry(bobPort))
@@ -89,6 +88,7 @@ public class SystemTest {
             bob = new BitmessageContext.Builder()
                 .addressRepo(new JdbcAddressRepository(bobDB))
                 .inventory(new JdbcInventory(bobDB))
+                .labelRepo(new JdbcLabelRepository(bobDB))
                 .messageRepo(new JdbcMessageRepository(bobDB))
                 .powRepo(new JdbcProofOfWorkRepository(bobDB))
                 .nodeRegistry(new TestNodeRegistry(alicePort))

@@ -26,6 +26,7 @@ import ch.dissem.bitmessage.entity.valueobject.ExtendedEncoding
 import ch.dissem.bitmessage.entity.valueobject.Label
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey
 import ch.dissem.bitmessage.entity.valueobject.extended.Message
+import ch.dissem.bitmessage.ports.LabelRepository
 import ch.dissem.bitmessage.ports.MessageRepository
 import ch.dissem.bitmessage.utils.TestUtils
 import ch.dissem.bitmessage.utils.TestUtils.mockedInternalContext
@@ -46,6 +47,7 @@ class JdbcMessageRepositoryTest : TestBase() {
     private lateinit var identity: BitmessageAddress
 
     private lateinit var repo: MessageRepository
+    private lateinit var labelRepo: LabelRepository
 
     private lateinit var inbox: Label
     private lateinit var sent: Label
@@ -58,6 +60,7 @@ class JdbcMessageRepositoryTest : TestBase() {
         config.reset()
         val addressRepo = JdbcAddressRepository(config)
         repo = JdbcMessageRepository(config)
+        labelRepo = JdbcLabelRepository(config)
         mockedInternalContext(
             cryptography = BouncyCryptography(),
             addressRepository = addressRepo,
@@ -76,27 +79,14 @@ class JdbcMessageRepositoryTest : TestBase() {
         identity = BitmessageAddress(PrivateKey(false, 1, 1000, 1000, DOES_ACK))
         addressRepo.save(identity)
 
-        inbox = repo.getLabels(Label.Type.INBOX)[0]
-        sent = repo.getLabels(Label.Type.SENT)[0]
-        drafts = repo.getLabels(Label.Type.DRAFT)[0]
-        unread = repo.getLabels(Label.Type.UNREAD)[0]
+        inbox = labelRepo.getLabels(Label.Type.INBOX)[0]
+        sent = labelRepo.getLabels(Label.Type.SENT)[0]
+        drafts = labelRepo.getLabels(Label.Type.DRAFT)[0]
+        unread = labelRepo.getLabels(Label.Type.UNREAD)[0]
 
         addMessage(contactA, identity, Plaintext.Status.RECEIVED, inbox, unread)
         addMessage(identity, contactA, Plaintext.Status.DRAFT, drafts)
         addMessage(identity, contactB, Plaintext.Status.DRAFT, unread)
-    }
-
-    @Test
-    fun `ensure labels are retrieved`() {
-        val labels = repo.getLabels()
-        assertEquals(5, labels.size.toLong())
-    }
-
-    @Test
-    fun `ensure labels can be retrieved by type`() {
-        val labels = repo.getLabels(Label.Type.INBOX)
-        assertEquals(1, labels.size.toLong())
-        assertEquals("Inbox", labels[0].toString())
     }
 
     @Test

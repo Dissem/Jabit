@@ -285,7 +285,7 @@ public class Application {
     }
 
     private void labels() {
-        List<Label> labels = ctx.messages().getLabels();
+        List<Label> labels = ctx.labels().getLabels();
         String command;
         do {
             System.out.println();

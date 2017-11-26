@@ -73,6 +73,9 @@ class BitmessageContext private constructor(builder: BitmessageContext.Builder) 
     val addresses: AddressRepository
         @JvmName("addresses") get
 
+    val labels: LabelRepository
+        @JvmName("labels") get
+
     val messages: MessageRepository
         @JvmName("messages") get
 
@@ -301,6 +304,7 @@ class BitmessageContext private constructor(builder: BitmessageContext.Builder) 
         var nodeRegistry by Delegates.notNull<NodeRegistry>()
         var networkHandler by Delegates.notNull<NetworkHandler>()
         var addressRepo by Delegates.notNull<AddressRepository>()
+        var labelRepo by Delegates.notNull<LabelRepository>()
         var messageRepo by Delegates.notNull<MessageRepository>()
         var proofOfWorkRepo by Delegates.notNull<ProofOfWorkRepository>()
         var proofOfWorkEngine: ProofOfWorkEngine? = null
@@ -327,6 +331,11 @@ class BitmessageContext private constructor(builder: BitmessageContext.Builder) 
 
         fun addressRepo(addressRepo: AddressRepository): Builder {
             this.addressRepo = addressRepo
+            return this
+        }
+
+        fun labelRepo(labelRepo: LabelRepository): Builder {
+            this.labelRepo = labelRepo
             return this
         }
 
@@ -386,6 +395,7 @@ class BitmessageContext private constructor(builder: BitmessageContext.Builder) 
             builder.nodeRegistry,
             builder.networkHandler,
             builder.addressRepo,
+            builder.labelRepo,
             builder.messageRepo,
             builder.proofOfWorkRepo,
             builder.proofOfWorkEngine ?: MultiThreadedPOWEngine(),
@@ -400,6 +410,7 @@ class BitmessageContext private constructor(builder: BitmessageContext.Builder) 
             builder.preferences
         )
         this.addresses = builder.addressRepo
+        this.labels = builder.labelRepo
         this.messages = builder.messageRepo
         (builder.listener as? Listener.WithContext)?.setContext(this)
         internals.proofOfWorkService.doMissingProofOfWork(builder.preferences.doMissingProofOfWorkDelayInSeconds * 1000L)

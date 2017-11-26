@@ -35,9 +35,9 @@ open class DefaultLabeler : Labeler, InternalContext.ContextHolder {
         msg.status = RECEIVED
         val labelsToAdd =
             if (msg.type == BROADCAST) {
-                ctx.messageRepository.getLabels(Label.Type.BROADCAST, Label.Type.UNREAD)
+                ctx.labelRepository.getLabels(Label.Type.BROADCAST, Label.Type.UNREAD)
             } else {
-                ctx.messageRepository.getLabels(Label.Type.INBOX, Label.Type.UNREAD)
+                ctx.labelRepository.getLabels(Label.Type.INBOX, Label.Type.UNREAD)
             }
         msg.addLabels(labelsToAdd)
         listener?.invoke(msg, labelsToAdd, emptyList())
@@ -45,7 +45,7 @@ open class DefaultLabeler : Labeler, InternalContext.ContextHolder {
 
     override fun markAsDraft(msg: Plaintext) {
         msg.status = DRAFT
-        val labelsToAdd = ctx.messageRepository.getLabels(Label.Type.DRAFT)
+        val labelsToAdd = ctx.labelRepository.getLabels(Label.Type.DRAFT)
         msg.addLabels(labelsToAdd)
         listener?.invoke(msg, labelsToAdd, emptyList())
     }
@@ -58,7 +58,7 @@ open class DefaultLabeler : Labeler, InternalContext.ContextHolder {
         }
         val labelsToRemove = msg.labels.filter { it.type == Label.Type.DRAFT }
         msg.removeLabel(Label.Type.DRAFT)
-        val labelsToAdd = ctx.messageRepository.getLabels(Label.Type.OUTBOX)
+        val labelsToAdd = ctx.labelRepository.getLabels(Label.Type.OUTBOX)
         msg.addLabels(labelsToAdd)
         listener?.invoke(msg, labelsToAdd, labelsToRemove)
     }
@@ -67,7 +67,7 @@ open class DefaultLabeler : Labeler, InternalContext.ContextHolder {
         msg.status = SENT
         val labelsToRemove = msg.labels.filter { it.type == Label.Type.OUTBOX }
         msg.removeLabel(Label.Type.OUTBOX)
-        val labelsToAdd = ctx.messageRepository.getLabels(Label.Type.SENT)
+        val labelsToAdd = ctx.labelRepository.getLabels(Label.Type.SENT)
         msg.addLabels(labelsToAdd)
         listener?.invoke(msg, labelsToAdd, labelsToRemove)
     }
@@ -83,7 +83,7 @@ open class DefaultLabeler : Labeler, InternalContext.ContextHolder {
     }
 
     override fun markAsUnread(msg: Plaintext) {
-        val labelsToAdd = ctx.messageRepository.getLabels(Label.Type.UNREAD)
+        val labelsToAdd = ctx.labelRepository.getLabels(Label.Type.UNREAD)
         msg.addLabels(labelsToAdd)
         listener?.invoke(msg, labelsToAdd, emptyList())
     }
@@ -91,7 +91,7 @@ open class DefaultLabeler : Labeler, InternalContext.ContextHolder {
     override fun delete(msg: Plaintext) {
         val labelsToRemove = msg.labels.toSet()
         msg.labels.clear()
-        val labelsToAdd = ctx.messageRepository.getLabels(Label.Type.TRASH)
+        val labelsToAdd = ctx.labelRepository.getLabels(Label.Type.TRASH)
         msg.addLabels(labelsToAdd)
         listener?.invoke(msg, labelsToAdd, labelsToRemove)
     }

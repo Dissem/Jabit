@@ -98,6 +98,7 @@ class BitmessageContextTest {
         cryptography = BouncyCryptography()
         inventory = testInventory
         listener = testListener
+        labelRepo = mock()
         messageRepo = mock()
         networkHandler = mock {
             on { getNetworkStatus() } doReturn Property("test", "mocked")
