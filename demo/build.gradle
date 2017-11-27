@@ -32,7 +32,7 @@ dependencies {
     compile 'org.slf4j:slf4j-simple'
     compile 'args4j:args4j'
     compile 'com.h2database:h2'
-    compile 'org.apache.commons:commons-lang3'
+    compile 'org.apache.commons:commons-text'
     testCompile 'junit:junit'
     testCompile 'com.nhaarman:mockito-kotlin'
 }
