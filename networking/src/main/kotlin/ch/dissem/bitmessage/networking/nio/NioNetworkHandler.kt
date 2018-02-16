@@ -59,8 +59,8 @@ class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
     private var selector: Selector? = null
     private var serverChannel: ServerSocketChannel? = null
     private val connectionQueue = ConcurrentLinkedQueue<NetworkAddress>()
-    private val connections = ConcurrentHashMap<Connection, SelectionKey>()
-    private val requestedObjects = ConcurrentHashMap<InventoryVector, Long>(10000)
+    private val connections: MutableMap<Connection, SelectionKey> = ConcurrentHashMap()
+    private val requestedObjects: MutableMap<InventoryVector, Long> = ConcurrentHashMap(10000)
 
     private var starter: Thread? = null
 
@@ -74,7 +74,7 @@ class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
                 channel.configureBlocking(false)
                 val connection = Connection(ctx, SYNC,
                     NetworkAddress.Builder().ip(server).port(port).stream(1).build(),
-                    HashMap<InventoryVector, Long>(), timeoutInSeconds)
+                    HashMap(), timeoutInSeconds)
                 while (channel.isConnected && !connection.isSyncFinished) {
                     write(channel, connection.io)
                     read(channel, connection.io)

@@ -41,7 +41,7 @@ object NodeRegistryHelper {
                     val line = scanner.nextLine().trim { it <= ' ' }
                     if (line.startsWith("[stream")) {
                         stream = java.lang.Long.parseLong(line.substring(8, line.lastIndexOf(']')))
-                        streamSet = HashSet<NetworkAddress>()
+                        streamSet = HashSet()
                         result.put(stream, streamSet)
                     } else if (streamSet != null && !line.isEmpty() && !line.startsWith("#")) {
                         val portIndex = line.lastIndexOf(':')

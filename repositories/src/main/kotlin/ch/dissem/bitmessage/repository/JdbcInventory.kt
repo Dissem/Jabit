@@ -31,7 +31,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 class JdbcInventory(config: JdbcConfig) : JdbcHelper(config), Inventory {
 
-    private val cache = ConcurrentHashMap<Long, MutableMap<InventoryVector, Long>>()
+    private val cache: MutableMap<Long, MutableMap<InventoryVector, Long>> = ConcurrentHashMap()
 
     override fun getInventory(vararg streams: Long): List<InventoryVector> {
         val result = LinkedList<InventoryVector>()
@@ -48,14 +48,15 @@ class JdbcInventory(config: JdbcConfig) : JdbcHelper(config), Inventory {
         if (result == null) {
             synchronized(cache) {
                 if (cache[stream] == null) {
-                    val map = ConcurrentHashMap<InventoryVector, Long>()
-                    cache.put(stream, map)
+                    val map: MutableMap<InventoryVector, Long> = ConcurrentHashMap()
                     result = map
+                    cache[stream] = map
                     try {
                         config.getConnection().use { connection ->
                             connection.createStatement().use { stmt ->
-                                stmt.executeQuery("SELECT hash, expires FROM Inventory " +
-                                    "WHERE expires > " + (now - 5 * MINUTE) + " AND stream = " + stream).use { rs ->
+                                stmt.executeQuery(
+                                    "SELECT hash, expires FROM Inventory WHERE expires > ${now - 5 * MINUTE} AND stream = $stream"
+                                ).use { rs ->
                                     while (rs.next()) {
                                         map.put(InventoryVector(rs.getBytes("hash")), rs.getLong("expires"))
                                     }
@@ -71,7 +72,8 @@ class JdbcInventory(config: JdbcConfig) : JdbcHelper(config), Inventory {
         return result!!
     }
 
-    override fun getMissing(offer: List<InventoryVector>, vararg streams: Long): List<InventoryVector> = offer - streams.flatMap { getCache(it).keys }
+    override fun getMissing(offer: List<InventoryVector>, vararg streams: Long): List<InventoryVector> =
+        offer - streams.flatMap { getCache(it).keys }
 
     override fun getObject(vector: InventoryVector): ObjectMessage? {
         config.getConnection().use { connection ->
@@ -81,7 +83,7 @@ class JdbcInventory(config: JdbcConfig) : JdbcHelper(config), Inventory {
                         val data = rs.getBlob("data")
                         return Factory.getObjectMessage(rs.getInt("version"), data.binaryStream, data.length().toInt())
                     } else {
-                        LOG.info("Object requested that we don't have. IV: " + vector)
+                        LOG.info("Object requested that we don't have. IV: $vector")
                         return null
                     }
                 }
@@ -106,7 +108,13 @@ class JdbcInventory(config: JdbcConfig) : JdbcHelper(config), Inventory {
                     val result = LinkedList<ObjectMessage>()
                     while (rs.next()) {
                         val data = rs.getBlob("data")
-                        result.add(Factory.getObjectMessage(rs.getInt("version"), data.binaryStream, data.length().toInt())!!)
+                        result.add(
+                            Factory.getObjectMessage(
+                                rs.getInt("version"),
+                                data.binaryStream,
+                                data.length().toInt()
+                            )!!
+                        )
                     }
                     return result
                 }
@@ -120,21 +128,22 @@ class JdbcInventory(config: JdbcConfig) : JdbcHelper(config), Inventory {
 
         try {
             config.getConnection().use { connection ->
-                connection.prepareStatement("INSERT INTO Inventory " + "(hash, stream, expires, data, type, version) VALUES (?, ?, ?, ?, ?, ?)").use { ps ->
-                    val iv = objectMessage.inventoryVector
-                    LOG.trace("Storing object " + iv)
-                    ps.setBytes(1, iv.hash)
-                    ps.setLong(2, objectMessage.stream)
-                    ps.setLong(3, objectMessage.expiresTime)
-                    JdbcHelper.Companion.writeBlob(ps, 4, objectMessage)
-                    ps.setLong(5, objectMessage.type)
-                    ps.setLong(6, objectMessage.version)
-                    ps.executeUpdate()
-                    getCache(objectMessage.stream).put(iv, objectMessage.expiresTime)
-                }
+                connection.prepareStatement("INSERT INTO Inventory (hash, stream, expires, data, type, version) VALUES (?, ?, ?, ?, ?, ?)")
+                    .use { ps ->
+                        val iv = objectMessage.inventoryVector
+                        LOG.trace("Storing object " + iv)
+                        ps.setBytes(1, iv.hash)
+                        ps.setLong(2, objectMessage.stream)
+                        ps.setLong(3, objectMessage.expiresTime)
+                        JdbcHelper.Companion.writeBlob(ps, 4, objectMessage)
+                        ps.setLong(5, objectMessage.type)
+                        ps.setLong(6, objectMessage.version)
+                        ps.executeUpdate()
+                        getCache(objectMessage.stream).put(iv, objectMessage.expiresTime)
+                    }
             }
         } catch (e: SQLException) {
-            LOG.debug("Error storing object of type " + objectMessage.payload.javaClass.simpleName, e)
+            LOG.debug("Error storing object of type ${objectMessage.payload.javaClass.simpleName}", e)
         } catch (e: Exception) {
             LOG.error(e.message, e)
         }
@@ -148,7 +157,7 @@ class JdbcInventory(config: JdbcConfig) : JdbcHelper(config), Inventory {
         try {
             config.getConnection().use { connection ->
                 connection.createStatement().use { stmt ->
-                    stmt.executeUpdate("DELETE FROM Inventory WHERE expires < " + (now - 5 * MINUTE))
+                    stmt.executeUpdate("DELETE FROM Inventory WHERE expires < ${now - 5 * MINUTE}")
                 }
             }
         } catch (e: SQLException) {
