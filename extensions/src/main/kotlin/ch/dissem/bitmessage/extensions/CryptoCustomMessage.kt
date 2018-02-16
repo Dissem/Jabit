@@ -42,19 +42,21 @@ import java.io.OutputStream
  */
 class CryptoCustomMessage<T : Streamable> : CustomMessage {
 
-    private val dataReader: Reader<T>?
+    private val dataReader: (BitmessageAddress, InputStream) -> T
     private var container: CryptoBox? = null
     var sender: BitmessageAddress? = null
         private set
     private var data: T? = null
-        private set
 
     constructor(data: T) : super(COMMAND, null) {
         this.data = data
-        this.dataReader = null
+        this.dataReader = { _, _ -> data }
     }
 
-    private constructor(container: CryptoBox, dataReader: Reader<T>) : super(COMMAND, null) {
+    private constructor(container: CryptoBox, dataReader: (BitmessageAddress, InputStream) -> T) : super(
+        COMMAND,
+        null
+    ) {
         this.container = container
         this.dataReader = dataReader
     }
@@ -81,8 +83,9 @@ class CryptoCustomMessage<T : Streamable> : CustomMessage {
 
     @Throws(DecryptionFailedException::class)
     fun decrypt(privateKey: ByteArray): T {
-        val input = SignatureCheckingInputStream(container?.decrypt(privateKey) ?: throw IllegalStateException("no encrypted data available"))
-        if (dataReader == null) throw IllegalStateException("no data reader available")
+        val input = SignatureCheckingInputStream(
+            container?.decrypt(privateKey) ?: throw IllegalStateException("no encrypted data available")
+        )
 
         val addressVersion = varInt(input)
         val stream = varInt(input)
@@ -92,18 +95,20 @@ class CryptoCustomMessage<T : Streamable> : CustomMessage {
         val nonceTrialsPerByte = if (addressVersion >= 3) varInt(input) else 0
         val extraBytes = if (addressVersion >= 3) varInt(input) else 0
 
-        val sender = BitmessageAddress(Factory.createPubkey(
-            addressVersion,
-            stream,
-            publicSigningKey,
-            publicEncryptionKey,
-            nonceTrialsPerByte,
-            extraBytes,
-            behaviorBitfield
-        ))
+        val sender = BitmessageAddress(
+            Factory.createPubkey(
+                addressVersion,
+                stream,
+                publicSigningKey,
+                publicEncryptionKey,
+                nonceTrialsPerByte,
+                extraBytes,
+                behaviorBitfield
+            )
+        )
         this.sender = sender
 
-        data = dataReader.read(sender, input)
+        data = dataReader.invoke(sender, input)
 
         input.checkSignature(sender.pubkey!!)
 
@@ -127,7 +132,8 @@ class CryptoCustomMessage<T : Streamable> : CustomMessage {
         fun read(sender: BitmessageAddress, input: InputStream): T
     }
 
-    private inner class SignatureCheckingInputStream internal constructor(private val wrapped: InputStream) : InputStream() {
+    private inner class SignatureCheckingInputStream internal constructor(private val wrapped: InputStream) :
+        InputStream() {
         private val out = ByteArrayOutputStream()
 
         override fun read(): Int {
@@ -145,13 +151,24 @@ class CryptoCustomMessage<T : Streamable> : CustomMessage {
     }
 
     companion object {
-        @JvmField
-        val COMMAND = "ENCRYPTED"
+        const val COMMAND = "ENCRYPTED"
 
         @JvmStatic
-        fun <T : Streamable> read(data: CustomMessage, dataReader: Reader<T>): CryptoCustomMessage<T> {
-            val cryptoBox = CryptoBox.read(ByteArrayInputStream(data.getData()), data.getData().size)
-            return CryptoCustomMessage(cryptoBox, dataReader)
-        }
+        fun <T : Streamable> read(data: CustomMessage, dataReader: Reader<T>): CryptoCustomMessage<T> =
+            CryptoCustomMessage(
+                CryptoBox.read(ByteArrayInputStream(data.getData()), data.getData().size)
+            ) { address, input ->
+                dataReader.read(address, input)
+            }
+
+        @JvmSynthetic
+        fun <T : Streamable> read(
+            data: CustomMessage,
+            dataReader: (BitmessageAddress, InputStream) -> T
+        ): CryptoCustomMessage<T> =
+            CryptoCustomMessage(
+                CryptoBox.read(ByteArrayInputStream(data.getData()), data.getData().size),
+                dataReader
+            )
     }
 }

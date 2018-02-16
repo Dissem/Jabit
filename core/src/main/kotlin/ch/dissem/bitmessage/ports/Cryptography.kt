@@ -156,6 +156,16 @@ interface Cryptography {
     fun doProofOfWork(objectMessage: ObjectMessage, nonceTrialsPerByte: Long,
                       extraBytes: Long, callback: ProofOfWorkEngine.Callback)
 
+    @JvmSynthetic
+    fun doProofOfWork(objectMessage: ObjectMessage, nonceTrialsPerByte: Long,
+                      extraBytes: Long, callback: (ByteArray, ByteArray) -> Unit) {
+        doProofOfWork(objectMessage, nonceTrialsPerByte, extraBytes, object : ProofOfWorkEngine.Callback {
+            override fun onNonceCalculated(initialHash: ByteArray, nonce: ByteArray) {
+                callback.invoke(initialHash, nonce)
+            }
+        })
+    }
+
     /**
      * @param objectMessage      to be checked
      * *

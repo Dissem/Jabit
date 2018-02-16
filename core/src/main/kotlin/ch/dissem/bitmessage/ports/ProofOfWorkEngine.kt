@@ -23,15 +23,31 @@ interface ProofOfWorkEngine {
     /**
      * Returns a nonce, such that the first 8 bytes from sha512(sha512(nonce||initialHash)) represent a unsigned long
      * smaller than target.
-
+     *
      * @param initialHash the SHA-512 hash of the object to send, sans nonce
-     * *
      * @param target      the target, representing an unsigned long
-     * *
-     * @param callback    called with the calculated nonce as argument. The ProofOfWorkEngine implementation must make
-     * *                    sure this is only called once.
+     * @param callback    called with the initial hash and the calculated nonce as argument. The ProofOfWorkEngine
+     *                    implementation must make sure this is only called once.
      */
     fun calculateNonce(initialHash: ByteArray, target: ByteArray, callback: Callback)
+
+    /**
+     * Returns a nonce, such that the first 8 bytes from sha512(sha512(nonce||initialHash)) represent a unsigned long
+     * smaller than target.
+     *
+     * @param initialHash the SHA-512 hash of the object to send, sans nonce
+     * @param target      the target, representing an unsigned long
+     * @param callback    called with the initial hash and the calculated nonce as argument. The ProofOfWorkEngine
+     *                    implementation must make sure this is only called once.
+     */
+    @JvmSynthetic
+    fun calculateNonce(initialHash: ByteArray, target: ByteArray, callback: (ByteArray, ByteArray) -> Unit) {
+        calculateNonce(initialHash, target, object : Callback {
+            override fun onNonceCalculated(initialHash: ByteArray, nonce: ByteArray) {
+                callback.invoke(initialHash, nonce)
+            }
+        })
+    }
 
     interface Callback {
         /**

@@ -126,7 +126,7 @@ class BitmessageContextTest {
         ctx.addContact(contact)
 
         verify(ctx.addresses, timeout(1000).atLeastOnce()).save(eq(contact))
-        verify(testPowEngine, timeout(1000)).calculateNonce(any(), any(), any())
+        verify(testPowEngine, timeout(1000)).calculateNonce(any(), any(), any<ProofOfWorkEngine.Callback>())
     }
 
     @Test
@@ -139,7 +139,7 @@ class BitmessageContextTest {
         ctx.addContact(contact)
 
         verify(ctx.addresses, times(1)).save(contact)
-        verify(testPowEngine, never()).calculateNonce(any(), any(), any())
+        verify(testPowEngine, never()).calculateNonce(any(), any(), any<ProofOfWorkEngine.Callback>())
     }
 
     @Test
@@ -162,7 +162,7 @@ class BitmessageContextTest {
         ctx.addContact(contact)
 
         verify(ctx.addresses, atLeastOnce()).save(contact)
-        verify(testPowEngine, never()).calculateNonce(any(), any(), any())
+        verify(testPowEngine, never()).calculateNonce(any(), any(), any<ProofOfWorkEngine.Callback>())
     }
 
     @Test
@@ -186,7 +186,7 @@ class BitmessageContextTest {
         ctx.addContact(contact)
 
         verify(ctx.addresses, atLeastOnce()).save(any())
-        verify(testPowEngine, never()).calculateNonce(any(), any(), any())
+        verify(testPowEngine, never()).calculateNonce(any(), any(), any<ProofOfWorkEngine.Callback>())
     }
 
     @Test
@@ -245,7 +245,7 @@ class BitmessageContextTest {
             "Subject", "Message")
         verify(ctx.internals.proofOfWorkRepository, timeout(1000).atLeastOnce())
             .putObject(argThat { payload.type == ObjectType.BROADCAST }, eq(1000L), eq(1000L))
-        verify(testPowEngine).calculateNonce(any(), any(), any())
+        verify(testPowEngine).calculateNonce(any(), any(), any<ProofOfWorkEngine.Callback>())
         verify(ctx.messages, timeout(10000).atLeastOnce()).save(argThat<Plaintext> { type == Type.BROADCAST })
     }
 

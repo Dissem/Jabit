@@ -89,12 +89,7 @@ class CryptographyTest {
             stream = 1
         )
         val waiter = CallbackWaiter<ByteArray>()
-        crypto.doProofOfWork(objectMessage, 1000, 1000,
-            object : ProofOfWorkEngine.Callback {
-                override fun onNonceCalculated(initialHash: ByteArray, nonce: ByteArray) {
-                    waiter.setValue(nonce)
-                }
-            })
+        crypto.doProofOfWork(objectMessage, 1000, 1000) { _, nonce -> waiter.setValue(nonce) }
         objectMessage.nonce = waiter.waitForValue()
         try {
             crypto.checkProofOfWork(objectMessage, 1000, 1000)

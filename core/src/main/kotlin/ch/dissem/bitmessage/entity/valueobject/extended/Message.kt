@@ -37,33 +37,33 @@ import java.util.*
 data class Message constructor(
     val subject: String,
     val body: String,
-    val parents: List<InventoryVector>,
-    val files: List<Attachment>
+    val parents: List<InventoryVector> = emptyList(),
+    val files: List<Attachment> = emptyList()
 ) : ExtendedEncoding.ExtendedType {
 
     override val type: String = TYPE
 
     override fun pack(): MPMap<MPString, MPType<*>> {
         val result = MPMap<MPString, MPType<*>>()
-        result.put("".mp, TYPE.mp)
-        result.put("subject".mp, subject.mp)
-        result.put("body".mp, body.mp)
+        result["".mp] = TYPE.mp
+        result["subject".mp] = subject.mp
+        result["body".mp] = body.mp
 
         if (!files.isEmpty()) {
             val items = MPArray<MPMap<MPString, MPType<*>>>()
-            result.put("files".mp, items)
+            result["files".mp] = items
             for (file in files) {
                 val item = MPMap<MPString, MPType<*>>()
-                item.put("name".mp, file.name.mp)
-                item.put("data".mp, file.data.mp)
-                item.put("type".mp, file.type.mp)
-                item.put("disposition".mp, file.disposition.name.mp)
+                item["name".mp] = file.name.mp
+                item["data".mp] = file.data.mp
+                item["type".mp] = file.type.mp
+                item["disposition".mp] = file.disposition.name.mp
                 items.add(item)
             }
         }
         if (!parents.isEmpty()) {
             val items = MPArray<MPBinary>()
-            result.put("parents".mp, items)
+            result["parents".mp] = items
             for ((hash) in parents) {
                 items.add(mp(*hash))
             }
@@ -179,6 +179,6 @@ data class Message constructor(
     companion object {
         private val LOG = LoggerFactory.getLogger(Message::class.java)
 
-        val TYPE = "message"
+        const val TYPE = "message"
     }
 }

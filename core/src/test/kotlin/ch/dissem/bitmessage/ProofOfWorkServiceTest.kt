@@ -23,6 +23,7 @@ import ch.dissem.bitmessage.entity.Plaintext.Type.MSG
 import ch.dissem.bitmessage.entity.payload.GenericPayload
 import ch.dissem.bitmessage.entity.payload.Msg
 import ch.dissem.bitmessage.ports.Cryptography
+import ch.dissem.bitmessage.ports.ProofOfWorkEngine
 import ch.dissem.bitmessage.ports.ProofOfWorkRepository
 import ch.dissem.bitmessage.utils.Singleton
 import ch.dissem.bitmessage.utils.TestUtils
@@ -65,11 +66,11 @@ class ProofOfWorkServiceTest {
     fun `ensure missing proof of work is done`() {
         whenever(ctx.proofOfWorkRepository.getItems()).thenReturn(Arrays.asList<ByteArray>(ByteArray(64)))
         whenever(ctx.proofOfWorkRepository.getItem(any())).thenReturn(ProofOfWorkRepository.Item(obj, 1001, 1002))
-        doNothing().whenever(cryptography).doProofOfWork(any(), any(), any(), any())
+        doNothing().whenever(cryptography).doProofOfWork(any(), any(), any(), any<ProofOfWorkEngine.Callback>())
 
         ctx.proofOfWorkService.doMissingProofOfWork(10)
 
-        verify(cryptography, timeout(1000)).doProofOfWork(eq(obj), eq(1001L), eq(1002L), any())
+        verify(cryptography, timeout(1000)).doProofOfWork(eq(obj), eq(1001L), eq(1002L), any<ProofOfWorkEngine.Callback>())
     }
 
     @Test
