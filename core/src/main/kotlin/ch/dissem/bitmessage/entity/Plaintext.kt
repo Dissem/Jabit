@@ -87,10 +87,10 @@ class Plaintext private constructor(
             if (to == null) {
                 return
             }
-            if (this.to != null) {
-                if (this.to!!.version != 0L)
+            this.to?.let {
+                if (it.version != 0L)
                     throw IllegalStateException("Correct address already set")
-                if (!Arrays.equals(this.to!!.ripe, to.ripe)) {
+                if (!Arrays.equals(it.ripe, to.ripe)) {
                     throw IllegalArgumentException("RIPEs don't match")
                 }
             }
@@ -187,7 +187,8 @@ class Plaintext private constructor(
                 Factory.getObjectMessage(
                     3,
                     ByteArrayInputStream(ackMessage),
-                    ackMessage.size)
+                    ackMessage.size
+                )
             } else null
         },
         conversationId = conversationId,
@@ -243,7 +244,8 @@ class Plaintext private constructor(
                 Factory.getObjectMessage(
                     3,
                     ByteArrayInputStream(ackMsg),
-                    ackMsg.size)
+                    ackMsg.size
+                )
             } else {
                 Factory.createAck(builder.from!!, builder.ackData, builder.ttl)
             }
@@ -462,7 +464,12 @@ class Plaintext private constructor(
                 }
             }.invoke()
             if (item.type == MSG) {
-                out.write(item.to?.ripe ?: throw IllegalStateException("No recipient set for message"))
+                // A draft without recipient is allowed, therefore this workaround.
+                item.to?.let { out.write(it.ripe) } ?: if (item.status == Status.DRAFT) {
+                    out.write(ByteArray(20))
+                } else {
+                    throw IllegalStateException("No recipient set for message")
+                }
             }
             Encode.varInt(item.encodingCode, out)
             Encode.varInt(item.message.size, out)
@@ -508,7 +515,12 @@ class Plaintext private constructor(
                 }
             }
             if (item.type == MSG) {
-                buffer.put(item.to!!.ripe)
+                // A draft without recipient is allowed, therefore this workaround.
+                item.to?.let { buffer.put(it.ripe) } ?: if (item.status == Status.DRAFT) {
+                    buffer.put(ByteArray(20))
+                } else {
+                    throw IllegalStateException("No recipient set for message")
+                }
             }
             Encode.varInt(item.encodingCode, buffer)
             Encode.varBytes(item.message, buffer)
@@ -727,15 +739,17 @@ class Plaintext private constructor(
 
         internal fun prepare(): Builder {
             if (from == null) {
-                from = BitmessageAddress(Factory.createPubkey(
-                    addressVersion,
-                    stream,
-                    publicSigningKey!!,
-                    publicEncryptionKey!!,
-                    nonceTrialsPerByte,
-                    extraBytes,
-                    behaviorBitfield
-                ))
+                from = BitmessageAddress(
+                    Factory.createPubkey(
+                        addressVersion,
+                        stream,
+                        publicSigningKey!!,
+                        publicEncryptionKey!!,
+                        nonceTrialsPerByte,
+                        extraBytes,
+                        behaviorBitfield
+                    )
+                )
             }
             if (to == null && type != Type.BROADCAST && destinationRipe != null) {
                 to = BitmessageAddress(0, 0, destinationRipe!!)
@@ -743,7 +757,7 @@ class Plaintext private constructor(
             if (preventAck) {
                 ackData = null
                 ackMessage = null
-            } else if (type == MSG && ackMessage == null && ackData == null) {
+            } else if (type == MSG && ackMessage == null && ackData == null && to?.has(Feature.DOES_ACK) == true) {
                 ackData = cryptography().randomBytes(Msg.ACK_LENGTH)
             }
             if (ttl <= 0) {
@@ -784,7 +798,9 @@ class Plaintext private constructor(
                 .publicEncryptionKey(Decode.bytes(input, 64))
                 .nonceTrialsPerByte(if (version >= 3) Decode.varInt(input) else 0)
                 .extraBytes(if (version >= 3) Decode.varInt(input) else 0)
-                .destinationRipe(if (type == MSG) Decode.bytes(input, 20) else null)
+                .destinationRipe(if (type == MSG) Decode.bytes(input, 20).let {
+                    if (it.any { x -> x != 0.toByte() }) it else null
+                } else null)
                 .encoding(Decode.varInt(input))
                 .message(Decode.varBytes(input))
                 .ackMessage(if (type == MSG) Decode.varBytes(input) else null)

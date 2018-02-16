@@ -124,6 +124,31 @@ class SerializationTest : TestBase() {
     }
 
     @Test
+    fun `ensure plaintext without recipient can be serialized (needed for saving drafts)`() {
+        val expected = Plaintext.Builder(MSG)
+            .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
+            .message(Message.Builder()
+                .subject("Subject")
+                .body("Message")
+                .build())
+            .signature(ByteArray(0))
+            .status(Plaintext.Status.DRAFT)
+            .build()
+        val out = ByteArrayOutputStream()
+        expected.writer().write(out)
+        val input = ByteArrayInputStream(out.toByteArray())
+        val actual = Plaintext.read(MSG, input)
+        actual.status = Plaintext.Status.DRAFT // status isn't serialized, that's OK
+
+        // Received is automatically set on deserialization, so we'll need to set it to null
+        val received = Plaintext::class.java.getDeclaredField("received")
+        received.isAccessible = true
+        received.set(actual, null)
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
     fun `ensure plaintext with ack message is serialized and deserialized correctly`() {
         val expected = Plaintext.Builder(MSG)
             .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
