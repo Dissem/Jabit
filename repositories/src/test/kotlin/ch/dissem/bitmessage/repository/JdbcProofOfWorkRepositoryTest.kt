@@ -22,9 +22,6 @@ import ch.dissem.bitmessage.entity.Plaintext
 import ch.dissem.bitmessage.entity.Plaintext.Type.MSG
 import ch.dissem.bitmessage.entity.payload.GenericPayload
 import ch.dissem.bitmessage.entity.payload.GetPubkey
-import ch.dissem.bitmessage.entity.payload.ObjectPayload
-import ch.dissem.bitmessage.entity.payload.Pubkey
-import ch.dissem.bitmessage.entity.valueobject.PrivateKey
 import ch.dissem.bitmessage.ports.AddressRepository
 import ch.dissem.bitmessage.ports.MessageRepository
 import ch.dissem.bitmessage.ports.ProofOfWorkRepository.Item
@@ -32,11 +29,9 @@ import ch.dissem.bitmessage.utils.Singleton.cryptography
 import ch.dissem.bitmessage.utils.TestUtils
 import ch.dissem.bitmessage.utils.UnixTime
 import ch.dissem.bitmessage.utils.UnixTime.MINUTE
-import org.hamcrest.CoreMatchers.*
-import org.junit.Assert.assertThat
-import org.junit.Assert.assertTrue
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import kotlin.properties.Delegates
 
 /**
@@ -51,7 +46,7 @@ class JdbcProofOfWorkRepositoryTest : TestBase() {
     private var initialHash1: ByteArray by Delegates.notNull<ByteArray>()
     private var initialHash2: ByteArray by Delegates.notNull<ByteArray>()
 
-    @Before
+    @BeforeEach
     fun setUp() {
         config = TestJdbcConfig()
         config.reset()
@@ -66,9 +61,11 @@ class JdbcProofOfWorkRepositoryTest : TestBase() {
             cryptography = cryptography()
         )
 
-        repo.putObject(ObjectMessage.Builder()
-            .payload(GetPubkey(BitmessageAddress("BM-2DAjcCFrqFrp88FUxExhJ9kPqHdunQmiyn"))).build(),
-            1000, 1000)
+        repo.putObject(
+            ObjectMessage.Builder()
+                .payload(GetPubkey(BitmessageAddress("BM-2DAjcCFrqFrp88FUxExhJ9kPqHdunQmiyn"))).build(),
+            1000, 1000
+        )
         initialHash1 = repo.getItems()[0]
 
         val sender = TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8")
@@ -84,21 +81,25 @@ class JdbcProofOfWorkRepositoryTest : TestBase() {
             .build()
         messageRepo.save(plaintext)
         initialHash2 = cryptography().getInitialHash(plaintext.ackMessage!!)
-        repo.putObject(Item(
-            plaintext.ackMessage!!,
-            1000, 1000,
-            UnixTime.now + 10 * MINUTE,
-            plaintext
-        ))
+        repo.putObject(
+            Item(
+                plaintext.ackMessage!!,
+                1000, 1000,
+                UnixTime.now + 10 * MINUTE,
+                plaintext
+            )
+        )
     }
 
     @Test
     fun `ensure object is stored`() {
         val sizeBefore = repo.getItems().size
-        repo.putObject(ObjectMessage.Builder()
-            .payload(GetPubkey(BitmessageAddress("BM-2D9U2hv3YBMHM1zERP32anKfVKohyPN9x2"))).build(),
-            1000, 1000)
-        assertThat(repo.getItems().size, `is`(sizeBefore + 1))
+        repo.putObject(
+            ObjectMessage.Builder()
+                .payload(GetPubkey(BitmessageAddress("BM-2D9U2hv3YBMHM1zERP32anKfVKohyPN9x2"))).build(),
+            1000, 1000
+        )
+        assertEquals(sizeBefore + 1, repo.getItems().size)
     }
 
     @Test
@@ -116,40 +117,42 @@ class JdbcProofOfWorkRepositoryTest : TestBase() {
             .status(Plaintext.Status.DOING_PROOF_OF_WORK)
             .build()
         messageRepo.save(plaintext)
-        repo.putObject(Item(
-            plaintext.ackMessage!!,
-            1000, 1000,
-            UnixTime.now + 10 * MINUTE,
-            plaintext
-        ))
-        assertThat(repo.getItems().size, `is`(sizeBefore + 1))
+        repo.putObject(
+            Item(
+                plaintext.ackMessage!!,
+                1000, 1000,
+                UnixTime.now + 10 * MINUTE,
+                plaintext
+            )
+        )
+        assertEquals(sizeBefore + 1, repo.getItems().size)
     }
 
     @Test
     fun `ensure item can be retrieved`() {
         val item = repo.getItem(initialHash1)
-        assertThat(item, notNullValue())
-        assertThat<ObjectPayload>(item.objectMessage.payload, instanceOf<ObjectPayload>(GetPubkey::class.java))
-        assertThat(item.nonceTrialsPerByte, `is`(1000L))
-        assertThat(item.extraBytes, `is`(1000L))
+        assertTrue(item.objectMessage.payload is GetPubkey)
+        assertEquals(1000L, item.nonceTrialsPerByte)
+        assertEquals(1000L, item.extraBytes)
     }
 
     @Test
     fun `ensure ack item can be retrieved`() {
         val item = repo.getItem(initialHash2)
-        assertThat(item, notNullValue())
-        assertThat<ObjectPayload>(item.objectMessage.payload, instanceOf<ObjectPayload>(GenericPayload::class.java))
-        assertThat(item.nonceTrialsPerByte, `is`(1000L))
-        assertThat(item.extraBytes, `is`(1000L))
-        assertThat(item.expirationTime, not<Number>(0))
-        assertThat(item.message, notNullValue())
-        assertThat<PrivateKey>(item.message?.from?.privateKey, notNullValue())
-        assertThat<Pubkey>(item.message?.to?.pubkey, notNullValue())
+        assertTrue(item.objectMessage.payload is GenericPayload)
+        assertEquals(1000L, item.nonceTrialsPerByte)
+        assertEquals(1000L, item.extraBytes)
+        assertTrue(item.expirationTime ?: 0L > 0L)
+        assertNotNull(item.message)
+        assertNotNull(item.message?.from?.privateKey)
+        assertNotNull(item.message?.to?.pubkey)
     }
 
-    @Test(expected = RuntimeException::class)
+    @Test
     fun `ensure retrieving nonexisting item causes exception`() {
-        repo.getItem(ByteArray(0))
+        assertThrows(RuntimeException::class.java) {
+            repo.getItem(ByteArray(0))
+        }
     }
 
     @Test

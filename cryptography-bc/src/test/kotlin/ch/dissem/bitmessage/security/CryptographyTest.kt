@@ -22,14 +22,15 @@ import ch.dissem.bitmessage.entity.payload.GenericPayload
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey
 import ch.dissem.bitmessage.exception.InsufficientProofOfWorkException
 import ch.dissem.bitmessage.ports.MultiThreadedPOWEngine
-import ch.dissem.bitmessage.ports.ProofOfWorkEngine
-import ch.dissem.bitmessage.utils.*
+import ch.dissem.bitmessage.utils.CallbackWaiter
+import ch.dissem.bitmessage.utils.Singleton
+import ch.dissem.bitmessage.utils.TestUtils
+import ch.dissem.bitmessage.utils.UnixTime
 import ch.dissem.bitmessage.utils.UnixTime.DAY
 import ch.dissem.bitmessage.utils.UnixTime.MINUTE
 import ch.dissem.bitmessage.utils.UnixTime.now
-import org.hamcrest.CoreMatchers.`is`
-import org.junit.Assert.*
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 import java.io.ByteArrayInputStream
 import javax.xml.bind.DatatypeConverter
 
@@ -63,7 +64,7 @@ class CryptographyTest {
         assertArrayEquals(crypto.sha512(TEST_SHA512), crypto.doubleSha512(TEST_VALUE))
     }
 
-    @Test(expected = InsufficientProofOfWorkException::class)
+    @Test
     fun `ensure exception for insufficient proof of work`() {
         val objectMessage = ObjectMessage.Builder()
             .nonce(ByteArray(8))
@@ -71,7 +72,9 @@ class CryptographyTest {
             .objectType(0)
             .payload(GenericPayload.read(0, 1, ByteArrayInputStream(ByteArray(0)), 0))
             .build()
-        crypto.checkProofOfWork(objectMessage, 1000, 1000)
+        assertThrows(InsufficientProofOfWorkException::class.java) {
+            crypto.checkProofOfWork(objectMessage, 1000, 1000)
+        }
     }
 
     @Test
@@ -94,7 +97,7 @@ class CryptographyTest {
         try {
             crypto.checkProofOfWork(objectMessage, 1000, 1000)
         } catch (e: InsufficientProofOfWorkException) {
-            fail(e.message)
+            fail<Unit>(e.message)
         }
     }
 
@@ -108,12 +111,14 @@ class CryptographyTest {
         assertArrayEquals(data, decrypted)
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun `ensure decryption fails with invalid cypher text`() {
         val data = crypto.randomBytes(128)
         val key_e = crypto.randomBytes(32)
         val iv = crypto.randomBytes(16)
-        crypto.crypt(false, data, key_e, iv)
+        assertThrows(IllegalArgumentException::class.java) {
+            crypto.crypt(false, data, key_e, iv)
+        }
     }
 
     @Test
@@ -132,7 +137,7 @@ class CryptographyTest {
         val data = crypto.randomBytes(100)
         val privateKey = PrivateKey(false, 1, 1000, 1000)
         val signature = crypto.getSignature(data, privateKey)
-        assertThat(crypto.isSignatureValid(data, signature, privateKey.pubkey), `is`(true))
+        assertTrue(crypto.isSignatureValid(data, signature, privateKey.pubkey))
     }
 
     @Test
@@ -141,18 +146,24 @@ class CryptographyTest {
         val privateKey = PrivateKey(false, 1, 1000, 1000)
         val signature = crypto.getSignature(data, privateKey)
         data[0]++
-        assertThat(crypto.isSignatureValid(data, signature, privateKey.pubkey), `is`(false))
+        assertFalse(crypto.isSignatureValid(data, signature, privateKey.pubkey))
     }
 
     companion object {
         val TEST_VALUE = "teststring".toByteArray()
-        val TEST_SHA1 = DatatypeConverter.parseHexBinary(""
-            + "b8473b86d4c2072ca9b08bd28e373e8253e865c4")
-        val TEST_SHA512 = DatatypeConverter.parseHexBinary(""
-            + "6253b39071e5df8b5098f59202d414c37a17d6a38a875ef5f8c7d89b0212b028"
-            + "692d3d2090ce03ae1de66c862fa8a561e57ed9eb7935ce627344f742c0931d72")
-        val TEST_RIPEMD160 = DatatypeConverter.parseHexBinary(""
-            + "cd566972b5e50104011a92b59fa8e0b1234851ae")
+        val TEST_SHA1 = DatatypeConverter.parseHexBinary(
+            ""
+                + "b8473b86d4c2072ca9b08bd28e373e8253e865c4"
+        )
+        val TEST_SHA512 = DatatypeConverter.parseHexBinary(
+            ""
+                + "6253b39071e5df8b5098f59202d414c37a17d6a38a875ef5f8c7d89b0212b028"
+                + "692d3d2090ce03ae1de66c862fa8a561e57ed9eb7935ce627344f742c0931d72"
+        )
+        val TEST_RIPEMD160 = DatatypeConverter.parseHexBinary(
+            ""
+                + "cd566972b5e50104011a92b59fa8e0b1234851ae"
+        )
 
         private val crypto = BouncyCryptography()
 

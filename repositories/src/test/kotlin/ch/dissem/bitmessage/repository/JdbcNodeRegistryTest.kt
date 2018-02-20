@@ -19,11 +19,10 @@ package ch.dissem.bitmessage.repository
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress
 import ch.dissem.bitmessage.ports.NodeRegistry
 import ch.dissem.bitmessage.utils.UnixTime.now
-import org.hamcrest.Matchers.empty
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThat
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import java.util.*
 
 /**
@@ -34,23 +33,25 @@ class JdbcNodeRegistryTest : TestBase() {
     private lateinit var config: TestJdbcConfig
     private lateinit var registry: NodeRegistry
 
-    @Before
+    @BeforeEach
     fun setUp() {
         config = TestJdbcConfig()
         config.reset()
         registry = JdbcNodeRegistry(config)
 
-        registry.offerAddresses(Arrays.asList(
+        registry.offerAddresses(
+            Arrays.asList(
                 createAddress(1, 8444, 1, now),
                 createAddress(2, 8444, 1, now),
                 createAddress(3, 8444, 1, now),
                 createAddress(4, 8444, 2, now)
-        ))
+            )
+        )
     }
 
     @Test
     fun `ensure getKnownNodes() without streams yields empty`() {
-        assertThat(registry.getKnownAddresses(10), empty<NetworkAddress>())
+        assertTrue(registry.getKnownAddresses(10).isEmpty())
     }
 
     @Test
@@ -71,11 +72,13 @@ class JdbcNodeRegistryTest : TestBase() {
 
     @Test
     fun `ensure offered addresses are added`() {
-        registry.offerAddresses(Arrays.asList(
+        registry.offerAddresses(
+            Arrays.asList(
                 createAddress(1, 8444, 1, now),
                 createAddress(10, 8444, 1, now),
                 createAddress(11, 8444, 1, now)
-        ))
+            )
+        )
 
         var knownAddresses = registry.getKnownAddresses(1000, 1)
         assertEquals(5, knownAddresses.size.toLong())
@@ -88,10 +91,10 @@ class JdbcNodeRegistryTest : TestBase() {
 
     private fun createAddress(lastByte: Int, port: Int, stream: Long, time: Long): NetworkAddress {
         return NetworkAddress.Builder()
-                .ipv6(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, lastByte)
-                .port(port)
-                .stream(stream)
-                .time(time)
-                .build()
+            .ipv6(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, lastByte)
+            .port(port)
+            .stream(stream)
+            .time(time)
+            .build()
     }
 }

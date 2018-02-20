@@ -39,16 +39,16 @@ import com.nhaarman.mockito_kotlin.any
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.times
 import com.nhaarman.mockito_kotlin.verify
-import org.junit.Assert.*
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 class WifImporterTest {
     private val repo = mock<AddressRepository>()
     private lateinit var ctx: BitmessageContext
     private lateinit var importer: WifImporter
 
-    @Before
+    @BeforeEach
     fun setUp() {
         ctx = BitmessageContext.build {
             cryptography = BouncyCryptography()
@@ -81,7 +81,7 @@ class WifImporterTest {
         assertEquals("Nuked Address", identity.alias)
         assertEquals(320L, identity.pubkey?.nonceTrialsPerByte)
         assertEquals(14000L, identity.pubkey?.extraBytes)
-        assertNotNull("Private key", identity.privateKey)
+        assertNotNull(identity.privateKey, "Private key")
         assertEquals(32, identity.privateKey?.privateEncryptionKey?.size)
         assertEquals(32, identity.privateKey?.privateSigningKey?.size)
         assertFalse(identity.isChan)

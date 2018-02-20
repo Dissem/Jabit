@@ -16,14 +16,12 @@
 
 package ch.dissem.bitmessage.utils
 
-import org.junit.Test
-
-import org.junit.Assert.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 
 class SqlStringsTest {
     @Test
     fun `ensure join works with long array`() {
-        val test = longArrayOf(1L, 2L)
-        assertEquals("1, 2", SqlStrings.join(*test))
+        assertEquals("1, 2", SqlStrings.join(1L, 2L))
     }
 }

@@ -26,9 +26,9 @@ import ch.dissem.bitmessage.entity.valueobject.InventoryVector
 import ch.dissem.bitmessage.ports.Inventory
 import ch.dissem.bitmessage.utils.UnixTime.DAY
 import ch.dissem.bitmessage.utils.UnixTime.now
-import org.junit.Assert.*
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import java.util.*
 
 class JdbcInventoryTest : TestBase() {
@@ -39,7 +39,7 @@ class JdbcInventoryTest : TestBase() {
     private lateinit var inventoryVector2: InventoryVector
     private lateinit var inventoryVectorIgnore: InventoryVector
 
-    @Before
+    @BeforeEach
     fun setUp() {
         config = TestJdbcConfig()
         config.reset()

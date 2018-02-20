@@ -16,17 +16,12 @@
 
 package ch.dissem.bitmessage.utils
 
-import org.junit.Test
-
-import java.util.LinkedList
-
-import org.junit.Assert.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 
 class CollectionsTest {
     @Test
     fun `ensure select random returns maximum possible items`() {
-        val list = LinkedList<Int>()
-        list += 0..9
-        assertEquals(9, Collections.selectRandom(9, list).size)
+        assertEquals(9, Collections.selectRandom(9, listOf(0..9)).size)
     }
 }

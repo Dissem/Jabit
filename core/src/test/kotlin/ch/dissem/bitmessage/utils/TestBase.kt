@@ -17,15 +17,16 @@
 package ch.dissem.bitmessage.utils
 
 import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography
-import org.junit.BeforeClass
+import org.junit.jupiter.api.BeforeAll
 
 /**
  * @author Christian Basler
  */
 open class TestBase {
     companion object {
-        @BeforeClass
-        @JvmStatic fun setUpClass() {
+        @BeforeAll
+        @JvmStatic
+        fun setUpClass() {
             Singleton.initialize(BouncyCryptography())
         }
     }

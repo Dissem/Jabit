@@ -22,16 +22,15 @@ import ch.dissem.bitmessage.entity.payload.Pubkey.Feature.INCLUDE_DESTINATION
 import ch.dissem.bitmessage.entity.payload.V4Pubkey
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey
 import ch.dissem.bitmessage.utils.*
-import org.junit.Assert
-import org.junit.Assert.*
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 import java.io.IOException
 import java.util.*
 
 class BitmessageAddressTest : TestBase() {
     @Test
     fun `ensure feature flag is calculated correctly`() {
-        Assert.assertEquals(1, Pubkey.Feature.bitfield(DOES_ACK))
+        assertEquals(1, Pubkey.Feature.bitfield(DOES_ACK))
         assertEquals(2, Pubkey.Feature.bitfield(INCLUDE_DESTINATION))
         assertEquals(3, Pubkey.Feature.bitfield(DOES_ACK, INCLUDE_DESTINATION))
     }
@@ -74,7 +73,7 @@ class BitmessageAddressTest : TestBase() {
         try {
             address.pubkey = pubkey
         } catch (e: Exception) {
-            fail(e.message)
+            fail<Unit>(e.message)
         }
 
     }
@@ -82,7 +81,7 @@ class BitmessageAddressTest : TestBase() {
     @Test
     fun `ensure V3Pubkey can be imported`() {
         val address = BitmessageAddress("BM-2D9Vc5rFxxR5vTi53T9gkLfemViHRMVLQZ")
-        Assert.assertArrayEquals(Bytes.fromHex("007402be6e76c3cb87caa946d0c003a3d4d8e1d5"), address.ripe)
+        assertArrayEquals(Bytes.fromHex("007402be6e76c3cb87caa946d0c003a3d4d8e1d5"), address.ripe)
 
         val objectMessage = TestUtils.loadObjectMessage(3, "V3Pubkey.payload")
         val pubkey = objectMessage.payload as Pubkey
@@ -90,7 +89,7 @@ class BitmessageAddressTest : TestBase() {
         try {
             address.pubkey = pubkey
         } catch (e: Exception) {
-            fail(e.message)
+            fail<Unit>(e.message)
         }
 
         assertArrayEquals(Bytes.fromHex("007402be6e76c3cb87caa946d0c003a3d4d8e1d5"), pubkey.ripe)
@@ -107,7 +106,7 @@ class BitmessageAddressTest : TestBase() {
         try {
             address.pubkey = pubkey
         } catch (e: Exception) {
-            fail(e.message)
+            fail<Unit>(e.message)
         }
 
         assertTrue(address.has(DOES_ACK))

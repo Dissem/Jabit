@@ -29,7 +29,7 @@ import ch.dissem.bitmessage.factory.Factory
 import ch.dissem.bitmessage.ports.*
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.spy
-import org.junit.Assert.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -54,7 +54,8 @@ object TestUtils {
     fun loadObjectMessage(version: Int, resourceName: String): ObjectMessage {
         val data = getBytes(resourceName)
         val input = ByteArrayInputStream(data)
-        return Factory.getObjectMessage(version, input, data.size) ?: throw NoSuchElementException("error loading object message")
+        return Factory.getObjectMessage(version, input, data.size)
+            ?: throw NoSuchElementException("error loading object message")
     }
 
     @JvmStatic

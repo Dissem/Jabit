@@ -28,10 +28,9 @@ import ch.dissem.bitmessage.ports.ProofOfWorkRepository
 import ch.dissem.bitmessage.utils.Singleton
 import ch.dissem.bitmessage.utils.TestUtils
 import com.nhaarman.mockito_kotlin.*
-import org.hamcrest.CoreMatchers.equalTo
-import org.junit.Assert.assertThat
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import java.util.*
 import kotlin.properties.Delegates
 
@@ -44,7 +43,7 @@ class ProofOfWorkServiceTest {
 
     private var obj by Delegates.notNull<ObjectMessage>()
 
-    @Before
+    @BeforeEach
     fun setUp() {
         cryptography = spy(BouncyCryptography())
         Singleton.initialize(cryptography)
@@ -96,6 +95,6 @@ class ProofOfWorkServiceTest {
         verify(ctx.proofOfWorkRepository).removeObject(eq(initialHash))
         verify(ctx.inventory).storeObject(eq(objectMessage))
         verify(ctx.networkHandler).offer(eq(objectMessage.inventoryVector))
-        assertThat(plaintext.inventoryVector, equalTo(objectMessage.inventoryVector))
+        assertEquals(objectMessage.inventoryVector, plaintext.inventoryVector)
     }
 }

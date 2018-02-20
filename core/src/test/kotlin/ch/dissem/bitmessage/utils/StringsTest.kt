@@ -16,9 +16,8 @@
 
 package ch.dissem.bitmessage.utils
 
-import org.junit.Test
-
-import org.junit.Assert.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 
 class StringsTest {
     @Test

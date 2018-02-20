@@ -18,15 +18,15 @@ package ch.dissem.bitmessage.repository
 
 import ch.dissem.bitmessage.entity.valueobject.Label
 import ch.dissem.bitmessage.ports.LabelRepository
-import org.junit.Assert.assertEquals
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 class JdbcLabelRepositoryTest : TestBase() {
 
     private lateinit var repo: LabelRepository
 
-    @Before
+    @BeforeEach
     fun setUp() {
         val config = TestJdbcConfig()
         config.reset()

@@ -19,10 +19,8 @@ package ch.dissem.bitmessage.exports
 import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography
 import ch.dissem.bitmessage.entity.BitmessageAddress
 import ch.dissem.bitmessage.utils.TestUtils
-import org.hamcrest.CoreMatchers.`is`
-import org.hamcrest.CoreMatchers.nullValue
-import org.junit.Assert.assertThat
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 
 class ContactExportTest {
 
@@ -42,7 +40,7 @@ class ContactExportTest {
         )
         val export = ContactExport.exportContacts(contacts)
         print(export.toJsonString(true))
-        assertThat(ContactExport.importContacts(export), `is`(contacts))
+        assertEquals(contacts, ContactExport.importContacts(export))
     }
 
     @Test
@@ -53,9 +51,9 @@ class ContactExportTest {
         val export = ContactExport.exportContacts(contacts)
         print(export.toJsonString(true))
         val import = ContactExport.importContacts(export)
-        assertThat(import.size, `is`(1))
-        assertThat(import[0].isChan, `is`(true))
-        assertThat(import[0].privateKey, `is`(nullValue()))
+        assertEquals(1, import.size)
+        assertTrue(import[0].isChan)
+        assertNull(import[0].privateKey)
     }
 
     @Test
@@ -66,8 +64,9 @@ class ContactExportTest {
         val export = ContactExport.exportContacts(contacts, true)
         print(export.toJsonString(true))
         val import = ContactExport.importContacts(export)
-        assertThat(import.size, `is`(1))
-        assertThat(import[0].isChan, `is`(true))
-        assertThat(import[0].privateKey, `is`(contacts[0].privateKey))
+
+        assertEquals(1, import.size)
+        assertTrue(import[0].isChan)
+        assertEquals(contacts[0].privateKey, import[0].privateKey)
     }
 }

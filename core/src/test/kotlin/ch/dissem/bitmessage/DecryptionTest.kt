@@ -21,9 +21,9 @@ import ch.dissem.bitmessage.entity.payload.V4Broadcast
 import ch.dissem.bitmessage.entity.payload.V5Broadcast
 import ch.dissem.bitmessage.utils.TestBase
 import ch.dissem.bitmessage.utils.TestUtils
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
 class DecryptionTest : TestBase() {
     @Test

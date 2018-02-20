@@ -13,9 +13,11 @@ uploadArchives {
 dependencies {
     compile project(':core')
     compile 'org.flywaydb:flyway-core'
-    testCompile 'junit:junit'
     testCompile 'com.h2database:h2'
+    testCompile 'org.hamcrest:java-hamcrest'
     testCompile 'com.nhaarman:mockito-kotlin'
+    testCompile 'org.junit.jupiter:junit-jupiter-api'
+    testRuntime 'org.junit.jupiter:junit-jupiter-engine'
     testCompile project(path: ':core', configuration: 'testArtifacts')
     testCompile project(':cryptography-bc')
 }

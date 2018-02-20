@@ -23,8 +23,8 @@ import ch.dissem.bitmessage.entity.payload.Pubkey
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey
 import ch.dissem.bitmessage.utils.TestBase
 import ch.dissem.bitmessage.utils.TestUtils
-import org.junit.Assert.*
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 
 class SignatureTest : TestBase() {
     @Test

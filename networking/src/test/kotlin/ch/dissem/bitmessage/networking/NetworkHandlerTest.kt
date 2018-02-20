@@ -29,17 +29,11 @@ import ch.dissem.bitmessage.testutils.TestInventory
 import ch.dissem.bitmessage.utils.Property
 import ch.dissem.bitmessage.utils.Singleton.cryptography
 import com.nhaarman.mockito_kotlin.mock
-import org.hamcrest.Matchers.`is`
-import org.hamcrest.Matchers.notNullValue
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThat
-import org.junit.Before
-import org.junit.Rule
-import org.junit.Test
-import org.junit.rules.DisableOnDebug
-import org.junit.rules.TestRule
-import org.junit.rules.Timeout
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 
 /**
@@ -58,11 +52,7 @@ class NetworkHandlerTest {
     private lateinit var peerNetworkHandler: NetworkHandler
     private lateinit var nodeNetworkHandler: NetworkHandler
 
-    @JvmField
-    @Rule
-    val timeout: TestRule = DisableOnDebug(Timeout.seconds(60))
-
-    @Before
+    @BeforeEach
     fun setUp() {
         peerInventory = TestInventory()
         peerNetworkHandler = NioNetworkHandler()
@@ -125,7 +115,7 @@ class NetworkHandlerTest {
         }
     }
 
-    @After
+    @AfterEach
     fun cleanUp() {
         shutdown(peer)
         shutdown(node)
@@ -148,8 +138,8 @@ class NetworkHandlerTest {
         val nodeStatus = waitForNetworkStatus(node)
         val peerStatus = waitForNetworkStatus(peer)
 
-        assertEquals(1, nodeStatus.getProperty("outgoing")!!.value)
-        assertEquals(1, peerStatus.getProperty("incoming")!!.value)
+        assertEquals(1, nodeStatus.getProperty("outgoing")?.value)
+        assertEquals(1, peerStatus.getProperty("incoming")?.value)
     }
 
     @Test
@@ -161,22 +151,20 @@ class NetworkHandlerTest {
 
         val response = nodeNetworkHandler.send(peerAddress.toInetAddress(), peerAddress.port, request)
 
-        assertThat(response, notNullValue())
-        assertThat(response.customCommand, `is`("test response"))
-        assertThat(response.getData(), `is`(data))
+        assertNotNull(response)
+        assertEquals("test response", response.customCommand)
+        assertEquals(data, response.getData())
     }
 
-    @Test(expected = NodeException::class)
+    @Test
     fun `ensure CustomMessage without response yields exception`() {
-        val data = cryptography().randomBytes(8)
-        data[0] = 0.toByte()
-        val request = CustomMessage("test request", data)
+        assertThrows(NodeException::class.java) {
+            val data = cryptography().randomBytes(8)
+            data[0] = 0.toByte()
+            val request = CustomMessage("test request", data)
 
-        val response = nodeNetworkHandler.send(peerAddress.toInetAddress(), peerAddress.port, request)
-
-        assertThat(response, notNullValue())
-        assertThat(response.customCommand, `is`("test response"))
-        assertThat(response.getData(), `is`(request.getData()))
+            nodeNetworkHandler.send(peerAddress.toInetAddress(), peerAddress.port, request)
+        }
     }
 
     @Test

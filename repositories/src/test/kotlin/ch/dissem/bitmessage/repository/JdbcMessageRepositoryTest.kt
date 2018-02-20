@@ -35,10 +35,12 @@ import org.hamcrest.BaseMatcher
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.Description
 import org.hamcrest.Matcher
+import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.*
-import org.junit.Assert.*
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import java.util.*
 
 class JdbcMessageRepositoryTest : TestBase() {
@@ -54,7 +56,7 @@ class JdbcMessageRepositoryTest : TestBase() {
     private lateinit var drafts: Label
     private lateinit var unread: Label
 
-    @Before
+    @BeforeEach
     fun setUp() {
         val config = TestJdbcConfig()
         config.reset()
@@ -230,6 +232,7 @@ class JdbcMessageRepositoryTest : TestBase() {
         val parent = storeConversation()
 
         val responses = repo.findResponses(parent)
+
         assertThat(responses, hasSize<Plaintext>(2))
         assertThat(responses, hasItem(hasMessage("Re: new test", "Nice!")))
         assertThat(responses, hasItem(hasMessage("Re: new test", "PS: it did work!")))

@@ -37,9 +37,10 @@ import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography
 import ch.dissem.bitmessage.ports.AddressRepository
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.whenever
-import org.junit.Assert.assertEquals
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assumptions.assumeTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 class WifExporterTest {
     private val repo = mock<AddressRepository>()
@@ -47,7 +48,7 @@ class WifExporterTest {
     private lateinit var importer: WifImporter
     private lateinit var exporter: WifExporter
 
-    @Before
+    @BeforeEach
     fun setUp() {
         ctx = BitmessageContext.build {
             cryptography = BouncyCryptography()
@@ -61,7 +62,7 @@ class WifExporterTest {
             listener {}
         }
         importer = WifImporter(ctx, javaClass.classLoader.getResourceAsStream("nuked.dat"))
-        assertEquals(81, importer.getIdentities().size)
+        assumeTrue(importer.getIdentities().size == 81)
         exporter = WifExporter(ctx)
     }
 
@@ -70,10 +71,7 @@ class WifExporterTest {
         whenever(repo.getIdentities()).thenReturn(importer.getIdentities())
         exporter.addAll()
         val result = exporter.toString()
-        var count = 0
-        for (i in 0..result.length - 1) {
-            if (result[i] == '[') count++
-        }
+        val count = result.count { it == '[' }
         assertEquals(importer.getIdentities().size, count)
     }
 
@@ -81,10 +79,7 @@ class WifExporterTest {
     fun `ensure all from a collection are added`() {
         exporter.addAll(importer.getIdentities())
         val result = exporter.toString()
-        var count = 0
-        for (i in 0..result.length - 1) {
-            if (result[i] == '[') count++
-        }
+        val count = result.count { it == '[' }
         assertEquals(importer.getIdentities().size, count)
     }
 

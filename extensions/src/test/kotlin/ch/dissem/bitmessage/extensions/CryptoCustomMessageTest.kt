@@ -21,16 +21,14 @@ import ch.dissem.bitmessage.entity.CustomMessage
 import ch.dissem.bitmessage.entity.payload.GenericPayload
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey
 import ch.dissem.bitmessage.extensions.pow.ProofOfWorkRequest
+import ch.dissem.bitmessage.utils.Singleton.cryptography
 import ch.dissem.bitmessage.utils.TestBase
 import ch.dissem.bitmessage.utils.TestUtils
-import org.junit.Test
-
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
-
-import ch.dissem.bitmessage.utils.Singleton.cryptography
-import org.junit.Assert.assertEquals
 
 class CryptoCustomMessageTest : TestBase() {
     @Test
@@ -40,7 +38,10 @@ class CryptoCustomMessageTest : TestBase() {
 
         val payloadBefore = GenericPayload(0, 1, cryptography().randomBytes(100))
         val messageBefore = CryptoCustomMessage(payloadBefore)
-        messageBefore.signAndEncrypt(sendingIdentity, cryptography().createPublicKey(sendingIdentity.publicDecryptionKey))
+        messageBefore.signAndEncrypt(
+            sendingIdentity,
+            cryptography().createPublicKey(sendingIdentity.publicDecryptionKey)
+        )
 
         val out = ByteArrayOutputStream()
         messageBefore.writer().write(out)
@@ -48,10 +49,10 @@ class CryptoCustomMessageTest : TestBase() {
 
         val customMessage = CustomMessage.read(input, out.size())
         val messageAfter = CryptoCustomMessage.read(customMessage,
-                object : CryptoCustomMessage.Reader<GenericPayload> {
-                    override fun read(sender: BitmessageAddress, input: InputStream) =
-                        GenericPayload.read(0, 1, input, 100)
-                })
+            object : CryptoCustomMessage.Reader<GenericPayload> {
+                override fun read(sender: BitmessageAddress, input: InputStream) =
+                    GenericPayload.read(0, 1, input, 100)
+            })
         val payloadAfter = messageAfter.decrypt(sendingIdentity.publicDecryptionKey)
 
         assertEquals(payloadBefore, payloadAfter)
@@ -62,11 +63,16 @@ class CryptoCustomMessageTest : TestBase() {
         val privateKey = PrivateKey.read(TestUtils.getResource("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8.privkey"))
         val sendingIdentity = BitmessageAddress(privateKey)
 
-        val requestBefore = ProofOfWorkRequest(sendingIdentity, cryptography().randomBytes(64),
-                ProofOfWorkRequest.Request.CALCULATE)
+        val requestBefore = ProofOfWorkRequest(
+            sendingIdentity, cryptography().randomBytes(64),
+            ProofOfWorkRequest.Request.CALCULATE
+        )
 
         val messageBefore = CryptoCustomMessage(requestBefore)
-        messageBefore.signAndEncrypt(sendingIdentity, cryptography().createPublicKey(sendingIdentity.publicDecryptionKey))
+        messageBefore.signAndEncrypt(
+            sendingIdentity,
+            cryptography().createPublicKey(sendingIdentity.publicDecryptionKey)
+        )
 
 
         val out = ByteArrayOutputStream()
@@ -74,8 +80,10 @@ class CryptoCustomMessageTest : TestBase() {
         val input = ByteArrayInputStream(out.toByteArray())
 
         val customMessage = CustomMessage.read(input, out.size())
-        val messageAfter = CryptoCustomMessage.read(customMessage,
-                ProofOfWorkRequest.Reader(sendingIdentity))
+        val messageAfter = CryptoCustomMessage.read(
+            customMessage,
+            ProofOfWorkRequest.Reader(sendingIdentity)
+        )
         val requestAfter = messageAfter.decrypt(sendingIdentity.publicDecryptionKey)
 
         assertEquals(requestBefore, requestAfter)

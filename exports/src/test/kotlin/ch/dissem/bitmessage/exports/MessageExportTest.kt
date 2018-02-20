@@ -23,23 +23,22 @@ import ch.dissem.bitmessage.entity.valueobject.Label
 import ch.dissem.bitmessage.utils.ConversationServiceTest
 import ch.dissem.bitmessage.utils.Singleton
 import ch.dissem.bitmessage.utils.TestUtils
-import org.hamcrest.CoreMatchers.`is`
-import org.junit.Assert.assertThat
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 
 class MessageExportTest {
-    val inbox = Label("Inbox", Label.Type.INBOX, 0x0000ff)
-    val outbox = Label("Outbox", Label.Type.OUTBOX, 0x00ff00)
-    val unread = Label("Unread", Label.Type.UNREAD, 0x000000)
-    val trash = Label("Trash", Label.Type.TRASH, 0x555555)
+    private val inbox = Label("Inbox", Label.Type.INBOX, 0x0000ff)
+    private val outbox = Label("Outbox", Label.Type.OUTBOX, 0x00ff00)
+    private val unread = Label("Unread", Label.Type.UNREAD, 0x000000)
+    private val trash = Label("Trash", Label.Type.TRASH, 0x555555)
 
-    val labels = listOf(
+    private val labels = listOf(
         inbox,
         outbox,
         unread,
         trash
     )
-    val labelMap = MessageExport.createLabelMap(labels)
+    private val labelMap = MessageExport.createLabelMap(labels)
 
     init {
         TestUtils.mockedInternalContext(cryptography = BouncyCryptography())
@@ -49,7 +48,7 @@ class MessageExportTest {
     fun `ensure labels are exported`() {
         val export = MessageExport.exportLabels(labels)
         print(export.toJsonString(true))
-        assertThat(MessageExport.importLabels(export), `is`(labels))
+        assertEquals(labels, MessageExport.importLabels(export))
     }
 
     @Test
@@ -84,6 +83,6 @@ class MessageExportTest {
         )
         val export = MessageExport.exportMessages(messages)
         print(export.toJsonString(true))
-        assertThat(MessageExport.importMessages(export, labelMap), `is`(messages))
+        assertEquals(messages, MessageExport.importMessages(export, labelMap))
     }
 }

@@ -35,11 +35,9 @@ import ch.dissem.bitmessage.utils.TTL
 import ch.dissem.bitmessage.utils.TestUtils
 import ch.dissem.bitmessage.utils.UnixTime.MINUTE
 import com.nhaarman.mockito_kotlin.*
-import org.hamcrest.CoreMatchers.`is`
-import org.hamcrest.CoreMatchers.notNullValue
-import org.junit.Assert.*
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import java.util.*
 import kotlin.concurrent.thread
 
@@ -55,7 +53,8 @@ class BitmessageContextTest {
         internal var removed = 0
 
         override fun getItem(initialHash: ByteArray): ProofOfWorkRepository.Item {
-            return items[InventoryVector(initialHash)] ?: throw IllegalArgumentException("${hex(initialHash)} not found in $items")
+            return items[InventoryVector(initialHash)]
+                ?: throw IllegalArgumentException("${hex(initialHash)} not found in $items")
         }
 
         override fun getItems(): List<ByteArray> {
@@ -72,7 +71,10 @@ class BitmessageContextTest {
         }
 
         override fun putObject(objectMessage: ObjectMessage, nonceTrialsPerByte: Long, extraBytes: Long) {
-            items.put(InventoryVector(cryptography().getInitialHash(objectMessage)), ProofOfWorkRepository.Item(objectMessage, nonceTrialsPerByte, extraBytes))
+            items.put(
+                InventoryVector(cryptography().getInitialHash(objectMessage)),
+                ProofOfWorkRepository.Item(objectMessage, nonceTrialsPerByte, extraBytes)
+            )
             added++
         }
 
@@ -113,7 +115,7 @@ class BitmessageContextTest {
         TTL.msg = 2 * MINUTE
     }
 
-    @Before
+    @BeforeEach
     fun setUp() {
         testPowRepo.reset()
     }
@@ -202,60 +204,73 @@ class BitmessageContextTest {
         ctx.addSubscribtion(address)
 
         verify(ctx.addresses, atLeastOnce()).save(address)
-        assertThat(address.isSubscribed, `is`(true))
+        assertTrue(address.isSubscribed)
         verify(ctx.internals.inventory).getObjects(eq(address.stream), any(), any())
         verify(testListener).receive(any())
     }
 
     @Test
     fun `ensure identity is created`() {
-        assertThat(ctx.createIdentity(false), notNullValue())
+        assertNotNull(ctx.createIdentity(false))
     }
 
     @Test
     fun `ensure message is sent`() {
-        ctx.send(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"), TestUtils.loadContact(),
-            "Subject", "Message")
+        ctx.send(
+            TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"), TestUtils.loadContact(),
+            "Subject", "Message"
+        )
         verify(ctx.internals.proofOfWorkRepository, timeout(10000)).putObject(
-            argThat { payload.type == ObjectType.MSG }, eq(1000L), eq(1000L))
+            argThat { payload.type == ObjectType.MSG }, eq(1000L), eq(1000L)
+        )
         assertEquals(2, testPowRepo.added)
         verify(ctx.messages, timeout(10000).atLeastOnce()).save(argThat<Plaintext> { type == Type.MSG })
     }
 
     @Test
     fun `ensure pubkey is requested if it is missing`() {
-        ctx.send(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"),
+        ctx.send(
+            TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"),
             BitmessageAddress("BM-opWQhvk9xtMFvQA2Kvetedpk8LkbraWHT"),
-            "Subject", "Message")
+            "Subject", "Message"
+        )
         verify(testPowRepo, timeout(10000).atLeastOnce())
             .putObject(argThat { payload.type == ObjectType.GET_PUBKEY }, eq(1000L), eq(1000L))
         verify(ctx.messages, timeout(10000).atLeastOnce()).save(argThat<Plaintext> { type == Type.MSG })
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun `ensure sender must be identity`() {
-        ctx.send(BitmessageAddress("BM-opWQhvk9xtMFvQA2Kvetedpk8LkbraWHT"),
-            BitmessageAddress("BM-opWQhvk9xtMFvQA2Kvetedpk8LkbraWHT"),
-            "Subject", "Message")
+        assertThrows(IllegalArgumentException::class.java) {
+            ctx.send(
+                BitmessageAddress("BM-opWQhvk9xtMFvQA2Kvetedpk8LkbraWHT"),
+                BitmessageAddress("BM-opWQhvk9xtMFvQA2Kvetedpk8LkbraWHT"),
+                "Subject", "Message"
+            )
+        }
     }
 
     @Test
     fun `ensure broadcast is sent`() {
-        ctx.broadcast(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"),
-            "Subject", "Message")
+        ctx.broadcast(
+            TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"),
+            "Subject", "Message"
+        )
         verify(ctx.internals.proofOfWorkRepository, timeout(1000).atLeastOnce())
             .putObject(argThat { payload.type == ObjectType.BROADCAST }, eq(1000L), eq(1000L))
         verify(testPowEngine).calculateNonce(any(), any(), any<ProofOfWorkEngine.Callback>())
         verify(ctx.messages, timeout(10000).atLeastOnce()).save(argThat<Plaintext> { type == Type.BROADCAST })
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun `ensure sender without private key throws exception`() {
-        val msg = Plaintext.Builder(Type.BROADCAST)
-            .from(BitmessageAddress("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
-            .message("Subject", "Message")
-            .build()
-        ctx.send(msg)
+        assertThrows(IllegalArgumentException::class.java) {
+            val msg = Plaintext.Builder(Type.BROADCAST)
+                .from(BitmessageAddress("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
+                .message("Subject", "Message")
+                .build()
+            ctx.send(msg)
+        }
     }
 
     @Test
@@ -326,6 +341,6 @@ class BitmessageContextTest {
     @Test
     fun `ensure status contains user agent`() {
         val userAgent = ctx.status().getProperty("user agent")?.value.toString()
-        assertThat(userAgent, `is`("/Jabit:${BitmessageContext.version}/"))
+        assertEquals("/Jabit:${BitmessageContext.version}/", userAgent)
     }
 }

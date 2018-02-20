@@ -12,9 +12,10 @@ uploadArchives {
 
 dependencies {
     compile project(':core')
-    testCompile 'junit:junit'
     testCompile 'org.slf4j:slf4j-simple'
     testCompile 'com.nhaarman:mockito-kotlin'
+    testCompile 'org.junit.jupiter:junit-jupiter-api'
+    testRuntime 'org.junit.jupiter:junit-jupiter-engine'
     testCompile project(path: ':core', configuration: 'testArtifacts')
     testCompile project(':cryptography-bc')
 }

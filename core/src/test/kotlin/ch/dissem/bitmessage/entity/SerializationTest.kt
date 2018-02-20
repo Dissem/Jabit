@@ -24,9 +24,8 @@ import ch.dissem.bitmessage.entity.valueobject.extended.Message
 import ch.dissem.bitmessage.factory.Factory
 import ch.dissem.bitmessage.utils.TestBase
 import ch.dissem.bitmessage.utils.TestUtils
-import org.hamcrest.Matchers.`is`
-import org.junit.Assert.*
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.ObjectInputStream
@@ -95,7 +94,7 @@ class SerializationTest : TestBase() {
         received.isAccessible = true
         received.set(actual, null)
 
-        assertThat(expected, `is`(actual))
+        assertEquals(actual, expected)
     }
 
     @Test
@@ -103,10 +102,12 @@ class SerializationTest : TestBase() {
         val expected = Plaintext.Builder(MSG)
             .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
             .to(TestUtils.loadContact())
-            .message(Message.Builder()
-                .subject("Subject")
-                .body("Message")
-                .build())
+            .message(
+                Message.Builder()
+                    .subject("Subject")
+                    .body("Message")
+                    .build()
+            )
             .ackData("ackMessage".toByteArray())
             .signature(ByteArray(0))
             .build()
@@ -127,10 +128,12 @@ class SerializationTest : TestBase() {
     fun `ensure plaintext without recipient can be serialized (needed for saving drafts)`() {
         val expected = Plaintext.Builder(MSG)
             .from(TestUtils.loadIdentity("BM-2cSqjfJ8xK6UUn5Rw3RpdGQ9RsDkBhWnS8"))
-            .message(Message.Builder()
-                .subject("Subject")
-                .body("Message")
-                .build())
+            .message(
+                Message.Builder()
+                    .subject("Subject")
+                    .body("Message")
+                    .build()
+            )
             .signature(ByteArray(0))
             .status(Plaintext.Status.DRAFT)
             .build()

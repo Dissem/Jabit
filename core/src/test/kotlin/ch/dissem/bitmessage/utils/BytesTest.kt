@@ -16,10 +16,10 @@
 
 package ch.dissem.bitmessage.utils
 
-import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertEquals
-import org.junit.Ignore
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertArrayEquals
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
 import java.math.BigInteger
 import java.util.*
 
@@ -46,7 +46,11 @@ class BytesTest {
             for (i in 1..255) {
                 val bytes = byteArrayOf(0, v.toByte())
                 Bytes.inc(bytes, i.toByte())
-                assertArrayEquals("value = " + v + "; inc = " + i + "; expected = " + (v + i), TestUtils.int16(v + i), bytes)
+                assertArrayEquals(
+                    TestUtils.int16(v + i),
+                    bytes,
+                    "value = " + v + "; inc = " + i + "; expected = " + (v + i)
+                )
             }
         }
     }
@@ -55,7 +59,7 @@ class BytesTest {
      * This test is used to compare different implementations of the single byte lt comparison. It an safely be ignored.
      */
     @Test
-    @Ignore
+    @Disabled
     fun `test lower than single byte`() {
         val a = ByteArray(1)
         val b = ByteArray(1)
@@ -85,10 +89,13 @@ class BytesTest {
             val a = BigInteger.valueOf(rnd.nextLong()).pow(rnd.nextInt(5) + 1).abs()
             val b = BigInteger.valueOf(rnd.nextLong()).pow(rnd.nextInt(5) + 1).abs()
             println("a = " + a.toString(16) + "\tb = " + b.toString(16))
-            assertEquals(a.compareTo(b) == -1, Bytes.lt(
-                Bytes.expand(a.toByteArray(), 100),
-                Bytes.expand(b.toByteArray(), 100),
-                100))
+            assertEquals(
+                a.compareTo(b) == -1, Bytes.lt(
+                    Bytes.expand(a.toByteArray(), 100),
+                    Bytes.expand(b.toByteArray(), 100),
+                    100
+                )
+            )
         }
     }
 }

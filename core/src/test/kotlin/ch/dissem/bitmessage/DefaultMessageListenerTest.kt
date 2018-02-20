@@ -34,8 +34,8 @@ import ch.dissem.bitmessage.utils.TestUtils
 import ch.dissem.bitmessage.utils.UnixTime.MINUTE
 import ch.dissem.bitmessage.utils.UnixTime.now
 import com.nhaarman.mockito_kotlin.*
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 
 /**
  * @author Christian Basler
@@ -47,7 +47,7 @@ class DefaultMessageListenerTest : TestBase() {
         cryptography = BouncyCryptography()
     )
 
-    @Before
+    @BeforeAll
     fun setUp() {
         listener = ctx.networkListener as DefaultMessageListener
     }

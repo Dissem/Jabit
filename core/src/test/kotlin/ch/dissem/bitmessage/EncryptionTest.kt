@@ -24,9 +24,9 @@ import ch.dissem.bitmessage.entity.valueobject.PrivateKey
 import ch.dissem.bitmessage.utils.Singleton.cryptography
 import ch.dissem.bitmessage.utils.TestBase
 import ch.dissem.bitmessage.utils.TestUtils
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Test
 
 class EncryptionTest : TestBase() {
     @Test

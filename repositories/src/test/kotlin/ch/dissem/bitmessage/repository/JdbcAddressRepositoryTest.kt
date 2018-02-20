@@ -19,9 +19,9 @@ package ch.dissem.bitmessage.repository
 import ch.dissem.bitmessage.entity.BitmessageAddress
 import ch.dissem.bitmessage.entity.payload.Pubkey.Feature.DOES_ACK
 import ch.dissem.bitmessage.entity.valueobject.PrivateKey
-import org.junit.Assert.*
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 class JdbcAddressRepositoryTest : TestBase() {
     private val CONTACT_A = "BM-2cW7cD5cDQJDNkE7ibmyTxfvGAmnPqa9Vt"
@@ -34,7 +34,7 @@ class JdbcAddressRepositoryTest : TestBase() {
     private lateinit var config: TestJdbcConfig
     private lateinit var repo: JdbcAddressRepository
 
-    @Before
+    @BeforeEach
     fun setUp() {
         config = TestJdbcConfig()
         config.reset()

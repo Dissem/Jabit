@@ -24,9 +24,8 @@ import ch.dissem.bitmessage.entity.valueobject.extended.Message
 import ch.dissem.bitmessage.ports.MessageRepository
 import ch.dissem.bitmessage.utils.TestUtils.RANDOM
 import com.nhaarman.mockito_kotlin.*
-import org.hamcrest.Matchers.`is`
-import org.junit.Assert.assertThat
-import org.junit.Test
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 import java.util.*
 
 class ConversationServiceTest : TestBase() {
@@ -45,7 +44,7 @@ class ConversationServiceTest : TestBase() {
 
         doReturn(expected).whenever(conversationService).getConversation(any<UUID>())
         val actual = conversationService.getConversation(UUID.randomUUID())
-        assertThat(actual, `is`(expected))
+        Assertions.assertEquals(expected, actual)
     }
 
     companion object {
@@ -53,57 +52,69 @@ class ConversationServiceTest : TestBase() {
         fun conversation(alice: BitmessageAddress, bob: BitmessageAddress): List<Plaintext> {
             val result = LinkedList<Plaintext>()
 
-            val older = plaintext(alice, bob,
+            val older = plaintext(
+                alice, bob,
                 Message.Builder()
                     .subject("hey there")
                     .body("does it work?")
                     .build(),
-                Plaintext.Status.SENT)
+                Plaintext.Status.SENT
+            )
             result.add(older)
 
-            val root = plaintext(alice, bob,
+            val root = plaintext(
+                alice, bob,
                 Message.Builder()
                     .subject("new test")
                     .body("There's a new test in town!")
                     .build(),
-                Plaintext.Status.SENT)
+                Plaintext.Status.SENT
+            )
             result.add(root)
 
             result.add(
-                plaintext(bob, alice,
+                plaintext(
+                    bob, alice,
                     Message.Builder()
                         .subject("Re: new test (1a)")
                         .body("Nice!")
                         .addParent(root)
                         .build(),
-                    Plaintext.Status.RECEIVED)
+                    Plaintext.Status.RECEIVED
+                )
             )
 
-            val latest = plaintext(bob, alice,
+            val latest = plaintext(
+                bob, alice,
                 Message.Builder()
                     .subject("Re: new test (2b)")
                     .body("PS: it did work!")
                     .addParent(root)
                     .addParent(older)
                     .build(),
-                Plaintext.Status.RECEIVED)
+                Plaintext.Status.RECEIVED
+            )
             result.add(latest)
 
             result.add(
-                plaintext(alice, bob,
+                plaintext(
+                    alice, bob,
                     Message.Builder()
                         .subject("Re: new test (2)")
                         .body("")
                         .addParent(latest)
                         .build(),
-                    Plaintext.Status.DRAFT)
+                    Plaintext.Status.DRAFT
+                )
             )
 
             return result
         }
 
-        fun plaintext(from: BitmessageAddress, to: BitmessageAddress,
-                      content: ExtendedEncoding, status: Plaintext.Status): Plaintext {
+        fun plaintext(
+            from: BitmessageAddress, to: BitmessageAddress,
+            content: ExtendedEncoding, status: Plaintext.Status
+        ): Plaintext {
             val builder = Plaintext.Builder(MSG)
                 .IV(TestUtils.randomInventoryVector())
                 .from(from)

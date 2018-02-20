@@ -20,18 +20,24 @@ import ch.dissem.bitmessage.utils.Bytes
 import ch.dissem.bitmessage.utils.CallbackWaiter
 import ch.dissem.bitmessage.utils.Singleton.cryptography
 import ch.dissem.bitmessage.utils.TestBase
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertTimeoutPreemptively
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import java.time.Duration.ofSeconds
 
 class ProofOfWorkEngineTest : TestBase() {
-    @Test(timeout = 90000)
+    @Test
     fun `test SimplePOWEngine`() {
-        testPOW(SimplePOWEngine())
+        assertTimeoutPreemptively(ofSeconds(90)) {
+            testPOW(SimplePOWEngine())
+        }
     }
 
-    @Test(timeout = 90000)
+    @Test
     fun `test MultiThreadedPOWEngine`() {
-        testPOW(MultiThreadedPOWEngine())
+        assertTimeoutPreemptively(ofSeconds(90)) {
+            testPOW(MultiThreadedPOWEngine())
+        }
     }
 
     private fun testPOW(engine: ProofOfWorkEngine) {
@@ -65,6 +71,6 @@ class ProofOfWorkEngineTest : TestBase() {
         val nonce2 = waiter2.waitForValue()!!
         println("Calculating nonce1 took ${waiter2.time}ms")
         assertTrue(Bytes.lt(cryptography().doubleSha512(nonce2, initialHash2), target2, 8))
-        assertTrue("Second nonce1 must be quicker to find", waiter1.time > waiter2.time)
+        assertTrue(waiter1.time > waiter2.time, "Second nonce1 must be quicker to find")
     }
 }

@@ -17,9 +17,8 @@
 package ch.dissem.bitmessage.utils
 
 import ch.dissem.bitmessage.cryptography.bc.BouncyCryptography
-import org.hamcrest.Matchers.`is`
-import org.junit.Assert.assertThat
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 
 class Base64Test {
     @Test
@@ -29,7 +28,7 @@ class Base64Test {
             val data = cryptography.randomBytes(i)
             val string = Base64.encodeToString(data)
             val decoded = Base64.decode(string)
-            assertThat(decoded, `is`(data))
+            assertEquals(data, decoded)
         }
     }
 }

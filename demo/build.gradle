@@ -33,6 +33,7 @@ dependencies {
     compile 'args4j:args4j'
     compile 'com.h2database:h2'
     compile 'org.apache.commons:commons-text'
-    testCompile 'junit:junit'
     testCompile 'com.nhaarman:mockito-kotlin'
+    testCompile 'org.junit.jupiter:junit-jupiter-api'
+    testRuntime 'org.junit.jupiter:junit-jupiter-engine'
 }
