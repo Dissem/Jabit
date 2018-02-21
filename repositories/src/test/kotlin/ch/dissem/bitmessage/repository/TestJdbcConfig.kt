@@ -17,7 +17,6 @@
 package ch.dissem.bitmessage.repository
 
 import org.h2.tools.Server
-import org.slf4j.LoggerFactory
 
 /**
  * JdbcConfig to be used for tests. Uses an in-memory database and adds a useful [.reset] method resetting
