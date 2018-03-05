@@ -257,18 +257,19 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
         }
     }
 
-    override fun findConversations(label: Label?): List<UUID> {
+    override fun findConversations(label: Label?, offset: Int, limit: Int): List<UUID> {
         val where = if (label == null) {
             "id NOT IN (SELECT message_id FROM Message_Label)"
         } else {
             "id IN (SELECT message_id FROM Message_Label WHERE label_id=${label.id})"
         }
+        val limit = if (limit == 0) "" else "LIMIT $limit OFFSET $offset"
         val result = LinkedList<UUID>()
         try {
             config.getConnection().use { connection ->
                 connection.createStatement().use { stmt ->
                     stmt.executeQuery(
-                        "SELECT DISTINCT conversation FROM Message WHERE $where").use { rs ->
+                        "SELECT DISTINCT conversation FROM Message WHERE $where $limit").use { rs ->
                         while (rs.next()) {
                             result.add(rs.getObject(1) as UUID)
                         }

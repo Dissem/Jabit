@@ -16,10 +16,11 @@
 
 package ch.dissem.bitmessage.utils
 
+import ch.dissem.bitmessage.entity.Conversation
 import ch.dissem.bitmessage.entity.Plaintext
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector
+import ch.dissem.bitmessage.entity.valueobject.Label
 import ch.dissem.bitmessage.ports.MessageRepository
-import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.Collections
 import java.util.regex.Pattern
@@ -30,7 +31,10 @@ import java.util.regex.Pattern.CASE_INSENSITIVE
  */
 class ConversationService(private val messageRepository: MessageRepository) {
 
-    private val SUBJECT_PREFIX = Pattern.compile("^(re|fwd?):", CASE_INSENSITIVE)
+    private val SUBJECT_PREFIX = Pattern.compile("^(re|fwd?):\\s*", CASE_INSENSITIVE)
+
+    fun findConversations(label: Label?, offset: Int = 0, limit: Int = 0) = messageRepository.findConversations(label, offset, limit)
+        .map { getConversation(it) }
 
     /**
      * Retrieve the whole conversation from one single message. If the message isn't part
@@ -41,7 +45,7 @@ class ConversationService(private val messageRepository: MessageRepository) {
      * *
      * @return a list of messages that belong to the same conversation.
      */
-    fun getConversation(message: Plaintext): List<Plaintext> {
+    fun getConversation(message: Plaintext): Conversation {
         return getConversation(message.conversationId)
     }
 
@@ -58,7 +62,7 @@ class ConversationService(private val messageRepository: MessageRepository) {
         return result
     }
 
-    fun getConversation(conversationId: UUID): List<Plaintext> {
+    fun getConversation(conversationId: UUID): Conversation {
         val messages = sorted(messageRepository.getConversation(conversationId))
         val map = HashMap<InventoryVector, Plaintext>(messages.size)
         for (message in messages) {
@@ -74,7 +78,7 @@ class ConversationService(private val messageRepository: MessageRepository) {
             result.add(pos, last)
             addAncestors(last, result, messages, map)
         }
-        return result
+        return Conversation(conversationId, getSubject(result) ?: "", result)
     }
 
     fun getSubject(conversation: List<Plaintext>): String? {
@@ -109,7 +113,12 @@ class ConversationService(private val messageRepository: MessageRepository) {
         return child.parents.firstOrNull { it == item.inventoryVector } != null
     }
 
-    private fun addAncestors(message: Plaintext, result: LinkedList<Plaintext>, messages: LinkedList<Plaintext>, map: MutableMap<InventoryVector, Plaintext>) {
+    private fun addAncestors(
+        message: Plaintext,
+        result: LinkedList<Plaintext>,
+        messages: LinkedList<Plaintext>,
+        map: MutableMap<InventoryVector, Plaintext>
+    ) {
         for (parentKey in message.parents) {
             map.remove(parentKey)?.let {
                 messages.remove(it)

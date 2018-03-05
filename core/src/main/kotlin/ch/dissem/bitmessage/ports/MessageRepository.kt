@@ -41,7 +41,7 @@ interface MessageRepository {
      * *
      * @return a distinct list of all conversations that have at least one message with the given label.
      */
-    fun findConversations(label: Label?): List<UUID>
+    fun findConversations(label: Label?, offset: Int = 0, limit: Int = 0): List<UUID>
 
     fun findMessages(label: Label?): List<Plaintext>
 

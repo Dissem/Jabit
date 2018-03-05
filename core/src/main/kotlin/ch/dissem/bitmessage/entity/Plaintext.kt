@@ -815,3 +815,14 @@ class Plaintext private constructor(
 
     }
 }
+
+data class Conversation(val id: UUID, val subject: String, val messages: List<Plaintext>) {
+    val participants = messages
+        .map { it.from }
+        .filter { it.privateKey == null || it.isChan }
+        .distinct()
+
+    val extract: String by lazy { messages.lastOrNull()?.text ?: "" }
+
+    fun hasUnread() = messages.any { it.isUnread() }
+}
