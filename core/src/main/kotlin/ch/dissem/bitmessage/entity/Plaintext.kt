@@ -816,13 +816,17 @@ class Plaintext private constructor(
     }
 }
 
-data class Conversation(val id: UUID, val subject: String, val messages: List<Plaintext>) {
+data class Conversation(val id: UUID, val subject: String, val messages: List<Plaintext>) : Serializable {
     val participants = messages
         .map { it.from }
         .filter { it.privateKey == null || it.isChan }
         .distinct()
 
-    val extract: String by lazy { messages.lastOrNull()?.text ?: "" }
+    val extract: String by lazy {
+        messages.firstOrNull { m -> m.labels.any { l -> l.type==Label.Type.UNREAD } }?.text
+            ?: messages.lastOrNull()?.text
+            ?: ""
+    }
 
     fun hasUnread() = messages.any { it.isUnread() }
 }
