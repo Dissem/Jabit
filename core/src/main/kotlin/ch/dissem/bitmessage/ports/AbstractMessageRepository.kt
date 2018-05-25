@@ -109,8 +109,8 @@ abstract class AbstractMessageRepository : MessageRepository, InternalContext.Co
         return find("iv IN (SELECT child FROM Message_Parent WHERE parent=X'${Strings.hex(parent.inventoryVector!!.hash)}')")
     }
 
-    override fun getConversation(conversationId: UUID): List<Plaintext> {
-        return find("conversation=X'${conversationId.toString().replace("-", "")}'")
+    override fun getConversation(conversationId: UUID, offset: Int, limit: Int): List<Plaintext> {
+        return find("conversation=X'${conversationId.toString().replace("-", "")}'", offset, limit)
     }
 
     /**

@@ -68,5 +68,5 @@ interface MessageRepository {
      * *
      * @return all messages with the given conversation ID
      */
-    fun getConversation(conversationId: UUID): Collection<Plaintext>
+    fun getConversation(conversationId: UUID, offset: Int = 0, limit: Int = 0): Collection<Plaintext>
 }

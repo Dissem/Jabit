@@ -65,7 +65,7 @@ class Plaintext private constructor(
     val message: ByteArray,
     val ackData: ByteArray?,
     ackMessage: Lazy<ObjectMessage?> = lazy { Factory.createAck(from, ackData, ttl) },
-    val conversationId: UUID = UUID.randomUUID(),
+    var conversationId: UUID = UUID.randomUUID(),
     var inventoryVector: InventoryVector? = null,
     var signature: ByteArray? = null,
     sent: Long? = null,

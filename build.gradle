@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.2.30'
+    ext.kotlin_version = '1.2.41'
     repositories {
         mavenCentral()
     }
@@ -31,7 +31,7 @@ subprojects {
         jcenter()
     }
     dependencies {
-        compile "org.jetbrains.kotlin:kotlin-stdlib-jre7"
+        compile "org.jetbrains.kotlin:kotlin-stdlib-jdk7"
         compile "org.jetbrains.kotlin:kotlin-reflect"
     }
 
@@ -130,7 +130,7 @@ subprojects {
     dependencyManagement {
         dependencies {
             dependencySet(group: 'org.jetbrains.kotlin', version: "$kotlin_version") {
-                entry 'kotlin-stdlib-jre7'
+                entry 'kotlin-stdlib-jdk7'
                 entry 'kotlin-reflect'
             }
             dependencySet(group: 'org.slf4j', version: '1.7.25') {

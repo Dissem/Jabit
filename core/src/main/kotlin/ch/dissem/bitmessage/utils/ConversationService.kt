@@ -33,8 +33,9 @@ class ConversationService(private val messageRepository: MessageRepository) {
 
     private val SUBJECT_PREFIX = Pattern.compile("^(re|fwd?):\\s*", CASE_INSENSITIVE)
 
-    fun findConversations(label: Label?, offset: Int = 0, limit: Int = 0) = messageRepository.findConversations(label, offset, limit)
-        .map { getConversation(it) }
+    fun findConversations(label: Label?, offset: Int = 0, limit: Int = 0, conversationLimit: Int = 10) =
+        messageRepository.findConversations(label, offset, limit)
+            .map { getConversation(it, conversationLimit) }
 
     /**
      * Retrieve the whole conversation from one single message. If the message isn't part
@@ -62,8 +63,8 @@ class ConversationService(private val messageRepository: MessageRepository) {
         return result
     }
 
-    fun getConversation(conversationId: UUID): Conversation {
-        val messages = sorted(messageRepository.getConversation(conversationId))
+    fun getConversation(conversationId: UUID, limit: Int = 0): Conversation {
+        val messages = sorted(messageRepository.getConversation(conversationId, 0, limit))
         val map = HashMap<InventoryVector, Plaintext>(messages.size)
         for (message in messages) {
             message.inventoryVector?.let {
