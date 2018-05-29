@@ -641,24 +641,26 @@ private class Encoder(val options: Options, output: ByteArray) : Coder(output) {
          * Lookup table for turning Base64 alphabet positions (6 bits)
          * into output bytes.
          */
-        private val ENCODE = charArrayOf(
+        private val ENCODE = charsAsBytes(
             'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
             'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
             'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
             'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/'
-        ).map { it.toByte() }.toByteArray()
+        )
 
         /**
          * Lookup table for turning Base64 alphabet positions (6 bits)
          * into output bytes.
          */
-        private val ENCODE_WEBSAFE = charArrayOf(
+        private val ENCODE_WEBSAFE = charsAsBytes(
             'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
             'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
             'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
             'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-', '_'
-        ).map { it.toByte() }.toByteArray()
+        )
+
+        private fun charsAsBytes(vararg elements: Char): ByteArray = elements.map { it.toByte() }.toByteArray()
     }
 }

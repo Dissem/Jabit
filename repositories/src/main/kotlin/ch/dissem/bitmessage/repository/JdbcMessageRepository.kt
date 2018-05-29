@@ -56,13 +56,13 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
 
     override fun find(where: String, offset: Int, limit: Int): List<Plaintext> {
         val result = LinkedList<Plaintext>()
-        val limit = if (limit == 0) "" else "LIMIT $limit OFFSET $offset"
+        val limitClause = if (limit == 0) "" else "LIMIT $limit OFFSET $offset"
         try {
             config.getConnection().use { connection ->
                 connection.createStatement().use { stmt ->
                     stmt.executeQuery(
                         """SELECT id, iv, type, sender, recipient, data, ack_data, sent, received, initial_hash, status, ttl, retries, next_try, conversation
-                           FROM Message WHERE $where $limit""").use { rs ->
+                           FROM Message WHERE $where $limitClause""").use { rs ->
                         while (rs.next()) {
                             val message = getMessage(connection, rs)
                             message.initialHash = rs.getBytes("initial_hash")
@@ -84,8 +84,8 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
         ).build {
             id = rs.getLong("id")
             inventoryVector = InventoryVector.fromHash(rs.getBytes("iv"))
-            from = rs.getString("sender")?.let { ctx.addressRepository.getAddress(it) ?: BitmessageAddress(it) }
-            to = rs.getString("recipient")?.let { ctx.addressRepository.getAddress(it) ?: BitmessageAddress(it) }
+            from = rs.getAddress("sender")
+            to = rs.getAddress("recipient")
             ackData = rs.getBytes("ack_data")
             sent = rs.getObject("sent") as Long?
             received = rs.getObject("received") as Long?
@@ -97,6 +97,10 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
             labels = findLabels(connection,
                 "id IN (SELECT label_id FROM Message_Label WHERE message_id=$id) ORDER BY ord")
         }
+    }
+
+    private fun ResultSet.getAddress(columnLabel: String): BitmessageAddress? = getString(columnLabel)?.let { address ->
+        ctx.addressRepository.getAddress(address) ?: BitmessageAddress(address)
     }
 
     private fun findLabels(connection: Connection, where: String): List<Label> {
@@ -258,18 +262,18 @@ class JdbcMessageRepository(private val config: JdbcConfig) : AbstractMessageRep
     }
 
     override fun findConversations(label: Label?, offset: Int, limit: Int): List<UUID> {
-        val where = if (label == null) {
+        val whereClause = if (label == null) {
             "id NOT IN (SELECT message_id FROM Message_Label)"
         } else {
             "id IN (SELECT message_id FROM Message_Label WHERE label_id=${label.id})"
         }
-        val limit = if (limit == 0) "" else "LIMIT $limit OFFSET $offset"
+        val limitClause = if (limit == 0) "" else "LIMIT $limit OFFSET $offset"
         val result = LinkedList<UUID>()
         try {
             config.getConnection().use { connection ->
                 connection.createStatement().use { stmt ->
                     stmt.executeQuery(
-                        "SELECT DISTINCT conversation FROM Message WHERE $where $limit").use { rs ->
+                        "SELECT DISTINCT conversation FROM Message WHERE $whereClause $limitClause").use { rs ->
                         while (rs.next()) {
                             result.add(rs.getObject(1) as UUID)
                         }
