@@ -36,12 +36,16 @@ import javax.crypto.spec.SecretKeySpec
 /**
  * Implements everything that isn't directly dependent on either Spongy- or Bouncycastle.
  */
-abstract class AbstractCryptography protected constructor(@JvmField protected val provider: Provider) : Cryptography, InternalContext.ContextHolder {
+abstract class AbstractCryptography protected constructor(@JvmField protected val provider: Provider) : Cryptography,
+    InternalContext.ContextHolder {
     private lateinit var ctx: InternalContext
 
-    @JvmField protected val ALGORITHM_ECDSA = "ECDSA"
-    @JvmField protected val ALGORITHM_ECDSA_SHA1 = "SHA1withECDSA"
-    @JvmField protected val ALGORITHM_EVP_SHA256 = "SHA256withECDSA"
+    @JvmField
+    protected val ALGORITHM_ECDSA = "ECDSA"
+    @JvmField
+    protected val ALGORITHM_ECDSA_SHA1 = "SHA1withECDSA"
+    @JvmField
+    protected val ALGORITHM_EVP_SHA256 = "SHA256withECDSA"
 
     override fun setContext(context: InternalContext) {
         ctx = context
@@ -65,20 +69,18 @@ abstract class AbstractCryptography protected constructor(@JvmField protected va
         return mda.digest(mda.digest())
     }
 
-    override fun doubleSha512(data: ByteArray, length: Int): ByteArray {
-        val mda = md("SHA-512")
+    override fun doubleSha512(data: ByteArray, length: Int) = doubleHash("SHA-512", data, length);
+
+    override fun doubleSha256(data: ByteArray, length: Int) = doubleHash("SHA-256", data, length);
+
+    private fun doubleHash(method: String, data: ByteArray, length: Int): ByteArray {
+        val mda = md(method)
         mda.update(data, 0, length)
         return mda.digest(mda.digest())
     }
 
     override fun ripemd160(vararg data: ByteArray): ByteArray {
         return hash("RIPEMD160", *data)
-    }
-
-    override fun doubleSha256(data: ByteArray, length: Int): ByteArray {
-        val mda = md("SHA-256")
-        mda.update(data, 0, length)
-        return mda.digest(mda.digest())
     }
 
     override fun sha1(vararg data: ByteArray): ByteArray {
@@ -91,13 +93,17 @@ abstract class AbstractCryptography protected constructor(@JvmField protected va
         return result
     }
 
-    override fun doProofOfWork(objectMessage: ObjectMessage, nonceTrialsPerByte: Long,
-                               extraBytes: Long, callback: ProofOfWorkEngine.Callback) {
+    override fun doProofOfWork(
+        objectMessage: ObjectMessage, nonceTrialsPerByte: Long,
+        extraBytes: Long, callback: ProofOfWorkEngine.Callback
+    ) {
 
         val initialHash = getInitialHash(objectMessage)
 
-        val target = getProofOfWorkTarget(objectMessage,
-            max(nonceTrialsPerByte, NETWORK_NONCE_TRIALS_PER_BYTE), max(extraBytes, NETWORK_EXTRA_BYTES))
+        val target = getProofOfWorkTarget(
+            objectMessage,
+            max(nonceTrialsPerByte, NETWORK_NONCE_TRIALS_PER_BYTE), max(extraBytes, NETWORK_EXTRA_BYTES)
+        )
 
         ctx.proofOfWorkEngine.calculateNonce(initialHash, target, callback)
     }
@@ -105,7 +111,10 @@ abstract class AbstractCryptography protected constructor(@JvmField protected va
     @Throws(InsufficientProofOfWorkException::class)
     override fun checkProofOfWork(objectMessage: ObjectMessage, nonceTrialsPerByte: Long, extraBytes: Long) {
         val target = getProofOfWorkTarget(objectMessage, nonceTrialsPerByte, extraBytes)
-        val value = doubleSha512(objectMessage.nonce ?: throw ApplicationException("Object without nonce"), getInitialHash(objectMessage))
+        val value = doubleSha512(
+            objectMessage.nonce ?: throw ApplicationException("Object without nonce"),
+            getInitialHash(objectMessage)
+        )
         if (Bytes.lt(target, value, 8)) {
             throw InsufficientProofOfWorkException(target, value)
         }
@@ -136,7 +145,11 @@ abstract class AbstractCryptography protected constructor(@JvmField protected va
         return sha512(objectMessage.payloadBytesWithoutNonce)
     }
 
-    override fun getProofOfWorkTarget(objectMessage: ObjectMessage, nonceTrialsPerByte: Long, extraBytes: Long): ByteArray {
+    override fun getProofOfWorkTarget(
+        objectMessage: ObjectMessage,
+        nonceTrialsPerByte: Long,
+        extraBytes: Long
+    ): ByteArray {
         @Suppress("NAME_SHADOWING")
         val nonceTrialsPerByte = if (nonceTrialsPerByte == 0L) NETWORK_NONCE_TRIALS_PER_BYTE else nonceTrialsPerByte
         @Suppress("NAME_SHADOWING")
@@ -181,12 +194,16 @@ abstract class AbstractCryptography protected constructor(@JvmField protected va
 
     }
 
-    override fun createPubkey(version: Long, stream: Long, privateSigningKey: ByteArray, privateEncryptionKey: ByteArray,
-                              nonceTrialsPerByte: Long, extraBytes: Long, vararg features: Pubkey.Feature): Pubkey {
-        return Factory.createPubkey(version, stream,
+    override fun createPubkey(
+        version: Long, stream: Long, privateSigningKey: ByteArray, privateEncryptionKey: ByteArray,
+        nonceTrialsPerByte: Long, extraBytes: Long, vararg features: Pubkey.Feature
+    ): Pubkey {
+        return Factory.createPubkey(
+            version, stream,
             createPublicKey(privateSigningKey),
             createPublicKey(privateEncryptionKey),
-            nonceTrialsPerByte, extraBytes, *features)
+            nonceTrialsPerByte, extraBytes, *features
+        )
     }
 
     override fun keyToBigInt(privateKey: ByteArray): BigInteger {

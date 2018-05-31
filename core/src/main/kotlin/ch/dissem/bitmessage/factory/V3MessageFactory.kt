@@ -62,13 +62,13 @@ object V3MessageFactory {
     fun getPayload(command: String, stream: InputStream, length: Int): MessagePayload? = when (command) {
         "version" -> parseVersion(stream)
         "verack" -> VerAck()
-        "addr" -> parseAddr(stream)
-        "inv" -> parseInv(stream)
-        "getdata" -> parseGetData(stream)
+        "addr" -> Addr(parseList(stream) { parseAddress(it, false) })
+        "inv" -> Inv(parseList(stream) { parseInventoryVector(it) })
+        "getdata" -> GetData(parseList(stream) { parseInventoryVector(it) })
         "object" -> readObject(stream, length)
         "custom" -> readCustom(stream, length)
         else -> {
-            LOG.debug("Unknown command: " + command)
+            LOG.debug("Unknown command: $command")
             null
         }
     }
@@ -85,73 +85,40 @@ object V3MessageFactory {
         val stream = Decode.varInt(input, counter)
 
         val data = Decode.bytes(input, length - counter.length())
-        var payload: ObjectPayload
-        try {
-            val dataStream = ByteArrayInputStream(data)
-            payload = Factory.getObjectPayload(objectType, version, stream, dataStream, data.size)
+        val payload: ObjectPayload = try {
+            Factory.getObjectPayload(objectType, version, stream, ByteArrayInputStream(data), data.size)
         } catch (e: Exception) {
             if (LOG.isTraceEnabled) {
                 LOG.trace("Could not parse object payload - using generic payload instead", e)
                 LOG.trace(Strings.hex(data))
             }
-            payload = GenericPayload(version, stream, data)
+            GenericPayload(version, stream, data)
         }
 
-        return ObjectMessage.Builder()
-            .nonce(nonce)
-            .expiresTime(expiresTime)
-            .objectType(objectType)
-            .stream(stream)
-            .payload(payload)
-            .build()
+        return ObjectMessage(
+            nonce, expiresTime, payload, objectType, version, stream
+        )
     }
 
-    private fun parseGetData(stream: InputStream): GetData {
+    private fun <T> parseList(stream: InputStream, reader: (InputStream) -> (T)): List<T> {
         val count = Decode.varInt(stream)
-        val inventoryVectors = LinkedList<InventoryVector>()
+        val items = LinkedList<T>()
         for (i in 0 until count) {
-            inventoryVectors.add(parseInventoryVector(stream))
+            items.add(reader(stream))
         }
-        return GetData(inventoryVectors)
+        return items
     }
 
-    private fun parseInv(stream: InputStream): Inv {
-        val count = Decode.varInt(stream)
-        val inventoryVectors = LinkedList<InventoryVector>()
-        for (i in 0 until count) {
-            inventoryVectors.add(parseInventoryVector(stream))
-        }
-        return Inv(inventoryVectors)
-    }
-
-    private fun parseAddr(stream: InputStream): Addr {
-        val count = Decode.varInt(stream)
-        val networkAddresses = LinkedList<NetworkAddress>()
-        for (i in 0 until count) {
-            networkAddresses.add(parseAddress(stream, false))
-        }
-        return Addr(networkAddresses)
-    }
-
-    private fun parseVersion(stream: InputStream): Version {
-        val version = Decode.int32(stream)
-        val services = Decode.int64(stream)
-        val timestamp = Decode.int64(stream)
-        val addrRecv = parseAddress(stream, true)
-        val addrFrom = parseAddress(stream, true)
-        val nonce = Decode.int64(stream)
-        val userAgent = Decode.varString(stream)
-        val streamNumbers = Decode.varIntList(stream)
-
-        return Version.Builder()
-            .version(version)
-            .services(services)
-            .timestamp(timestamp)
-            .addrRecv(addrRecv).addrFrom(addrFrom)
-            .nonce(nonce)
-            .userAgent(userAgent)
-            .streams(*streamNumbers).build()
-    }
+    private fun parseVersion(stream: InputStream) = Version(
+        version = Decode.int32(stream),
+        services = Decode.int64(stream),
+        timestamp = Decode.int64(stream),
+        addrRecv = parseAddress(stream, true),
+        addrFrom = parseAddress(stream, true),
+        nonce = Decode.int64(stream),
+        userAgent = Decode.varString(stream),
+        streams = Decode.varIntList(stream)
+    )
 
     private fun parseInventoryVector(stream: InputStream) = InventoryVector(Decode.bytes(stream, 32))
 
@@ -168,13 +135,10 @@ object V3MessageFactory {
         val services = Decode.int64(stream)
         val ipv6 = Decode.bytes(stream, 16)
         val port = Decode.uint16(stream)
-        return NetworkAddress.Builder()
-            .time(time)
-            .stream(streamNumber)
-            .services(services)
-            .ipv6(ipv6)
-            .port(port)
-            .build()
+
+        return NetworkAddress(
+            time, streamNumber, services, ipv6, port
+        )
     }
 
     private fun testChecksum(checksum: ByteArray, payload: ByteArray): Boolean {

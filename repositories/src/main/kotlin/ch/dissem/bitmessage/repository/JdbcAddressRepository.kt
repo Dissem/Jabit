@@ -32,15 +32,11 @@ import java.util.*
 
 class JdbcAddressRepository(config: JdbcConfig) : JdbcHelper(config), AddressRepository {
 
-    override fun findContact(ripeOrTag: ByteArray) = find("private_key is null").firstOrNull {
-        if (it.version > 3) {
-            Arrays.equals(ripeOrTag, it.tag)
-        } else {
-            Arrays.equals(ripeOrTag, it.ripe)
-        }
-    }
+    override fun findContact(ripeOrTag: ByteArray) = find("private_key is null").getByRipeOrTag(ripeOrTag)
 
-    override fun findIdentity(ripeOrTag: ByteArray) = find("private_key is not null").firstOrNull {
+    override fun findIdentity(ripeOrTag: ByteArray) = find("private_key is not null").getByRipeOrTag(ripeOrTag)
+
+    private fun List<BitmessageAddress>.getByRipeOrTag(ripeOrTag: ByteArray): BitmessageAddress? = firstOrNull {
         if (it.version > 3) {
             Arrays.equals(ripeOrTag, it.tag)
         } else {
@@ -67,11 +63,13 @@ class JdbcAddressRepository(config: JdbcConfig) : JdbcHelper(config), AddressRep
         try {
             config.getConnection().use { connection ->
                 connection.createStatement().use { stmt ->
-                    stmt.executeQuery("""
+                    stmt.executeQuery(
+                        """
                         SELECT address, alias, public_key, private_key, subscribed, chan
                         FROM Address
                         WHERE $where
-                    """).use { rs ->
+                    """
+                    ).use { rs ->
                         while (rs.next()) {
                             val address: BitmessageAddress
 
@@ -79,8 +77,10 @@ class JdbcAddressRepository(config: JdbcConfig) : JdbcHelper(config), AddressRep
                             if (privateKeyStream == null) {
                                 address = BitmessageAddress(rs.getString("address"))
                                 rs.getBlob("public_key")?.let { publicKeyBlob ->
-                                    var pubkey: Pubkey = Factory.readPubkey(address.version, address.stream,
-                                        publicKeyBlob.binaryStream, publicKeyBlob.length().toInt(), false)!!
+                                    var pubkey: Pubkey = Factory.readPubkey(
+                                        address.version, address.stream,
+                                        publicKeyBlob.binaryStream, publicKeyBlob.length().toInt(), false
+                                    )!!
                                     if (address.version == 4L && pubkey is V3Pubkey) {
                                         pubkey = V4Pubkey(pubkey)
                                     }
@@ -109,8 +109,10 @@ class JdbcAddressRepository(config: JdbcConfig) : JdbcHelper(config), AddressRep
     private fun exists(address: BitmessageAddress): Boolean {
         config.getConnection().use { connection ->
             connection.createStatement().use { stmt ->
-                stmt.executeQuery("SELECT '1' FROM Address " +
-                    "WHERE address='" + address.address + "'").use { rs -> return rs.next() }
+                stmt.executeQuery(
+                    "SELECT '1' FROM Address " +
+                        "WHERE address='" + address.address + "'"
+                ).use { rs -> return rs.next() }
             }
         }
     }
@@ -159,7 +161,8 @@ class JdbcAddressRepository(config: JdbcConfig) : JdbcHelper(config), AddressRep
     private fun insert(address: BitmessageAddress) {
         config.getConnection().use { connection ->
             connection.prepareStatement(
-                "INSERT INTO Address (address, version, alias, public_key, private_key, subscribed, chan) " + "VALUES (?, ?, ?, ?, ?, ?, ?)").use { ps ->
+                "INSERT INTO Address (address, version, alias, public_key, private_key, subscribed, chan) " + "VALUES (?, ?, ?, ?, ?, ?, ?)"
+            ).use { ps ->
                 ps.setString(1, address.address)
                 ps.setLong(2, address.version)
                 ps.setString(3, address.alias)
@@ -184,7 +187,10 @@ class JdbcAddressRepository(config: JdbcConfig) : JdbcHelper(config), AddressRep
 
     override fun remove(address: BitmessageAddress) {
         try {
-            config.getConnection().use { connection -> connection.createStatement().use { stmt -> stmt.executeUpdate("DELETE FROM Address WHERE address = '" + address.address + "'") } }
+            config.getConnection().use { connection ->
+                connection.createStatement()
+                    .use { stmt -> stmt.executeUpdate("DELETE FROM Address WHERE address = '" + address.address + "'") }
+            }
         } catch (e: SQLException) {
             LOG.error(e.message, e)
         }
