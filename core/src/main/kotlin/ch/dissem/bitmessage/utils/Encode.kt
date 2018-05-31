@@ -45,24 +45,30 @@ object Encode {
     @JvmStatic
     fun varInt(value: Number, buffer: ByteBuffer) {
         val longValue = value.toLong()
-        if (longValue < 0) {
-            // This is due to the fact that Java doesn't really support unsigned values.
-            // Please be aware that this might be an error due to a smaller negative value being cast to long.
-            // Normally, negative values shouldn't occur within the protocol, and longs large enough for being
-            // recognized as negatives aren't realistic.
-            buffer.put(0xff.toByte())
-            buffer.putLong(longValue)
-        } else if (longValue < 0xfd) {
-            buffer.put(value.toByte())
-        } else if (longValue <= 0xffffL) {
-            buffer.put(0xfd.toByte())
-            buffer.putShort(value.toShort())
-        } else if (longValue <= 0xffffffffL) {
-            buffer.put(0xfe.toByte())
-            buffer.putInt(value.toInt())
-        } else {
-            buffer.put(0xff.toByte())
-            buffer.putLong(longValue)
+        when {
+            longValue < 0 -> {
+                // This is due to the fact that Java doesn't really support unsigned values.
+                // Please be aware that this might be an error due to a smaller negative value being cast to long.
+                // Normally, negative values shouldn't occur within the protocol, and longs large enough for being
+                // recognized as negatives aren't realistic.
+                buffer.put(0xff.toByte())
+                buffer.putLong(longValue)
+            }
+            longValue < 0xfd -> {
+                buffer.put(value.toByte())
+            }
+            longValue <= 0xffffL -> {
+                buffer.put(0xfd.toByte())
+                buffer.putShort(value.toShort())
+            }
+            longValue <= 0xffffffffL -> {
+                buffer.put(0xfe.toByte())
+                buffer.putInt(value.toInt())
+            }
+            else -> {
+                buffer.put(0xff.toByte())
+                buffer.putLong(longValue)
+            }
         }
     }
 
