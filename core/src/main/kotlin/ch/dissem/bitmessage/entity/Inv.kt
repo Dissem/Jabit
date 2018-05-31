@@ -17,9 +17,6 @@
 package ch.dissem.bitmessage.entity
 
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector
-import ch.dissem.bitmessage.utils.Encode
-import java.io.OutputStream
-import java.nio.ByteBuffer
 
 /**
  * The 'inv' command holds up to 50000 inventory vectors, i.e. hashes of inventory items.
@@ -31,22 +28,6 @@ class Inv constructor(val inventory: List<InventoryVector>) : MessagePayload {
     override fun writer(): StreamableWriter = Writer(this)
 
     private class Writer(
-        private val item: Inv
-    ) : StreamableWriter {
-
-        override fun write(out: OutputStream) {
-            Encode.varInt(item.inventory.size, out)
-            for (iv in item.inventory) {
-                iv.writer().write(out)
-            }
-        }
-
-        override fun write(buffer: ByteBuffer) {
-            Encode.varInt(item.inventory.size, buffer)
-            for (iv in item.inventory) {
-                iv.writer().write(buffer)
-            }
-        }
-
-    }
+        item: Inv
+    ) : InventoryWriter(item.inventory)
 }

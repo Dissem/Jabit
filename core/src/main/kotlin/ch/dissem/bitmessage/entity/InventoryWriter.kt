@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Christian Basler
+ * Copyright 2018 Christian Basler
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,22 +17,24 @@
 package ch.dissem.bitmessage.entity
 
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector
+import ch.dissem.bitmessage.utils.Encode
+import java.io.OutputStream
+import java.nio.ByteBuffer
 
-/**
- * The 'getdata' command is used to request objects from a node.
- */
-class GetData constructor(var inventory: List<InventoryVector>) : MessagePayload {
+internal open class InventoryWriter(private val inventory: List<InventoryVector>) : StreamableWriter {
 
-    override val command: MessagePayload.Command = MessagePayload.Command.GETDATA
-
-    override fun writer(): StreamableWriter = Writer(this)
-
-    private class Writer(
-        item: GetData
-    ) : InventoryWriter(item.inventory)
-
-    companion object {
-        @JvmField
-        val MAX_INVENTORY_SIZE = 50000
+    override fun write(out: OutputStream) {
+        Encode.varInt(inventory.size, out)
+        for (iv in inventory) {
+            iv.writer().write(out)
+        }
     }
+
+    override fun write(buffer: ByteBuffer) {
+        Encode.varInt(inventory.size, buffer)
+        for (iv in inventory) {
+            iv.writer().write(buffer)
+        }
+    }
+
 }
