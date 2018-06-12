@@ -58,7 +58,7 @@ class Connection(
     private var lastObjectTime: Long = 0
 
     lateinit var streams: LongArray
-        protected set
+        private set
 
     @Volatile var state = State.CONNECTING
         private set

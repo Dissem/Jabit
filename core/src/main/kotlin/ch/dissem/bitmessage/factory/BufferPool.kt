@@ -18,9 +18,11 @@ package ch.dissem.bitmessage.factory
 
 import ch.dissem.bitmessage.constants.Network.HEADER_SIZE
 import ch.dissem.bitmessage.constants.Network.MAX_PAYLOAD_SIZE
+import ch.dissem.bitmessage.exception.NodeException
 import org.slf4j.LoggerFactory
 import java.nio.ByteBuffer
 import java.util.*
+import kotlin.math.max
 
 /**
  * A pool for [ByteBuffer]s. As they may use up a lot of memory,
@@ -29,22 +31,44 @@ import java.util.*
 object BufferPool {
     private val LOG = LoggerFactory.getLogger(BufferPool::class.java)
 
+    private var limit: Int? = null
+    private var strictLimit = false
+
+    /**
+     * Sets a limit to how many buffers the pool handles. If strict is set to true, it will not issue any
+     * buffers once the limit is reached and will throw a NodeException instead. Otherwise, it will simply
+     * ignore returned buffers once the limit is reached (and therefore garbage collected)
+     */
+    fun setLimit(limit: Int, strict: Boolean = false) {
+        this.limit = limit
+        this.strictLimit = strict
+        pools.values.forEach { it.limit = limit }
+        pools[HEADER_SIZE]!!.limit = 2 * limit
+        pools[MAX_PAYLOAD_SIZE]!!.limit = max(limit / 2, 1)
+    }
+
     private val pools = mapOf(
-        HEADER_SIZE to Stack<ByteBuffer>(),
-        54 to Stack<ByteBuffer>(),
-        1000 to Stack<ByteBuffer>(),
-        60000 to Stack<ByteBuffer>(),
-        MAX_PAYLOAD_SIZE to Stack<ByteBuffer>()
+        HEADER_SIZE to Pool(),
+        54 to Pool(),
+        1000 to Pool(),
+        60000 to Pool(),
+        MAX_PAYLOAD_SIZE to Pool()
     )
 
-    @Synchronized fun allocate(capacity: Int): ByteBuffer {
+    @Synchronized
+    fun allocate(capacity: Int): ByteBuffer {
         val targetSize = getTargetSize(capacity)
         val pool = pools[targetSize] ?: throw IllegalStateException("No pool for size $targetSize available")
-        if (pool.isEmpty()) {
-            LOG.trace("Creating new buffer of size $targetSize")
-            return ByteBuffer.allocate(targetSize)
+
+        return if (pool.isEmpty) {
+            if (pool.hasCapacity || !strictLimit) {
+                LOG.trace("Creating new buffer of size $targetSize")
+                ByteBuffer.allocate(targetSize)
+            } else {
+                throw NodeException("pool limit for capacity $capacity is reached")
+            }
         } else {
-            return pool.pop()
+            pool.pop()
         }
     }
 
@@ -53,18 +77,26 @@ object BufferPool {
 
      * @return a buffer of size 24
      */
-    @Synchronized fun allocateHeaderBuffer(): ByteBuffer {
-        val pool = pools[HEADER_SIZE]
-        if (pool == null || pool.isEmpty()) {
-            return ByteBuffer.allocate(HEADER_SIZE)
+    @Synchronized
+    fun allocateHeaderBuffer(): ByteBuffer {
+        val pool = pools[HEADER_SIZE] ?: throw IllegalStateException("No pool for header available")
+        return if (pool.isEmpty) {
+            if (pool.hasCapacity || !strictLimit) {
+                LOG.trace("Creating new buffer of header")
+                ByteBuffer.allocate(HEADER_SIZE)
+            } else {
+                throw NodeException("pool limit for header buffer is reached")
+            }
         } else {
-            return pool.pop()
+            pool.pop()
         }
     }
 
-    @Synchronized fun deallocate(buffer: ByteBuffer) {
+    @Synchronized
+    fun deallocate(buffer: ByteBuffer) {
         buffer.clear()
-        val pool = pools[buffer.capacity()] ?: throw IllegalArgumentException("Illegal buffer capacity ${buffer.capacity()} one of ${pools.keys} expected.")
+        val pool = pools[buffer.capacity()]
+            ?: throw IllegalArgumentException("Illegal buffer capacity ${buffer.capacity()} one of ${pools.keys} expected.")
         pool.push(buffer)
     }
 
@@ -73,5 +105,41 @@ object BufferPool {
             if (size >= capacity) return size
         }
         throw IllegalArgumentException("Requested capacity too large: requested=$capacity; max=$MAX_PAYLOAD_SIZE")
+    }
+
+    /**
+     * There is a race condition where the limit could be ignored for an allocation, but I think the consequences
+     * are benign.
+     */
+    class Pool {
+        private val stack = Stack<ByteBuffer>()
+        private var capacity = 0
+        internal var limit: Int? = null
+            set(value) {
+                capacity = value ?: 0
+                field = value
+            }
+
+        val isEmpty
+            get() = stack.isEmpty()
+
+        val hasCapacity
+            @Synchronized
+            get() = limit == null || capacity > 0
+
+        @Synchronized
+        fun pop(): ByteBuffer {
+            capacity--
+            return stack.pop()
+        }
+
+        @Synchronized
+        fun push(buffer: ByteBuffer) {
+            if (hasCapacity) {
+                stack.push(buffer)
+            }
+            // else, let it be collected by the garbage collector
+            capacity++
+        }
     }
 }

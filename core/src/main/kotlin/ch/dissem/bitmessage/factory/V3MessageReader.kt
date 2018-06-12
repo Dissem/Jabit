@@ -90,11 +90,11 @@ class V3MessageReader {
         state = ReaderState.DATA
         this.headerBuffer = null
         BufferPool.deallocate(headerBuffer)
-        val dataBuffer = BufferPool.allocate(length)
-        this.dataBuffer = dataBuffer
-        dataBuffer.clear()
-        dataBuffer.limit(length)
-        data(dataBuffer)
+        this.dataBuffer = BufferPool.allocate(length).apply {
+            clear()
+            limit(length)
+            data(this)
+        }
     }
 
     private fun data(dataBuffer: ByteBuffer) {

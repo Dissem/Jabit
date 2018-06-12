@@ -16,6 +16,7 @@
 
 package ch.dissem.bitmessage.networking.nio
 
+import ch.dissem.bitmessage.constants.Network.HEADER_SIZE
 import ch.dissem.bitmessage.entity.GetData
 import ch.dissem.bitmessage.entity.MessagePayload
 import ch.dissem.bitmessage.entity.NetworkMessage
@@ -39,7 +40,7 @@ class ConnectionIO(
     private val getState: () -> Connection.State,
     private val handleMessage: (MessagePayload) -> Unit
 ) {
-    private val headerOut: ByteBuffer = ByteBuffer.allocate(24)
+    private val headerOut: ByteBuffer = ByteBuffer.allocate(HEADER_SIZE)
     private var payloadOut: ByteBuffer? = null
     private var reader: V3MessageReader? = V3MessageReader()
     internal val sendingQueue: Deque<MessagePayload> = ConcurrentLinkedDeque<MessagePayload>()

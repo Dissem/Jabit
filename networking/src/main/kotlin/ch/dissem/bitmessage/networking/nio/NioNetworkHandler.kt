@@ -17,7 +17,6 @@
 package ch.dissem.bitmessage.networking.nio
 
 import ch.dissem.bitmessage.InternalContext
-import ch.dissem.bitmessage.constants.Network.HEADER_SIZE
 import ch.dissem.bitmessage.constants.Network.NETWORK_MAGIC_NUMBER
 import ch.dissem.bitmessage.entity.CustomMessage
 import ch.dissem.bitmessage.entity.GetData
@@ -25,6 +24,7 @@ import ch.dissem.bitmessage.entity.NetworkMessage
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress
 import ch.dissem.bitmessage.exception.NodeException
+import ch.dissem.bitmessage.factory.BufferPool
 import ch.dissem.bitmessage.factory.V3MessageReader
 import ch.dissem.bitmessage.networking.nio.Connection.Mode.*
 import ch.dissem.bitmessage.ports.NetworkHandler
@@ -48,7 +48,8 @@ import java.util.concurrent.*
 /**
  * Network handler using java.nio, resulting in less threads.
  */
-class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
+class NioNetworkHandler(private val magicNetworkNumber: Int = NETWORK_MAGIC_NUMBER) : NetworkHandler,
+    InternalContext.ContextHolder {
 
     private val threadPool = Executors.newCachedThreadPool(
         pool("network")
@@ -93,12 +94,13 @@ class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
     override fun send(server: InetAddress, port: Int, request: CustomMessage): CustomMessage {
         SocketChannel.open(InetSocketAddress(server, port)).use { channel ->
             channel.configureBlocking(true)
-            val headerBuffer = ByteBuffer.allocate(HEADER_SIZE)
+            val headerBuffer = BufferPool.allocateHeaderBuffer()
             val payloadBuffer = NetworkMessage(request).writer().writeHeaderAndGetPayloadBuffer(headerBuffer)
             headerBuffer.flip()
             while (headerBuffer.hasRemaining()) {
                 channel.write(headerBuffer)
             }
+            BufferPool.deallocate(headerBuffer)
             while (payloadBuffer.hasRemaining()) {
                 channel.write(payloadBuffer)
             }
@@ -108,12 +110,14 @@ class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
                 if (channel.read(reader.getActiveBuffer()) > 0) {
                     reader.update()
                 } else {
+                    reader.cleanup()
                     throw NodeException("No response from node $server")
                 }
             }
             val networkMessage: NetworkMessage?
             if (reader.getMessages().isEmpty()) {
-                throw NodeException("No response from node " + server)
+                reader.cleanup()
+                throw NodeException("No response from node $server")
             } else {
                 networkMessage = reader.getMessages().first()
             }
@@ -121,13 +125,14 @@ class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
             if (networkMessage.payload is CustomMessage) {
                 return networkMessage.payload as CustomMessage
             } else {
+                reader.cleanup()
                 throw NodeException("Unexpected response from node $server: ${networkMessage.payload.javaClass}")
             }
         }
     }
 
     override fun start() {
-        if (selector?.isOpen ?: false) {
+        if (selector?.isOpen == true) {
             throw IllegalStateException("Network already running - you need to stop first.")
         }
         val selector = Selector.open()
@@ -137,7 +142,7 @@ class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
 
         starter = thread("connection manager") {
             while (selector.isOpen) {
-                var missing = NETWORK_MAGIC_NUMBER
+                var missing = magicNetworkNumber
                 for ((connection, _) in connections) {
                     if (connection.state == Connection.State.ACTIVE) {
                         missing--
@@ -229,10 +234,8 @@ class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
                                                 ),
                                                 requestedObjects, 0
                                             )
-                                            connections.put(
-                                                connection,
+                                            connections[connection] =
                                                 accepted.register(selector, OP_READ or OP_WRITE, connection)
-                                            )
                                         } catch (e: AsynchronousCloseException) {
                                             LOG.trace(e.message)
                                         } catch (e: IOException) {
@@ -260,13 +263,13 @@ class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
                                     if (key.isReadable) {
                                         read(channel, connection.io)
                                     }
-                                    if (connection.state == Connection.State.DISCONNECTED) {
-                                        key.interestOps(0)
-                                        channel.close()
-                                    } else if (connection.io.isWritePending) {
-                                        key.interestOps(OP_READ or OP_WRITE)
-                                    } else {
-                                        key.interestOps(OP_READ)
+                                    when {
+                                        connection.state == Connection.State.DISCONNECTED -> {
+                                            key.interestOps(0)
+                                            channel.close()
+                                        }
+                                        connection.io.isWritePending -> key.interestOps(OP_READ or OP_WRITE)
+                                        else -> key.interestOps(OP_READ)
                                     }
                                 } catch (e: CancelledKeyException) {
                                     connection.disconnect()
@@ -361,7 +364,7 @@ class NioNetworkHandler : NetworkHandler, InternalContext.ContextHolder {
 
     override fun offer(iv: InventoryVector) {
         val targetConnections = connections.keys.filter { it.state == Connection.State.ACTIVE && !it.knowsOf(iv) }
-        selectRandom(NETWORK_MAGIC_NUMBER, targetConnections).forEach { it.offer(iv) }
+        selectRandom(magicNetworkNumber, targetConnections).forEach { it.offer(iv) }
     }
 
     override fun request(inventoryVectors: MutableCollection<InventoryVector>) {
