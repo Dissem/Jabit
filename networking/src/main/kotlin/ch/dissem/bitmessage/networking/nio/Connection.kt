@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 
 /**
  * Contains everything used by both the old streams-oriented NetworkHandler and the new NioNetworkHandler,
@@ -165,11 +166,12 @@ class Connection(
         }
     }
 
-    // the TCP timeout starts out at 20 seconds
+    // According to the specification, the TCP timeout starts out at 20 seconds
     // after verack messages are exchanged, the timeout is raised to 10 minutes
+    // Let's tweak these numbers a bit:
     fun isExpired(): Boolean = when (state) {
-        State.CONNECTING -> io.lastUpdate < System.currentTimeMillis() - 20000
-        State.ACTIVE -> io.lastUpdate < System.currentTimeMillis() - 600000
+        State.CONNECTING -> io.lastUpdate < System.currentTimeMillis() - TimeUnit.SECONDS.toMillis(9)
+        State.ACTIVE -> io.lastUpdate < System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(3)
         State.DISCONNECTED -> true
     }
 

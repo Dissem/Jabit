@@ -17,6 +17,7 @@
 package ch.dissem.bitmessage.networking.nio
 
 import ch.dissem.bitmessage.InternalContext
+import ch.dissem.bitmessage.constants.Network.HEADER_SIZE
 import ch.dissem.bitmessage.constants.Network.NETWORK_MAGIC_NUMBER
 import ch.dissem.bitmessage.entity.CustomMessage
 import ch.dissem.bitmessage.entity.GetData
@@ -24,7 +25,6 @@ import ch.dissem.bitmessage.entity.NetworkMessage
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector
 import ch.dissem.bitmessage.entity.valueobject.NetworkAddress
 import ch.dissem.bitmessage.exception.NodeException
-import ch.dissem.bitmessage.factory.BufferPool
 import ch.dissem.bitmessage.factory.V3MessageReader
 import ch.dissem.bitmessage.networking.nio.Connection.Mode.*
 import ch.dissem.bitmessage.ports.NetworkHandler
@@ -94,29 +94,26 @@ class NioNetworkHandler(private val magicNetworkNumber: Int = NETWORK_MAGIC_NUMB
     override fun send(server: InetAddress, port: Int, request: CustomMessage): CustomMessage {
         SocketChannel.open(InetSocketAddress(server, port)).use { channel ->
             channel.configureBlocking(true)
-            val headerBuffer = BufferPool.allocateHeaderBuffer()
+            val headerBuffer = ByteBuffer.allocate(HEADER_SIZE)
             val payloadBuffer = NetworkMessage(request).writer().writeHeaderAndGetPayloadBuffer(headerBuffer)
             headerBuffer.flip()
             while (headerBuffer.hasRemaining()) {
                 channel.write(headerBuffer)
             }
-            BufferPool.deallocate(headerBuffer)
             while (payloadBuffer.hasRemaining()) {
                 channel.write(payloadBuffer)
             }
 
             val reader = V3MessageReader()
             while (channel.isConnected && reader.getMessages().isEmpty()) {
-                if (channel.read(reader.getActiveBuffer()) > 0) {
+                if (channel.read(reader.buffer) > 0) {
                     reader.update()
                 } else {
-                    reader.cleanup()
                     throw NodeException("No response from node $server")
                 }
             }
             val networkMessage: NetworkMessage?
             if (reader.getMessages().isEmpty()) {
-                reader.cleanup()
                 throw NodeException("No response from node $server")
             } else {
                 networkMessage = reader.getMessages().first()
@@ -125,7 +122,6 @@ class NioNetworkHandler(private val magicNetworkNumber: Int = NETWORK_MAGIC_NUMB
             if (networkMessage.payload is CustomMessage) {
                 return networkMessage.payload as CustomMessage
             } else {
-                reader.cleanup()
                 throw NodeException("Unexpected response from node $server: ${networkMessage.payload.javaClass}")
             }
         }
@@ -196,14 +192,14 @@ class NioNetworkHandler(private val magicNetworkNumber: Int = NETWORK_MAGIC_NUMB
                 request(delayed)
 
                 try {
-                    Thread.sleep(30000)
+                    Thread.sleep(10000)
                 } catch (e: InterruptedException) {
                     return@thread
                 }
             }
         }
 
-        thread("selector worker", {
+        thread("selector worker") {
             try {
                 val serverChannel = ServerSocketChannel.open()
                 this.serverChannel = serverChannel
@@ -272,10 +268,13 @@ class NioNetworkHandler(private val magicNetworkNumber: Int = NETWORK_MAGIC_NUMB
                                         else -> key.interestOps(OP_READ)
                                     }
                                 } catch (e: CancelledKeyException) {
+                                    LOG.debug("${e.message}: ${connection.node}", e)
                                     connection.disconnect()
                                 } catch (e: NodeException) {
+                                    LOG.debug("${e.message}: ${connection.node}", e)
                                     connection.disconnect()
                                 } catch (e: IOException) {
+                                    LOG.debug("${e.message}: ${connection.node}", e)
                                     connection.disconnect()
                                 }
                             }
@@ -306,10 +305,11 @@ class NioNetworkHandler(private val magicNetworkNumber: Int = NETWORK_MAGIC_NUMB
                             channel.configureBlocking(false)
                             channel.connect(InetSocketAddress(address.toInetAddress(), address.port))
                             val connection = Connection(ctx, CLIENT, address, requestedObjects, 0)
-                            connections.put(
-                                connection,
-                                channel.register(selector, OP_CONNECT, connection)
-                            )
+
+                            connections[connection] = channel.register(selector, OP_CONNECT, connection)
+
+                            LOG.debug("Connection registered to $address")
+
                         } catch (ignore: NoRouteToHostException) {
                             // We'll try to connect to many offline nodes, so
                             // this is expected to happen quite a lot.
@@ -321,7 +321,11 @@ class NioNetworkHandler(private val magicNetworkNumber: Int = NETWORK_MAGIC_NUMB
                                 LOG.error(e.message, e)
                             }
                         } catch (e: IOException) {
-                            LOG.error(e.message, e)
+                            if (e.message == "Network is unreachable") {
+                                LOG.debug("Network is unreachable: $address")
+                            } else {
+                                LOG.error("${e.message}: $address", e)
+                            }
                         }
 
                     }
@@ -335,7 +339,7 @@ class NioNetworkHandler(private val magicNetworkNumber: Int = NETWORK_MAGIC_NUMB
                 // isn't nice though.
                 LOG.error(e.message, e)
             }
-        })
+        }
     }
 
     private fun thread(threadName: String, runnable: () -> Unit): Thread {
@@ -380,7 +384,7 @@ class NioNetworkHandler(private val magicNetworkNumber: Int = NETWORK_MAGIC_NUMB
         val distribution = HashMap<Connection, MutableList<InventoryVector>>()
         for ((connection, _) in connections) {
             if (connection.state == Connection.State.ACTIVE) {
-                distribution.put(connection, mutableListOf<InventoryVector>())
+                distribution[connection] = mutableListOf()
             }
         }
         if (distribution.isEmpty()) {
@@ -455,7 +459,7 @@ class NioNetworkHandler(private val magicNetworkNumber: Int = NETWORK_MAGIC_NUMB
             val outgoing = outgoingConnections[stream] ?: 0
             streamProperties.add(
                 Property(
-                    "stream " + stream, Property("nodes", incoming + outgoing),
+                    "stream $stream", Property("nodes", incoming + outgoing),
                     Property("incoming", incoming),
                     Property("outgoing", outgoing)
                 )
@@ -476,8 +480,8 @@ class NioNetworkHandler(private val magicNetworkNumber: Int = NETWORK_MAGIC_NUMB
 
     companion object {
         private val LOG = LoggerFactory.getLogger(NioNetworkHandler::class.java)
-        private val REQUESTED_OBJECTS_MAX_TIME = (2 * 60000).toLong() // 2 minutes in ms
-        private val DELAYED = java.lang.Long.MIN_VALUE
+        private const val REQUESTED_OBJECTS_MAX_TIME = 2 * 60000L // 2 minutes in ms
+        private const val DELAYED = java.lang.Long.MIN_VALUE
 
         private fun write(channel: SocketChannel, connection: ConnectionIO) {
             writeBuffer(connection.outBuffers, channel)

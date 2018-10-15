@@ -30,8 +30,7 @@ import java.util.*
  * Similar to the [V3MessageFactory], but used for NIO buffers which may or may not contain a whole message.
  */
 class V3MessageReader {
-    private var headerBuffer: ByteBuffer? = null
-    private var dataBuffer: ByteBuffer? = null
+    val buffer: ByteBuffer = ByteBuffer.allocate(MAX_PAYLOAD_SIZE)
 
     private var state: ReaderState? = ReaderState.MAGIC
     private var command: String? = null
@@ -40,89 +39,83 @@ class V3MessageReader {
 
     private val messages = LinkedList<NetworkMessage>()
 
-    fun getActiveBuffer(): ByteBuffer {
-        if (state != null && state != ReaderState.DATA) {
-            if (headerBuffer == null) {
-                headerBuffer = BufferPool.allocateHeaderBuffer()
-            }
-        }
-        return if (state == ReaderState.DATA)
-            dataBuffer ?: throw IllegalStateException("data buffer is null")
-        else
-            headerBuffer ?: throw IllegalStateException("header buffer is null")
-    }
-
     fun update() {
         if (state != ReaderState.DATA) {
-            getActiveBuffer() // in order to initialize
-            headerBuffer?.flip() ?: throw IllegalStateException("header buffer is null")
+            buffer.flip()
         }
-        when (state) {
-            V3MessageReader.ReaderState.MAGIC -> magic(headerBuffer ?: throw IllegalStateException("header buffer is null"))
-            V3MessageReader.ReaderState.HEADER -> header(headerBuffer ?: throw IllegalStateException("header buffer is null"))
-            V3MessageReader.ReaderState.DATA -> data(dataBuffer ?: throw IllegalStateException("data buffer is null"))
+        var s = when (state) {
+            ReaderState.MAGIC -> magic()
+            ReaderState.HEADER -> header()
+            ReaderState.DATA -> data()
+            else -> ReaderState.WAIT_FOR_DATA
         }
-    }
-
-    private fun magic(headerBuffer: ByteBuffer) {
-        if (!findMagicBytes(headerBuffer)) {
-            headerBuffer.compact()
-            return
-        } else {
-            state = ReaderState.HEADER
-            header(headerBuffer)
+        while (s != ReaderState.WAIT_FOR_DATA) {
+            s = when (state) {
+                ReaderState.MAGIC -> magic()
+                ReaderState.HEADER -> header()
+                ReaderState.DATA -> data(flip = false)
+                else -> ReaderState.WAIT_FOR_DATA
+            }
         }
     }
 
-    private fun header(headerBuffer: ByteBuffer) {
-        if (headerBuffer.remaining() < 20) {
-            headerBuffer.compact()
-            headerBuffer.limit(20)
-            return
+    private fun magic(): ReaderState = if (!findMagicBytes(buffer)) {
+        buffer.compact()
+        ReaderState.WAIT_FOR_DATA
+    } else {
+        state = ReaderState.HEADER
+        ReaderState.HEADER
+    }
+
+    private fun header(): ReaderState {
+        if (buffer.remaining() < 20) {
+            buffer.compact()
+            return ReaderState.WAIT_FOR_DATA
         }
-        command = getCommand(headerBuffer)
-        length = Decode.uint32(headerBuffer).toInt()
+        command = getCommand(buffer)
+        length = Decode.uint32(buffer).toInt()
         if (length > MAX_PAYLOAD_SIZE) {
-            throw NodeException("Payload of " + length + " bytes received, no more than " +
-                MAX_PAYLOAD_SIZE + " was expected.")
+            throw NodeException(
+                "Payload of " + length + " bytes received, no more than " +
+                    MAX_PAYLOAD_SIZE + " was expected."
+            )
         }
-        headerBuffer.get(checksum)
+        buffer.get(checksum)
         state = ReaderState.DATA
-        this.headerBuffer = null
-        BufferPool.deallocate(headerBuffer)
-        this.dataBuffer = BufferPool.allocate(length).apply {
-            clear()
-            limit(length)
-            data(this)
-        }
+        return ReaderState.DATA
     }
 
-    private fun data(dataBuffer: ByteBuffer) {
-        if (dataBuffer.position() < length) {
-            return
-        } else {
-            dataBuffer.flip()
+    private fun data(flip: Boolean = true): ReaderState {
+        if (flip) {
+            if (buffer.position() < length) {
+                return ReaderState.WAIT_FOR_DATA
+            } else {
+                buffer.flip()
+            }
+        } else if (buffer.remaining() < length) {
+            buffer.compact()
+            return ReaderState.WAIT_FOR_DATA
         }
-        if (!testChecksum(dataBuffer)) {
+        if (!testChecksum(buffer)) {
             state = ReaderState.MAGIC
-            this.dataBuffer = null
-            BufferPool.deallocate(dataBuffer)
+            buffer.clear()
             throw NodeException("Checksum failed for message '$command'")
         }
         try {
             V3MessageFactory.getPayload(
                 command ?: throw IllegalStateException("command is null"),
-                ByteArrayInputStream(dataBuffer.array(),
-                    dataBuffer.arrayOffset() + dataBuffer.position(), length),
+                ByteArrayInputStream(
+                    buffer.array(),
+                    buffer.arrayOffset() + buffer.position(), length
+                ),
                 length
             )?.let { messages.add(NetworkMessage(it)) }
         } catch (e: IOException) {
             throw NodeException(e.message)
         } finally {
             state = ReaderState.MAGIC
-            this.dataBuffer = null
-            BufferPool.deallocate(dataBuffer)
         }
+        return ReaderState.MAGIC
     }
 
     fun getMessages(): MutableList<NetworkMessage> {
@@ -163,8 +156,10 @@ class V3MessageReader {
     }
 
     private fun testChecksum(buffer: ByteBuffer): Boolean {
-        val payloadChecksum = cryptography().sha512(buffer.array(),
-            buffer.arrayOffset() + buffer.position(), length)
+        val payloadChecksum = cryptography().sha512(
+            buffer.array(),
+            buffer.arrayOffset() + buffer.position(), length
+        )
         for (i in checksum.indices) {
             if (checksum[i] != payloadChecksum[i]) {
                 return false
@@ -173,17 +168,7 @@ class V3MessageReader {
         return true
     }
 
-    /**
-     * De-allocates all buffers. This method should be called iff the reader isn't used anymore, i.e. when its
-     * connection is severed.
-     */
-    fun cleanup() {
-        state = null
-        headerBuffer?.let { BufferPool.deallocate(it) }
-        dataBuffer?.let { BufferPool.deallocate(it) }
-    }
-
     private enum class ReaderState {
-        MAGIC, HEADER, DATA
+        MAGIC, HEADER, DATA, WAIT_FOR_DATA
     }
 }

@@ -68,12 +68,12 @@ class CryptographyTest {
 
     @Test(expected = IOException::class)
     fun ensureExceptionForInsufficientProofOfWork() {
-        val objectMessage = ObjectMessage.Builder()
-            .nonce(ByteArray(8))
-            .expiresTime(UnixTime.now + 28 * DAY)
-            .objectType(0)
-            .payload(GenericPayload.read(0, 1, ByteArrayInputStream(ByteArray(0)), 0))
-            .build()
+        val objectMessage = ObjectMessage(
+            nonce = ByteArray(8),
+            expiresTime = UnixTime.now + 28 * DAY,
+            payload = GenericPayload.read(0, 1, ByteArrayInputStream(ByteArray(0)), 0),
+            type = 0
+        )
         crypto.checkProofOfWork(objectMessage, 1000, 1000)
     }
 
@@ -86,10 +86,8 @@ class CryptographyTest {
         val objectMessage = ObjectMessage(
             nonce = ByteArray(8),
             expiresTime = UnixTime.now + 2 * MINUTE,
-            type = 0,
             payload = GenericPayload.read(0, 1, ByteArrayInputStream(ByteArray(0)), 0),
-            version = 0,
-            stream = 1
+            type = 0
         )
         val waiter = CallbackWaiter<ByteArray>()
         crypto.doProofOfWork(objectMessage, 1000, 1000,
@@ -154,13 +152,19 @@ class CryptographyTest {
 
     companion object {
         val TEST_VALUE = "teststring".toByteArray()
-        val TEST_SHA1 = DatatypeConverter.parseHexBinary(""
-            + "b8473b86d4c2072ca9b08bd28e373e8253e865c4")
-        val TEST_SHA512 = DatatypeConverter.parseHexBinary(""
-            + "6253b39071e5df8b5098f59202d414c37a17d6a38a875ef5f8c7d89b0212b028"
-            + "692d3d2090ce03ae1de66c862fa8a561e57ed9eb7935ce627344f742c0931d72")
-        val TEST_RIPEMD160 = DatatypeConverter.parseHexBinary(""
-            + "cd566972b5e50104011a92b59fa8e0b1234851ae")
+        val TEST_SHA1 = DatatypeConverter.parseHexBinary(
+            ""
+                + "b8473b86d4c2072ca9b08bd28e373e8253e865c4"
+        )
+        val TEST_SHA512 = DatatypeConverter.parseHexBinary(
+            ""
+                + "6253b39071e5df8b5098f59202d414c37a17d6a38a875ef5f8c7d89b0212b028"
+                + "692d3d2090ce03ae1de66c862fa8a561e57ed9eb7935ce627344f742c0931d72"
+        )
+        val TEST_RIPEMD160 = DatatypeConverter.parseHexBinary(
+            ""
+                + "cd566972b5e50104011a92b59fa8e0b1234851ae"
+        )
 
         private val crypto = SpongyCryptography()
 

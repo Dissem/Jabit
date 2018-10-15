@@ -24,16 +24,16 @@ task fatCapsule(type: FatCapsule) {
 }
 
 dependencies {
-    compile project(':core')
-    compile project(':networking')
-    compile project(':repositories')
-    compile project(':cryptography-bc')
-    compile project(':wif')
-    compile 'org.slf4j:slf4j-simple'
-    compile 'args4j:args4j'
-    compile 'com.h2database:h2'
-    compile 'org.apache.commons:commons-text'
-    testCompile 'com.nhaarman:mockito-kotlin'
-    testCompile 'org.junit.jupiter:junit-jupiter-api'
+    implementation project(':core')
+    implementation project(':networking')
+    implementation project(':repositories')
+    implementation project(':cryptography-bc')
+    implementation project(':wif')
+    implementation 'org.slf4j:slf4j-simple'
+    implementation 'args4j:args4j'
+    implementation 'com.h2database:h2'
+    implementation 'org.apache.commons:commons-text'
+    testImplementation 'com.nhaarman:mockito-kotlin'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
     testRuntime 'org.junit.jupiter:junit-jupiter-engine'
 }

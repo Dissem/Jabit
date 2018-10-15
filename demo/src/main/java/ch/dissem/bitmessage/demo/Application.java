@@ -115,6 +115,7 @@ public class Application {
             System.out.println(ctx.status());
             System.out.println();
             System.out.println("c) cleanup inventory");
+            System.out.println("n) remove known nodes");
             System.out.println("r) resend unacknowledged messages");
             System.out.println(COMMAND_BACK);
 
@@ -122,6 +123,9 @@ public class Application {
             switch (command) {
                 case "c":
                     ctx.cleanup();
+                    break;
+                case "n":
+                    ctx.internals().getNodeRegistry().cleanup();
                     break;
                 case "r":
                     ctx.resendUnacknowledgedMessages();

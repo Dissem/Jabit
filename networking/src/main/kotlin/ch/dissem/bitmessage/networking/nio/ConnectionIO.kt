@@ -21,7 +21,6 @@ import ch.dissem.bitmessage.entity.GetData
 import ch.dissem.bitmessage.entity.MessagePayload
 import ch.dissem.bitmessage.entity.NetworkMessage
 import ch.dissem.bitmessage.entity.valueobject.InventoryVector
-import ch.dissem.bitmessage.exception.NodeException
 import ch.dissem.bitmessage.factory.V3MessageReader
 import ch.dissem.bitmessage.utils.UnixTime
 import org.slf4j.LoggerFactory
@@ -42,7 +41,7 @@ class ConnectionIO(
 ) {
     private val headerOut: ByteBuffer = ByteBuffer.allocate(HEADER_SIZE)
     private var payloadOut: ByteBuffer? = null
-    private var reader: V3MessageReader? = V3MessageReader()
+    private val reader = V3MessageReader()
     internal val sendingQueue: Deque<MessagePayload> = ConcurrentLinkedDeque<MessagePayload>()
 
     internal var lastUpdate = System.currentTimeMillis()
@@ -55,8 +54,7 @@ class ConnectionIO(
         headerOut.flip()
     }
 
-    val inBuffer: ByteBuffer
-        get() = reader?.getActiveBuffer() ?: throw NodeException("Node is disconnected")
+    val inBuffer: ByteBuffer = reader.buffer
 
     fun updateWriter() {
         if (!headerOut.hasRemaining() && !sendingQueue.isEmpty()) {
@@ -78,7 +76,7 @@ class ConnectionIO(
     }
 
     fun updateReader() {
-        reader?.let { reader ->
+        reader.let { reader ->
             reader.update()
             if (!reader.getMessages().isEmpty()) {
                 val iterator = reader.getMessages().iterator()
@@ -96,11 +94,11 @@ class ConnectionIO(
 
     fun updateSyncStatus() {
         if (!isSyncFinished) {
-            isSyncFinished = reader?.getMessages()?.isEmpty() ?: true && syncFinished(null)
+            isSyncFinished = reader.getMessages().isEmpty() && syncFinished(null)
         }
     }
 
-    protected fun syncFinished(msg: NetworkMessage?): Boolean {
+    private fun syncFinished(msg: NetworkMessage?): Boolean {
         if (mode != Connection.Mode.SYNC) {
             return false
         }
@@ -127,10 +125,6 @@ class ConnectionIO(
     }
 
     fun disconnect() {
-        reader?.let {
-            it.cleanup()
-            reader = null
-        }
         payloadOut = null
     }
 
@@ -151,7 +145,7 @@ class ConnectionIO(
             || headerOut.hasRemaining()
             || payloadOut?.hasRemaining() ?: false
 
-    fun nothingToSend() = sendingQueue.isEmpty()
+    private fun nothingToSend() = sendingQueue.isEmpty()
 
     companion object {
         val LOG = LoggerFactory.getLogger(ConnectionIO::class.java)

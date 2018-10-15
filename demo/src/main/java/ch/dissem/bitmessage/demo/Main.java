@@ -63,6 +63,7 @@ public class Main {
             .inventory(new JdbcInventory(jdbcConfig))
             .messageRepo(new JdbcMessageRepository(jdbcConfig))
             .powRepo(new JdbcProofOfWorkRepository(jdbcConfig))
+            .labelRepo(new JdbcLabelRepository(jdbcConfig))
             .networkHandler(new NioNetworkHandler())
             .cryptography(new BouncyCryptography());
         ctxBuilder.getPreferences().setPort(48444);

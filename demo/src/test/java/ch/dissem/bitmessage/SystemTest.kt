@@ -26,6 +26,7 @@ import ch.dissem.bitmessage.ports.Labeler
 import ch.dissem.bitmessage.repository.*
 import ch.dissem.bitmessage.utils.TTL
 import ch.dissem.bitmessage.utils.UnixTime.MINUTE
+import com.nhaarman.mockito_kotlin.any
 import com.nhaarman.mockito_kotlin.spy
 import com.nhaarman.mockito_kotlin.timeout
 import com.nhaarman.mockito_kotlin.verify
@@ -34,7 +35,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTimeoutPreemptively
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.ArgumentMatchers.any
 import org.slf4j.LoggerFactory
 import java.time.Duration.ofMinutes
 import java.time.Duration.ofSeconds
@@ -126,7 +126,7 @@ class SystemTest {
             verify(
                 aliceLabeler,
                 timeout(TimeUnit.MINUTES.toMillis(2)).atLeastOnce()
-            ).markAsAcknowledged(any<Plaintext>())
+            ).markAsAcknowledged(any())
         }
     }
 
@@ -145,7 +145,7 @@ class SystemTest {
         }
     }
 
-    internal class DebugLabeler internal constructor(private val name: String) : DefaultLabeler() {
+    internal open class DebugLabeler internal constructor(private val name: String) : DefaultLabeler() {
         private val LOG = LoggerFactory.getLogger("Labeler")
         private lateinit var alice: String
         private lateinit var bob: String

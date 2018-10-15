@@ -77,12 +77,12 @@ class NetworkConnectionInitializer(
                 activateConnection()
             }
         } else {
-            throw NodeException("Received unsupported version " + version.version + ", disconnecting.")
+            throw NodeException("Received unsupported version ${version.version}, disconnecting.")
         }
     }
 
     private fun activateConnection() {
-        LOG.info("Successfully established connection with node " + node)
+        LOG.info("Successfully established connection with node $node")
         markActive(version.streams)
         node.time = UnixTime.now
         if (mode != Connection.Mode.SYNC) {

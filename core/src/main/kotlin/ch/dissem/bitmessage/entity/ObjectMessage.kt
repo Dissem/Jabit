@@ -39,36 +39,26 @@ data class ObjectMessage(
     var nonce: ByteArray? = null,
     val expiresTime: Long,
     val payload: ObjectPayload,
-    val type: Long,
+    val type: Long = payload.type?.number ?: throw IllegalArgumentException("payload must have type defined"),
     /**
      * The object's version
      */
-    val version: Long,
-    val stream: Long
+    val version: Long = payload.version,
+    val stream: Long = payload.stream
 ) : MessagePayload {
 
     override val command: MessagePayload.Command = MessagePayload.Command.OBJECT
 
-    constructor(
-        nonce: ByteArray? = null,
-        expiresTime: Long,
-        payload: ObjectPayload,
-        stream: Long
-    ) : this(
-        nonce,
-        expiresTime,
-        payload,
-        payload.type?.number ?: throw IllegalArgumentException("payload must have type defined"),
-        payload.version,
-        stream
-    )
-
     val inventoryVector: InventoryVector
         get() {
-            return InventoryVector(Bytes.truncate(cryptography().doubleSha512(
-                nonce ?: throw IllegalStateException("nonce must be set"),
-                payloadBytesWithoutNonce
-            ), 32))
+            return InventoryVector(
+                Bytes.truncate(
+                    cryptography().doubleSha512(
+                        nonce ?: throw IllegalStateException("nonce must be set"),
+                        payloadBytesWithoutNonce
+                    ), 32
+                )
+            )
         }
 
     private val isEncrypted: Boolean
